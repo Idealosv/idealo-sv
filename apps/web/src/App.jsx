@@ -3,17 +3,33 @@ import { useEffect, useState } from 'react'
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
 export default function App() {
-  const [apiStatus, setApiStatus] = useState('comprobando')
+  const [serviceStatus, setServiceStatus] = useState({
+    api: 'comprobando',
+    database: 'comprobando',
+  })
 
   useEffect(() => {
-    fetch(`${apiUrl}/health`)
+    fetch(`${apiUrl}/api/system/status`)
       .then((response) => {
-        if (!response.ok) throw new Error('API no disponible')
+        if (!response.ok) throw new Error('Servicios no disponibles')
         return response.json()
       })
-      .then(() => setApiStatus('conectada'))
-      .catch(() => setApiStatus('pendiente de configuración'))
+      .then((status) => {
+        setServiceStatus({
+          api: status.api === 'ok' ? 'conectada' : 'con error',
+          database: status.database === 'ok' ? 'conectada' : 'con error',
+        })
+      })
+      .catch(() => {
+        setServiceStatus({
+          api: 'pendiente de configuración',
+          database: 'pendiente de configuración',
+        })
+      })
   }, [])
+
+  const apiConnected = serviceStatus.api === 'conectada'
+  const databaseConnected = serviceStatus.database === 'conectada'
 
   return (
     <main className="shell">
@@ -32,16 +48,24 @@ export default function App() {
 
         <div className="actions">
           <button type="button">Comenzar configuración</button>
-          <a href="${apiUrl}/health" target="_blank" rel="noreferrer">
+          <a href={`${apiUrl}/health`} target="_blank" rel="noreferrer">
             Revisar API
           </a>
         </div>
 
         <div className="status-grid" aria-label="Estado de servicios">
           <Status label="Frontend" value="listo" active />
-          <Status label="API" value={apiStatus} active={apiStatus === 'conectada'} />
-          <Status label="Supabase" value="por conectar" />
-          <Status label="Render" value="por desplegar" />
+          <Status label="API" value={serviceStatus.api} active={apiConnected} />
+          <Status
+            label="Supabase"
+            value={serviceStatus.database}
+            active={databaseConnected}
+          />
+          <Status
+            label="Render"
+            value={apiConnected ? 'desplegado' : 'comprobando'}
+            active={apiConnected}
+          />
         </div>
       </section>
     </main>
