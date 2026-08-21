@@ -37,12 +37,15 @@ begin
   end if;
 
   generated_slug :=
-    pg_catalog.trim(both '-' from pg_catalog.regexp_replace(
-      pg_catalog.lower(clean_name),
-      '[^a-z0-9]+',
-      '-',
-      'g'
-    ))
+    pg_catalog.btrim(
+      pg_catalog.regexp_replace(
+        pg_catalog.lower(clean_name),
+        '[^a-z0-9]+',
+        '-',
+        'g'
+      ),
+      '-'
+    )
     || '-' || pg_catalog.substring(public.gen_random_uuid()::text from 1 for 8);
 
   insert into public.companies (name, slug, created_by)
