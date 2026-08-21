@@ -1,0 +1,58 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f7fafc;
+  background: #08111f;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(16, 185, 129, .17), transparent 32%),
+    radial-gradient(circle at 88% 85%, rgba(59, 130, 246, .16), transparent 35%),
+    #08111f;
+}
+
+.hero {
+  width: min(1040px, 100%);
+  padding: clamp(28px, 6vw, 72px);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 30px;
+  background: rgba(11, 24, 42, .78);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .35);
+  backdrop-filter: blur(18px);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .08em; }
+.brand-mark {
+  display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px;
+  color: #04110d; background: linear-gradient(135deg, #34d399, #22d3ee);
+}
+.eyebrow { margin-top: 70px; color: #5eead4; font-size: .8rem; font-weight: 800; letter-spacing: .18em; }
+h1 { max-width: 760px; margin: 16px 0; font-size: clamp(2.8rem, 7vw, 5.6rem); line-height: .98; letter-spacing: -.055em; }
+.lead { max-width: 650px; color: #a9b7ca; font-size: clamp(1.05rem, 2vw, 1.3rem); line-height: 1.7; }
+.actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 34px 0 52px; }
+button, .actions a {
+  border: 0; border-radius: 12px; padding: 14px 20px; font: inherit; font-weight: 750; text-decoration: none; cursor: pointer;
+}
+button { color: #04110d; background: #5eead4; }
+.actions a { color: #dce7f5; border: 1px solid rgba(255,255,255,.15); background: transparent; }
+.status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.status-card { display: flex; align-items: center; gap: 11px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,.045); }
+.status-card strong, .status-card small { display: block; }
+.status-card small { margin-top: 3px; color: #8392a6; }
+.dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; background: #64748b; box-shadow: 0 0 0 5px rgba(100,116,139,.1); }
+.dot.active { background: #34d399; box-shadow: 0 0 0 5px rgba(52,211,153,.11); }
+
+@media (max-width: 760px) {
+  .shell { padding: 14px; }
+  .hero { border-radius: 22px; }
+  .eyebrow { margin-top: 48px; }
+  .status-grid { grid-template-columns: repeat(2, 1fr); }
+}
