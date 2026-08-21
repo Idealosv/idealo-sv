@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
+import ErpApp from './ErpApp.jsx'
 import Workspace from './Workspace.jsx'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
@@ -357,52 +358,7 @@ function AuthScreen({ recoveryMode, onRecoveryComplete, onBack }) {
 }
 
 function AccountScreen({ session }) {
-  const [signingOut, setSigningOut] = useState(false)
-  const name =
-    session.user.user_metadata?.full_name ||
-    session.user.email?.split('@')[0] ||
-    'Usuario'
-
-  const signOut = async () => {
-    setSigningOut(true)
-    await supabase?.auth.signOut()
-    setSigningOut(false)
-  }
-
-  return (
-    <main className="shell">
-      <section className="account-card">
-        <div className="account-header">
-          <Brand />
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={signOut}
-            disabled={signingOut}
-          >
-            {signingOut ? 'Saliendo…' : 'Cerrar sesión'}
-          </button>
-        </div>
-
-        <div className="welcome-panel">
-          <span className="account-icon">✓</span>
-          <p className="eyebrow">CUENTA PROTEGIDA</p>
-          <h1>Hola, {name}.</h1>
-          <p className="lead">
-            Tu sesión está activa. Ya podemos crear la primera empresa y su
-            espacio de trabajo.
-          </p>
-          <p className="account-email">{session.user.email}</p>
-          <button type="button" disabled title="Disponible en el siguiente paso">
-            Crear mi empresa
-          </button>
-          <small className="next-step">
-            El formulario de empresa será el siguiente módulo.
-          </small>
-        </div>
-      </section>
-    </main>
-  )
+  return <ErpApp session={session} supabase={supabase} />
 }
 
 function Field({ label, ...props }) {
