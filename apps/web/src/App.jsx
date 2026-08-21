@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
+import Workspace from './Workspace.jsx'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -87,7 +88,7 @@ export default function App() {
   }
 
   if (session && screen === 'account') {
-    return <AccountScreen session={session} onOpenAuth={() => setScreen('auth')} />
+    return <Workspace session={session} supabase={supabase} />
   }
 
   return (
