@@ -78,3 +78,17 @@ $$;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+-- Permisos explícitos para instalaciones con exposición automática desactivada.
+grant usage on schema public to authenticated, service_role;
+
+grant select on table public.profiles to authenticated;
+grant update on table public.profiles to authenticated;
+grant select on table public.companies to authenticated;
+grant select on table public.company_members to authenticated;
+
+grant all privileges on table public.profiles to service_role;
+grant all privileges on table public.companies to service_role;
+grant all privileges on table public.company_members to service_role;
+
+grant usage, select on all sequences in schema public to service_role;
