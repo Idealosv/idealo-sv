@@ -14,7 +14,7 @@ declare
   current_user_id uuid := auth.uid();
   clean_name text := pg_catalog.btrim(company_name);
   generated_slug text;
-  company_id uuid;
+  new_company_id uuid;
 begin
   if current_user_id is null then
     raise exception 'Debes iniciar sesión para crear una empresa.';
@@ -46,20 +46,20 @@ begin
       ),
       '-'
     )
-    || '-' || pg_catalog.substring(public.gen_random_uuid()::text from 1 for 8);
+    || '-' || pg_catalog.substr(pg_catalog.gen_random_uuid()::text, 1, 8);
 
-  insert into public.companies (name, slug, created_by)
+  insert into public.companies as new_company (name, slug, created_by)
   values (clean_name, generated_slug, current_user_id)
-  returning companies.id into company_id;
+  returning new_company.id into new_company_id;
 
   insert into public.company_members (company_id, user_id, role)
-  values (company_id, current_user_id, 'owner');
+  values (new_company_id, current_user_id, 'owner');
 
   return query
   select c.id, c.name, c.slug, cm.role
   from public.companies c
   join public.company_members cm on cm.company_id = c.id
-  where c.id = company_id and cm.user_id = current_user_id;
+  where c.id = new_company_id and cm.user_id = current_user_id;
 end;
 $$;
 

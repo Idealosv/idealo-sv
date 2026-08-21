@@ -177,6 +177,8 @@ export default function Workspace({ session, supabase }) {
 
         {activeModule === 'Resumen' ? (
           <Dashboard company={company} />
+        ) : activeModule === 'Clientes' ? (
+          <ClientsModule company={company} supabase={supabase} />
         ) : (
           <ModulePreview name={activeModule} />
         )}
@@ -236,6 +238,248 @@ function Dashboard({ company }) {
         </article>
       </section>
     </>
+  )
+}
+
+
+function ClientsModule({ company, supabase }) {
+  const emptyForm = {
+    name: '',
+    email: '',
+    phone: '',
+    tax_id: '',
+    notes: '',
+    status: 'active',
+  }
+  const [clients, setClients] = useState([])
+  const [query, setQuery] = useState('')
+  const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState(null)
+  const [loadingClients, setLoadingClients] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const loadClients = async () => {
+    setLoadingClients(true)
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('company_id', company.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setMessage(
+        error.message.includes('clients')
+          ? 'Falta ejecutar la migración 0003_clients.sql en Supabase.'
+          : error.message,
+      )
+    } else {
+      setClients(data || [])
+      setMessage('')
+    }
+    setLoadingClients(false)
+  }
+
+  useEffect(() => {
+    loadClients()
+  }, [company.id])
+
+  const updateField = (event) => {
+    const { name, value } = event.target
+    setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  const resetForm = () => {
+    setForm(emptyForm)
+    setEditingId(null)
+    setMessage('')
+  }
+
+  const saveClient = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    const payload = {
+      company_id: company.id,
+      name: form.name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      tax_id: form.tax_id.trim() || null,
+      notes: form.notes.trim() || null,
+      status: form.status,
+    }
+
+    const operation = editingId
+      ? supabase
+          .from('clients')
+          .update(payload)
+          .eq('id', editingId)
+          .eq('company_id', company.id)
+      : supabase.from('clients').insert(payload)
+
+    const { error } = await operation
+    if (error) {
+      setMessage(error.message)
+    } else {
+      resetForm()
+      await loadClients()
+    }
+    setSaving(false)
+  }
+
+  const editClient = (client) => {
+    setEditingId(client.id)
+    setForm({
+      name: client.name || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      tax_id: client.tax_id || '',
+      notes: client.notes || '',
+      status: client.status || 'active',
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const deleteClient = async (client) => {
+    if (!window.confirm(`¿Eliminar a ${client.name}? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', client.id)
+      .eq('company_id', company.id)
+
+    if (error) setMessage(error.message)
+    else await loadClients()
+  }
+
+  const filteredClients = clients.filter((client) =>
+    [client.name, client.email, client.phone, client.tax_id]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  )
+
+  return (
+    <section className="clients-module">
+      <div className="clients-toolbar">
+        <div>
+          <p className="form-kicker">DIRECTORIO COMERCIAL</p>
+          <h2>{clients.length} {clients.length === 1 ? 'cliente' : 'clientes'}</h2>
+        </div>
+        <label className="client-search">
+          <span>Buscar</span>
+          <input
+            type="search"
+            placeholder="Nombre, correo, teléfono o NIT"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="clients-layout">
+        <form className="client-form panel" onSubmit={saveClient}>
+          <div className="panel-heading">
+            <div>
+              <p className="form-kicker">{editingId ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE'}</p>
+              <h3>{editingId ? 'Actualiza sus datos' : 'Registra un cliente'}</h3>
+            </div>
+          </div>
+
+          <label className="field">
+            <span>Nombre o razón social *</span>
+            <input name="name" value={form.name} onChange={updateField} minLength={2} required />
+          </label>
+          <div className="form-row">
+            <label className="field">
+              <span>Correo</span>
+              <input name="email" type="email" value={form.email} onChange={updateField} />
+            </label>
+            <label className="field">
+              <span>Teléfono</span>
+              <input name="phone" value={form.phone} onChange={updateField} />
+            </label>
+          </div>
+          <div className="form-row">
+            <label className="field">
+              <span>NIT / Identificación</span>
+              <input name="tax_id" value={form.tax_id} onChange={updateField} />
+            </label>
+            <label className="field">
+              <span>Estado</span>
+              <select name="status" value={form.status} onChange={updateField}>
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </label>
+          </div>
+          <label className="field">
+            <span>Notas</span>
+            <textarea name="notes" rows="3" value={form.notes} onChange={updateField} />
+          </label>
+
+          {message && <p className="feedback error">{message}</p>}
+
+          <div className="form-actions">
+            <button type="submit" disabled={saving}>
+              {saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Crear cliente'}
+            </button>
+            {editingId && (
+              <button type="button" className="secondary-button" onClick={resetForm}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+
+        <div className="client-list">
+          {loadingClients ? (
+            <div className="client-empty panel"><span className="spinner" /><p>Cargando clientes…</p></div>
+          ) : filteredClients.length === 0 ? (
+            <div className="client-empty panel">
+              <span className="module-icon">◎</span>
+              <strong>{query ? 'No encontramos coincidencias' : 'Aún no hay clientes'}</strong>
+              <p>{query ? 'Prueba con otra búsqueda.' : 'Completa el formulario para registrar el primero.'}</p>
+            </div>
+          ) : (
+            <div className="client-grid">
+              {filteredClients.map((client) => (
+                <article className="client-card" key={client.id}>
+                  <div className="client-card-top">
+                    <span className="client-avatar">{client.name.charAt(0).toUpperCase()}</span>
+                    <div>
+                      <h3>{client.name}</h3>
+                      <span className={client.status === 'active' ? 'status active' : 'status'}>
+                        {client.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                  <dl>
+                    <div><dt>Correo</dt><dd>{client.email || 'Sin correo'}</dd></div>
+                    <div><dt>Teléfono</dt><dd>{client.phone || 'Sin teléfono'}</dd></div>
+                    <div><dt>NIT</dt><dd>{client.tax_id || 'Sin registro'}</dd></div>
+                  </dl>
+                  {client.notes && <p className="client-notes">{client.notes}</p>}
+                  <div className="client-actions">
+                    <button type="button" className="secondary-button" onClick={() => editClient(client)}>
+                      Editar
+                    </button>
+                    <button type="button" className="danger-button" onClick={() => deleteClient(client)}>
+                      Eliminar
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
