@@ -33,6 +33,16 @@ as $$
   );
 $$;
 
+drop policy if exists "members_read_companies" on public.companies;
+create policy "members_read_companies"
+on public.companies for select
+using (public.is_company_member(id));
+
+drop policy if exists "members_read_memberships" on public.company_members;
+create policy "members_read_memberships"
+on public.company_members for select
+using (public.is_company_member(company_id));
+
 create or replace function public.create_company_with_owner(
   company_name text,
   company_slug text
