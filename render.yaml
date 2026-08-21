@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: idealo-sv-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start -w @idealo-sv/api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+
+  - type: web
+    name: idealo-sv-web
+    runtime: static
+    buildCommand: npm install && npm run build -w @idealo-sv/web
+    staticPublishPath: ./apps/web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_URL
+        sync: false

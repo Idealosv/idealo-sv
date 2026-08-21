@@ -1,0 +1,20 @@
+{
+  "name": "idealo-sv",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n WEB,API -c cyan,green \"npm run dev -w @idealo-sv/web\" \"npm run dev -w @idealo-sv/api\"",
+    "build": "npm run build -w @idealo-sv/web",
+    "start": "npm run start -w @idealo-sv/api",
+    "test": "npm run test -w @idealo-sv/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
