@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import ExecutiveDashboard from './ExecutiveDashboard.jsx'
+import DashboardIntelligence from './DashboardIntelligence.jsx'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -30,5 +31,5 @@ export default function ExecutiveDashboardHost(){
   },[])
 
   if(!content||!visible||!company||!supabase)return null
-  return createPortal(<div className="executive-dashboard-host"><ExecutiveDashboard company={company} supabase={supabase}/></div>,content)
+  return createPortal(<div className="executive-dashboard-host"><DashboardIntelligence company={company} supabase={supabase}/><ExecutiveDashboard company={company} supabase={supabase}/></div>,content)
 }

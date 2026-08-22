@@ -25,6 +25,7 @@ import './production-calendar.css'
 import './quality-control.css'
 import './main-menu.css'
 import './executive-dashboard-main.css'
+import './dashboard-intelligence.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
