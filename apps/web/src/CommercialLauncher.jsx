@@ -13,6 +13,7 @@ export default function CommercialLauncher() {
   const [company, setCompany] = useState(null)
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('Productos y trabajos')
+  const [contextClientId, setContextClientId] = useState('')
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -31,13 +32,26 @@ export default function CommercialLauncher() {
     })
   }, [session])
 
+  useEffect(() => {
+    const openClientContext = (event) => {
+      const detail = event.detail || {}
+      if (detail.target !== 'commercial') return
+      const allowed = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción', 'Entregas', 'Cuentas por cobrar']
+      setContextClientId(detail.clientId || '')
+      setTab(allowed.includes(detail.tab) ? detail.tab : 'Cotizaciones')
+      setOpen(true)
+    }
+    window.addEventListener('idealo-open-client-context', openClientContext)
+    return () => window.removeEventListener('idealo-open-client-context', openClientContext)
+  }, [])
+
   if (!session || !company) return null
 
   const tabs = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción', 'Entregas', 'Cuentas por cobrar']
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="sidebar-module-access commercial" aria-label="Abrir gestión comercial">
+      <button type="button" onClick={() => { setContextClientId(''); setOpen(true) }} className="sidebar-module-access commercial" aria-label="Abrir gestión comercial">
         <span className="module-glyph">◇</span>
         <span className="module-copy"><span>Operaciones comerciales</span><small>Ventas · Producción · Entregas · Cobros</small></span>
       </button>
@@ -53,11 +67,11 @@ export default function CommercialLauncher() {
             </nav>
             <div className="erp-modal-body commercial-module">
               {tab === 'Productos y trabajos' && <ProductsModule company={company} supabase={supabase} />}
-              {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} />}
-              {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} />}
-              {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} />}
-              {tab === 'Entregas' && <DeliveriesModule company={company} supabase={supabase} />}
-              {tab === 'Cuentas por cobrar' && <ReceivablesModule company={company} supabase={supabase} />}
+              {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} initialClientId={contextClientId} />}
+              {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} initialClientId={contextClientId} />}
+              {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} initialClientId={contextClientId} />}
+              {tab === 'Entregas' && <DeliveriesModule company={company} supabase={supabase} initialClientId={contextClientId} />}
+              {tab === 'Cuentas por cobrar' && <ReceivablesModule company={company} supabase={supabase} initialClientId={contextClientId} />}
             </div>
           </section>
         </div>
