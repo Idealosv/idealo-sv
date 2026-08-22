@@ -1,0 +1,1 @@
+.payroll-pay{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,320px) auto;gap:18px;align-items:end}.payroll-pay h3{margin:4px 0 6px}.payroll-pay p{margin:0;color:#68727d}.payroll-pay button{min-height:42px}.sidebar-module-access.hr .module-glyph{font-size:1.05rem}@media(max-width:900px){.payroll-pay{grid-template-columns:1fr}.sidebar-module-access.hr{bottom:328px}}
