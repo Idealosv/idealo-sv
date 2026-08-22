@@ -11,6 +11,7 @@ import ProductionCalendarLauncher from './ProductionCalendarLauncher.jsx'
 import QualityControlLauncher from './QualityControlLauncher.jsx'
 import MainMenuController from './MainMenuController.jsx'
 import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
+import MobileAppHost from './MobileAppHost.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -28,12 +29,15 @@ import './executive-dashboard-main.css'
 import './dashboard-intelligence.css'
 import './dashboard-advanced-insights.css'
 import './dashboard-owner-daily.css'
+import './mobile-app.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
   if (this.classList?.contains('invoice-form')) return
   return nativeScrollIntoView.call(this, options)
 }
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -48,5 +52,6 @@ createRoot(document.getElementById('root')).render(
     <FacturacionLauncher />
     <MainMenuController />
     <ExecutiveDashboardHost />
+    <MobileAppHost />
   </StrictMode>,
 )

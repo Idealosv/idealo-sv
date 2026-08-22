@@ -2,21 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const MODULES = [
-  'Dashboard',
-  'App móviles',
-  'Clientes',
-  'Productos',
-  'Cotizaciones',
-  'Producción',
-  'Inventario',
-  'Facturación',
-  'Proveedores',
-  'Compras',
-  'Caja',
-  'Asistente IA',
-  'Agenda',
-  'Reportes',
-  'Seguridad',
+  'Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad',
 ]
 
 const clickWorkspaceModule = (label) => {
@@ -28,14 +14,12 @@ const openLauncher = (selector, tabLabel) => {
   const launcher = document.querySelector(selector)
   if (!launcher) return false
   launcher.click()
-  if (tabLabel) {
-    window.setTimeout(() => {
-      const panels = [...document.querySelectorAll('.erp-modal-panel')]
-      const panel = panels[panels.length - 1]
-      const tabs = panel ? [...panel.querySelectorAll('.erp-module-tab')] : []
-      tabs.find((button) => button.textContent.trim() === tabLabel)?.click()
-    }, 30)
-  }
+  if (tabLabel) window.setTimeout(() => {
+    const panels = [...document.querySelectorAll('.erp-modal-panel')]
+    const panel = panels[panels.length - 1]
+    const tabs = panel ? [...panel.querySelectorAll('.erp-module-tab')] : []
+    tabs.find((button) => button.textContent.trim() === tabLabel)?.click()
+  }, 30)
   return true
 }
 
@@ -53,11 +37,10 @@ export default function MainMenuController() {
   }, [])
 
   const openModule = (name) => {
-    setActive(name)
-    setPlaceholder('')
+    setActive(name); setPlaceholder('')
     window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
-
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
+    if (name === 'App móviles') return true
     if (name === 'Clientes') return clickWorkspaceModule('Clientes')
     if (name === 'Productos') return openLauncher('.sidebar-module-access.commercial', 'Productos y trabajos')
     if (name === 'Cotizaciones') return openLauncher('.sidebar-module-access.commercial', 'Cotizaciones')
@@ -70,45 +53,14 @@ export default function MainMenuController() {
     if (name === 'Agenda') return openLauncher('.sidebar-module-access.planning')
     if (name === 'Reportes') return openLauncher('.sidebar-module-access.financial')
     if (name === 'Seguridad') return clickWorkspaceModule('Empresa')
-
     setPlaceholder(name)
   }
 
   if (!sidebar) return null
-
-  return createPortal(
-    <>
-      <nav className="idealo-main-menu" aria-label="Módulos principales IDEALO SV">
-        {MODULES.map((name) => (
-          <button
-            type="button"
-            key={name}
-            className={active === name ? 'idealo-main-menu-item active' : 'idealo-main-menu-item'}
-            onClick={() => openModule(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </nav>
-      {placeholder && createPortal(
-        <div className="erp-modal-backdrop" onMouseDown={() => setPlaceholder('')}>
-          <section className="erp-modal-panel compact-module-placeholder" onMouseDown={(event) => event.stopPropagation()}>
-            <header className="erp-modal-head">
-              <div><strong>{placeholder}</strong><small>Módulo principal IDEALO SV</small></div>
-              <button type="button" className="erp-modal-close" onClick={() => setPlaceholder('')}>×</button>
-            </header>
-            <div className="erp-modal-body">
-              <section className="panel module-placeholder-card">
-                <p className="form-kicker">ESTRUCTURA DEFINIDA</p>
-                <h2>{placeholder}</h2>
-                <p>Este módulo ya ocupa su posición definitiva en el menú principal y se desarrollará sobre esta misma estructura sin agregar accesos adicionales al lateral.</p>
-              </section>
-            </div>
-          </section>
-        </div>,
-        document.body,
-      )}
-    </>,
-    sidebar,
-  )
+  return createPortal(<>
+    <nav className="idealo-main-menu" aria-label="Módulos principales IDEALO SV">
+      {MODULES.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
+    </nav>
+    {placeholder && createPortal(<div className="erp-modal-backdrop" onMouseDown={()=>setPlaceholder('')}><section className="erp-modal-panel compact-module-placeholder" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>{placeholder}</strong><small>Módulo principal IDEALO SV</small></div><button type="button" className="erp-modal-close" onClick={()=>setPlaceholder('')}>×</button></header><div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">ESTRUCTURA DEFINIDA</p><h2>{placeholder}</h2><p>Este módulo ya ocupa su posición definitiva en el menú principal y se desarrollará sobre esta misma estructura sin agregar accesos adicionales al lateral.</p></section></div></section></div>,document.body)}
+  </>,sidebar)
 }
