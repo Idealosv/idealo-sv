@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DTE_ACTIVITIES, DTE_DISTRICTS_BY_DEPARTMENT } from './dteCatalogs'
 
 export default function Workspace({ session, supabase }) {
   const [company, setCompany] = useState(null)
@@ -212,7 +213,21 @@ function CompanyFiscalModule({ company, supabase }) {
   }, [company.id, supabase])
 
   const missing = companyFiscalFields.filter(([key]) => !String(form[key] || '').trim()).map(([, label]) => label)
-  const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+  const update = (event) => {
+    const { name, value } = event.target
+    setForm((current) => {
+      if (name === 'activity_code') {
+        const activity = DTE_ACTIVITIES.find((item) => item.code === value)
+        return { ...current, activity_code: value, business_activity: activity?.name || '' }
+      }
+      if (name === 'department_code') {
+        return { ...current, department_code: value, municipality_code: '', district_code: '' }
+      }
+      return { ...current, [name]: value }
+    })
+  }
+  const selectedCompanyDepartment = DTE_DEPARTMENTS.find((item) => item.code === form.department_code)
+  const companyDistricts = DTE_DISTRICTS_BY_DEPARTMENT[form.department_code] || []
   const save = async (event) => {
     event.preventDefault()
     setSaving(true)
@@ -241,14 +256,14 @@ function CompanyFiscalModule({ company, supabase }) {
             <label className="field"><span>Nombre comercial</span><input name="trade_name" value={form.trade_name || ''} onChange={update} /></label>
             <label className="field"><span>NIT *</span><input name="nit" value={form.nit || ''} onChange={update} required /></label>
             <label className="field"><span>NRC *</span><input name="nrc" value={form.nrc || ''} onChange={update} required /></label>
-            <label className="field"><span>Código actividad (CAT-019) *</span><input name="activity_code" value={form.activity_code || ''} onChange={update} required /></label>
-            <label className="field form-span-3"><span>Actividad económica *</span><input name="business_activity" value={form.business_activity || ''} onChange={update} required /></label>
+            <label className="field form-span-3"><span>Actividad económica / giro (CAT-019) *</span><select name="activity_code" value={form.activity_code || ''} onChange={update} required><option value="">Seleccionar actividad</option>{DTE_ACTIVITIES.map((activity) => <option key={activity.code} value={activity.code}>{activity.code} - {activity.name}</option>)}</select></label>
+            <input type="hidden" name="business_activity" value={form.business_activity || ''} />
           </div>
         </fieldset>
         <fieldset className="form-section"><legend>Domicilio fiscal</legend><div className="form-grid three">
-          <label className="field"><span>Departamento (CAT-012) *</span><input name="department_code" value={form.department_code || ''} onChange={update} maxLength="2" required /></label>
-          <label className="field"><span>Municipio (CAT-013) *</span><input name="municipality_code" value={form.municipality_code || ''} onChange={update} maxLength="2" required /></label>
-          <label className="field"><span>Distrito *</span><input name="district_code" value={form.district_code || ''} onChange={update} maxLength="2" required /></label>
+          <label className="field"><span>Departamento (CAT-012) *</span><select name="department_code" value={form.department_code || ''} onChange={update} required><option value="">Seleccionar</option>{DTE_DEPARTMENTS.map((department) => <option key={department.code} value={department.code}>{department.code} - {department.name}</option>)}</select></label>
+          <label className="field"><span>Municipio (CAT-013) *</span><select name="municipality_code" value={form.municipality_code || ''} onChange={update} disabled={!selectedCompanyDepartment} required><option value="">Seleccionar</option>{(selectedCompanyDepartment?.municipalities || []).map((municipality) => <option key={municipality.code} value={municipality.code}>{municipality.code} - {municipality.name}</option>)}</select></label>
+          <label className="field"><span>Distrito (CAT-008) *</span><select name="district_code" value={form.district_code || ''} onChange={update} disabled={!form.department_code} required><option value="">Seleccionar</option>{companyDistricts.map((district) => <option key={district.code} value={district.code}>{district.code} - {district.name}</option>)}</select></label>
           <label className="field form-span-3"><span>Complemento de dirección *</span><textarea name="address" value={form.address || ''} onChange={update} rows="2" required /></label>
         </div></fieldset>
         <fieldset className="form-section"><legend>Contacto y establecimiento</legend><div className="form-grid three">
@@ -444,7 +459,11 @@ function ClientsModule({ company, supabase }) {
         }
       }
       if (name === 'department_code') {
-        return { ...current, department_code: value, municipality_code: '' }
+        return { ...current, department_code: value, municipality_code: '', district_code: '' }
+      }
+      if (name === 'activity_code') {
+        const activity = DTE_ACTIVITIES.find((item) => item.code === value)
+        return { ...current, activity_code: value, business_activity: activity?.name || '' }
       }
       return { ...current, [name]: value }
     })
@@ -453,6 +472,7 @@ function ClientsModule({ company, supabase }) {
   const selectedDepartment = DTE_DEPARTMENTS.find(
     (department) => department.code === form.department_code,
   )
+  const selectedDistricts = DTE_DISTRICTS_BY_DEPARTMENT[form.department_code] || []
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -728,14 +748,16 @@ function ClientsModule({ company, supabase }) {
                 <span>DUI</span>
                 <input name="dui" value={form.dui} onChange={updateField} placeholder="00000000-0" />
               </label>
-              <label className="field">
-                <span>Código actividad económica *</span>
-                <input name="activity_code" value={form.activity_code} onChange={updateField} inputMode="numeric" placeholder="CAT-019" required />
+              <label className="field form-span-3">
+                <span>Actividad económica / giro (CAT-019) *</span>
+                <select name="activity_code" value={form.activity_code} onChange={updateField} required>
+                  <option value="">Seleccionar actividad</option>
+                  {DTE_ACTIVITIES.map((activity) => (
+                    <option key={activity.code} value={activity.code}>{activity.code} - {activity.name}</option>
+                  ))}
+                </select>
               </label>
-              <label className="field form-span-2">
-                <span>Actividad económica / giro *</span>
-                <input name="business_activity" value={form.business_activity} onChange={updateField} required />
-              </label>
+              <input type="hidden" name="business_activity" value={form.business_activity} />
             </div>
           </fieldset>
 
@@ -791,8 +813,13 @@ function ClientsModule({ company, supabase }) {
                 </select>
               </label>
               <label className="field">
-                <span>Distrito *</span>
-                <input name="district_code" value={form.district_code} onChange={updateField} inputMode="numeric" maxLength="2" required />
+                <span>Distrito (CAT-008) *</span>
+                <select name="district_code" value={form.district_code} onChange={updateField} required disabled={!form.department_code}>
+                  <option value="">Seleccionar</option>
+                  {selectedDistricts.map((district) => (
+                    <option key={district.code} value={district.code}>{district.code} - {district.name}</option>
+                  ))}
+                </select>
               </label>
               <label className="field form-span-3">
                 <span>Complemento de dirección *</span>
