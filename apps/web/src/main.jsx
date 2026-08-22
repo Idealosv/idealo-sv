@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import FacturacionLauncher from './FacturacionLauncher.jsx'
 import CommercialLauncher from './CommercialLauncher.jsx'
+import OperationsFinanceLauncher from './OperationsFinanceLauncher.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
     <CommercialLauncher />
+    <OperationsFinanceLauncher />
     <FacturacionLauncher />
   </StrictMode>,
 )
