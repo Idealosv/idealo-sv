@@ -22,6 +22,7 @@ export default function DteLauncher() {
   const [drafts, setDrafts] = useState([])
   const [form, setForm] = useState(initialForm)
   const [loading, setLoading] = useState(false)
+  const [signingId, setSigningId] = useState('')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function DteLauncher() {
     if (!company || !supabase) return
     const { data, error } = await supabase
       .from('dte_documents')
-      .select('id, control_number, generation_code, status, environment, created_at, dte_payload')
+      .select('id, control_number, generation_code, status, environment, created_at, updated_at, dte_payload')
       .eq('company_id', company.id)
       .eq('dte_type', '01')
       .order('created_at', { ascending: false })
@@ -97,6 +98,30 @@ export default function DteLauncher() {
     }
   }
 
+  const signDraft = async (draft) => {
+    if (!session || draft.status !== 'DRAFT') return
+    setSigningId(draft.id)
+    setMessage('')
+    try {
+      const response = await fetch(`${apiUrl}/api/dte/sign-test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ documentId: draft.id }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.message || 'No se pudo firmar el DTE de prueba.')
+      setMessage(`DTE firmado correctamente: ${payload.control_number}. Estado SIGNED. No fue transmitido a Hacienda.`)
+      await loadDrafts()
+    } catch (error) {
+      setMessage(error.message)
+    } finally {
+      setSigningId('')
+    }
+  }
+
   if (!session || !company) return null
 
   return (
@@ -111,13 +136,13 @@ export default function DteLauncher() {
               <div>
                 <small style={styles.kicker}>FACTURACIÓN ELECTRÓNICA</small>
                 <h2 style={styles.title}>DTE-01 · ambiente de prueba</h2>
-                <p style={styles.muted}>Crea borradores internos. La transmisión a Hacienda permanece bloqueada.</p>
+                <p style={styles.muted}>Crea y firma documentos de prueba. La transmisión a Hacienda permanece bloqueada.</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} style={styles.close}>×</button>
             </header>
 
             <div style={styles.alert}>
-              <strong>Seguridad activa:</strong> ambiente 00, estado DRAFT, sin intento de transmisión. M001/P001 se usan solo como códigos temporales de prueba y no se guardan en la empresa.
+              <strong>Seguridad activa:</strong> ambiente 00, sin transmisión a Hacienda. M001/P001 se usan solo como códigos temporales de prueba y no se guardan en la empresa.
             </div>
 
             <form onSubmit={createDraft} style={styles.form}>
@@ -148,28 +173,34 @@ export default function DteLauncher() {
             {message && <p style={styles.message}>{message}</p>}
 
             <div style={styles.sectionHeader}>
-              <h3 style={{ margin: 0 }}>Borradores recientes</h3>
+              <h3 style={{ margin: 0 }}>Documentos recientes</h3>
               <button type="button" onClick={loadDrafts} style={styles.secondary}>Actualizar</button>
             </div>
             <div style={styles.list}>
               {drafts.length === 0 ? (
-                <p style={styles.muted}>Todavía no hay borradores visibles.</p>
+                <p style={styles.muted}>Todavía no hay documentos visibles.</p>
               ) : drafts.map((draft) => (
                 <article key={draft.id} style={styles.card}>
-                  <div>
-                    <strong>{draft.control_number}</strong>
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={styles.controlNumber}>{draft.control_number}</strong>
                     <small style={styles.block}>{new Date(draft.created_at).toLocaleString('es-SV')}</small>
+                    {draft.status === 'DRAFT' && (
+                      <button type="button" onClick={() => signDraft(draft)} disabled={Boolean(signingId)} style={styles.signButton}>
+                        {signingId === draft.id ? 'Firmando…' : 'Firmar prueba'}
+                      </button>
+                    )}
+                    {draft.status === 'SIGNED' && <small style={styles.signedNote}>✓ Firma JWS guardada</small>}
                   </div>
                   <div style={styles.tags}>
                     <span style={styles.tag}>{draft.environment}</span>
-                    <span style={styles.tag}>{draft.status}</span>
+                    <span style={draft.status === 'SIGNED' ? styles.signedTag : styles.tag}>{draft.status}</span>
                   </div>
                 </article>
               ))}
             </div>
 
             <footer style={styles.footer}>
-              <strong>Firma de prueba:</strong> preparada como siguiente etapa. Este panel no firma ni transmite automáticamente.
+              <strong>Firma de prueba habilitada.</strong> La firma cambia el documento de DRAFT a SIGNED y guarda el JWS. Este panel no contiene ninguna acción para transmitir a Hacienda.
             </footer>
           </section>
         </div>
@@ -195,12 +226,16 @@ const styles = {
   total: { padding: 12, borderRadius: 12, background: '#f1f5f9' },
   primary: { border: 0, borderRadius: 12, padding: '12px 16px', background: '#111827', color: 'white', fontWeight: 800, cursor: 'pointer' },
   secondary: { border: '1px solid #cbd5e1', borderRadius: 10, padding: '8px 12px', background: 'white', fontWeight: 700, cursor: 'pointer' },
+  signButton: { marginTop: 10, border: 0, borderRadius: 9, padding: '8px 11px', background: '#0f766e', color: 'white', fontWeight: 800, cursor: 'pointer' },
   message: { padding: 12, borderRadius: 12, background: '#e0f2fe', color: '#0c4a6e' },
   sectionHeader: { marginTop: 24, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   list: { display: 'grid', gap: 10 },
   card: { display: 'flex', justifyContent: 'space-between', gap: 16, padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' },
+  controlNumber: { overflowWrap: 'anywhere' },
   block: { display: 'block', marginTop: 5, color: '#64748b' },
-  tags: { display: 'flex', gap: 6, alignItems: 'center' },
+  signedNote: { display: 'block', marginTop: 10, color: '#047857', fontWeight: 800 },
+  tags: { display: 'flex', gap: 6, alignItems: 'center', alignSelf: 'flex-start' },
   tag: { borderRadius: 999, padding: '5px 8px', background: '#e2e8f0', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
+  signedTag: { borderRadius: 999, padding: '5px 8px', background: '#d1fae5', color: '#065f46', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
   footer: { marginTop: 20, paddingTop: 18, borderTop: '1px solid #e2e8f0', color: '#475569', lineHeight: 1.5 },
 }
