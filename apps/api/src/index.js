@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus } from './dte/config.js'
 import { createTestDteDraft } from './dte/draft-service.js'
+import { createInvoiceDraft } from './dte/invoice-service.js'
 import { signTestDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
 
@@ -49,10 +50,16 @@ app.get('/api/dte/status', (_request, response) => {
 
 app.post('/api/dte/drafts', async (request, response, next) => {
   try {
-    const draft = await createTestDteDraft({
-      request,
-      supabase: getSupabaseAdmin(),
-    })
+    const draft = await createTestDteDraft({ request, supabase: getSupabaseAdmin() })
+    response.status(201).json(draft)
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.post('/api/dte/invoices', async (request, response, next) => {
+  try {
+    const draft = await createInvoiceDraft({ request, supabase: getSupabaseAdmin() })
     response.status(201).json(draft)
   } catch (error) {
     next(error)
@@ -61,10 +68,7 @@ app.post('/api/dte/drafts', async (request, response, next) => {
 
 app.post('/api/dte/sign-test', async (request, response, next) => {
   try {
-    const signed = await signTestDteDraft({
-      request,
-      supabase: getSupabaseAdmin(),
-    })
+    const signed = await signTestDteDraft({ request, supabase: getSupabaseAdmin() })
     response.json(signed)
   } catch (error) {
     next(error)
@@ -73,10 +77,7 @@ app.post('/api/dte/sign-test', async (request, response, next) => {
 
 app.post('/api/dte/transmit-test', async (request, response, next) => {
   try {
-    const result = await transmitSignedTestDte({
-      request,
-      supabase: getSupabaseAdmin(),
-    })
+    const result = await transmitSignedTestDte({ request, supabase: getSupabaseAdmin() })
     response.json(result)
   } catch (error) {
     next(error)
