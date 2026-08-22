@@ -55,6 +55,7 @@ export default function MainMenuController() {
   const openModule = (name) => {
     setActive(name)
     setPlaceholder('')
+    window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
 
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
     if (name === 'Clientes') return clickWorkspaceModule('Clientes')
