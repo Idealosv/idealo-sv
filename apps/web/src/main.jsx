@@ -4,6 +4,7 @@ import App from './App.jsx'
 import FacturacionLauncher from './FacturacionLauncher.jsx'
 import CommercialLauncher from './CommercialLauncher.jsx'
 import './styles.css'
+import './premium.css'
 import './facturacion-feedback.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
