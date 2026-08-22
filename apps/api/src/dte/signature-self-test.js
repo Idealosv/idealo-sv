@@ -59,7 +59,9 @@ export async function runSignatureSelfTest({
         tipoDte: '01',
       },
     })
-    const signedDocument = response?.body?.documento ?? response?.documento
+    const signedDocument = typeof response?.body === 'string'
+      ? response.body
+      : response?.body?.documento ?? response?.documento
     if (typeof signedDocument !== 'string' || signedDocument.length === 0) {
       const signerCode = response?.body?.codigo
       result = Object.freeze({
