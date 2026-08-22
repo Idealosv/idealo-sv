@@ -718,3 +718,147 @@ button:disabled { cursor: not-allowed; opacity: .65; }
   }
 }
 
+
+
+/* Clientes completo: directorio comercial, fiscal y operativo */
+.clients-titlebar,
+.client-form-header,
+.directory-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.clients-titlebar h2,
+.client-form-header h3,
+.directory-toolbar h3 { margin: 0; color: #171717; }
+
+.primary-action {
+  flex: 0 0 auto;
+  color: #fff;
+  background: #ff6b00;
+  box-shadow: 0 8px 18px rgba(255,107,0,.18);
+}
+
+.client-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.client-stat {
+  padding: 17px 18px;
+  color: #171717;
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15,23,42,.035);
+}
+
+.client-stat small,
+.client-stat strong,
+.client-stat span { display: block; }
+
+.client-stat small { color: #737b86; font-weight: 700; }
+.client-stat strong { margin: 7px 0 3px; font-size: 1.7rem; }
+.client-stat span { color: #ff6b00; font-size: .78rem; font-weight: 800; }
+
+.client-form-full,
+.clients-directory {
+  padding: 22px;
+  color: #171717;
+  border: 1px solid #e1e4e8;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(15,23,42,.04);
+}
+
+.client-form-full { display: grid; gap: 22px; }
+
+.form-section {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid #eceef1;
+}
+
+.form-section:first-of-type { padding-top: 0; border-top: 0; }
+.form-section h4 { margin: 0; font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.form-span-2 { grid-column: span 2; }
+.form-span-3 { grid-column: span 3; }
+.form-actions.end { justify-content: flex-end; }
+.form-actions.end button { flex: 0 0 auto; }
+
+.clients-directory { min-width: 0; padding: 0; overflow: hidden; }
+.directory-toolbar { padding: 18px 20px; border-bottom: 1px solid #eceef1; }
+.directory-toolbar > div:first-child { display: flex; align-items: center; gap: 12px; }
+.directory-toolbar .client-search { width: min(360px, 100%); }
+.compact-filter { display: flex; gap: 9px; }
+.compact-filter select {
+  min-width: 130px;
+  padding: 11px 34px 11px 12px;
+  color: #171717;
+  border: 1px solid #d8dde3;
+  border-radius: 10px;
+  background: #fff;
+}
+.directory-count { color: #737b86; font-size: .82rem; white-space: nowrap; }
+
+.client-table-wrap { width: 100%; overflow-x: auto; }
+.client-table { width: 100%; min-width: 900px; border-collapse: collapse; }
+.client-table th {
+  padding: 12px 16px;
+  color: #68707a;
+  background: #f7f8f9;
+  font-size: .72rem;
+  letter-spacing: .05em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.client-table td { padding: 15px 16px; border-top: 1px solid #eceef1; vertical-align: middle; }
+.client-table tbody tr:hover { background: #fffaf6; }
+.table-client { display: flex; align-items: center; gap: 11px; min-width: 220px; }
+.table-client .client-avatar { width: 38px; height: 38px; border-radius: 10px; }
+.table-client strong,
+.table-client small { display: block; }
+.table-client small { margin-top: 3px; color: #7a828c; }
+.client-table td > small { display: block; margin-top: 4px; color: #7a828c; }
+.row-actions { display: flex; justify-content: flex-end; gap: 7px; }
+.row-actions button { padding: 8px 10px; font-size: .78rem; }
+
+@media (max-width: 1100px) {
+  .client-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .directory-toolbar { align-items: stretch; flex-direction: column; }
+  .directory-toolbar > div:first-child { width: 100%; }
+  .directory-toolbar .client-search { flex: 1; width: auto; }
+}
+
+@media (max-width: 800px) {
+  .form-grid,
+  .form-grid.three { grid-template-columns: 1fr 1fr; }
+  .form-span-3 { grid-column: span 2; }
+  .clients-titlebar { align-items: flex-start; }
+}
+
+@media (max-width: 600px) {
+  .clients-titlebar,
+  .client-form-header { align-items: stretch; flex-direction: column; }
+  .client-stats,
+  .form-grid,
+  .form-grid.three { grid-template-columns: 1fr; }
+  .form-span-2,
+  .form-span-3 { grid-column: span 1; }
+  .client-form-full { padding: 17px; }
+  .directory-toolbar > div:first-child { align-items: stretch; flex-direction: column; }
+  .compact-filter { display: grid; grid-template-columns: 1fr 1fr; }
+  .compact-filter select { min-width: 0; width: 100%; }
+}
