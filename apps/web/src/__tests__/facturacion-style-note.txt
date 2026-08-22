@@ -1,0 +1,1 @@
+Facturación DTE usa estilos aislados mediante .facturacion-dte para mantener inputs editables y visibles dentro del modal claro.
