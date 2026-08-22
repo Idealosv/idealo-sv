@@ -23,6 +23,7 @@ export default function DteLauncher() {
   const [form, setForm] = useState(initialForm)
   const [loading, setLoading] = useState(false)
   const [signingId, setSigningId] = useState('')
+  const [transmittingId, setTransmittingId] = useState('')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function DteLauncher() {
     if (!company || !supabase) return
     const { data, error } = await supabase
       .from('dte_documents')
-      .select('id, control_number, generation_code, status, environment, created_at, updated_at, dte_payload')
+      .select('id, control_number, generation_code, status, environment, created_at, updated_at, dte_payload, mh_response')
       .eq('company_id', company.id)
       .eq('dte_type', '01')
       .order('created_at', { ascending: false })
@@ -89,7 +90,7 @@ export default function DteLauncher() {
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.message || 'No se pudo crear el borrador DTE.')
-      setMessage(`Borrador creado: ${payload.control_number}. No fue transmitido a Hacienda.`)
+      setMessage(`Borrador creado: ${payload.control_number}. Todavía no fue enviado a Hacienda.`)
       await loadDrafts()
     } catch (error) {
       setMessage(error.message)
@@ -113,12 +114,47 @@ export default function DteLauncher() {
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.message || 'No se pudo firmar el DTE de prueba.')
-      setMessage(`DTE firmado correctamente: ${payload.control_number}. Estado SIGNED. No fue transmitido a Hacienda.`)
+      setMessage(`DTE firmado correctamente: ${payload.control_number}. Estado SIGNED. Todavía no fue enviado a Hacienda.`)
       await loadDrafts()
     } catch (error) {
       setMessage(error.message)
     } finally {
       setSigningId('')
+    }
+  }
+
+  const transmitTest = async (draft) => {
+    if (!session || draft.status !== 'SIGNED') return
+    const confirmed = window.confirm(
+      `Vas a enviar ${draft.control_number} al ambiente TEST (00) del Ministerio de Hacienda.\n\nNo es producción y no se enviará automáticamente una segunda vez. ¿Continuar?`,
+    )
+    if (!confirmed) return
+
+    setTransmittingId(draft.id)
+    setMessage('')
+    try {
+      const response = await fetch(`${apiUrl}/api/dte/transmit-test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ documentId: draft.id }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.message || 'No se pudo enviar el DTE a Hacienda TEST.')
+
+      if (payload.status === 'PROCESSED') {
+        setMessage(`Hacienda TEST procesó ${payload.control_number}. La respuesta quedó guardada en la bitácora.`)
+      } else {
+        setMessage(`Hacienda TEST respondió al DTE ${payload.control_number} con estado ${payload.status}. Revisa la respuesta guardada antes de cualquier nuevo intento.`)
+      }
+      await loadDrafts()
+    } catch (error) {
+      setMessage(error.message)
+      await loadDrafts()
+    } finally {
+      setTransmittingId('')
     }
   }
 
@@ -135,14 +171,14 @@ export default function DteLauncher() {
             <header style={styles.header}>
               <div>
                 <small style={styles.kicker}>FACTURACIÓN ELECTRÓNICA</small>
-                <h2 style={styles.title}>DTE-01 · ambiente de prueba</h2>
-                <p style={styles.muted}>Crea y firma documentos de prueba. La transmisión a Hacienda permanece bloqueada.</p>
+                <h2 style={styles.title}>DTE-01 · Hacienda TEST</h2>
+                <p style={styles.muted}>Crea, firma y realiza un envío manual al ambiente de pruebas 00. Producción continúa bloqueada.</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} style={styles.close}>×</button>
             </header>
 
             <div style={styles.alert}>
-              <strong>Seguridad activa:</strong> ambiente 00, sin transmisión a Hacienda. M001/P001 se usan solo como códigos temporales de prueba y no se guardan en la empresa.
+              <strong>Seguridad activa:</strong> solo ambiente TEST 00. Cada DTE requiere firma previa, clic manual y confirmación antes del envío. No hay reenvío automático y producción permanece deshabilitada.
             </div>
 
             <form onSubmit={createDraft} style={styles.form}>
@@ -185,28 +221,46 @@ export default function DteLauncher() {
                     <strong style={styles.controlNumber}>{draft.control_number}</strong>
                     <small style={styles.block}>{new Date(draft.created_at).toLocaleString('es-SV')}</small>
                     {draft.status === 'DRAFT' && (
-                      <button type="button" onClick={() => signDraft(draft)} disabled={Boolean(signingId)} style={styles.signButton}>
+                      <button type="button" onClick={() => signDraft(draft)} disabled={Boolean(signingId) || Boolean(transmittingId)} style={styles.signButton}>
                         {signingId === draft.id ? 'Firmando…' : 'Firmar prueba'}
                       </button>
                     )}
-                    {draft.status === 'SIGNED' && <small style={styles.signedNote}>✓ Firma JWS guardada</small>}
+                    {draft.status === 'SIGNED' && (
+                      <>
+                        <small style={styles.signedNote}>✓ Firma JWS guardada</small>
+                        <button type="button" onClick={() => transmitTest(draft)} disabled={Boolean(transmittingId) || Boolean(signingId)} style={styles.transmitButton}>
+                          {transmittingId === draft.id ? 'Enviando a MH TEST…' : 'Enviar a MH TEST'}
+                        </button>
+                      </>
+                    )}
+                    {draft.status === 'PROCESSED' && <small style={styles.processedNote}>✓ Procesado por Hacienda TEST</small>}
+                    {draft.status === 'REJECTED' && <small style={styles.rejectedNote}>Hacienda TEST rechazó el documento. No se reenviará automáticamente.</small>}
+                    {draft.status === 'TRANSMITTING' && <small style={styles.block}>Envío TEST en curso…</small>}
                   </div>
                   <div style={styles.tags}>
                     <span style={styles.tag}>{draft.environment}</span>
-                    <span style={draft.status === 'SIGNED' ? styles.signedTag : styles.tag}>{draft.status}</span>
+                    <span style={statusStyle(draft.status)}>{draft.status}</span>
                   </div>
                 </article>
               ))}
             </div>
 
             <footer style={styles.footer}>
-              <strong>Firma de prueba habilitada.</strong> La firma cambia el documento de DRAFT a SIGNED y guarda el JWS. Este panel no contiene ninguna acción para transmitir a Hacienda.
+              <strong>Producción bloqueada.</strong> Esta pantalla únicamente puede transmitir DTE firmados al ambiente TEST 00. Cada documento admite un solo intento desde este flujo; la respuesta de Hacienda queda almacenada para revisión.
             </footer>
           </section>
         </div>
       )}
     </>
   )
+}
+
+function statusStyle(status) {
+  if (status === 'SIGNED') return styles.signedTag
+  if (status === 'PROCESSED') return styles.processedTag
+  if (status === 'REJECTED') return styles.rejectedTag
+  if (status === 'TRANSMITTING') return styles.transmittingTag
+  return styles.tag
 }
 
 const styles = {
@@ -227,6 +281,7 @@ const styles = {
   primary: { border: 0, borderRadius: 12, padding: '12px 16px', background: '#111827', color: 'white', fontWeight: 800, cursor: 'pointer' },
   secondary: { border: '1px solid #cbd5e1', borderRadius: 10, padding: '8px 12px', background: 'white', fontWeight: 700, cursor: 'pointer' },
   signButton: { marginTop: 10, border: 0, borderRadius: 9, padding: '8px 11px', background: '#0f766e', color: 'white', fontWeight: 800, cursor: 'pointer' },
+  transmitButton: { display: 'block', marginTop: 8, border: 0, borderRadius: 9, padding: '8px 11px', background: '#1d4ed8', color: 'white', fontWeight: 800, cursor: 'pointer' },
   message: { padding: 12, borderRadius: 12, background: '#e0f2fe', color: '#0c4a6e' },
   sectionHeader: { marginTop: 24, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   list: { display: 'grid', gap: 10 },
@@ -234,8 +289,13 @@ const styles = {
   controlNumber: { overflowWrap: 'anywhere' },
   block: { display: 'block', marginTop: 5, color: '#64748b' },
   signedNote: { display: 'block', marginTop: 10, color: '#047857', fontWeight: 800 },
+  processedNote: { display: 'block', marginTop: 10, color: '#166534', fontWeight: 800 },
+  rejectedNote: { display: 'block', marginTop: 10, color: '#b91c1c', fontWeight: 800 },
   tags: { display: 'flex', gap: 6, alignItems: 'center', alignSelf: 'flex-start' },
   tag: { borderRadius: 999, padding: '5px 8px', background: '#e2e8f0', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
   signedTag: { borderRadius: 999, padding: '5px 8px', background: '#d1fae5', color: '#065f46', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
+  processedTag: { borderRadius: 999, padding: '5px 8px', background: '#dcfce7', color: '#166534', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
+  rejectedTag: { borderRadius: 999, padding: '5px 8px', background: '#fee2e2', color: '#991b1b', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
+  transmittingTag: { borderRadius: 999, padding: '5px 8px', background: '#dbeafe', color: '#1e40af', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' },
   footer: { marginTop: 20, paddingTop: 18, borderTop: '1px solid #e2e8f0', color: '#475569', lineHeight: 1.5 },
 }
