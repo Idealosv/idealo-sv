@@ -17,34 +17,62 @@ const RECEIVER_FIELDS = [
   ['address', 'dirección'], ['phone', 'teléfono'], ['email', 'correo'],
 ]
 
-function readiness(record, fields) {
-  const missing = fields.filter(([key]) => !String(record?.[key] || '').trim()).map(([, label]) => label)
-  return { ready: missing.length === 0, missing }
+const digits = (value) => String(value || '').replace(/\D/g, '')
+const text = (value) => String(value || '').trim()
+const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value))
+
+function validateIssuer(company = {}) {
+  const errors = []
+  const nit = digits(company.nit)
+  const nrc = digits(company.nrc)
+  const phone = digits(company.phone)
+
+  if (nit && nit.length !== 14) errors.push('NIT debe contener 14 dígitos')
+  if (nrc && (nrc.length < 1 || nrc.length > 8)) errors.push('NRC debe contener entre 1 y 8 dígitos')
+  if (text(company.activity_code) && !/^\d{5,6}$/.test(text(company.activity_code))) errors.push('código de actividad inválido')
+  if (text(company.department_code) && !/^\d{2}$/.test(text(company.department_code))) errors.push('departamento inválido')
+  if (text(company.municipality_code) && !/^\d{2}$/.test(text(company.municipality_code))) errors.push('municipio inválido')
+  if (text(company.district_code) && !/^\d{2}$/.test(text(company.district_code))) errors.push('distrito inválido')
+  if (phone && phone.length !== 8) errors.push('teléfono debe contener 8 dígitos')
+  if (text(company.email) && !validEmail(company.email)) errors.push('correo inválido')
+  if (text(company.establishment_code) && !/^[A-Z0-9]{4}$/i.test(text(company.establishment_code))) errors.push('código de establecimiento debe contener 4 caracteres alfanuméricos')
+  if (text(company.point_of_sale_code) && !/^[A-Z0-9]{4}$/i.test(text(company.point_of_sale_code))) errors.push('código de punto de venta debe contener 4 caracteres alfanuméricos')
+
+  return errors
 }
 
-export const getIssuerReadiness = (company) => readiness(company, ISSUER_FIELDS)
+function readiness(record, fields, validator = null) {
+  const missing = fields.filter(([key]) => !text(record?.[key])).map(([, label]) => label)
+  const invalid = validator ? validator(record) : []
+  return { ready: missing.length === 0 && invalid.length === 0, missing, invalid }
+}
+
+export const getIssuerReadiness = (company) => readiness(company, ISSUER_FIELDS, validateIssuer)
 export const getReceiverReadiness = (client) => readiness(client, RECEIVER_FIELDS)
 
 export function mapCompanyToDteIssuer(company) {
   const status = getIssuerReadiness(company)
-  if (!status.ready) throw new Error(`Expediente fiscal del emisor incompleto: ${status.missing.join(', ')}.`)
+  if (!status.ready) {
+    const problems = [...status.missing, ...status.invalid]
+    throw new Error(`Expediente fiscal del emisor inválido o incompleto: ${problems.join(', ')}.`)
+  }
   return {
-    nit: company.nit,
-    nrc: company.nrc,
-    nombre: company.name,
-    codActividad: company.activity_code,
-    descActividad: company.business_activity,
-    nombreComercial: company.trade_name || null,
+    nit: digits(company.nit),
+    nrc: digits(company.nrc),
+    nombre: text(company.name),
+    codActividad: text(company.activity_code),
+    descActividad: text(company.business_activity),
+    nombreComercial: text(company.trade_name) || null,
     direccion: {
-      departamento: company.department_code,
-      municipio: company.municipality_code,
-      distrito: company.district_code,
-      complemento: company.address,
+      departamento: text(company.department_code),
+      municipio: text(company.municipality_code),
+      distrito: text(company.district_code),
+      complemento: text(company.address),
     },
-    telefono: company.phone,
-    correo: company.email,
-    codEstable: company.establishment_code,
-    codPuntoVenta: company.point_of_sale_code,
+    telefono: digits(company.phone),
+    correo: text(company.email).toLowerCase(),
+    codEstable: text(company.establishment_code).toUpperCase(),
+    codPuntoVenta: text(company.point_of_sale_code).toUpperCase(),
   }
 }
 
@@ -76,4 +104,3 @@ export function buildFacturaFromRecords({ company, client = null, ...sale }) {
     receptor: client ? mapClientToDteReceiver(client) : null,
   })
 }
-
