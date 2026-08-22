@@ -1,0 +1,10 @@
+alter table work_orders add column if not exists priority text not null default 'NORMAL' check (priority in ('LOW','NORMAL','HIGH','URGENT'));
+alter table work_orders add column if not exists specifications text;
+alter table work_orders add column if not exists design_status text not null default 'PENDING' check (design_status in ('PENDING','IN_PROGRESS','READY','APPROVED','CHANGES_REQUESTED'));
+alter table work_orders add column if not exists client_approval_at timestamptz;
+alter table work_orders add column if not exists production_started_at timestamptz;
+alter table work_orders add column if not exists ready_at timestamptz;
+alter table work_orders add column if not exists delivered_at timestamptz;
+alter table work_orders add column if not exists delivery_notes text;
+alter table work_orders add column if not exists internal_notes text;
+create index if not exists work_orders_production_idx on work_orders(company_id, status, priority, due_at);
