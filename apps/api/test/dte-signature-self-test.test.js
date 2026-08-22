@@ -30,6 +30,19 @@ test('firma un objeto inocuo y nunca lo transmite a Hacienda', async () => {
   assert.equal(payload.prueba.transmitible, false)
 })
 
+test('acepta el formato oficial del firmador con JWS directamente en body', async () => {
+  const result = await runSignatureSelfTest({
+    env: configuredTestEnv,
+    createSigner: () => ({
+      sign: async () => ({ status: 'OK', body: 'official-signed-jws' }),
+    }),
+  })
+
+  assert.equal(result.status, 'passed')
+  assert.equal(result.signed, true)
+  assert.equal(result.transmitted, false)
+})
+
 test('se bloquea fuera del ambiente de pruebas', async () => {
   let called = false
   const result = await runSignatureSelfTest({
