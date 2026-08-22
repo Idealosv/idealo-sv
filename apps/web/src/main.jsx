@@ -5,6 +5,7 @@ import FacturacionLauncher from './FacturacionLauncher.jsx'
 import CommercialLauncher from './CommercialLauncher.jsx'
 import OperationsFinanceLauncher from './OperationsFinanceLauncher.jsx'
 import InventoryCostLauncher from './InventoryCostLauncher.jsx'
+import FinancialDashboardLauncher from './FinancialDashboardLauncher.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -13,6 +14,7 @@ import './idealo-reference.css'
 import './facturacion-feedback.css'
 import './sidebar-modules.css'
 import './accounts-payable.css'
+import './financial-dashboard.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
@@ -26,6 +28,7 @@ createRoot(document.getElementById('root')).render(
     <CommercialLauncher />
     <OperationsFinanceLauncher />
     <InventoryCostLauncher />
+    <FinancialDashboardLauncher />
     <FacturacionLauncher />
   </StrictMode>,
 )
