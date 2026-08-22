@@ -1,0 +1,84 @@
+/* Clientes · balance visual definitivo: negro + naranja, evitando saturación */
+.clients-module .client-view-tabs button{
+  background:#fff!important;
+  color:#111827!important;
+  border:1px solid #9ca3af!important;
+  box-shadow:none!important;
+}
+.clients-module .client-view-tabs button.active{
+  background:#111827!important;
+  color:#fff!important;
+  border-color:#111827!important;
+}
+
+.clients-module .client-organizer-tabs button{
+  background:#111827!important;
+  color:#fff!important;
+  border:1px solid #111827!important;
+  box-shadow:none!important;
+}
+.clients-module .client-organizer-tabs button b{
+  background:#374151!important;
+  color:#fff!important;
+}
+.clients-module .client-organizer-tabs button.active{
+  background:#f36c21!important;
+  color:#fff!important;
+  border-color:#f36c21!important;
+}
+.clients-module .client-organizer-tabs button.active b{
+  background:rgba(255,255,255,.22)!important;
+  color:#fff!important;
+}
+
+.clients-module .client-organizer-help button:first-child{
+  background:#111827!important;
+  color:#fff!important;
+  border-color:#111827!important;
+}
+.clients-module .client-organizer-help button:last-child{
+  background:#f36c21!important;
+  color:#fff!important;
+  border-color:#f36c21!important;
+}
+.clients-module .client-organizer-help button:disabled{
+  background:#e5e7eb!important;
+  color:#6b7280!important;
+  border-color:#cbd5e1!important;
+}
+
+.clients-module .client-form-header .secondary-button,
+.clients-module .client-form-full .form-actions .secondary-button{
+  background:#111827!important;
+  color:#fff!important;
+  border-color:#111827!important;
+}
+.clients-module .client-form-full .form-actions button[type="submit"]{
+  background:#f36c21!important;
+  color:#fff!important;
+  border-color:#f36c21!important;
+}
+
+.clients-module .row-actions .secondary-button{
+  background:#111827!important;
+  color:#fff!important;
+  border-color:#111827!important;
+}
+.clients-module .row-actions .danger-button{
+  background:#fff!important;
+  color:#991b1b!important;
+  border:1px solid #991b1b!important;
+}
+
+/* Bordes de formulario aún más claros en Clientes */
+.clients-module input:not([type="checkbox"]):not([type="radio"]),
+.clients-module select,
+.clients-module textarea{
+  border:1.5px solid #6b7280!important;
+}
+.clients-module fieldset,
+.clients-module .form-section,
+.clients-module .client-section-organizer,
+.clients-module .clients-directory{
+  border-color:#9ca3af!important;
+}
