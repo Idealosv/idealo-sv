@@ -242,21 +242,72 @@ function Dashboard({ company }) {
 }
 
 
+const DTE_DEPARTMENTS = [
+  { code: '00', name: 'Otro (extranjero)', municipalities: [{ code: '00', name: 'Otro' }] },
+  { code: '01', name: 'Ahuachapán', municipalities: [{ code: '13', name: 'Ahuachapán Norte' }, { code: '14', name: 'Ahuachapán Centro' }, { code: '15', name: 'Ahuachapán Sur' }] },
+  { code: '02', name: 'Santa Ana', municipalities: [{ code: '14', name: 'Santa Ana Norte' }, { code: '15', name: 'Santa Ana Centro' }, { code: '16', name: 'Santa Ana Este' }, { code: '17', name: 'Santa Ana Oeste' }] },
+  { code: '03', name: 'Sonsonate', municipalities: [{ code: '17', name: 'Sonsonate Norte' }, { code: '18', name: 'Sonsonate Centro' }, { code: '19', name: 'Sonsonate Este' }, { code: '20', name: 'Sonsonate Oeste' }] },
+  { code: '04', name: 'Chalatenango', municipalities: [{ code: '34', name: 'Chalatenango Norte' }, { code: '35', name: 'Chalatenango Centro' }, { code: '36', name: 'Chalatenango Sur' }] },
+  { code: '05', name: 'La Libertad', municipalities: [{ code: '23', name: 'La Libertad Norte' }, { code: '24', name: 'La Libertad Centro' }, { code: '25', name: 'La Libertad Oeste' }, { code: '26', name: 'La Libertad Este' }, { code: '27', name: 'La Libertad Costa' }, { code: '28', name: 'La Libertad Sur' }] },
+  { code: '06', name: 'San Salvador', municipalities: [{ code: '20', name: 'San Salvador Norte' }, { code: '21', name: 'San Salvador Oeste' }, { code: '22', name: 'San Salvador Este' }, { code: '23', name: 'San Salvador Centro' }, { code: '24', name: 'San Salvador Sur' }] },
+  { code: '07', name: 'Cuscatlán', municipalities: [{ code: '17', name: 'Cuscatlán Norte' }, { code: '18', name: 'Cuscatlán Sur' }] },
+  { code: '08', name: 'La Paz', municipalities: [{ code: '23', name: 'La Paz Oeste' }, { code: '24', name: 'La Paz Centro' }, { code: '25', name: 'La Paz Este' }] },
+  { code: '09', name: 'Cabañas', municipalities: [{ code: '10', name: 'Cabañas Este' }, { code: '11', name: 'Cabañas Oeste' }] },
+  { code: '10', name: 'San Vicente', municipalities: [{ code: '14', name: 'San Vicente Norte' }, { code: '15', name: 'San Vicente Sur' }] },
+  { code: '11', name: 'Usulután', municipalities: [{ code: '24', name: 'Usulután Norte' }, { code: '25', name: 'Usulután Este' }, { code: '26', name: 'Usulután Oeste' }] },
+  { code: '12', name: 'San Miguel', municipalities: [{ code: '21', name: 'San Miguel Norte' }, { code: '22', name: 'San Miguel Centro' }, { code: '23', name: 'San Miguel Oeste' }] },
+  { code: '13', name: 'Morazán', municipalities: [{ code: '27', name: 'Morazán Norte' }, { code: '28', name: 'Morazán Sur' }] },
+  { code: '14', name: 'La Unión', municipalities: [{ code: '19', name: 'La Unión Norte' }, { code: '20', name: 'La Unión Sur' }] },
+]
+
+const DTE_DOCUMENT_TYPES = [
+  { code: '36', name: 'NIT' },
+  { code: '13', name: 'DUI' },
+  { code: '03', name: 'Pasaporte' },
+  { code: '02', name: 'Carnet de residente' },
+  { code: '37', name: 'Otro' },
+]
+
+function getDteReadiness(client) {
+  const common = [
+    ['name', 'nombre o razón social'],
+    ['email', 'correo electrónico'],
+    ['phone', 'teléfono'],
+    ['activity_code', 'código de actividad económica'],
+    ['business_activity', 'descripción de actividad'],
+    ['department_code', 'departamento'],
+    ['municipality_code', 'municipio'],
+    ['address', 'complemento de dirección'],
+  ]
+  const fiscal = client.preferred_dte_type === '03'
+    ? [['tax_id', 'NIT'], ['nrc', 'NRC']]
+    : [['document_type', 'tipo de documento'], ['document_number', 'número de documento']]
+  const missing = [...common, ...fiscal].filter(([key]) => !String(client[key] || '').trim())
+  return { ready: missing.length === 0, missing: missing.map(([, label]) => label) }
+}
+
 function ClientsModule({ company, supabase }) {
   const emptyForm = {
     client_type: 'company',
+    taxpayer_type: '2',
+    preferred_dte_type: '03',
+    document_type: '36',
+    document_number: '',
     name: '',
     trade_name: '',
     tax_id: '',
     nrc: '',
     dui: '',
+    activity_code: '',
     business_activity: '',
     email: '',
     phone: '',
     whatsapp: '',
     contact_name: '',
     contact_position: '',
+    department_code: '',
     department: '',
+    municipality_code: '',
     municipality: '',
     address: '',
     payment_terms: 'cash',
@@ -304,8 +355,25 @@ function ClientsModule({ company, supabase }) {
 
   const updateField = (event) => {
     const { name, value } = event.target
-    setForm((current) => ({ ...current, [name]: value }))
+    setForm((current) => {
+      if (name === 'client_type') {
+        return {
+          ...current,
+          client_type: value,
+          taxpayer_type: value === 'person' ? '1' : '2',
+          document_type: value === 'person' ? '13' : '36',
+        }
+      }
+      if (name === 'department_code') {
+        return { ...current, department_code: value, municipality_code: '' }
+      }
+      return { ...current, [name]: value }
+    })
   }
+
+  const selectedDepartment = DTE_DEPARTMENTS.find(
+    (department) => department.code === form.department_code,
+  )
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -327,22 +395,41 @@ function ClientsModule({ company, supabase }) {
     setSaving(true)
     setMessage('')
 
+    const readiness = getDteReadiness(form)
+    if (!readiness.ready) {
+      setMessage(`Completa los datos obligatorios para DTE: ${readiness.missing.join(', ')}.`)
+      setSaving(false)
+      return
+    }
+
+    const department = DTE_DEPARTMENTS.find((item) => item.code === form.department_code)
+    const municipality = department?.municipalities.find(
+      (item) => item.code === form.municipality_code,
+    )
+
     const payload = {
       company_id: company.id,
       client_type: form.client_type,
+      taxpayer_type: form.taxpayer_type,
+      preferred_dte_type: form.preferred_dte_type,
+      document_type: form.document_type,
+      document_number: form.document_number.trim() || null,
       name: form.name.trim(),
       trade_name: form.trade_name.trim() || null,
       tax_id: form.tax_id.trim() || null,
       nrc: form.nrc.trim() || null,
       dui: form.dui.trim() || null,
+      activity_code: form.activity_code.trim() || null,
       business_activity: form.business_activity.trim() || null,
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       whatsapp: form.whatsapp.trim() || null,
       contact_name: form.contact_name.trim() || null,
       contact_position: form.contact_position.trim() || null,
-      department: form.department.trim() || null,
-      municipality: form.municipality.trim() || null,
+      department_code: form.department_code,
+      department: department?.name || null,
+      municipality_code: form.municipality_code,
+      municipality: municipality?.name || null,
       address: form.address.trim() || null,
       payment_terms: form.payment_terms,
       credit_limit: Number(form.credit_limit || 0),
@@ -373,18 +460,25 @@ function ClientsModule({ company, supabase }) {
     setEditingId(client.id)
     setForm({
       client_type: client.client_type || 'company',
+      taxpayer_type: client.taxpayer_type || (client.client_type === 'person' ? '1' : '2'),
+      preferred_dte_type: client.preferred_dte_type || '01',
+      document_type: client.document_type || (client.client_type === 'person' ? '13' : '36'),
+      document_number: client.document_number || '',
       name: client.name || '',
       trade_name: client.trade_name || '',
       tax_id: client.tax_id || '',
       nrc: client.nrc || '',
       dui: client.dui || '',
+      activity_code: client.activity_code || '',
       business_activity: client.business_activity || '',
       email: client.email || '',
       phone: client.phone || '',
       whatsapp: client.whatsapp || '',
       contact_name: client.contact_name || '',
       contact_position: client.contact_position || '',
+      department_code: client.department_code || '',
       department: client.department || '',
+      municipality_code: client.municipality_code || '',
       municipality: client.municipality || '',
       address: client.address || '',
       payment_terms: client.payment_terms || 'cash',
@@ -421,6 +515,8 @@ function ClientsModule({ company, supabase }) {
       client.phone,
       client.whatsapp,
       client.tax_id,
+      client.document_number,
+      client.activity_code,
       client.nrc,
       client.dui,
       client.contact_name,
@@ -438,7 +534,7 @@ function ClientsModule({ company, supabase }) {
 
   const activeCount = clients.filter((client) => client.status === 'active').length
   const companyCount = clients.filter((client) => client.client_type === 'company').length
-  const creditCount = clients.filter((client) => client.payment_terms === 'credit').length
+  const dteReadyCount = clients.filter((client) => getDteReadiness(client).ready).length
 
   return (
     <section className="clients-module">
@@ -457,7 +553,7 @@ function ClientsModule({ company, supabase }) {
         <ClientStat label="Total" value={clients.length} note="Clientes registrados" />
         <ClientStat label="Activos" value={activeCount} note="Disponibles para operar" />
         <ClientStat label="Empresas" value={companyCount} note="Personas jurídicas" />
-        <ClientStat label="Con crédito" value={creditCount} note="Condición autorizada" />
+        <ClientStat label="Listos para DTE" value={dteReadyCount} note="Expediente fiscal completo" />
       </section>
 
       {message && (
@@ -506,24 +602,58 @@ function ClientsModule({ company, supabase }) {
             </div>
           </fieldset>
 
-          <fieldset className="form-section">
-            <legend>Información fiscal</legend>
+          <fieldset className="form-section dte-section">
+            <legend>Facturación electrónica (DTE)</legend>
+            <div className="dte-note">
+              Estos datos alimentarán automáticamente el receptor del DTE.
+              Para Crédito Fiscal se exigirán NIT y NRC.
+            </div>
             <div className="form-grid three">
               <label className="field">
-                <span>NIT</span>
-                <input name="tax_id" value={form.tax_id} onChange={updateField} placeholder="0000-000000-000-0" />
+                <span>Documento habitual *</span>
+                <select name="preferred_dte_type" value={form.preferred_dte_type} onChange={updateField}>
+                  <option value="01">01 - Factura electrónica</option>
+                  <option value="03">03 - Crédito Fiscal electrónico</option>
+                </select>
               </label>
               <label className="field">
-                <span>NRC</span>
-                <input name="nrc" value={form.nrc} onChange={updateField} />
+                <span>Tipo de persona (CAT-029) *</span>
+                <select name="taxpayer_type" value={form.taxpayer_type} onChange={updateField}>
+                  <option value="1">1 - Persona natural</option>
+                  <option value="2">2 - Persona jurídica</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Tipo de identificación (CAT-022) *</span>
+                <select name="document_type" value={form.document_type} onChange={updateField}>
+                  {DTE_DOCUMENT_TYPES.map((type) => (
+                    <option key={type.code} value={type.code}>{type.code} - {type.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Número de identificación *</span>
+                <input name="document_number" value={form.document_number} onChange={updateField} placeholder="DUI, NIT, pasaporte u otro" required />
+              </label>
+              <label className="field">
+                <span>NIT {form.preferred_dte_type === '03' ? '*' : ''}</span>
+                <input name="tax_id" value={form.tax_id} onChange={updateField} placeholder="0000-000000-000-0" required={form.preferred_dte_type === '03'} />
+              </label>
+              <label className="field">
+                <span>NRC {form.preferred_dte_type === '03' ? '*' : ''}</span>
+                <input name="nrc" value={form.nrc} onChange={updateField} required={form.preferred_dte_type === '03'} />
               </label>
               <label className="field">
                 <span>DUI</span>
                 <input name="dui" value={form.dui} onChange={updateField} placeholder="00000000-0" />
               </label>
-              <label className="field form-span-3">
-                <span>Giro o actividad económica</span>
-                <input name="business_activity" value={form.business_activity} onChange={updateField} />
+              <label className="field">
+                <span>Código actividad económica *</span>
+                <input name="activity_code" value={form.activity_code} onChange={updateField} inputMode="numeric" placeholder="CAT-019" required />
+              </label>
+              <label className="field form-span-2">
+                <span>Actividad económica / giro *</span>
+                <input name="business_activity" value={form.business_activity} onChange={updateField} required />
               </label>
             </div>
           </fieldset>
@@ -532,12 +662,12 @@ function ClientsModule({ company, supabase }) {
             <legend>Contacto principal</legend>
             <div className="form-grid three">
               <label className="field">
-                <span>Correo electrónico</span>
-                <input name="email" type="email" value={form.email} onChange={updateField} />
+                <span>Correo electrónico para entrega DTE *</span>
+                <input name="email" type="email" value={form.email} onChange={updateField} required />
               </label>
               <label className="field">
-                <span>Teléfono</span>
-                <input name="phone" value={form.phone} onChange={updateField} />
+                <span>Teléfono para DTE *</span>
+                <input name="phone" value={form.phone} onChange={updateField} required />
               </label>
               <label className="field">
                 <span>WhatsApp</span>
@@ -555,24 +685,33 @@ function ClientsModule({ company, supabase }) {
           </fieldset>
 
           <fieldset className="form-section">
-            <legend>Dirección</legend>
+            <legend>Domicilio fiscal del receptor</legend>
             <div className="form-grid three">
               <label className="field">
-                <span>Departamento</span>
-                <select name="department" value={form.department} onChange={updateField}>
+                <span>Departamento (CAT-012) *</span>
+                <select name="department_code" value={form.department_code} onChange={updateField} required>
                   <option value="">Seleccionar</option>
-                  {SALVADOR_DEPARTMENTS.map((department) => (
-                    <option key={department} value={department}>{department}</option>
+                  {DTE_DEPARTMENTS.map((department) => (
+                    <option key={department.code} value={department.code}>
+                      {department.code} - {department.name}
+                    </option>
                   ))}
                 </select>
               </label>
               <label className="field">
-                <span>Municipio / distrito</span>
-                <input name="municipality" value={form.municipality} onChange={updateField} />
+                <span>Municipio (CAT-013) *</span>
+                <select name="municipality_code" value={form.municipality_code} onChange={updateField} required disabled={!selectedDepartment}>
+                  <option value="">Seleccionar</option>
+                  {(selectedDepartment?.municipalities || []).map((municipality) => (
+                    <option key={municipality.code} value={municipality.code}>
+                      {municipality.code} - {municipality.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="field form-span-3">
-                <span>Dirección completa</span>
-                <textarea name="address" rows="2" value={form.address} onChange={updateField} />
+                <span>Complemento de dirección *</span>
+                <textarea name="address" rows="2" value={form.address} onChange={updateField} placeholder="Calle, avenida, colonia, número y referencias" required />
               </label>
             </div>
           </fieldset>
@@ -686,8 +825,11 @@ function ClientsModule({ company, supabase }) {
                       <small>{client.email || client.contact_name || 'Sin contacto adicional'}</small>
                     </td>
                     <td>
-                      <strong>{client.tax_id || client.dui || 'Sin identificación'}</strong>
-                      <small>{client.nrc ? `NRC ${client.nrc}` : client.business_activity || 'Sin NRC'}</small>
+                      <strong>{client.preferred_dte_type === '03' ? '03 - Crédito Fiscal' : '01 - Factura'}</strong>
+                      <small>{client.tax_id || client.document_number || 'Sin identificación'}</small>
+                      <span className={getDteReadiness(client).ready ? 'status dte-ready' : 'status dte-pending'}>
+                        {getDteReadiness(client).ready ? 'Listo para DTE' : `Faltan ${getDteReadiness(client).missing.length} datos`}
+                      </span>
                     </td>
                     <td>
                       <strong>{client.payment_terms === 'credit' ? 'Crédito' : client.payment_terms === 'mixed' ? 'Mixto' : 'Contado'}</strong>
