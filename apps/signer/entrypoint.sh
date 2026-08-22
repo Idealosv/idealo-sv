@@ -22,15 +22,36 @@ for source in /etc/secrets/cert_*.crt; do
   fi
 done
 
+xml_value() {
+  tag="$1"
+  file="$2"
+  value="$(cat "$file")"
+  value="${value#*<$tag>}"
+  value="${value%%</$tag>*}"
+  printf '%s' "$value"
+}
+
 if [ -n "$first_certificate" ]; then
   cert_name="$(basename "$first_certificate")"
   mounted_nit="${cert_name%.crt}"
   fingerprint="$(sha256sum "$first_certificate" | awk '{print $1}')"
   size_bytes="$(wc -c < "$first_certificate" | tr -d ' ')"
-  printf '{"certificatePresent":true,"certificateCount":%s,"mountedNit":"%s","fileName":"%s","sha256":"%s","sizeBytes":%s}\n' \
-    "$certificate_count" "$mounted_nit" "$cert_name" "$fingerprint" "$size_bytes" > /tmp/cert-diagnostic.json
+
+  certificate_xml="$(cat "$first_certificate")"
+  public_section="${certificate_xml#*<publicKey>}"
+  public_section="${public_section%%</publicKey>*}"
+  public_key_der="${public_section#*<encodied>}"
+  public_key_der="${public_key_der%%</encodied>*}"
+  public_key_der="$(printf '%s' "$public_key_der" | tr -d '[:space:]')"
+
+  active="$(xml_value activo "$first_certificate" | tr -d '[:space:]')"
+  not_before="$(xml_value notBefore "$first_certificate" | tr -d '[:space:]')"
+  not_after="$(xml_value notAfter "$first_certificate" | tr -d '[:space:]')"
+
+  printf '{"certificatePresent":true,"certificateCount":%s,"mountedNit":"%s","fileName":"%s","sha256":"%s","sizeBytes":%s,"active":%s,"notBefore":"%s","notAfter":"%s","publicKeyDer":"%s"}\n' \
+    "$certificate_count" "$mounted_nit" "$cert_name" "$fingerprint" "$size_bytes" "${active:-false}" "$not_before" "$not_after" "$public_key_der" > /tmp/cert-diagnostic.json
 else
-  printf '{"certificatePresent":false,"certificateCount":0,"mountedNit":null,"fileName":null,"sha256":null,"sizeBytes":0}\n' > /tmp/cert-diagnostic.json
+  printf '{"certificatePresent":false,"certificateCount":0,"mountedNit":null,"fileName":null,"sha256":null,"sizeBytes":0,"active":false,"notBefore":null,"notAfter":null,"publicKeyDer":null}\n' > /tmp/cert-diagnostic.json
 fi
 
 java \

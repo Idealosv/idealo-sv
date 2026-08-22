@@ -1,3 +1,4 @@
+import { createPublicKey, verify as verifySignature } from 'node:crypto'
 import { getDteSignerConfig } from './config.js'
 import { DteSignerClient } from './signer-client.js'
 
@@ -7,6 +8,41 @@ function bearerToken(request) {
 }
 
 const digits = (value) => String(value || '').replace(/\D/g, '')
+
+function extractSignedDocument(response) {
+  const value = response?.body || response
+  const document = value?.documento || value?.document || value
+  return typeof document === 'string' && document.trim() ? document.trim() : null
+}
+
+function base64UrlBuffer(value) {
+  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/')
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+  return Buffer.from(padded, 'base64')
+}
+
+function verifyJws(jws, publicKeyDer) {
+  const parts = String(jws || '').split('.')
+  if (parts.length !== 3) return { valid: false, algorithm: null, reason: 'JWS inválido: debe contener tres segmentos.' }
+
+  try {
+    const header = JSON.parse(base64UrlBuffer(parts[0]).toString('utf8'))
+    const algorithm = header?.alg || null
+    if (algorithm !== 'RS512') return { valid: false, algorithm, reason: `Algoritmo inesperado: ${algorithm || 'sin alg'}.` }
+
+    const publicKey = createPublicKey({
+      key: Buffer.from(publicKeyDer, 'base64'),
+      format: 'der',
+      type: 'spki',
+    })
+    const signingInput = Buffer.from(`${parts[0]}.${parts[1]}`, 'ascii')
+    const signature = base64UrlBuffer(parts[2])
+    const valid = verifySignature('RSA-SHA512', signingInput, publicKey, signature)
+    return { valid, algorithm, reason: valid ? null : 'La firma RS512 no verifica con la clave pública del certificado montado.' }
+  } catch (error) {
+    return { valid: false, algorithm: null, reason: `No se pudo verificar el JWS: ${error.message}` }
+  }
+}
 
 export async function diagnoseDteSigner({ request, supabase, env = process.env, fetchImpl = fetch }) {
   const token = bearerToken(request)
@@ -72,6 +108,27 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   const certificatePresent = Boolean(certificate?.certificatePresent)
   const nitMatchesCompany = Boolean(companyNit && configuredNit && companyNit === configuredNit)
   const mountedNitMatches = Boolean(mountedNit && configuredNit && mountedNit === configuredNit)
+  const certificateActive = certificate?.active === true
+  const nowSeconds = Date.now() / 1000
+  const notBefore = Number.parseFloat(certificate?.notBefore || '')
+  const notAfter = Number.parseFloat(certificate?.notAfter || '')
+  const certificateInValidity = Number.isFinite(notBefore) && Number.isFinite(notAfter) && nowSeconds >= notBefore && nowSeconds <= notAfter
+
+  let cryptoSelfTest = { valid: false, algorithm: null, reason: 'No ejecutada.' }
+  if (certificatePresent && certificate?.publicKeyDer && signerReachable) {
+    try {
+      const probe = {
+        diagnostico: 'IDEALO-SV-SIGNER-SELF-TEST',
+        nit: configuredNit,
+        timestamp: new Date().toISOString(),
+      }
+      const signedProbe = extractSignedDocument(await signer.sign(probe))
+      if (!signedProbe) cryptoSelfTest = { valid: false, algorithm: null, reason: 'El firmador no devolvió JWS en la autoprueba.' }
+      else cryptoSelfTest = verifyJws(signedProbe, certificate.publicKeyDer)
+    } catch (error) {
+      cryptoSelfTest = { valid: false, algorithm: null, reason: error.message }
+    }
+  }
 
   const { data: docs, error: docsError } = await supabase
     .from('dte_documents').select('id, control_number')
@@ -104,10 +161,13 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
     }
   }
 
-  const signatureBlocked = lastMhRejection?.code === '802' || lastMhRejection?.description === 'Firma no válida'
+  const previousSignatureRejected = lastMhRejection?.code === '802' || lastMhRejection?.description === 'Firma no válida'
   let overall = 'READY'
-  if (!signerReachable || !certificatePresent || !nitMatchesCompany || !mountedNitMatches) overall = 'CONFIG_ERROR'
-  else if (signatureBlocked) overall = 'MH_SIGNATURE_REJECTED'
+  if (!signerReachable || !certificatePresent || !nitMatchesCompany || !mountedNitMatches || !certificateActive || !certificateInValidity || !cryptoSelfTest.valid) {
+    overall = 'CONFIG_ERROR'
+  } else if (previousSignatureRejected) {
+    overall = 'READY_FOR_SINGLE_RETRY'
+  }
 
   return {
     overall,
@@ -120,12 +180,18 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
       mountedNit: certificate?.mountedNit || null,
       fingerprint: certificate?.sha256 ? String(certificate.sha256).slice(0, 16) : null,
       sizeBytes: Number(certificate?.sizeBytes || 0),
+      active: certificateActive,
+      inValidity: certificateInValidity,
+      notBefore: Number.isFinite(notBefore) ? new Date(notBefore * 1000).toISOString() : null,
+      notAfter: Number.isFinite(notAfter) ? new Date(notAfter * 1000).toISOString() : null,
     },
     nit: {
       companyMatchesConfigured: nitMatchesCompany,
       mountedCertificateMatchesConfigured: mountedNitMatches,
     },
+    cryptoSelfTest,
     lastMhRejection,
-    transmissionRecommended: overall === 'READY',
+    previousSignatureRejected,
+    transmissionRecommended: overall === 'READY' || overall === 'READY_FOR_SINGLE_RETRY',
   }
 }
