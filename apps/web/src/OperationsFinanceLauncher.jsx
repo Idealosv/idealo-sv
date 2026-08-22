@@ -13,7 +13,7 @@ export default function OperationsFinanceLauncher(){
   if(!session||!company)return null
   const tabs=['Proveedores','Compras y gastos','Caja']
   return <>
-    <button type="button" onClick={()=>setOpen(true)} className="sidebar-module-access commercial" aria-label="Abrir abastecimiento y finanzas">
+    <button type="button" onClick={()=>setOpen(true)} className="sidebar-module-access procurement" aria-label="Abrir abastecimiento y finanzas">
       <span className="module-glyph">$</span><span className="module-copy"><span>Abastecimiento y caja</span><small>Proveedores · Compras · Gastos · Caja</small></span>
     </button>
     {open&&<div className="erp-modal-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}><section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Abastecimiento y finanzas" onMouseDown={e=>e.stopPropagation()}>
