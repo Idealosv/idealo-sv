@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { ProductsModule, QuotesModule, WorkOrdersModule } from './CommercialFlow.jsx'
 import ProductionModule from './ProductionModule.jsx'
+import { DeliveriesModule, ReceivablesModule } from './DeliveryFinanceModules.jsx'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -32,19 +33,19 @@ export default function CommercialLauncher() {
 
   if (!session || !company) return null
 
-  const tabs = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción']
+  const tabs = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción', 'Entregas', 'Cuentas por cobrar']
 
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="sidebar-module-access commercial" aria-label="Abrir gestión comercial">
         <span className="module-glyph">◇</span>
-        <span className="module-copy"><span>Operaciones comerciales</span><small>Ventas · Órdenes · Producción</small></span>
+        <span className="module-copy"><span>Operaciones comerciales</span><small>Ventas · Producción · Entregas · Cobros</small></span>
       </button>
       {open && (
         <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
           <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Gestión comercial y producción" onMouseDown={(event) => event.stopPropagation()}>
             <header className="erp-modal-head">
-              <div><strong>Operaciones comerciales</strong><small>Producto terminado → Cotización → Orden de trabajo → Producción → Entrega</small></div>
+              <div><strong>Operaciones comerciales</strong><small>Producto terminado → Cotización → Orden → Producción → Entrega → Cobro</small></div>
               <button type="button" className="erp-modal-close" onClick={() => setOpen(false)} aria-label="Cerrar">×</button>
             </header>
             <nav className="erp-module-tabs" aria-label="Secciones comerciales">
@@ -55,6 +56,8 @@ export default function CommercialLauncher() {
               {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} />}
               {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} />}
               {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} />}
+              {tab === 'Entregas' && <DeliveriesModule company={company} supabase={supabase} />}
+              {tab === 'Cuentas por cobrar' && <ReceivablesModule company={company} supabase={supabase} />}
             </div>
           </section>
         </div>
