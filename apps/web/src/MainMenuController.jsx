@@ -6,8 +6,11 @@ const MODULES = [
 ]
 
 const clickWorkspaceModule = (label) => {
-  const buttons = [...document.querySelectorAll('.erp-sidebar nav .nav-item')]
-  buttons.find((button) => button.textContent.trim() === label)?.click()
+  const buttons = [...document.querySelectorAll('.erp-sidebar > nav:not(.idealo-main-menu) .nav-item')]
+  const button = buttons.find((item) => item.textContent.trim().endsWith(label))
+  if (!button) return false
+  button.click()
+  return true
 }
 
 const openLauncher = (selector, tabLabel) => {
