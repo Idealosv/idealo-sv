@@ -10,6 +10,10 @@ export class DteSignerClient {
     return requestJson(`${this.config.signerUrl}/firmardocumento/status`, {}, this.requestOptions())
   }
 
+  diagnostic() {
+    return requestJson(`${this.config.signerUrl}/diagnostico-certificado`, {}, this.requestOptions())
+  }
+
   sign(dte) {
     return requestJson(`${this.config.signerUrl}/firmardocumento/`, {
       method: 'POST',
