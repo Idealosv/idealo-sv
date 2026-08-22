@@ -23,6 +23,45 @@ test('detecta expedientes fiscales completos e incompletos', () => {
   assert.deepEqual(getIssuerReadiness({ ...company, nit: '' }).missing, ['NIT'])
 })
 
+test('rechaza datos fiscales del emisor con formato inválido', () => {
+  const status = getIssuerReadiness({
+    ...company,
+    nit: '123',
+    phone: '7000',
+    email: 'correo-invalido',
+    establishment_code: 'M01',
+  })
+  assert.equal(status.ready, false)
+  assert.ok(status.invalid.includes('NIT debe contener 14 dígitos'))
+  assert.ok(status.invalid.includes('teléfono debe contener 8 dígitos'))
+  assert.ok(status.invalid.includes('correo inválido'))
+  assert.ok(status.invalid.includes('código de establecimiento debe contener 4 caracteres alfanuméricos'))
+})
+
+test('normaliza datos del emisor antes de construir DTE-01', () => {
+  const normalized = {
+    ...company,
+    nit: '0614-281297-103-2',
+    nrc: '123456-7',
+    phone: '2222-3333',
+    email: ' DTE@EXAMPLE.COM ',
+    establishment_code: 'm001',
+    point_of_sale_code: 'p001',
+  }
+  const dte = buildFacturaFromRecords({
+    company: normalized,
+    numeroControl: 'DTE-01-M001P001-000000000000001',
+    totalLetras: 'UNO 00/100 DÓLARES',
+    items: [{ descripcion: 'Prueba', cantidad: 1, precioUni: 1 }],
+  })
+  assert.equal(dte.emisor.nit, '06142812971032')
+  assert.equal(dte.emisor.nrc, '1234567')
+  assert.equal(dte.emisor.telefono, '22223333')
+  assert.equal(dte.emisor.correo, 'dte@example.com')
+  assert.equal(dte.emisor.codEstable, 'M001')
+  assert.equal(dte.emisor.codPuntoVenta, 'P001')
+})
+
 test('construye DTE-01 de prueba desde empresa y cliente registrados', () => {
   const dte = buildFacturaFromRecords({
     company, client,
@@ -35,6 +74,15 @@ test('construye DTE-01 de prueba desde empresa y cliente registrados', () => {
   assert.equal(dte.emisor.nit, company.nit)
   assert.equal(dte.receptor.numDocumento, client.document_number)
   assert.equal(dte.receptor.direccion.distrito, '01')
+})
+
+test('impide construir DTE-01 cuando el emisor tiene datos inválidos', () => {
+  assert.throws(() => buildFacturaFromRecords({
+    company: { ...company, nit: '123' },
+    numeroControl: 'DTE-01-M001P001-000000000000004',
+    totalLetras: 'UNO 00/100 DÓLARES',
+    items: [{ descripcion: 'Prueba', cantidad: 1, precioUni: 1 }],
+  }), /NIT debe contener 14 dígitos/)
 })
 
 test('no incorpora secretos de firma ni credenciales al DTE', () => {
