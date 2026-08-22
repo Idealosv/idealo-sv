@@ -30,11 +30,7 @@ function verifyJws(jws, publicKeyDer) {
     const algorithm = header?.alg || null
     if (algorithm !== 'RS512') return { valid: false, algorithm, reason: `Algoritmo inesperado: ${algorithm || 'sin alg'}.` }
 
-    const publicKey = createPublicKey({
-      key: Buffer.from(publicKeyDer, 'base64'),
-      format: 'der',
-      type: 'spki',
-    })
+    const publicKey = createPublicKey({ key: Buffer.from(publicKeyDer, 'base64'), format: 'der', type: 'spki' })
     const signingInput = Buffer.from(`${parts[0]}.${parts[1]}`, 'ascii')
     const signature = base64UrlBuffer(parts[2])
     const valid = verifySignature('RSA-SHA512', signingInput, publicKey, signature)
@@ -46,41 +42,23 @@ function verifyJws(jws, publicKeyDer) {
 
 export async function diagnoseDteSigner({ request, supabase, env = process.env, fetchImpl = fetch }) {
   const token = bearerToken(request)
-  if (!token) {
-    const error = new Error('Debes iniciar sesión para diagnosticar el firmador DTE.')
-    error.statusCode = 401
-    throw error
-  }
+  if (!token) { const error = new Error('Debes iniciar sesión para diagnosticar el firmador DTE.'); error.statusCode = 401; throw error }
 
   const { data: userData, error: userError } = await supabase.auth.getUser(token)
-  if (userError || !userData?.user) {
-    const error = new Error('La sesión no es válida o ya venció.')
-    error.statusCode = 401
-    throw error
-  }
+  if (userError || !userData?.user) { const error = new Error('La sesión no es válida o ya venció.'); error.statusCode = 401; throw error }
 
   const companyId = request.query?.companyId || request.body?.companyId
-  if (!companyId) {
-    const error = new Error('Debes indicar la empresa para diagnosticar el firmador.')
-    error.statusCode = 400
-    throw error
-  }
+  if (!companyId) { const error = new Error('Debes indicar la empresa para diagnosticar el firmador.'); error.statusCode = 400; throw error }
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('company_members').select('role')
-    .eq('company_id', companyId).eq('user_id', userData.user.id).maybeSingle()
+  const { data: membership, error: membershipError } = await supabase.from('company_members').select('role').eq('company_id', companyId).eq('user_id', userData.user.id).maybeSingle()
   if (membershipError) throw membershipError
-  if (!membership) {
-    const error = new Error('No tienes permiso para diagnosticar DTE de esta empresa.')
-    error.statusCode = 403
-    throw error
-  }
+  if (!membership) { const error = new Error('No tienes permiso para diagnosticar DTE de esta empresa.'); error.statusCode = 403; throw error }
 
-  const { data: company, error: companyError } = await supabase
-    .from('companies').select('id, nit, name').eq('id', companyId).single()
+  const { data: company, error: companyError } = await supabase.from('companies').select('id, nit, name').eq('id', companyId).single()
   if (companyError) throw companyError
 
-  const config = getDteSignerConfig(env)
+  const baseConfig = getDteSignerConfig(env)
+  const config = Object.freeze({ ...baseConfig, requestTimeoutMs: Math.max(baseConfig.requestTimeoutMs || 0, 90000) })
   const signer = new DteSignerClient(config, { fetchImpl })
 
   let signerReachable = false
@@ -88,19 +66,8 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   let certificate = null
   let signerError = null
 
-  try {
-    signerStatus = await signer.status()
-    signerReachable = true
-  } catch (error) {
-    signerError = error.message
-  }
-
-  try {
-    certificate = await signer.diagnostic()
-    signerReachable = true
-  } catch (error) {
-    signerError = signerError || error.message
-  }
+  try { signerStatus = await signer.status(); signerReachable = true } catch (error) { signerError = error.message }
+  try { certificate = await signer.diagnostic(); signerReachable = true } catch (error) { signerError = signerError || error.message }
 
   const companyNit = digits(company.nit)
   const configuredNit = digits(config.nit)
@@ -114,84 +81,41 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   const notAfter = Number.parseFloat(certificate?.notAfter || '')
   const certificateInValidity = Number.isFinite(notBefore) && Number.isFinite(notAfter) && nowSeconds >= notBefore && nowSeconds <= notAfter
 
-  let cryptoSelfTest = { valid: false, algorithm: null, reason: 'No ejecutada.' }
+  let cryptoSelfTest = { valid: false, algorithm: null, reason: signerReachable ? 'No ejecutada.' : 'Firmador sin respuesta.' }
   if (certificatePresent && certificate?.publicKeyDer && signerReachable) {
     try {
-      const probe = {
-        diagnostico: 'IDEALO-SV-SIGNER-SELF-TEST',
-        nit: configuredNit,
-        timestamp: new Date().toISOString(),
-      }
+      const probe = { diagnostico: 'IDEALO-SV-SIGNER-SELF-TEST', nit: configuredNit, timestamp: new Date().toISOString() }
       const signedProbe = extractSignedDocument(await signer.sign(probe))
-      if (!signedProbe) cryptoSelfTest = { valid: false, algorithm: null, reason: 'El firmador no devolvió JWS en la autoprueba.' }
-      else cryptoSelfTest = verifyJws(signedProbe, certificate.publicKeyDer)
-    } catch (error) {
-      cryptoSelfTest = { valid: false, algorithm: null, reason: error.message }
-    }
+      cryptoSelfTest = signedProbe ? verifyJws(signedProbe, certificate.publicKeyDer) : { valid: false, algorithm: null, reason: 'El firmador no devolvió JWS en la autoprueba.' }
+    } catch (error) { cryptoSelfTest = { valid: false, algorithm: null, reason: error.message } }
   }
 
-  const { data: docs, error: docsError } = await supabase
-    .from('dte_documents').select('id, control_number')
-    .eq('company_id', companyId).eq('dte_type', '01')
-    .order('created_at', { ascending: false }).limit(10)
+  const { data: docs, error: docsError } = await supabase.from('dte_documents').select('id, control_number').eq('company_id', companyId).eq('dte_type', '01').order('created_at', { ascending: false }).limit(10)
   if (docsError) throw docsError
 
   let lastMhRejection = null
   const ids = (docs || []).map((row) => row.id)
   if (ids.length) {
-    const { data: attempts, error: attemptsError } = await supabase
-      .from('dte_transmission_attempts')
-      .select('dte_document_id, response_payload, error_message, started_at')
-      .in('dte_document_id', ids)
-      .order('started_at', { ascending: false }).limit(10)
+    const { data: attempts, error: attemptsError } = await supabase.from('dte_transmission_attempts').select('dte_document_id, response_payload, error_message, started_at').in('dte_document_id', ids).order('started_at', { ascending: false }).limit(10)
     if (attemptsError) throw attemptsError
-
-    const rejected = (attempts || []).find((attempt) => {
-      const response = attempt.response_payload || {}
-      return response.estado === 'RECHAZADO' || response.descripcionMsg || attempt.error_message
-    })
+    const rejected = (attempts || []).find((attempt) => { const response = attempt.response_payload || {}; return response.estado === 'RECHAZADO' || response.descripcionMsg || attempt.error_message })
     if (rejected) {
       const document = (docs || []).find((row) => row.id === rejected.dte_document_id)
-      lastMhRejection = {
-        controlNumber: document?.control_number || null,
-        code: rejected.response_payload?.codigoMsg || null,
-        description: rejected.response_payload?.descripcionMsg || rejected.error_message || null,
-        at: rejected.started_at,
-      }
+      lastMhRejection = { controlNumber: document?.control_number || null, code: rejected.response_payload?.codigoMsg || null, description: rejected.response_payload?.descripcionMsg || rejected.error_message || null, at: rejected.started_at }
     }
   }
 
   const previousSignatureRejected = lastMhRejection?.code === '802' || lastMhRejection?.description === 'Firma no válida'
   let overall = 'READY'
-  if (!signerReachable || !certificatePresent || !nitMatchesCompany || !mountedNitMatches || !certificateActive || !certificateInValidity || !cryptoSelfTest.valid) {
-    overall = 'CONFIG_ERROR'
-  } else if (previousSignatureRejected) {
-    overall = 'READY_FOR_SINGLE_RETRY'
-  }
+  if (!signerReachable || !certificatePresent || !nitMatchesCompany || !mountedNitMatches || !certificateActive || !certificateInValidity || !cryptoSelfTest.valid) overall = 'CONFIG_ERROR'
+  else if (previousSignatureRejected) overall = 'READY_FOR_SINGLE_RETRY'
 
   return {
-    overall,
-    signerReachable,
-    signerStatus: signerReachable ? 'online' : 'offline',
-    signerError,
-    certificate: {
-      present: certificatePresent,
-      count: Number(certificate?.certificateCount || 0),
-      mountedNit: certificate?.mountedNit || null,
-      fingerprint: certificate?.sha256 ? String(certificate.sha256).slice(0, 16) : null,
-      sizeBytes: Number(certificate?.sizeBytes || 0),
-      active: certificateActive,
-      inValidity: certificateInValidity,
-      notBefore: Number.isFinite(notBefore) ? new Date(notBefore * 1000).toISOString() : null,
-      notAfter: Number.isFinite(notAfter) ? new Date(notAfter * 1000).toISOString() : null,
-    },
-    nit: {
-      companyMatchesConfigured: nitMatchesCompany,
-      mountedCertificateMatchesConfigured: mountedNitMatches,
-    },
-    cryptoSelfTest,
-    lastMhRejection,
-    previousSignatureRejected,
+    overall, signerReachable, signerStatus: signerReachable ? 'online' : 'offline', signerError,
+    diagnosticTimeoutMs: config.requestTimeoutMs,
+    certificate: { present: certificatePresent, count: Number(certificate?.certificateCount || 0), mountedNit: certificate?.mountedNit || null, fingerprint: certificate?.sha256 ? String(certificate.sha256).slice(0, 16) : null, sizeBytes: Number(certificate?.sizeBytes || 0), active: certificateActive, inValidity: certificateInValidity, notBefore: Number.isFinite(notBefore) ? new Date(notBefore * 1000).toISOString() : null, notAfter: Number.isFinite(notAfter) ? new Date(notAfter * 1000).toISOString() : null },
+    nit: { companyMatchesConfigured: nitMatchesCompany, mountedCertificateMatchesConfigured: mountedNitMatches },
+    cryptoSelfTest, lastMhRejection, previousSignatureRejected,
     transmissionRecommended: overall === 'READY' || overall === 'READY_FOR_SINGLE_RETRY',
   }
 }
