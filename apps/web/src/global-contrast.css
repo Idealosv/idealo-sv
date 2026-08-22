@@ -1,0 +1,118 @@
+/* IDEALO SV · contraste global de superficies claras y formularios */
+:root{
+  --idealo-page:#e7eaee;
+  --idealo-surface:#f7f8f9;
+  --idealo-surface-strong:#eef1f4;
+  --idealo-border:#8f99a4;
+  --idealo-border-strong:#66717d;
+  --idealo-border-soft:#b4bcc5;
+}
+
+/* Fondo general: ligeramente más oscuro que el blanco/gris anterior */
+.erp-shell,
+.erp-content,
+.erp-modal-panel,
+.erp-modal-body{
+  background-color:var(--idealo-page)!important;
+}
+
+/* Superficies de contenido */
+.welcome-strip,
+.panel,
+.metric-card,
+.module-preview,
+.user-chip,
+.erp-modal-panel .panel,
+.client-form-full,
+.clients-layout > *,
+.crm360,
+.client360-card,
+.automation-card{
+  background:var(--idealo-surface)!important;
+  border-color:var(--idealo-border-soft)!important;
+}
+
+/* Campos: borde oscuro y consistente en todo el ERP */
+.erp-content input:not([type="checkbox"]):not([type="radio"]),
+.erp-content select,
+.erp-content textarea,
+.erp-modal-panel input:not([type="checkbox"]):not([type="radio"]),
+.erp-modal-panel select,
+.erp-modal-panel textarea,
+.field input,
+.field select,
+.field textarea{
+  border:1px solid var(--idealo-border)!important;
+  background:#fff!important;
+  color:#171b20!important;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.015)!important;
+}
+
+.erp-content input:not([type="checkbox"]):not([type="radio"]):hover,
+.erp-content select:hover,
+.erp-content textarea:hover,
+.erp-modal-panel input:not([type="checkbox"]):not([type="radio"]):hover,
+.erp-modal-panel select:hover,
+.erp-modal-panel textarea:hover{
+  border-color:var(--idealo-border-strong)!important;
+}
+
+.erp-content input:focus,
+.erp-content select:focus,
+.erp-content textarea:focus,
+.erp-modal-panel input:focus,
+.erp-modal-panel select:focus,
+.erp-modal-panel textarea:focus{
+  border-color:#f36c21!important;
+  box-shadow:0 0 0 2px rgba(243,108,33,.16)!important;
+  outline:none!important;
+}
+
+/* Contenedores de formularios y secciones */
+.erp-content fieldset,
+.erp-modal-panel fieldset,
+.form-section,
+.dte-section,
+.client360-section,
+.crm360-col,
+.client-organizer-tabs{
+  border-color:var(--idealo-border-soft)!important;
+}
+
+.erp-content fieldset,
+.erp-modal-panel fieldset,
+.form-section{
+  background:rgba(255,255,255,.38);
+}
+
+/* Tablas y separadores con mayor contraste */
+.erp-content table,
+.erp-modal-panel table{
+  border-color:var(--idealo-border-soft)!important;
+}
+.erp-content th,
+.erp-modal-panel th{
+  background:var(--idealo-surface-strong)!important;
+  border-color:var(--idealo-border-soft)!important;
+}
+.erp-content td,
+.erp-modal-panel td,
+.client-row,
+.check-item{
+  border-color:#c5ccd3!important;
+}
+
+/* Pestañas y barras claras */
+.erp-module-tabs,
+.client-organizer-tabs{
+  background:var(--idealo-surface)!important;
+  border-color:var(--idealo-border-soft)!important;
+}
+
+/* Mantener la barra lateral oscura intacta */
+.erp-sidebar,
+.erp-sidebar input,
+.erp-sidebar select,
+.erp-sidebar textarea{
+  background-color:#0d1014!important;
+}
