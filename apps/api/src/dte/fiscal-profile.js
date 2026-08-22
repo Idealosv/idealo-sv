@@ -27,7 +27,7 @@ function validateIssuer(company = {}) {
   const nrc = digits(company.nrc)
   const phone = digits(company.phone)
 
-  if (nit && nit.length !== 14) errors.push('NIT debe contener 14 dígitos')
+  if (nit && ![9, 14].includes(nit.length)) errors.push('NIT debe contener 9 o 14 dígitos')
   if (nrc && (nrc.length < 1 || nrc.length > 8)) errors.push('NRC debe contener entre 1 y 8 dígitos')
   if (text(company.activity_code) && !/^\d{5,6}$/.test(text(company.activity_code))) errors.push('código de actividad inválido')
   if (text(company.department_code) && !/^\d{2}$/.test(text(company.department_code))) errors.push('departamento inválido')
