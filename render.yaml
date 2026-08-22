@@ -19,6 +19,22 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false
+      - key: DTE_ENVIRONMENT
+        value: test
+      - key: DTE_ENABLE_PRODUCTION
+        value: false
+      - key: DTE_MH_NIT
+        sync: false
+      - key: DTE_MH_API_PASSWORD
+        sync: false
+      - key: DTE_SIGNER_URL
+        sync: false
+      - key: DTE_SIGNER_PASSWORD
+        sync: false
+      - key: DTE_REQUEST_TIMEOUT_MS
+        value: 8000
+      - key: DTE_MAX_RESENDS
+        value: 2
 
   - type: web
     name: idealo-sv-web
