@@ -47,6 +47,7 @@ import './client-crm-pipeline.css'
 import './client-module-organizer.css'
 import './global-contrast.css'
 import './client-360-timeline.css'
+import './client-button-balance.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
