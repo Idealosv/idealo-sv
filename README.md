@@ -47,3 +47,15 @@ Ejecuta `supabase/migrations/0001_initial.sql` desde el SQL Editor de Supabase. 
 4. Despliega primero la API y luego el frontend.
 
 Nunca publiques `SUPABASE_SERVICE_ROLE_KEY` en el frontend.
+
+## Integración DTE
+
+La API incluye clientes separados para Hacienda y el firmador, un orquestador idempotente y la migración `0006_dte_transmission.sql` para conservar estados e intentos.
+
+1. Aplica las migraciones de Supabase en orden.
+2. Ejecuta el firmador oficial en una red privada; el certificado y su contraseña nunca deben almacenarse en GitHub ni exponerse al navegador.
+3. Completa en Render las variables `DTE_*` de `.env.example`.
+4. Mantén `DTE_ENVIRONMENT=test` y `DTE_ENABLE_PRODUCTION=false` durante la homologación.
+5. Comprueba `/api/dte/status`; solo informa si la integración está configurada, sin devolver secretos.
+
+El paso a producción exige dos cambios deliberados: `DTE_ENVIRONMENT=production` y `DTE_ENABLE_PRODUCTION=true`.

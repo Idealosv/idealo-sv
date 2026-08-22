@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
+import { getDteConfigurationStatus } from './dte/config.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -33,10 +34,14 @@ app.get('/api/system/status', async (_request, response, next) => {
     const supabase = getSupabaseAdmin()
     const { error } = await supabase.from('companies').select('id').limit(1)
     if (error) throw error
-    response.json({ api: 'ok', database: 'ok' })
+    response.json({ api: 'ok', database: 'ok', dte: getDteConfigurationStatus() })
   } catch (error) {
     next(error)
   }
+})
+
+app.get('/api/dte/status', (_request, response) => {
+  response.json(getDteConfigurationStatus())
 })
 
 app.use((error, _request, response, _next) => {
