@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { DTE_ACTIVITIES, DTE_DISTRICTS_BY_DEPARTMENT } from './dteCatalogs'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { DTE_ACTIVITIES, DTE_DISTRICTS_BY_MUNICIPALITY } from './dteCatalogs'
 
 export default function Workspace({ session, supabase }) {
   const [company, setCompany] = useState(null)
@@ -223,11 +223,23 @@ function CompanyFiscalModule({ company, supabase }) {
       if (name === 'department_code') {
         return { ...current, department_code: value, municipality_code: '', district_code: '' }
       }
+      if (name === 'municipality_code') {
+        return { ...current, municipality_code: value, district_code: '' }
+      }
+      return { ...current, [name]: value }
+    })
+  }
+  const updateCatalog = (name, value) => {
+    setForm((current) => {
+      if (name === 'activity_code') {
+        const activity = DTE_ACTIVITIES.find((item) => item.code === value)
+        return { ...current, activity_code: value, business_activity: activity?.name || '' }
+      }
       return { ...current, [name]: value }
     })
   }
   const selectedCompanyDepartment = DTE_DEPARTMENTS.find((item) => item.code === form.department_code)
-  const companyDistricts = DTE_DISTRICTS_BY_DEPARTMENT[form.department_code] || []
+  const companyDistricts = DTE_DISTRICTS_BY_MUNICIPALITY[`${form.department_code}-${form.municipality_code}`] || []
   const save = async (event) => {
     event.preventDefault()
     setSaving(true)
@@ -256,14 +268,14 @@ function CompanyFiscalModule({ company, supabase }) {
             <label className="field"><span>Nombre comercial</span><input name="trade_name" value={form.trade_name || ''} onChange={update} /></label>
             <label className="field"><span>NIT *</span><input name="nit" value={form.nit || ''} onChange={update} required /></label>
             <label className="field"><span>NRC *</span><input name="nrc" value={form.nrc || ''} onChange={update} required /></label>
-            <label className="field form-span-3"><span>Actividad económica / giro (CAT-019) *</span><select name="activity_code" value={form.activity_code || ''} onChange={update} required><option value="">Seleccionar actividad</option>{DTE_ACTIVITIES.map((activity) => <option key={activity.code} value={activity.code}>{activity.code} - {activity.name}</option>)}</select></label>
+            <CatalogCombobox className="form-span-3" label="Actividad económica / giro (CAT-019) *" name="activity_code" value={form.activity_code || ''} options={DTE_ACTIVITIES} onValueChange={updateCatalog} placeholder="Buscar por código o nombre de actividad" required />
             <input type="hidden" name="business_activity" value={form.business_activity || ''} />
           </div>
         </fieldset>
         <fieldset className="form-section"><legend>Domicilio fiscal</legend><div className="form-grid three">
           <label className="field"><span>Departamento (CAT-012) *</span><select name="department_code" value={form.department_code || ''} onChange={update} required><option value="">Seleccionar</option>{DTE_DEPARTMENTS.map((department) => <option key={department.code} value={department.code}>{department.code} - {department.name}</option>)}</select></label>
           <label className="field"><span>Municipio (CAT-013) *</span><select name="municipality_code" value={form.municipality_code || ''} onChange={update} disabled={!selectedCompanyDepartment} required><option value="">Seleccionar</option>{(selectedCompanyDepartment?.municipalities || []).map((municipality) => <option key={municipality.code} value={municipality.code}>{municipality.code} - {municipality.name}</option>)}</select></label>
-          <label className="field"><span>Distrito (CAT-008) *</span><select name="district_code" value={form.district_code || ''} onChange={update} disabled={!form.department_code} required><option value="">Seleccionar</option>{companyDistricts.map((district) => <option key={district.code} value={district.code}>{district.code} - {district.name}</option>)}</select></label>
+          <label className="field"><span>Distrito (CAT-008) *</span><select name="district_code" value={form.district_code || ''} onChange={update} disabled={!form.municipality_code} required><option value="">Seleccionar</option>{companyDistricts.map((district) => <option key={district.code} value={district.code}>{district.code} - {district.name}</option>)}</select></label>
           <label className="field form-span-3"><span>Complemento de dirección *</span><textarea name="address" value={form.address || ''} onChange={update} rows="2" required /></label>
         </div></fieldset>
         <fieldset className="form-section"><legend>Contacto y establecimiento</legend><div className="form-grid three">
@@ -461,6 +473,19 @@ function ClientsModule({ company, supabase }) {
       if (name === 'department_code') {
         return { ...current, department_code: value, municipality_code: '', district_code: '' }
       }
+      if (name === 'municipality_code') {
+        return { ...current, municipality_code: value, district_code: '' }
+      }
+      if (name === 'activity_code') {
+        const activity = DTE_ACTIVITIES.find((item) => item.code === value)
+        return { ...current, activity_code: value, business_activity: activity?.name || '' }
+      }
+      return { ...current, [name]: value }
+    })
+  }
+
+  const updateCatalog = (name, value) => {
+    setForm((current) => {
       if (name === 'activity_code') {
         const activity = DTE_ACTIVITIES.find((item) => item.code === value)
         return { ...current, activity_code: value, business_activity: activity?.name || '' }
@@ -472,7 +497,7 @@ function ClientsModule({ company, supabase }) {
   const selectedDepartment = DTE_DEPARTMENTS.find(
     (department) => department.code === form.department_code,
   )
-  const selectedDistricts = DTE_DISTRICTS_BY_DEPARTMENT[form.department_code] || []
+  const selectedDistricts = DTE_DISTRICTS_BY_MUNICIPALITY[`${form.department_code}-${form.municipality_code}`] || []
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -748,15 +773,7 @@ function ClientsModule({ company, supabase }) {
                 <span>DUI</span>
                 <input name="dui" value={form.dui} onChange={updateField} placeholder="00000000-0" />
               </label>
-              <label className="field form-span-3">
-                <span>Actividad económica / giro (CAT-019) *</span>
-                <select name="activity_code" value={form.activity_code} onChange={updateField} required>
-                  <option value="">Seleccionar actividad</option>
-                  {DTE_ACTIVITIES.map((activity) => (
-                    <option key={activity.code} value={activity.code}>{activity.code} - {activity.name}</option>
-                  ))}
-                </select>
-              </label>
+              <CatalogCombobox className="form-span-3" label="Actividad económica / giro (CAT-019) *" name="activity_code" value={form.activity_code} options={DTE_ACTIVITIES} onValueChange={updateCatalog} placeholder="Buscar por código o nombre de actividad" required />
               <input type="hidden" name="business_activity" value={form.business_activity} />
             </div>
           </fieldset>
@@ -814,7 +831,7 @@ function ClientsModule({ company, supabase }) {
               </label>
               <label className="field">
                 <span>Distrito (CAT-008) *</span>
-                <select name="district_code" value={form.district_code} onChange={updateField} required disabled={!form.department_code}>
+                <select name="district_code" value={form.district_code} onChange={updateField} required disabled={!form.municipality_code}>
                   <option value="">Seleccionar</option>
                   {selectedDistricts.map((district) => (
                     <option key={district.code} value={district.code}>{district.code} - {district.name}</option>
@@ -977,6 +994,85 @@ function ClientStat({ label, value, note }) {
       <span>{note}</span>
     </article>
   )
+}
+
+function CatalogCombobox({ label, name, value, options, onValueChange, placeholder, required = false, className = '' }) {
+  const inputRef = useRef(null)
+  const selected = options.find((option) => option.code === value)
+  const selectedLabel = selected ? `${selected.code} - ${selected.name}` : ''
+  const [query, setQuery] = useState(selectedLabel)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) setQuery(selectedLabel)
+  }, [open, selectedLabel])
+
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(required && !value ? 'Selecciona una opción del catálogo.' : '')
+  }, [required, value])
+
+  const matches = useMemo(() => {
+    const term = normalizeCatalogText(query === selectedLabel ? '' : query)
+    if (!term) return options.slice(0, 40)
+    return options
+      .filter((option) => normalizeCatalogText(`${option.code} ${option.name}`).includes(term))
+      .slice(0, 40)
+  }, [options, query, selectedLabel])
+
+  const choose = (option) => {
+    onValueChange(name, option.code)
+    setQuery(`${option.code} - ${option.name}`)
+    setOpen(false)
+  }
+
+  return (
+    <label className={`field catalog-combobox ${className}`.trim()}>
+      <span>{label}</span>
+      <input
+        ref={inputRef}
+        type="search"
+        value={query}
+        placeholder={placeholder}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${name}-catalog-options`}
+        required={required}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => {
+          setOpen(false)
+          if (!value) setQuery('')
+        }, 120)}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setOpen(true)
+          if (value) onValueChange(name, '')
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && open && matches[0]) {
+            event.preventDefault()
+            choose(matches[0])
+          }
+          if (event.key === 'Escape') setOpen(false)
+        }}
+      />
+      <input type="hidden" name={name} value={value} required={required} />
+      {open && (
+        <div className="catalog-options" id={`${name}-catalog-options`} role="listbox">
+          {matches.length ? matches.map((option) => (
+            <button type="button" role="option" aria-selected={option.code === value} key={option.code} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(option)}>
+              <strong>{option.code}</strong><span>{option.name}</span>
+            </button>
+          )) : <p>No hay coincidencias.</p>}
+          {matches.length === 40 && <small>Escribe más letras para reducir los resultados.</small>}
+        </div>
+      )}
+    </label>
+  )
+}
+
+function normalizeCatalogText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 }
 
 function formatMoney(value) {
