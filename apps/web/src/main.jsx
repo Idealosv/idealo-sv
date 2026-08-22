@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import FacturacionLauncher from './FacturacionLauncher.jsx'
+import CommercialLauncher from './CommercialLauncher.jsx'
 import './styles.css'
 import './facturacion-feedback.css'
 
@@ -14,6 +15,7 @@ Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(opt
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
+    <CommercialLauncher />
     <FacturacionLauncher />
   </StrictMode>,
 )
