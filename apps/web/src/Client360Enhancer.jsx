@@ -1,4 +1,102 @@
-import {createClient} from '@supabase/supabase-js';import{useEffect,useMemo,useState}from'react';import{createPortal}from'react-dom';
-const s=createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_ANON_KEY,{auth:{persistSession:true}});const usd=n=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(n||0));const days=d=>d?Math.floor((Date.now()-new Date(d))/86400000):null;
-export default function Client360Enhancer(){const[show,setShow]=useState(false),[company,setCompany]=useState(null),[clients,setClients]=useState([]),[selected,setSelected]=useState(''),[data,setData]=useState({}),[q,setQ]=useState('');useEffect(()=>{const f=()=>setShow(document.querySelector('.erp-header h1')?.textContent?.trim()==='Clientes');f();const i=setInterval(f,500);return()=>clearInterval(i)},[]);useEffect(()=>{if(!show)return;(async()=>{const{data:c}=await s.rpc('get_my_companies');const id=c?.[0]?.id;if(!id)return;setCompany(id);const{data:x}=await s.from('clients').select('*').eq('company_id',id).order('name');setClients(x||[])})()},[show]);useEffect(()=>{if(!selected||!company)return;(async()=>{const specs=[['quotes','id,number,status,total,created_at'],['work_orders','id,number,title,status,total,due_at,created_at'],['deliveries','id,status,scheduled_at,received_at'],['accounts_receivable','id,total_amount,balance,due_date,status'],['customer_payments','id,amount,payment_date,payment_method'],['dte_documents','id,dte_type,status,generation_code,reception_stamp,created_at'],['quality_incidents','id,status,cost_impact,created_at']];const out={};await Promise.all(specs.map(async([t,cols])=>{let r=await s.from(t).select(cols).eq('company_id',company).eq('client_id',selected).limit(100);out[t]=r.error?[]:(r.data||[])}));setData(out)})()},[selected,company]);const c=clients.find(x=>x.id===selected);const filtered=clients.filter(x=>[x.name,x.trade_name,x.tax_id,x.nrc,x.phone,x.email,x.whatsapp].join(' ').toLowerCase().includes(q.toLowerCase()));const k=useMemo(()=>{if(!c)return{};const qs=data.quotes||[],os=data.work_orders||[],ar=data.accounts_receivable||[],ps=data.customer_payments||[],qi=data.quality_incidents||[];const sales=os.reduce((a,x)=>a+Number(x.total||0),0),debt=ar.reduce((a,x)=>a+Number(x.balance||0),0),paid=ps.reduce((a,x)=>a+Number(x.amount||0),0),approved=qs.filter(x=>['APPROVED','CONVERTED'].includes(x.status)).length;return{sales,debt,paid,conversion:qs.length?Math.round(approved/qs.length*100):0,late:ar.filter(x=>Number(x.balance)>0&&x.due_date&&new Date(x.due_date)<new Date()).length,quality:qi.length,last:os.map(x=>x.created_at).sort().at(-1)}} ,[c,data]);if(!show)return null;return createPortal(<section className="client360"><header><div><small>EXPEDIENTE 360°</small><strong>Control profesional del cliente</strong></div><input placeholder="Buscar nombre, NIT, NRC, teléfono, correo…" value={q} onChange={e=>setQ(e.target.value)}/><select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Abrir ficha 360…</option>{filtered.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></header>{c&&<><div className="c360hero"><div><h2>{c.name}</h2><p>{c.trade_name||'Sin nombre comercial'} · {c.client_code||'Sin código'}</p></div><div className="c360badges"><span>{c.status||'active'}</span><span>{c.preferred_dte_type==='03'?'CCF DTE-03':'Factura DTE-01'}</span><span>{c.blocked_for_debt?'BLOQUEADO POR MORA':'CRÉDITO HABILITADO'}</span></div></div><div className="c360metrics"><b>{usd(k.sales)}<small>Ventas/OT</small></b><b>{usd(k.paid)}<small>Cobrado</small></b><b>{usd(k.debt)}<small>Por cobrar</small></b><b>{k.conversion}%<small>Conversión</small></b><b>{k.late}<small>Vencidas</small></b><b>{days(k.last)??'—'}<small>Días última OT</small></b></div><div className="c360grid"><Card t="Datos fiscales / DTE"><p><b>NIT:</b> {c.tax_id||c.document_number||'—'} · <b>NRC:</b> {c.nrc||'—'}</p><p>{c.activity_code||'—'} · {c.business_activity||'Sin actividad'}</p><p>{c.department||''} {c.municipality||''} · {c.address||'Sin dirección'}</p><p>{c.email||'Sin correo'} · {c.phone||'Sin teléfono'}</p><Dte client={c}/></Card><Card t="Crédito y cobranza"><p>Límite: {usd(c.credit_limit)} · Plazo: {c.credit_days||0} días</p><p>Saldo: <b>{usd(k.debt)}</b> · Vencidas: {k.late}</p><p>Condición: {c.payment_terms||'cash'}</p></Card><Card t="Actividad comercial"><p>{(data.quotes||[]).length} cotizaciones · {(data.work_orders||[]).length} órdenes</p><p>{(data.deliveries||[]).length} entregas · {(data.dte_documents||[]).length} DTE</p><p>{(data.quality_incidents||[]).length} incidencias de calidad</p></Card><Card t="Contacto y ubicaciones"><p>{c.contact_name||'Sin contacto'} {c.contact_position?`· ${c.contact_position}`:''}</p><p>WhatsApp: {c.whatsapp||c.phone||'—'}</p><p>Entrega: {c.delivery_address||c.address||'—'}</p><p>Instalación: {c.installation_address||'—'}</p></Card><Card t="Alertas inteligentes"><p>{k.late?'⚠ Tiene deuda vencida':'✓ Sin deuda vencida'}</p><p>{k.quality?'⚠ Tiene incidencias/retrabajos':'✓ Sin incidencias registradas'}</p><p>{days(k.last)>90?'⚠ Cliente inactivo >90 días':'✓ Relación comercial activa'}</p></Card><Card t="Acciones"><div className="c360actions"><button onClick={()=>window.open(`https://wa.me/503${String(c.whatsapp||c.phone||'').replace(/\D/g,'').replace(/^503/,'')}`,'_blank')}>WhatsApp</button>{c.latitude&&c.longitude&&<button onClick={()=>window.open(`https://www.google.com/maps?q=${c.latitude},${c.longitude}`,'_blank')}>Mapa</button>}<button onClick={()=>document.querySelector('.clients-module button')?.click()}>Nuevo registro</button></div></Card></div></>}</section>,document.querySelector('.erp-content')||document.body)}
-function Card({t,children}){return <article className="c360card"><h3>{t}</h3>{children}</article>}function Dte({client:c}){const common=[c.name,c.email,c.phone,c.department_code,c.municipality_code,c.address];const ccf=[c.tax_id,c.nrc,c.activity_code,c.business_activity,...common];const fe=[c.document_type,c.document_number,...common];const a=(c.preferred_dte_type==='03'?ccf:fe).filter(Boolean).length,b=(c.preferred_dte_type==='03'?ccf:fe).length;return <div className={a===b?'c360ready':'c360warn'}>{a===b?'✓ Datos mínimos del tipo DTE completos':`⚠ DTE incompleto: ${b-a} campos base pendientes`}</div>}
+import { createClient } from '@supabase/supabase-js'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+
+const s = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: true } })
+const usd = n => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(n || 0))
+const days = d => d ? Math.floor((Date.now() - new Date(d)) / 86400000) : null
+
+export default function Client360Enhancer() {
+  const [show, setShow] = useState(false)
+  const [company, setCompany] = useState(null)
+  const [clients, setClients] = useState([])
+  const [selected, setSelected] = useState('')
+  const [data, setData] = useState({})
+  const [q, setQ] = useState('')
+
+  useEffect(() => {
+    const f = () => setShow(document.querySelector('.erp-header h1')?.textContent?.trim() === 'Clientes')
+    f(); const i = setInterval(f, 500); return () => clearInterval(i)
+  }, [])
+
+  useEffect(() => {
+    if (!show) return
+    ;(async () => {
+      const { data: companies } = await s.rpc('get_my_companies')
+      const id = companies?.[0]?.id
+      if (!id) return
+      setCompany(id)
+      const { data: rows } = await s.from('clients').select('*').eq('company_id', id).order('name')
+      setClients(rows || [])
+    })()
+  }, [show])
+
+  useEffect(() => {
+    if (!selected || !company) return
+    ;(async () => {
+      const specs = [
+        ['quotes', 'id,number,status,total,created_at'],
+        ['work_orders', 'id,number,title,status,total,due_at,created_at'],
+        ['deliveries', 'id,status,scheduled_at,received_at'],
+        ['accounts_receivable', 'id,amount_total,amount_paid,due_date,status'],
+        ['customer_payments', 'id,amount,paid_at,payment_method'],
+        ['dte_documents', 'id,dte_type,status,generation_code,mh_receipt_seal,created_at'],
+        ['quality_incidents', 'id,status,cost_impact,created_at'],
+        ['client_contacts', 'id,name,position,email,phone,whatsapp,is_primary'],
+        ['client_addresses', 'id,address_type,label,department,municipality,address,is_primary,latitude,longitude'],
+        ['client_interactions', 'id,interaction_type,channel,subject,details,occurred_at,next_follow_up_at,outcome'],
+        ['client_credit_profiles', 'client_id,credit_enabled,credit_limit,credit_days,risk_level,blocked,blocked_reason,last_review_at'],
+        ['client_audit_log', 'id,action,field_name,created_at']
+      ]
+      const out = {}
+      await Promise.all(specs.map(async ([t, cols]) => {
+        let query = s.from(t).select(cols).eq('company_id', company).limit(100)
+        if (t === 'client_credit_profiles') query = query.eq('client_id', selected)
+        else query = query.eq('client_id', selected)
+        const r = await query
+        out[t] = r.error ? [] : (r.data || [])
+      }))
+      const dup = await s.rpc('client_duplicate_candidates', { p_company_id: company, p_client_id: selected })
+      out.duplicates = dup.error ? [] : (dup.data || [])
+      setData(out)
+    })()
+  }, [selected, company])
+
+  const c = clients.find(x => x.id === selected)
+  const filtered = clients.filter(x => [x.name, x.trade_name, x.tax_id, x.nrc, x.phone, x.email, x.whatsapp].join(' ').toLowerCase().includes(q.toLowerCase()))
+  const k = useMemo(() => {
+    if (!c) return {}
+    const qs = data.quotes || [], os = data.work_orders || [], ar = data.accounts_receivable || [], ps = data.customer_payments || [], qi = data.quality_incidents || []
+    const sales = os.reduce((a, x) => a + Number(x.total || 0), 0)
+    const debt = ar.reduce((a, x) => a + Math.max(0, Number(x.amount_total || 0) - Number(x.amount_paid || 0)), 0)
+    const paid = ps.reduce((a, x) => a + Number(x.amount || 0), 0)
+    const approved = qs.filter(x => ['APPROVED', 'CONVERTED'].includes(x.status)).length
+    return { sales, debt, paid, conversion: qs.length ? Math.round(approved / qs.length * 100) : 0, late: ar.filter(x => Number(x.amount_total || 0) > Number(x.amount_paid || 0) && x.due_date && new Date(x.due_date) < new Date()).length, quality: qi.length, last: os.map(x => x.created_at).filter(Boolean).sort().at(-1) }
+  }, [c, data])
+
+  if (!show) return null
+  return createPortal(<section className="client360">
+    <header><div><small>EXPEDIENTE 360°</small><strong>Control profesional del cliente</strong></div><input placeholder="Buscar nombre, NIT, NRC, teléfono, correo…" value={q} onChange={e => setQ(e.target.value)} /><select value={selected} onChange={e => setSelected(e.target.value)}><option value="">Abrir ficha 360…</option>{filtered.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></header>
+    {c && <><div className="c360hero"><div><h2>{c.name}</h2><p>{c.trade_name || 'Sin nombre comercial'} · {c.client_code || 'Sin código'}</p></div><div className="c360badges"><span>{c.status || 'active'}</span><span>{c.preferred_dte_type === '03' ? 'CCF DTE-03' : 'Factura DTE-01'}</span><span>{c.blocked_for_debt ? 'BLOQUEADO POR MORA' : 'CRÉDITO HABILITADO'}</span></div></div>
+      <div className="c360metrics"><b>{usd(k.sales)}<small>Ventas/OT</small></b><b>{usd(k.paid)}<small>Cobrado</small></b><b>{usd(k.debt)}<small>Por cobrar</small></b><b>{k.conversion}%<small>Conversión</small></b><b>{k.late}<small>Vencidas</small></b><b>{days(k.last) ?? '—'}<small>Días última OT</small></b></div>
+      <div className="c360grid">
+        <Card t="Datos fiscales / DTE"><p><b>NIT:</b> {c.tax_id || '—'} · <b>NRC:</b> {c.nrc || '—'}</p><p>{c.activity_code || '—'} · {c.business_activity || 'Sin actividad'}</p><p>{c.department || ''} {c.municipality || ''} · {c.address || 'Sin dirección'}</p><Dte client={c} /></Card>
+        <Card t="Crédito y cobranza"><p>Límite: {usd(data.client_credit_profiles?.[0]?.credit_limit ?? c.credit_limit)} · Plazo: {data.client_credit_profiles?.[0]?.credit_days ?? c.credit_days ?? 0} días</p><p>Saldo: <b>{usd(k.debt)}</b> · Vencidas: {k.late}</p><p>Riesgo: {data.client_credit_profiles?.[0]?.risk_level || 'normal'}</p></Card>
+        <Card t="Contactos"><p>{(data.client_contacts || []).length} contacto(s)</p>{(data.client_contacts || []).slice(0, 3).map(x => <p key={x.id}><b>{x.name}</b>{x.position ? ` · ${x.position}` : ''}<br />{x.whatsapp || x.phone || x.email || 'Sin canal'}</p>)}</Card>
+        <Card t="Direcciones"><p>{(data.client_addresses || []).length} ubicación(es)</p>{(data.client_addresses || []).slice(0, 3).map(x => <p key={x.id}><b>{x.label || x.address_type}</b><br />{x.address}</p>)}</Card>
+        <Card t="Seguimiento comercial"><p>{(data.client_interactions || []).length} interacción(es)</p>{(data.client_interactions || []).slice(0, 3).map(x => <p key={x.id}><b>{x.subject || x.interaction_type}</b><br />{new Date(x.occurred_at).toLocaleDateString('es-SV')} {x.channel ? `· ${x.channel}` : ''}</p>)}</Card>
+        <Card t="Integración total"><p>{(data.quotes || []).length} cotizaciones · {(data.work_orders || []).length} órdenes</p><p>{(data.deliveries || []).length} entregas · {(data.dte_documents || []).length} DTE</p><p>{(data.accounts_receivable || []).length} cuentas por cobrar · {(data.customer_payments || []).length} cobros</p></Card>
+        <Card t="Duplicados y auditoría"><p>{data.duplicates?.length ? `⚠ ${data.duplicates.length} posible(s) duplicado(s)` : '✓ Sin duplicados fuertes detectados'}</p>{(data.duplicates || []).slice(0, 2).map(x => <p key={x.client_id}>{x.name} · {x.reason} · {x.score}%</p>)}<p>{(data.client_audit_log || []).length} evento(s) de auditoría</p></Card>
+        <Card t="Alertas inteligentes"><p>{k.late ? '⚠ Tiene deuda vencida' : '✓ Sin deuda vencida'}</p><p>{k.quality ? '⚠ Tiene incidencias/retrabajos' : '✓ Sin incidencias registradas'}</p><p>{days(k.last) > 90 ? '⚠ Cliente inactivo >90 días' : '✓ Relación comercial activa'}</p></Card>
+      </div></>}
+  </section>, document.querySelector('.erp-content') || document.body)
+}
+
+function Card({ t, children }) { return <article className="c360card"><h3>{t}</h3>{children}</article> }
+function Dte({ client: c }) {
+  const required = c.preferred_dte_type === '03'
+    ? [['name', c.name], ['NIT', c.tax_id], ['NRC', c.nrc], ['actividad', c.activity_code], ['descripción actividad', c.business_activity], ['departamento', c.department_code], ['municipio', c.municipality_code], ['dirección fiscal', c.address]]
+    : [['nombre', c.name]]
+  const missing = required.filter(([, v]) => !String(v || '').trim()).map(([k]) => k)
+  return <div className={missing.length ? 'c360warn' : 'c360ready'}>{missing.length ? `⚠ Faltan para ${c.preferred_dte_type === '03' ? 'CCF DTE-03' : 'DTE-01'}: ${missing.join(', ')}` : '✓ Datos mínimos del tipo DTE completos'}{c.preferred_dte_type !== '03' && <small> DUI, correo, teléfono y dirección no se exigen indiscriminadamente al consumidor final.</small>}</div>
+}
