@@ -61,7 +61,17 @@ export async function runSignatureSelfTest({
     })
     const signedDocument = response?.body?.documento ?? response?.documento
     if (typeof signedDocument !== 'string' || signedDocument.length === 0) {
-      throw new Error('El firmador no devolvió un documento firmado.')
+      const signerCode = response?.body?.codigo
+      result = Object.freeze({
+        status: 'failed',
+        environment: 'test',
+        signed: false,
+        transmitted: false,
+        reason: 'SIGNER_REJECTED_TEST',
+        signerCode: typeof signerCode === 'string' ? signerCode : 'UNKNOWN',
+        checkedAt: new Date().toISOString(),
+      })
+      return result
     }
 
     result = Object.freeze({

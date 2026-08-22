@@ -44,3 +44,16 @@ test('se bloquea fuera del ambiente de pruebas', async () => {
   assert.equal(result.reason, 'ONLY_AVAILABLE_IN_TEST')
   assert.equal(called, false)
 })
+
+test('informa únicamente el código seguro cuando el firmador rechaza', async () => {
+  const result = await runSignatureSelfTest({
+    env: configuredTestEnv,
+    createSigner: () => ({
+      sign: async () => ({ status: 'ERROR', body: { codigo: '803', mensaje: 'detalle privado' } }),
+    }),
+  })
+
+  assert.equal(result.status, 'failed')
+  assert.equal(result.signerCode, '803')
+  assert.equal(JSON.stringify(result).includes('detalle privado'), false)
+})
