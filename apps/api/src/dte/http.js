@@ -7,7 +7,11 @@ export class DteHttpError extends Error {
   }
 }
 
-export async function requestJson(url, options = {}, { timeoutMs = 8000, fetchImpl = fetch } = {}) {
+export async function requestJson(
+  url,
+  options = {},
+  { timeoutMs = 8000, fetchImpl = fetch, headers = {} } = {},
+) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -15,7 +19,12 @@ export async function requestJson(url, options = {}, { timeoutMs = 8000, fetchIm
     const response = await fetchImpl(url, {
       ...options,
       signal: controller.signal,
-      headers: { 'content-type': 'application/json', accept: 'application/json', ...options.headers },
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+        ...headers,
+        ...options.headers,
+      },
     })
     const text = await response.text()
     let body = null

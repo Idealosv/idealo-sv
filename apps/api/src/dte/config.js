@@ -23,6 +23,7 @@ export function getDteConfig(env = process.env) {
     environment,
     mhBaseUrl: env.DTE_MH_BASE_URL?.trim() || MH_BASE_URLS[environment],
     signerUrl: required('DTE_SIGNER_URL', env).replace(/\/$/, ''),
+    signerToken: required('DTE_SIGNER_TOKEN', env),
     nit: required('DTE_MH_NIT', env),
     apiPassword: required('DTE_MH_API_PASSWORD', env),
     signerPassword: required('DTE_SIGNER_PASSWORD', env),
@@ -33,7 +34,13 @@ export function getDteConfig(env = process.env) {
 
 export function getDteConfigurationStatus(env = process.env) {
   const environment = env.DTE_ENVIRONMENT?.trim() || 'test'
-  const requiredNames = ['DTE_SIGNER_URL', 'DTE_MH_NIT', 'DTE_MH_API_PASSWORD', 'DTE_SIGNER_PASSWORD']
+  const requiredNames = [
+    'DTE_SIGNER_URL',
+    'DTE_SIGNER_TOKEN',
+    'DTE_MH_NIT',
+    'DTE_MH_API_PASSWORD',
+    'DTE_SIGNER_PASSWORD',
+  ]
   return {
     environment,
     configured: requiredNames.every((name) => Boolean(env[name]?.trim())),

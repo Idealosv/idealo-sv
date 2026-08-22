@@ -6,6 +6,7 @@ import { DteSignerClient } from '../src/dte/signer-client.js'
 const config = {
   mhBaseUrl: 'https://apitest.dtes.mh.gob.sv',
   signerUrl: 'http://firmador:8113',
+  signerToken: 'transport-secret',
   nit: '06140000000000',
   apiPassword: 'mh-secret',
   signerPassword: 'signer-secret',
@@ -35,7 +36,7 @@ test('autentica y transmite usando el token de Hacienda', async () => {
 test('envía la contraseña del certificado únicamente al firmador privado', async () => {
   let request
   const fetchImpl = async (url, options) => {
-    request = { url, body: JSON.parse(options.body) }
+    request = { url, body: JSON.parse(options.body), headers: options.headers }
     return jsonResponse({ body: { documento: 'signed-jws' } })
   }
   const client = new DteSignerClient(config, { fetchImpl })
@@ -43,5 +44,6 @@ test('envía la contraseña del certificado únicamente al firmador privado', as
 
   assert.equal(request.url, 'http://firmador:8113/firmardocumento/')
   assert.equal(request.body.passwordPri, 'signer-secret')
+  assert.equal(request.headers['x-signer-token'], 'transport-secret')
   assert.equal(request.body.dteJson.identificacion.tipoDte, '01')
 })

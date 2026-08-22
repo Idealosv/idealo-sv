@@ -1,5 +1,20 @@
 services:
   - type: web
+    name: idealo-sv-signer
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/signer/Dockerfile
+    dockerContext: ./apps/signer
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: nonssl
+      - key: CERTIFICATE_HOME
+        value: /etc/secrets
+      - key: SIGNER_API_TOKEN
+        sync: false
+
+  - type: web
     name: idealo-sv-api
     runtime: node
     plan: free
@@ -28,6 +43,8 @@ services:
       - key: DTE_MH_API_PASSWORD
         sync: false
       - key: DTE_SIGNER_URL
+        sync: false
+      - key: DTE_SIGNER_TOKEN
         sync: false
       - key: DTE_SIGNER_PASSWORD
         sync: false
