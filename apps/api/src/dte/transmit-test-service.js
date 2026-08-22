@@ -11,6 +11,21 @@ function mhStatus(response) {
   return String(value.estado || value.status || '').toUpperCase()
 }
 
+function mhErrorDetail(body) {
+  const value = body?.body || body || {}
+  if (typeof value === 'string') return value.slice(0, 500)
+  const candidates = [
+    value.mensaje,
+    value.message,
+    value.descripcionMsg,
+    value.descripcion,
+    value.detalle,
+    value.error,
+    Array.isArray(value.observaciones) ? value.observaciones.join(' | ') : value.observaciones,
+  ]
+  return candidates.find((item) => typeof item === 'string' && item.trim())?.trim().slice(0, 500) || ''
+}
+
 export function buildTestReceptionPayload(document) {
   return {
     ambiente: '00',
@@ -20,6 +35,19 @@ export function buildTestReceptionPayload(document) {
     documento: document.signed_document,
     codigoGeneracion: String(document.generation_code).toUpperCase(),
   }
+}
+
+export function buildMhPublicError(error, phase = 'recepcion') {
+  const detail = mhErrorDetail(error?.body)
+  const label = phase === 'autenticacion' ? 'autenticación' : 'recepción del DTE'
+  const message = detail
+    ? `Hacienda TEST rechazó la ${label}: ${detail}`
+    : `Hacienda TEST rechazó la ${label}${error?.status ? ` (HTTP ${error.status})` : ''}.`
+  const publicError = new Error(message)
+  publicError.statusCode = 400
+  publicError.mhBody = error?.body || null
+  publicError.mhPhase = phase
+  return publicError
 }
 
 export async function transmitSignedTestDte({ request, supabase, env = process.env, fetchImpl = fetch }) {
@@ -93,7 +121,7 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     .order('attempt_number', { ascending: true })
   if (attemptsError) throw attemptsError
   if ((existingAttempts || []).length > 0) {
-    const error = new Error('Este DTE ya tiene un intento de transmisión registrado. El reenvío automático permanece bloqueado.')
+    const error = new Error('Este DTE ya tiene un intento de transmisión registrado. Crea y firma un DTE nuevo para la siguiente prueba.')
     error.statusCode = 409
     throw error
   }
@@ -118,7 +146,19 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
 
   const mh = new MhDteClient(config, { fetchImpl })
   try {
-    const response = await mh.receive(payload)
+    try {
+      await mh.authenticate()
+    } catch (error) {
+      throw buildMhPublicError(error, 'autenticacion')
+    }
+
+    let response
+    try {
+      response = await mh.receive(payload)
+    } catch (error) {
+      throw buildMhPublicError(error, 'recepcion')
+    }
+
     const status = mhStatus(response) === 'PROCESADO' ? 'PROCESSED' : 'REJECTED'
     const now = new Date().toISOString()
 
@@ -146,7 +186,11 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     const now = new Date().toISOString()
     await supabase
       .from('dte_transmission_attempts')
-      .update({ error_message: error.message, finished_at: now })
+      .update({
+        response_payload: error.mhBody || null,
+        error_message: error.message,
+        finished_at: now,
+      })
       .eq('id', attempt.id)
     await supabase
       .from('dte_documents')

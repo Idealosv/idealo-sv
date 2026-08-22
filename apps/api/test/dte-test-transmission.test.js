@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildTestReceptionPayload } from '../src/dte/transmit-test-service.js'
+import { buildMhPublicError, buildTestReceptionPayload } from '../src/dte/transmit-test-service.js'
 
 test('construye el sobre de recepción exclusivamente para ambiente TEST 00', () => {
   const payload = buildTestReceptionPayload({
@@ -34,4 +34,21 @@ test('el sobre no incluye contraseña, token ni credenciales privadas', () => {
   assert.equal(serialized.includes('token'), false)
   assert.equal(serialized.includes('secret'), false)
   assert.equal(serialized.includes('production'), false)
+})
+
+test('muestra el motivo seguro de rechazo de autenticación MH', () => {
+  const error = buildMhPublicError({
+    status: 400,
+    body: { mensaje: 'Usuario o contraseña inválida' },
+  }, 'autenticacion')
+  assert.equal(error.statusCode, 400)
+  assert.match(error.message, /autenticación/)
+  assert.match(error.message, /Usuario o contraseña inválida/)
+})
+
+test('conserva cuerpo de rechazo para bitácora sin inventar detalle', () => {
+  const body = { estado: 'RECHAZADO', observaciones: ['Campo inválido'] }
+  const error = buildMhPublicError({ status: 400, body }, 'recepcion')
+  assert.deepEqual(error.mhBody, body)
+  assert.match(error.message, /Campo inválido/)
 })
