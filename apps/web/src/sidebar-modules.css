@@ -1,0 +1,5 @@
+/* Accesos laterales IDEALO SV: evitar superposición entre módulos operativos */
+.sidebar-module-access.billing { bottom: 58px; }
+.sidebar-module-access.commercial { bottom: 112px; }
+.sidebar-module-access.procurement { bottom: 166px; }
+.sidebar-module-access.inventory { bottom: 220px; }
