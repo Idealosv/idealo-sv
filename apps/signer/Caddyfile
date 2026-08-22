@@ -4,6 +4,16 @@
     reverse_proxy 127.0.0.1:8113
   }
 
+  @diagnostic {
+    path /diagnostico-certificado
+    header X-Signer-Token {$SIGNER_API_TOKEN}
+  }
+  handle @diagnostic {
+    root * /tmp
+    rewrite * /cert-diagnostic.json
+    file_server
+  }
+
   @authorized header X-Signer-Token {$SIGNER_API_TOKEN}
   handle @authorized {
     reverse_proxy 127.0.0.1:8113

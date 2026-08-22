@@ -8,6 +8,7 @@ import { createTestDteDraft } from './dte/draft-service.js'
 import { createInvoiceDraft } from './dte/invoice-service.js'
 import { signTestDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
+import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -46,6 +47,15 @@ app.get('/api/system/status', async (_request, response, next) => {
 
 app.get('/api/dte/status', (_request, response) => {
   response.json(getDteConfigurationStatus())
+})
+
+app.get('/api/dte/signer-diagnostic', async (request, response, next) => {
+  try {
+    const diagnostic = await diagnoseDteSigner({ request, supabase: getSupabaseAdmin() })
+    response.json(diagnostic)
+  } catch (error) {
+    next(error)
+  }
 })
 
 app.post('/api/dte/drafts', async (request, response, next) => {
