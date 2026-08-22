@@ -1,0 +1,34 @@
+import { useEffect,useMemo,useState } from 'react'
+const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(v||0))
+const iso=(d=new Date())=>d.toISOString().slice(0,10)
+const monthStart=()=>`${iso().slice(0,7)}-01`
+const open=s=>!['DELIVERED','CANCELLED','PAID'].includes(s)
+export default function DashboardAdvancedInsights({company,supabase}){
+ const [d,setD]=useState({quotes:[],orders:[],items:[],costs:[],inv:[],moves:[],deliveries:[],labor:[],payments:[]});const [owner,setOwner]=useState(true)
+ useEffect(()=>{let alive=true;(async()=>{const start=monthStart();const r=await Promise.all([
+ supabase.from('quotes').select('id,status,total,created_at').eq('company_id',company.id).gte('created_at',`${start}T00:00:00`),
+ supabase.from('work_orders').select('id,number,title,total,status,created_at,delivered_at,due_at,client_id,clients(name)').eq('company_id',company.id).gte('created_at',`${start}T00:00:00`),
+ supabase.from('work_order_items').select('id,work_order_id,product_id,description,quantity,line_total'),
+ supabase.from('work_order_costs').select('id,work_order_id,amount,cost_type,source_type').eq('company_id',company.id),
+ supabase.from('inventory_items').select('id,name,current_stock,minimum_stock,average_cost,unit').eq('company_id',company.id).eq('active',true),
+ supabase.from('inventory_movements').select('id,inventory_item_id,movement_type,quantity,created_at').eq('company_id',company.id).gte('created_at',`${start}T00:00:00`),
+ supabase.from('deliveries').select('id,status,scheduled_at,delivered_at,work_order_id').eq('company_id',company.id),
+ supabase.from('labor_allocations').select('id,work_order_id,hours,amount').eq('company_id',company.id).gte('work_date',start),
+ supabase.from('customer_payments').select('id,amount,paid_at,client_id').eq('company_id',company.id).gte('paid_at',`${start}T00:00:00`)
+ ]);if(alive)setD({quotes:r[0].data||[],orders:r[1].data||[],items:r[2].data||[],costs:r[3].data||[],inv:r[4].data||[],moves:r[5].data||[],deliveries:r[6].data||[],labor:r[7].data||[],payments:r[8].data||[]})})();return()=>{alive=false}},[company.id,supabase])
+ const s=useMemo(()=>{const q=d.quotes.length,approved=d.quotes.filter(x=>['APPROVED','CONVERTED'].includes(x.status)).length,orders=d.orders.length,del=d.orders.filter(x=>x.status==='DELIVERED').length,paidClients=new Set(d.payments.map(x=>x.client_id).filter(Boolean)).size
+ const funnel=[['Cotizaciones',q],['Aprobadas',approved],['Órdenes',orders],['Entregadas',del],['Clientes con cobro',paidClients]]
+ const onTime=d.deliveries.filter(x=>x.delivered_at&&x.scheduled_at).filter(x=>new Date(x.delivered_at)<=new Date(x.scheduled_at)).length,totalDelivered=d.deliveries.filter(x=>x.delivered_at).length,onTimePct=totalDelivered?onTime/totalDelivered*100:0
+ const byOrder=new Map();d.orders.forEach(o=>byOrder.set(o.id,{...o,cost:0,profit:Number(o.total||0),laborHours:0}));d.costs.forEach(c=>{const x=byOrder.get(c.work_order_id);if(x)x.cost+=Number(c.amount||0)});d.labor.forEach(l=>{const x=byOrder.get(l.work_order_id);if(x)x.laborHours+=Number(l.hours||0)});byOrder.forEach(x=>x.profit=Number(x.total||0)-x.cost)
+ const topOrders=[...byOrder.values()].sort((a,b)=>b.profit-a.profit).slice(0,5)
+ const clients={};[...byOrder.values()].forEach(x=>{const n=x.clients?.name||'Cliente';clients[n]??={sales:0,profit:0};clients[n].sales+=Number(x.total||0);clients[n].profit+=x.profit});const topClients=Object.entries(clients).sort((a,b)=>b[1].profit-a[1].profit).slice(0,5)
+ const days=Math.max(1,new Date().getDate());const consumption={};d.moves.filter(m=>m.movement_type==='CONSUMPTION').forEach(m=>consumption[m.inventory_item_id]=(consumption[m.inventory_item_id]||0)+Number(m.quantity||0));const stock=d.inv.map(i=>{const daily=(consumption[i.id]||0)/days;const daysLeft=daily>0?Number(i.current_stock||0)/daily:null;return {...i,daysLeft,suggested:daily>0&&daysLeft<14}}).sort((a,b)=>(a.daysLeft??9999)-(b.daysLeft??9999))
+ const decisions=[];const late=d.orders.filter(o=>open(o.status)&&o.due_at&&new Date(o.due_at)<new Date());if(late.length)decisions.push(`${late.length} OT atrasada(s): reasignar o priorizar hoy`);const buy=stock.filter(x=>x.suggested);if(buy.length)decisions.push(`Preparar compra de ${buy.slice(0,3).map(x=>x.name).join(', ')}`);if(onTimePct<85&&totalDelivered)decisions.push(`Cumplimiento de entregas en ${onTimePct.toFixed(0)}%: revisar agenda`);if(approved<q*.5&&q)decisions.push('Conversión de cotizaciones baja: dar seguimiento comercial');if(!decisions.length)decisions.push('Operación estable: mantener seguimiento de ventas, caja y producción')
+ return {funnel,onTimePct,topOrders,topClients,stock,decisions:decisions.slice(0,5)}} , [d])
+ return <section className="dash-advanced"><div className="advanced-head"><div><p className="form-kicker">CONTROL AVANZADO</p><h2>Rendimiento y decisiones del negocio</h2></div><button type="button" className="owner-toggle" onClick={()=>setOwner(!owner)}>{owner?'Modo propietario':'Vista completa'}</button></div>
+ {owner&&<div className="owner-strip"><Metric t="Ventas" v={money(d.orders.reduce((a,x)=>a+Number(x.total||0),0))}/><Metric t="Entregas a tiempo" v={`${s.onTimePct.toFixed(0)}%`}/><Metric t="OT activas" v={d.orders.filter(x=>open(x.status)).length}/><Metric t="Materiales críticos" v={s.stock.filter(x=>x.suggested).length}/></div>}
+ <div className="advanced-grid"><section className="panel"><p className="form-kicker">EMBUDO COMERCIAL</p>{s.funnel.map(([k,v],i)=><div className="funnel-row" key={k}><span>{k}</span><strong>{v}</strong><i style={{width:`${Math.max(8,(v/(s.funnel[0][1]||1))*100)}%`}}/></div>)}</section><section className="panel"><p className="form-kicker">TOP 5 DECISIONES DEL DÍA</p><ol className="decision-list">{s.decisions.map((x,i)=><li key={i}>{x}</li>)}</ol></section></div>
+ <div className="advanced-grid"><section className="panel"><p className="form-kicker">CLIENTES MÁS RENTABLES</p>{s.topClients.length?s.topClients.map(([n,v])=><div className="rank-row" key={n}><span>{n}</span><strong>{money(v.profit)}</strong></div>):<p>Sin datos suficientes.</p>}</section><section className="panel"><p className="form-kicker">TRABAJOS MÁS RENTABLES</p>{s.topOrders.length?s.topOrders.map(o=><div className="rank-row" key={o.id}><span>OT-{o.number} · {o.title}</span><strong>{money(o.profit)}</strong></div>):<p>Sin datos suficientes.</p>}</section></div>
+ <section className="panel"><p className="form-kicker">INVENTARIO · DÍAS RESTANTES Y COMPRA SUGERIDA</p><div className="inventory-days">{s.stock.slice(0,10).map(i=><div key={i.id}><span>{i.name}</span><strong>{i.daysLeft==null?'Sin consumo reciente':`${i.daysLeft.toFixed(1)} días`}</strong><small>{i.suggested?'Comprar pronto':`Stock ${i.current_stock} ${i.unit}`}</small></div>)}</div></section>
+ </section>}
+function Metric({t,v}){return <article><span>{t}</span><strong>{v}</strong></article>}
