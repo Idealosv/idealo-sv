@@ -244,17 +244,35 @@ function Dashboard({ company }) {
 
 function ClientsModule({ company, supabase }) {
   const emptyForm = {
+    client_type: 'company',
     name: '',
+    trade_name: '',
+    tax_id: '',
+    nrc: '',
+    dui: '',
+    business_activity: '',
     email: '',
     phone: '',
-    tax_id: '',
+    whatsapp: '',
+    contact_name: '',
+    contact_position: '',
+    department: '',
+    municipality: '',
+    address: '',
+    payment_terms: 'cash',
+    credit_limit: '0',
+    source: '',
     notes: '',
     status: 'active',
   }
+
   const [clients, setClients] = useState([])
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
+  const [showForm, setShowForm] = useState(false)
   const [loadingClients, setLoadingClients] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -270,7 +288,7 @@ function ClientsModule({ company, supabase }) {
     if (error) {
       setMessage(
         error.message.includes('clients')
-          ? 'Falta ejecutar la migración 0003_clients.sql en Supabase.'
+          ? 'Falta ejecutar la migración 0004_client_details.sql en Supabase.'
           : error.message,
       )
     } else {
@@ -292,7 +310,16 @@ function ClientsModule({ company, supabase }) {
   const resetForm = () => {
     setForm(emptyForm)
     setEditingId(null)
+    setShowForm(false)
     setMessage('')
+  }
+
+  const startNewClient = () => {
+    setForm(emptyForm)
+    setEditingId(null)
+    setMessage('')
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const saveClient = async (event) => {
@@ -302,10 +329,24 @@ function ClientsModule({ company, supabase }) {
 
     const payload = {
       company_id: company.id,
+      client_type: form.client_type,
       name: form.name.trim(),
+      trade_name: form.trade_name.trim() || null,
+      tax_id: form.tax_id.trim() || null,
+      nrc: form.nrc.trim() || null,
+      dui: form.dui.trim() || null,
+      business_activity: form.business_activity.trim() || null,
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
-      tax_id: form.tax_id.trim() || null,
+      whatsapp: form.whatsapp.trim() || null,
+      contact_name: form.contact_name.trim() || null,
+      contact_position: form.contact_position.trim() || null,
+      department: form.department.trim() || null,
+      municipality: form.municipality.trim() || null,
+      address: form.address.trim() || null,
+      payment_terms: form.payment_terms,
+      credit_limit: Number(form.credit_limit || 0),
+      source: form.source.trim() || null,
       notes: form.notes.trim() || null,
       status: form.status,
     }
@@ -331,13 +372,29 @@ function ClientsModule({ company, supabase }) {
   const editClient = (client) => {
     setEditingId(client.id)
     setForm({
+      client_type: client.client_type || 'company',
       name: client.name || '',
+      trade_name: client.trade_name || '',
+      tax_id: client.tax_id || '',
+      nrc: client.nrc || '',
+      dui: client.dui || '',
+      business_activity: client.business_activity || '',
       email: client.email || '',
       phone: client.phone || '',
-      tax_id: client.tax_id || '',
+      whatsapp: client.whatsapp || '',
+      contact_name: client.contact_name || '',
+      contact_position: client.contact_position || '',
+      department: client.department || '',
+      municipality: client.municipality || '',
+      address: client.address || '',
+      payment_terms: client.payment_terms || 'cash',
+      credit_limit: String(client.credit_limit || 0),
+      source: client.source || '',
       notes: client.notes || '',
       status: client.status || 'active',
     })
+    setMessage('')
+    setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -356,132 +413,341 @@ function ClientsModule({ company, supabase }) {
     else await loadClients()
   }
 
-  const filteredClients = clients.filter((client) =>
-    [client.name, client.email, client.phone, client.tax_id]
+  const filteredClients = clients.filter((client) => {
+    const searchable = [
+      client.name,
+      client.trade_name,
+      client.email,
+      client.phone,
+      client.whatsapp,
+      client.tax_id,
+      client.nrc,
+      client.dui,
+      client.contact_name,
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()
-      .includes(query.toLowerCase()),
-  )
+
+    return (
+      searchable.includes(query.toLowerCase()) &&
+      (statusFilter === 'all' || client.status === statusFilter) &&
+      (typeFilter === 'all' || client.client_type === typeFilter)
+    )
+  })
+
+  const activeCount = clients.filter((client) => client.status === 'active').length
+  const companyCount = clients.filter((client) => client.client_type === 'company').length
+  const creditCount = clients.filter((client) => client.payment_terms === 'credit').length
 
   return (
     <section className="clients-module">
-      <div className="clients-toolbar">
+      <div className="clients-titlebar">
         <div>
           <p className="form-kicker">DIRECTORIO COMERCIAL</p>
-          <h2>{clients.length} {clients.length === 1 ? 'cliente' : 'clientes'}</h2>
+          <h2>Gestión de clientes</h2>
+          <p>Administra datos comerciales, fiscales, contactos y condiciones de venta.</p>
         </div>
-        <label className="client-search">
-          <span>Buscar</span>
-          <input
-            type="search"
-            placeholder="Nombre, correo, teléfono o NIT"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
+        <button type="button" className="primary-action" onClick={startNewClient}>
+          + Nuevo cliente
+        </button>
       </div>
 
-      <div className="clients-layout">
-        <form className="client-form panel" onSubmit={saveClient}>
-          <div className="panel-heading">
+      <section className="client-stats" aria-label="Resumen de clientes">
+        <ClientStat label="Total" value={clients.length} note="Clientes registrados" />
+        <ClientStat label="Activos" value={activeCount} note="Disponibles para operar" />
+        <ClientStat label="Empresas" value={companyCount} note="Personas jurídicas" />
+        <ClientStat label="Con crédito" value={creditCount} note="Condición autorizada" />
+      </section>
+
+      {message && (
+        <p className="feedback error" role="status">
+          {message}
+        </p>
+      )}
+
+      {showForm && (
+        <form className="client-form-full panel" onSubmit={saveClient}>
+          <div className="client-form-header">
             <div>
               <p className="form-kicker">{editingId ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE'}</p>
-              <h3>{editingId ? 'Actualiza sus datos' : 'Registra un cliente'}</h3>
+              <h3>{editingId ? 'Actualizar expediente' : 'Crear expediente comercial'}</h3>
             </div>
+            <button type="button" className="secondary-button" onClick={resetForm}>
+              Cerrar
+            </button>
           </div>
 
-          <label className="field">
-            <span>Nombre o razón social *</span>
-            <input name="name" value={form.name} onChange={updateField} minLength={2} required />
-          </label>
-          <div className="form-row">
-            <label className="field">
-              <span>Correo</span>
-              <input name="email" type="email" value={form.email} onChange={updateField} />
-            </label>
-            <label className="field">
-              <span>Teléfono</span>
-              <input name="phone" value={form.phone} onChange={updateField} />
-            </label>
-          </div>
-          <div className="form-row">
-            <label className="field">
-              <span>NIT / Identificación</span>
-              <input name="tax_id" value={form.tax_id} onChange={updateField} />
-            </label>
-            <label className="field">
-              <span>Estado</span>
-              <select name="status" value={form.status} onChange={updateField}>
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            <span>Notas</span>
-            <textarea name="notes" rows="3" value={form.notes} onChange={updateField} />
-          </label>
+          <fieldset className="form-section">
+            <legend>Identificación</legend>
+            <div className="form-grid three">
+              <label className="field">
+                <span>Tipo de cliente *</span>
+                <select name="client_type" value={form.client_type} onChange={updateField}>
+                  <option value="company">Empresa</option>
+                  <option value="person">Persona natural</option>
+                </select>
+              </label>
+              <label className="field form-span-2">
+                <span>{form.client_type === 'company' ? 'Razón social *' : 'Nombre completo *'}</span>
+                <input name="name" value={form.name} onChange={updateField} minLength={2} required />
+              </label>
+              <label className="field form-span-2">
+                <span>Nombre comercial</span>
+                <input name="trade_name" value={form.trade_name} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>Estado</span>
+                <select name="status" value={form.status} onChange={updateField}>
+                  <option value="active">Activo</option>
+                  <option value="inactive">Inactivo</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
 
-          {message && <p className="feedback error">{message}</p>}
+          <fieldset className="form-section">
+            <legend>Información fiscal</legend>
+            <div className="form-grid three">
+              <label className="field">
+                <span>NIT</span>
+                <input name="tax_id" value={form.tax_id} onChange={updateField} placeholder="0000-000000-000-0" />
+              </label>
+              <label className="field">
+                <span>NRC</span>
+                <input name="nrc" value={form.nrc} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>DUI</span>
+                <input name="dui" value={form.dui} onChange={updateField} placeholder="00000000-0" />
+              </label>
+              <label className="field form-span-3">
+                <span>Giro o actividad económica</span>
+                <input name="business_activity" value={form.business_activity} onChange={updateField} />
+              </label>
+            </div>
+          </fieldset>
 
-          <div className="form-actions">
+          <fieldset className="form-section">
+            <legend>Contacto principal</legend>
+            <div className="form-grid three">
+              <label className="field">
+                <span>Correo electrónico</span>
+                <input name="email" type="email" value={form.email} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>Teléfono</span>
+                <input name="phone" value={form.phone} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>WhatsApp</span>
+                <input name="whatsapp" value={form.whatsapp} onChange={updateField} />
+              </label>
+              <label className="field form-span-2">
+                <span>Persona de contacto</span>
+                <input name="contact_name" value={form.contact_name} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>Cargo</span>
+                <input name="contact_position" value={form.contact_position} onChange={updateField} />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="form-section">
+            <legend>Dirección</legend>
+            <div className="form-grid three">
+              <label className="field">
+                <span>Departamento</span>
+                <select name="department" value={form.department} onChange={updateField}>
+                  <option value="">Seleccionar</option>
+                  {SALVADOR_DEPARTMENTS.map((department) => (
+                    <option key={department} value={department}>{department}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Municipio / distrito</span>
+                <input name="municipality" value={form.municipality} onChange={updateField} />
+              </label>
+              <label className="field form-span-3">
+                <span>Dirección completa</span>
+                <textarea name="address" rows="2" value={form.address} onChange={updateField} />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="form-section">
+            <legend>Condiciones comerciales</legend>
+            <div className="form-grid three">
+              <label className="field">
+                <span>Forma de pago</span>
+                <select name="payment_terms" value={form.payment_terms} onChange={updateField}>
+                  <option value="cash">Contado</option>
+                  <option value="credit">Crédito</option>
+                  <option value="mixed">Mixto</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Límite de crédito ($)</span>
+                <input name="credit_limit" type="number" min="0" step="0.01" value={form.credit_limit} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>Origen del cliente</span>
+                <input name="source" value={form.source} onChange={updateField} placeholder="Recomendación, redes, visita..." />
+              </label>
+              <label className="field form-span-3">
+                <span>Notas internas</span>
+                <textarea name="notes" rows="3" value={form.notes} onChange={updateField} />
+              </label>
+            </div>
+          </fieldset>
+
+          <div className="form-actions end">
+            <button type="button" className="secondary-button" onClick={resetForm}>Cancelar</button>
             <button type="submit" disabled={saving}>
               {saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Crear cliente'}
             </button>
-            {editingId && (
-              <button type="button" className="secondary-button" onClick={resetForm}>
-                Cancelar
-              </button>
-            )}
           </div>
         </form>
+      )}
 
-        <div className="client-list">
-          {loadingClients ? (
-            <div className="client-empty panel"><span className="spinner" /><p>Cargando clientes…</p></div>
-          ) : filteredClients.length === 0 ? (
-            <div className="client-empty panel">
-              <span className="module-icon">◎</span>
-              <strong>{query ? 'No encontramos coincidencias' : 'Aún no hay clientes'}</strong>
-              <p>{query ? 'Prueba con otra búsqueda.' : 'Completa el formulario para registrar el primero.'}</p>
-            </div>
-          ) : (
-            <div className="client-grid">
-              {filteredClients.map((client) => (
-                <article className="client-card" key={client.id}>
-                  <div className="client-card-top">
-                    <span className="client-avatar">{client.name.charAt(0).toUpperCase()}</span>
-                    <div>
-                      <h3>{client.name}</h3>
+      <section className="clients-directory panel">
+        <div className="directory-toolbar">
+          <label className="client-search">
+            <span>Buscar cliente</span>
+            <input
+              type="search"
+              placeholder="Nombre, NIT, NRC, DUI, correo o teléfono"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <label className="compact-filter">
+            <span>Estado</span>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="all">Todos</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </label>
+          <label className="compact-filter">
+            <span>Tipo</span>
+            <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+              <option value="all">Todos</option>
+              <option value="company">Empresas</option>
+              <option value="person">Personas</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="directory-count">
+          <strong>{filteredClients.length}</strong>
+          <span>{filteredClients.length === 1 ? 'resultado' : 'resultados'}</span>
+        </div>
+
+        {loadingClients ? (
+          <div className="client-empty"><span className="spinner" /><p>Cargando clientes…</p></div>
+        ) : filteredClients.length === 0 ? (
+          <div className="client-empty">
+            <span className="module-icon">◎</span>
+            <strong>{query || statusFilter !== 'all' || typeFilter !== 'all' ? 'No encontramos coincidencias' : 'Aún no hay clientes'}</strong>
+            <p>{clients.length ? 'Cambia los filtros o la búsqueda.' : 'Crea el primer expediente comercial.'}</p>
+            {!clients.length && <button type="button" onClick={startNewClient}>+ Crear primer cliente</button>}
+          </div>
+        ) : (
+          <div className="client-table-wrap">
+            <table className="client-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Contacto</th>
+                  <th>Fiscal</th>
+                  <th>Condición</th>
+                  <th>Estado</th>
+                  <th aria-label="Acciones" />
+                </tr>
+              </thead>
+              <tbody>
+                {filteredClients.map((client) => (
+                  <tr key={client.id}>
+                    <td>
+                      <div className="table-client">
+                        <span className="client-avatar">{client.name.charAt(0).toUpperCase()}</span>
+                        <div>
+                          <strong>{client.trade_name || client.name}</strong>
+                          {client.trade_name && <small>{client.name}</small>}
+                          <small>{client.client_type === 'person' ? 'Persona natural' : 'Empresa'}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <strong>{client.phone || client.whatsapp || 'Sin teléfono'}</strong>
+                      <small>{client.email || client.contact_name || 'Sin contacto adicional'}</small>
+                    </td>
+                    <td>
+                      <strong>{client.tax_id || client.dui || 'Sin identificación'}</strong>
+                      <small>{client.nrc ? `NRC ${client.nrc}` : client.business_activity || 'Sin NRC'}</small>
+                    </td>
+                    <td>
+                      <strong>{client.payment_terms === 'credit' ? 'Crédito' : client.payment_terms === 'mixed' ? 'Mixto' : 'Contado'}</strong>
+                      <small>{Number(client.credit_limit || 0) > 0 ? `Límite ${formatMoney(client.credit_limit)}` : 'Sin límite asignado'}</small>
+                    </td>
+                    <td>
                       <span className={client.status === 'active' ? 'status active' : 'status'}>
                         {client.status === 'active' ? 'Activo' : 'Inactivo'}
                       </span>
-                    </div>
-                  </div>
-                  <dl>
-                    <div><dt>Correo</dt><dd>{client.email || 'Sin correo'}</dd></div>
-                    <div><dt>Teléfono</dt><dd>{client.phone || 'Sin teléfono'}</dd></div>
-                    <div><dt>NIT</dt><dd>{client.tax_id || 'Sin registro'}</dd></div>
-                  </dl>
-                  {client.notes && <p className="client-notes">{client.notes}</p>}
-                  <div className="client-actions">
-                    <button type="button" className="secondary-button" onClick={() => editClient(client)}>
-                      Editar
-                    </button>
-                    <button type="button" className="danger-button" onClick={() => deleteClient(client)}>
-                      Eliminar
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="secondary-button" onClick={() => editClient(client)}>Editar</button>
+                        <button type="button" className="danger-button" onClick={() => deleteClient(client)}>Eliminar</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </section>
   )
 }
+
+function ClientStat({ label, value, note }) {
+  return (
+    <article className="client-stat">
+      <small>{label}</small>
+      <strong>{value}</strong>
+      <span>{note}</span>
+    </article>
+  )
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat('es-SV', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(Number(value || 0))
+}
+
+const SALVADOR_DEPARTMENTS = [
+  'Ahuachapán',
+  'Santa Ana',
+  'Sonsonate',
+  'Chalatenango',
+  'La Libertad',
+  'San Salvador',
+  'Cuscatlán',
+  'La Paz',
+  'Cabañas',
+  'San Vicente',
+  'Usulután',
+  'San Miguel',
+  'Morazán',
+  'La Unión',
+]
 
 function ModulePreview({ name }) {
   return (
