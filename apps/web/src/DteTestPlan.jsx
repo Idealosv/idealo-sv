@@ -82,6 +82,7 @@ export default function DteTestPlan({ supabase, company }) {
 
   const completed = enriched.filter((row) => row.effectiveCompleted).length
   const next = enriched.find((row) => !row.effectiveCompleted)
+  const progress = enriched.length ? Math.round((completed / enriched.length) * 100) : 0
 
   const toggleManual = async (row) => {
     const nextValue = !row.completed
@@ -110,7 +111,7 @@ export default function DteTestPlan({ supabase, company }) {
         <div><small>DTE aceptados por MH desde IDEALO</small><strong>{docs.length}</strong></div>
         <div><small>Siguiente caso recomendado</small><strong>{next?.label || 'Cobertura base completa'}</strong></div>
       </div>
-      <div style={styles.progress}><span style={{ width: `${enriched.length ? Math.round((completed / enriched.length) * 100) : 0}%` }} /></div>
+      <div style={styles.progress}><span style={{ display: 'block', height: '100%', width: `${progress}%`, background: '#2563eb', transition: 'width .2s ease' }} /></div>
       <div style={styles.list}>
         {enriched.map((row) => (
           <article key={row.id} style={styles.row}>
