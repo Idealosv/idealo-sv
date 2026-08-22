@@ -29,6 +29,11 @@ test('impide activar producción por accidente', () => {
 
 test('el estado público nunca devuelve secretos', () => {
   const status = getDteConfigurationStatus(valid)
-  assert.deepEqual(status, { environment: 'test', configured: true, productionEnabled: false })
+  assert.deepEqual(status, {
+    environment: 'test',
+    configured: true,
+    signerConfigured: true,
+    productionEnabled: false,
+  })
   assert.equal(JSON.stringify(status).includes('secret'), false)
 })
