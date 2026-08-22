@@ -1,0 +1,1 @@
+Ajuste visual temporal documentado para Clientes y contraste global de formularios. El naranja se reserva para acciones primarias; botones secundarios y navegación de Clientes usan negro/blanco. Los campos input/select/textarea usan borde global más oscuro.
