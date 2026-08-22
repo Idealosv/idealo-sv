@@ -24,10 +24,7 @@ export default function FacturacionLauncher() {
   }, [])
 
   useEffect(() => {
-    if (!session || !supabase) {
-      setCompany(null)
-      return
-    }
+    if (!session || !supabase) { setCompany(null); return }
     supabase.rpc('get_my_companies').then(async ({ data }) => {
       const id = data?.[0]?.id
       if (!id) return setCompany(null)
@@ -40,29 +37,26 @@ export default function FacturacionLauncher() {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} style={styles.launcher}>FACTURAR</button>
+      <button type="button" onClick={() => setOpen(true)} className="sidebar-module-access billing" aria-label="Abrir facturación electrónica">
+        <span className="module-glyph">▤</span>
+        <span className="module-copy"><span>Facturación electrónica</span><small>DTE · Hacienda · Recepciones</small></span>
+      </button>
       {open && (
-        <div style={styles.backdrop} role="presentation" onMouseDown={() => setOpen(false)}>
-          <section style={styles.panel} role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
-            <div style={styles.topbar}>
-              <div><strong>Módulo Facturación DTE</strong><small> · Factura Electrónica DTE-01</small></div>
-              <button type="button" onClick={() => setOpen(false)} style={styles.close}>×</button>
+        <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
+          <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="erp-modal-head">
+              <div><strong>Facturación electrónica DTE</strong><small>Factura electrónica · Ambiente TEST 00 · Ministerio de Hacienda</small></div>
+              <button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button>
+            </header>
+            <div className="erp-modal-body">
+              <SignerDiagnostic session={session} company={company} />
+              <ProcessedDtePanel supabase={supabase} company={company} />
+              <DteTestPlan supabase={supabase} company={company} />
+              <FacturacionDte session={session} supabase={supabase} company={company} />
             </div>
-            <SignerDiagnostic session={session} company={company} />
-            <ProcessedDtePanel supabase={supabase} company={company} />
-            <DteTestPlan supabase={supabase} company={company} />
-            <FacturacionDte session={session} supabase={supabase} company={company} />
           </section>
         </div>
       )}
     </>
   )
-}
-
-const styles = {
-  launcher: { position: 'fixed', right: 24, bottom: 24, zIndex: 70, border: 0, borderRadius: 16, padding: '15px 19px', background: '#111827', color: 'white', fontWeight: 900, cursor: 'pointer', boxShadow: '0 14px 35px rgba(15,23,42,.25)' },
-  backdrop: { position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,23,42,.5)', padding: 24, overflow: 'auto' },
-  panel: { width: 'min(1180px, 100%)', minHeight: 'calc(100vh - 48px)', margin: '0 auto', background: '#f8fafc', borderRadius: 22, padding: 24, boxSizing: 'border-box', boxShadow: '0 30px 90px rgba(15,23,42,.28)' },
-  topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, color: '#334155' },
-  close: { border: 0, background: 'transparent', fontSize: 34, cursor: 'pointer', lineHeight: 1 },
 }
