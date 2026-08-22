@@ -11,9 +11,9 @@ Ministerio de Hacienda, envuelto únicamente para su despliegue seguro en Render
 
 ## Secretos de Render
 
-El servicio requiere `SIGNER_API_TOKEN` y un Secret File llamado con un guion
-bajo antes del NIT, por ejemplo `_074578499.crt`. Render exige que el nombre
-comience con una letra o `_`; al iniciar, el contenedor lo copia internamente
+El servicio requiere `SIGNER_API_TOKEN` y un Secret File llamado con el prefijo
+`cert_` antes del NIT, por ejemplo `cert_074578499.crt`. Render exige que el
+nombre comience con una letra; al iniciar, el contenedor lo copia internamente
 como `/tmp/certificates/074578499.crt`, que es el nombre requerido por el
 firmador. Nunca se deben incorporar certificados, contraseñas o credenciales de
 Hacienda al repositorio.
