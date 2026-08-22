@@ -12,6 +12,7 @@ import './idealo-brand.css'
 import './idealo-reference.css'
 import './facturacion-feedback.css'
 import './sidebar-modules.css'
+import './accounts-payable.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
