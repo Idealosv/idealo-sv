@@ -9,6 +9,7 @@ import FinancialDashboardLauncher from './FinancialDashboardLauncher.jsx'
 import HrPayrollLauncher from './HrPayrollLauncher.jsx'
 import ProductionCalendarLauncher from './ProductionCalendarLauncher.jsx'
 import QualityControlLauncher from './QualityControlLauncher.jsx'
+import MainMenuController from './MainMenuController.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -21,6 +22,7 @@ import './financial-dashboard.css'
 import './hr-payroll.css'
 import './production-calendar.css'
 import './quality-control.css'
+import './main-menu.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
@@ -39,5 +41,6 @@ createRoot(document.getElementById('root')).render(
     <ProductionCalendarLauncher />
     <QualityControlLauncher />
     <FacturacionLauncher />
+    <MainMenuController />
   </StrictMode>,
 )
