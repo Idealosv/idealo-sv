@@ -49,8 +49,10 @@ create policy work_order_evidence_storage_insert on storage.objects for insert t
 );
 drop policy if exists work_order_evidence_storage_delete on storage.objects;
 create policy work_order_evidence_storage_delete on storage.objects for delete to authenticated using (
-  bucket_id='work-order-evidence' and exists(
-    select 1 from public.company_members cm
-    where cm.user_id=auth.uid() and cm.company_id=((storage.foldername(name))[1])::uuid and cm.role in ('owner','admin')
+  bucket_id='work-order-evidence' and (
+    owner_id=auth.uid()::text or exists(
+      select 1 from public.company_members cm
+      where cm.user_id=auth.uid() and cm.company_id=((storage.foldername(name))[1])::uuid and cm.role in ('owner','admin')
+    )
   )
 );
