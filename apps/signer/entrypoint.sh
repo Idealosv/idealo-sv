@@ -7,10 +7,10 @@ if [ -z "${SIGNER_API_TOKEN:-}" ]; then
 fi
 
 mkdir -p "${CERTIFICATE_HOME:-/tmp/certificates}"
-for source in /etc/secrets/_*.crt; do
+for source in /etc/secrets/cert_*.crt; do
   [ -f "$source" ] || continue
   filename="$(basename "$source")"
-  cp "$source" "${CERTIFICATE_HOME:-/tmp/certificates}/${filename#_}"
+  cp "$source" "${CERTIFICATE_HOME:-/tmp/certificates}/${filename#cert_}"
 done
 
 java \
