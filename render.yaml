@@ -10,7 +10,7 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: nonssl
       - key: CERTIFICATE_HOME
-        value: /etc/secrets
+        value: /tmp/certificates
       - key: SIGNER_API_TOKEN
         sync: false
 
