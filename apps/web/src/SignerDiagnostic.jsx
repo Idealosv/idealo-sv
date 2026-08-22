@@ -10,6 +10,7 @@ export default function SignerDiagnostic({ session, company }) {
   const load = async () => {
     setLoading(true)
     setError('')
+    setDiagnostic(null)
     try {
       const response = await fetch(`${apiUrl}/api/dte/signer-diagnostic?companyId=${encodeURIComponent(company.id)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -19,11 +20,9 @@ export default function SignerDiagnostic({ session, company }) {
       setDiagnostic(payload)
     } catch (cause) {
       setError(cause.message === 'Failed to fetch'
-        ? 'No se pudo consultar el diagnóstico. Espera a que API y firmador terminen de desplegar en Render.'
+        ? 'No se pudo consultar el diagnóstico. El firmador puede estar despertando en Render; vuelve a intentar en un momento.'
         : cause.message)
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { load() }, [company.id])
@@ -33,7 +32,7 @@ export default function SignerDiagnostic({ session, company }) {
   }
 
   if (!diagnostic) {
-    return <section style={styles.card}><strong>Diagnóstico del firmador</strong><p>{loading ? 'Comprobando firmador, certificado y firma RS512…' : 'Sin diagnóstico todavía.'}</p></section>
+    return <section style={{ ...styles.card, ...styles.warning }}><strong>{loading ? 'Despertando y comprobando el firmador…' : 'Diagnóstico del firmador'}</strong><p>{loading ? 'Render puede tardar alrededor de un minuto en iniciar el servicio gratuito. No cierres esta ventana; la comprobación esperará hasta 90 segundos.' : 'Sin diagnóstico todavía.'}</p></section>
   }
 
   const healthyConfig = diagnostic.signerReachable
@@ -44,36 +43,39 @@ export default function SignerDiagnostic({ session, company }) {
     && diagnostic.nit?.mountedCertificateMatchesConfigured
     && diagnostic.cryptoSelfTest?.valid
   const readyForRetry = diagnostic.overall === 'READY_FOR_SINGLE_RETRY'
-  const tone = healthyConfig ? styles.ok : styles.danger
+  const signerOffline = !diagnostic.signerReachable
+  const tone = healthyConfig ? styles.ok : signerOffline ? styles.warning : styles.danger
 
   return (
     <section style={{ ...styles.card, ...tone }}>
       <div style={styles.head}>
         <div>
           <strong>Diagnóstico del firmador DTE</strong>
-          <p style={styles.subtitle}>{healthyConfig ? 'Firmador, certificado y firma criptográfica verificados.' : 'Hay una inconsistencia que debe corregirse antes de enviar a MH.'}</p>
+          <p style={styles.subtitle}>{healthyConfig ? 'Firmador, certificado y firma criptográfica verificados.' : signerOffline ? 'El firmador no respondió dentro del tiempo de espera. Esto no significa que el certificado esté dañado.' : 'Hay una inconsistencia que debe corregirse antes de enviar a MH.'}</p>
         </div>
         <button type="button" onClick={load} disabled={loading}>{loading ? 'Comprobando…' : 'Volver a comprobar'}</button>
       </div>
       <div style={styles.grid}>
-        <Metric label="Servicio firmador" value={diagnostic.signerReachable ? 'EN LÍNEA' : 'SIN CONEXIÓN'} good={diagnostic.signerReachable} />
-        <Metric label="Certificado montado" value={diagnostic.certificate?.present ? 'SÍ' : 'NO'} good={diagnostic.certificate?.present} />
-        <Metric label="Certificado activo" value={diagnostic.certificate?.active ? 'SÍ' : 'NO'} good={diagnostic.certificate?.active} />
-        <Metric label="Certificado vigente" value={diagnostic.certificate?.inValidity ? 'SÍ' : 'NO'} good={diagnostic.certificate?.inValidity} />
+        <Metric label="Servicio firmador" value={diagnostic.signerReachable ? 'EN LÍNEA' : 'SIN RESPUESTA'} good={diagnostic.signerReachable} pending={signerOffline} />
+        <Metric label="Certificado montado" value={signerOffline ? 'PENDIENTE' : diagnostic.certificate?.present ? 'SÍ' : 'NO'} good={diagnostic.certificate?.present} pending={signerOffline} />
+        <Metric label="Certificado activo" value={signerOffline ? 'PENDIENTE' : diagnostic.certificate?.active ? 'SÍ' : 'NO'} good={diagnostic.certificate?.active} pending={signerOffline} />
+        <Metric label="Certificado vigente" value={signerOffline ? 'PENDIENTE' : diagnostic.certificate?.inValidity ? 'SÍ' : 'NO'} good={diagnostic.certificate?.inValidity} pending={signerOffline} />
         <Metric label="NIT empresa = configuración" value={diagnostic.nit?.companyMatchesConfigured ? 'COINCIDE' : 'NO COINCIDE'} good={diagnostic.nit?.companyMatchesConfigured} />
-        <Metric label="NIT archivo = configuración" value={diagnostic.nit?.mountedCertificateMatchesConfigured ? 'COINCIDE' : 'NO COINCIDE'} good={diagnostic.nit?.mountedCertificateMatchesConfigured} />
-        <Metric label="Autoprueba JWS" value={diagnostic.cryptoSelfTest?.valid ? `${diagnostic.cryptoSelfTest.algorithm || 'RS512'} VÁLIDA` : 'FALLÓ'} good={diagnostic.cryptoSelfTest?.valid} />
+        <Metric label="NIT archivo = configuración" value={signerOffline ? 'PENDIENTE' : diagnostic.nit?.mountedCertificateMatchesConfigured ? 'COINCIDE' : 'NO COINCIDE'} good={diagnostic.nit?.mountedCertificateMatchesConfigured} pending={signerOffline} />
+        <Metric label="Autoprueba JWS" value={signerOffline ? 'PENDIENTE' : diagnostic.cryptoSelfTest?.valid ? `${diagnostic.cryptoSelfTest.algorithm || 'RS512'} VÁLIDA` : 'FALLÓ'} good={diagnostic.cryptoSelfTest?.valid} pending={signerOffline} />
       </div>
       {diagnostic.certificate?.present && <p style={styles.detail}>Archivo detectado para NIT terminado en {String(diagnostic.certificate.mountedNit || '').slice(-4)} · huella técnica {diagnostic.certificate.fingerprint || '—'}… · {diagnostic.certificate.sizeBytes || 0} bytes. Vigencia: {formatDate(diagnostic.certificate.notBefore)} → {formatDate(diagnostic.certificate.notAfter)}.</p>}
-      {!diagnostic.cryptoSelfTest?.valid && <div style={styles.stop}><strong>NO ENVIAR A MH.</strong> La autoverificación RS512 falló: {diagnostic.cryptoSelfTest?.reason || 'sin detalle'}.</div>}
-      {readyForRetry && <div style={styles.ready}><strong>LISTO PARA UNA SOLA PRUEBA NUEVA.</strong> El rechazo 802 registrado pertenece a una firma anterior. El certificado actual está activo, vigente y el JWS generado por el firmador verifica matemáticamente con su clave pública. Crea un DTE nuevo, fírmalo con este certificado y envíalo una sola vez a MH TEST.</div>}
+      {signerOffline && <div style={styles.wait}><strong>NO ES UN ERROR DE CERTIFICADO TODAVÍA.</strong> El servicio gratuito de Render puede estar dormido o reiniciando. La siguiente comprobación esperará hasta {Math.round((diagnostic.diagnosticTimeoutMs || 90000) / 1000)} segundos.</div>}
+      {!signerOffline && !diagnostic.cryptoSelfTest?.valid && <div style={styles.stop}><strong>NO ENVIAR A MH.</strong> La autoverificación RS512 falló: {diagnostic.cryptoSelfTest?.reason || 'sin detalle'}.</div>}
+      {readyForRetry && <div style={styles.ready}><strong>LISTO PARA UNA SOLA PRUEBA NUEVA.</strong> El rechazo 802 registrado pertenece a una firma anterior. El certificado actual está activo, vigente y el JWS generado por el firmador verifica matemáticamente con su clave pública.</div>}
       {diagnostic.overall === 'READY' && <div style={styles.ready}><strong>FIRMADOR VALIDADO.</strong> La firma RS512 del firmador coincide con la clave pública del certificado montado.</div>}
     </section>
   )
 }
 
-function Metric({ label, value, good }) {
-  return <div style={styles.metric}><small>{label}</small><strong style={{ color: good ? '#166534' : '#991b1b' }}>{value}</strong></div>
+function Metric({ label, value, good, pending = false }) {
+  const color = pending ? '#92400e' : good ? '#166534' : '#991b1b'
+  return <div style={styles.metric}><small>{label}</small><strong style={{ color }}>{value}</strong></div>
 }
 
 function formatDate(value) {
@@ -93,5 +95,6 @@ const styles = {
   metric: { padding: 10, borderRadius: 10, background: 'rgba(255,255,255,.8)', border: '1px solid #e5e7eb' },
   detail: { margin: '12px 0 0', fontSize: 13, color: '#64748b' },
   stop: { marginTop: 12, padding: 12, borderRadius: 10, background: '#fee2e2', color: '#7f1d1d', lineHeight: 1.45 },
+  wait: { marginTop: 12, padding: 12, borderRadius: 10, background: '#fef3c7', color: '#78350f', lineHeight: 1.45 },
   ready: { marginTop: 12, padding: 12, borderRadius: 10, background: '#dcfce7', color: '#14532d', lineHeight: 1.45 },
 }
