@@ -862,3 +862,36 @@ button:disabled { cursor: not-allowed; opacity: .65; }
   .compact-filter { display: grid; grid-template-columns: 1fr 1fr; }
   .compact-filter select { min-width: 0; width: 100%; }
 }
+
+
+/* Preparación fiscal DTE del receptor */
+.dte-section {
+  padding: 20px;
+  border: 1px solid #ffd6b8;
+  border-radius: 12px;
+  background: #fffaf6;
+}
+
+.dte-note {
+  padding: 12px 14px;
+  color: #713600;
+  border-left: 4px solid #ff6b00;
+  border-radius: 8px;
+  background: #fff0e5;
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.status.dte-ready {
+  margin-top: 7px;
+  color: #176534;
+  border: 1px solid #bce2c8;
+  background: #edf9f1;
+}
+
+.status.dte-pending {
+  margin-top: 7px;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+}
