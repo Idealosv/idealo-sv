@@ -122,7 +122,7 @@ export default function Workspace({ session, supabase }) {
     )
   }
 
-  const modules = ['Resumen', 'Clientes', 'Servicios', 'Cotizaciones', 'Campañas']
+  const modules = ['Resumen', 'Empresa', 'Clientes', 'Servicios', 'Cotizaciones', 'Campañas']
 
   return (
     <main className="erp-shell">
@@ -177,6 +177,8 @@ export default function Workspace({ session, supabase }) {
 
         {activeModule === 'Resumen' ? (
           <Dashboard company={company} />
+        ) : activeModule === 'Empresa' ? (
+          <CompanyFiscalModule company={company} supabase={supabase} />
         ) : activeModule === 'Clientes' ? (
           <ClientsModule company={company} supabase={supabase} />
         ) : (
@@ -184,6 +186,81 @@ export default function Workspace({ session, supabase }) {
         )}
       </section>
     </main>
+  )
+}
+
+const companyFiscalFields = [
+  ['nit', 'NIT'], ['nrc', 'NRC'], ['name', 'razón social'],
+  ['activity_code', 'código de actividad'], ['business_activity', 'actividad económica'],
+  ['department_code', 'departamento'], ['municipality_code', 'municipio'],
+  ['district_code', 'distrito'], ['address', 'dirección'], ['phone', 'teléfono'],
+  ['email', 'correo'], ['establishment_code', 'establecimiento'], ['point_of_sale_code', 'punto de venta'],
+]
+
+function CompanyFiscalModule({ company, supabase }) {
+  const [form, setForm] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    supabase.from('companies').select('*').eq('id', company.id).single().then(({ data, error }) => {
+      if (error) setMessage(error.message.includes('district_code') ? 'Falta aplicar la migración 0007_company_dte_profile.sql.' : error.message)
+      else setForm(data || {})
+      setLoading(false)
+    })
+  }, [company.id, supabase])
+
+  const missing = companyFiscalFields.filter(([key]) => !String(form[key] || '').trim()).map(([, label]) => label)
+  const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+  const save = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setMessage('')
+    const payload = Object.fromEntries(companyFiscalFields.map(([key]) => [key, String(form[key] || '').trim() || null]))
+    const { error } = await supabase.from('companies').update(payload).eq('id', company.id)
+    setMessage(error ? error.message : 'Expediente fiscal guardado correctamente.')
+    setSaving(false)
+  }
+
+  if (loading) return <section className="loading-card"><span className="spinner" /><p>Cargando expediente fiscal…</p></section>
+
+  return (
+    <section className="clients-module">
+      <div className="clients-titlebar">
+        <div><p className="form-kicker">EMISOR DTE</p><h2>Datos fiscales de la empresa</h2><p>Información que alimentará automáticamente el emisor de cada documento.</p></div>
+        <span className={missing.length ? 'status dte-pending' : 'status dte-ready'}>{missing.length ? `Faltan ${missing.length} datos` : 'Listo para DTE-01'}</span>
+      </div>
+      {message && <p className={message.includes('correctamente') ? 'feedback success' : 'feedback error'}>{message}</p>}
+      {missing.length > 0 && <div className="dte-note"><strong>Para quedar listo:</strong> {missing.join(', ')}.</div>}
+      <form className="client-form-full panel" onSubmit={save}>
+        <fieldset className="form-section dte-section">
+          <legend>Identificación tributaria</legend>
+          <div className="form-grid three">
+            <label className="field form-span-2"><span>Razón social *</span><input name="name" value={form.name || ''} onChange={update} required /></label>
+            <label className="field"><span>Nombre comercial</span><input name="trade_name" value={form.trade_name || ''} onChange={update} /></label>
+            <label className="field"><span>NIT *</span><input name="nit" value={form.nit || ''} onChange={update} required /></label>
+            <label className="field"><span>NRC *</span><input name="nrc" value={form.nrc || ''} onChange={update} required /></label>
+            <label className="field"><span>Código actividad (CAT-019) *</span><input name="activity_code" value={form.activity_code || ''} onChange={update} required /></label>
+            <label className="field form-span-3"><span>Actividad económica *</span><input name="business_activity" value={form.business_activity || ''} onChange={update} required /></label>
+          </div>
+        </fieldset>
+        <fieldset className="form-section"><legend>Domicilio fiscal</legend><div className="form-grid three">
+          <label className="field"><span>Departamento (CAT-012) *</span><input name="department_code" value={form.department_code || ''} onChange={update} maxLength="2" required /></label>
+          <label className="field"><span>Municipio (CAT-013) *</span><input name="municipality_code" value={form.municipality_code || ''} onChange={update} maxLength="2" required /></label>
+          <label className="field"><span>Distrito *</span><input name="district_code" value={form.district_code || ''} onChange={update} maxLength="2" required /></label>
+          <label className="field form-span-3"><span>Complemento de dirección *</span><textarea name="address" value={form.address || ''} onChange={update} rows="2" required /></label>
+        </div></fieldset>
+        <fieldset className="form-section"><legend>Contacto y establecimiento</legend><div className="form-grid three">
+          <label className="field"><span>Teléfono *</span><input name="phone" value={form.phone || ''} onChange={update} required /></label>
+          <label className="field form-span-2"><span>Correo para DTE *</span><input type="email" name="email" value={form.email || ''} onChange={update} required /></label>
+          <label className="field"><span>Código establecimiento *</span><input name="establishment_code" value={form.establishment_code || ''} onChange={update} placeholder="M001" required /></label>
+          <label className="field"><span>Código punto de venta *</span><input name="point_of_sale_code" value={form.point_of_sale_code || ''} onChange={update} placeholder="P001" required /></label>
+        </div></fieldset>
+        <div className="dte-note">Las contraseñas, el certificado y las credenciales del MH no se guardan aquí. Permanecen protegidos en Render.</div>
+        <div className="form-actions end"><button type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar expediente fiscal'}</button></div>
+      </form>
+    </section>
   )
 }
 
@@ -277,6 +354,7 @@ function getDteReadiness(client) {
     ['business_activity', 'descripción de actividad'],
     ['department_code', 'departamento'],
     ['municipality_code', 'municipio'],
+    ['district_code', 'distrito'],
     ['address', 'complemento de dirección'],
   ]
   const fiscal = client.preferred_dte_type === '03'
@@ -308,6 +386,7 @@ function ClientsModule({ company, supabase }) {
     department_code: '',
     department: '',
     municipality_code: '',
+    district_code: '',
     municipality: '',
     address: '',
     payment_terms: 'cash',
@@ -429,6 +508,7 @@ function ClientsModule({ company, supabase }) {
       department_code: form.department_code,
       department: department?.name || null,
       municipality_code: form.municipality_code,
+      district_code: form.district_code,
       municipality: municipality?.name || null,
       address: form.address.trim() || null,
       payment_terms: form.payment_terms,
@@ -479,6 +559,7 @@ function ClientsModule({ company, supabase }) {
       department_code: client.department_code || '',
       department: client.department || '',
       municipality_code: client.municipality_code || '',
+      district_code: client.district_code || '',
       municipality: client.municipality || '',
       address: client.address || '',
       payment_terms: client.payment_terms || 'cash',
@@ -708,6 +789,10 @@ function ClientsModule({ company, supabase }) {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="field">
+                <span>Distrito *</span>
+                <input name="district_code" value={form.district_code} onChange={updateField} inputMode="numeric" maxLength="2" required />
               </label>
               <label className="field form-span-3">
                 <span>Complemento de dirección *</span>
@@ -944,6 +1029,7 @@ function displayName(session) {
 function moduleIcon(module) {
   return {
     Resumen: '⌂',
+    Empresa: '▣',
     Clientes: '◎',
     Servicios: '◇',
     Cotizaciones: '▤',
