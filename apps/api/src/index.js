@@ -6,6 +6,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus } from './dte/config.js'
 import { createTestDteDraft } from './dte/draft-service.js'
 import { signTestDteDraft } from './dte/sign-service.js'
+import { transmitSignedTestDte } from './dte/transmit-test-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -65,6 +66,18 @@ app.post('/api/dte/sign-test', async (request, response, next) => {
       supabase: getSupabaseAdmin(),
     })
     response.json(signed)
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.post('/api/dte/transmit-test', async (request, response, next) => {
+  try {
+    const result = await transmitSignedTestDte({
+      request,
+      supabase: getSupabaseAdmin(),
+    })
+    response.json(result)
   } catch (error) {
     next(error)
   }
