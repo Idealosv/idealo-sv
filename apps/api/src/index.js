@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus } from './dte/config.js'
+import { createTestDteDraft } from './dte/draft-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -44,11 +45,24 @@ app.get('/api/dte/status', (_request, response) => {
   response.json(getDteConfigurationStatus())
 })
 
+app.post('/api/dte/drafts', async (request, response, next) => {
+  try {
+    const draft = await createTestDteDraft({
+      request,
+      supabase: getSupabaseAdmin(),
+    })
+    response.status(201).json(draft)
+  } catch (error) {
+    next(error)
+  }
+})
+
 app.use((error, _request, response, _next) => {
   console.error(error)
-  response.status(500).json({
-    error: 'INTERNAL_SERVER_ERROR',
-    message: process.env.NODE_ENV === 'production'
+  const status = Number(error.statusCode || 500)
+  response.status(status).json({
+    error: status >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_ERROR',
+    message: status >= 500 && process.env.NODE_ENV === 'production'
       ? 'Ocurrió un error inesperado.'
       : error.message,
   })
