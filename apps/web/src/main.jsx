@@ -6,6 +6,7 @@ import CommercialLauncher from './CommercialLauncher.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
+import './idealo-brand.css'
 import './facturacion-feedback.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
