@@ -1,3 +1,10 @@
+.facturacion-dte > .feedback {
+  position: sticky;
+  top: 8px;
+  z-index: 25;
+  margin-bottom: 14px;
+}
+
 .clients-module > .feedback.success {
   color: #14532d !important;
   background: #dcfce7 !important;
