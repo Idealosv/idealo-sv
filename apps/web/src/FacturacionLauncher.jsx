@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import FacturacionDte from './FacturacionDte.jsx'
 import SignerDiagnostic from './SignerDiagnostic.jsx'
 import ProcessedDtePanel from './ProcessedDtePanel.jsx'
+import DteTestPlan from './DteTestPlan.jsx'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -49,6 +50,7 @@ export default function FacturacionLauncher() {
             </div>
             <SignerDiagnostic session={session} company={company} />
             <ProcessedDtePanel supabase={supabase} company={company} />
+            <DteTestPlan supabase={supabase} company={company} />
             <FacturacionDte session={session} supabase={supabase} company={company} />
           </section>
         </div>
