@@ -31,6 +31,7 @@ import './dashboard-intelligence.css'
 import './dashboard-advanced-insights.css'
 import './dashboard-owner-daily.css'
 import './mobile-app.css'
+import './mobile-field-tools.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
