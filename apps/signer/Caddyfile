@@ -1,0 +1,13 @@
+:{$PORT:10000} {
+  @health path /actuator/health
+  handle @health {
+    reverse_proxy 127.0.0.1:8113
+  }
+
+  @authorized header X-Signer-Token {$SIGNER_API_TOKEN}
+  handle @authorized {
+    reverse_proxy 127.0.0.1:8113
+  }
+
+  respond "No autorizado" 401
+}

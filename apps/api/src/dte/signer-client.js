@@ -23,6 +23,10 @@ export class DteSignerClient {
   }
 
   requestOptions() {
-    return { timeoutMs: this.config.requestTimeoutMs, fetchImpl: this.fetchImpl }
+    return {
+      timeoutMs: this.config.requestTimeoutMs,
+      fetchImpl: this.fetchImpl,
+      headers: { 'x-signer-token': this.config.signerToken },
+    }
   }
 }
