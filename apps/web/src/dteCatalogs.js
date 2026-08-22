@@ -4184,3 +4184,1150 @@ export const DTE_DISTRICTS_BY_DEPARTMENT = {
     }
   ]
 }
+
+
+// Relación oficial municipio → distrito (SSF, catálogo de mayo de 2024).
+export const DTE_DISTRICTS_BY_MUNICIPALITY = {
+  "00-00": [
+    {
+      "code": "00",
+      "name": "Otro (para extranjeros)"
+    }
+  ],
+  "01-14": [
+    {
+      "code": "01",
+      "name": "AHUACHAPÁN"
+    },
+    {
+      "code": "02",
+      "name": "APANECA"
+    },
+    {
+      "code": "04",
+      "name": "CONCEPCIÓN DE ATACO"
+    },
+    {
+      "code": "11",
+      "name": "TACUBA"
+    }
+  ],
+  "01-13": [
+    {
+      "code": "03",
+      "name": "ATIQUIZAYA"
+    },
+    {
+      "code": "05",
+      "name": "EL REFUGIO"
+    },
+    {
+      "code": "09",
+      "name": "SAN LORENZO"
+    },
+    {
+      "code": "12",
+      "name": "TURÍN"
+    }
+  ],
+  "01-15": [
+    {
+      "code": "06",
+      "name": "GUAYMANGO"
+    },
+    {
+      "code": "07",
+      "name": "JUJUTLA"
+    },
+    {
+      "code": "08",
+      "name": "SAN FRANCISCO MENÉNDEZ"
+    },
+    {
+      "code": "10",
+      "name": "SAN PEDRO PUXTLA"
+    }
+  ],
+  "02-15": [
+    {
+      "code": "10",
+      "name": "SANTA ANA"
+    }
+  ],
+  "02-16": [
+    {
+      "code": "02",
+      "name": "COATEPEQUE"
+    },
+    {
+      "code": "04",
+      "name": "EL CONGO"
+    }
+  ],
+  "02-14": [
+    {
+      "code": "06",
+      "name": "MASAHUAT"
+    },
+    {
+      "code": "07",
+      "name": "METAPÁN"
+    },
+    {
+      "code": "11",
+      "name": "SANTA ROSA GUACHIPILÍN"
+    },
+    {
+      "code": "13",
+      "name": "TEXISTEPEQUE"
+    }
+  ],
+  "02-17": [
+    {
+      "code": "01",
+      "name": "CANDELARIA DE LA FRONTERA"
+    },
+    {
+      "code": "03",
+      "name": "CHALCHUAPA"
+    },
+    {
+      "code": "05",
+      "name": "EL PORVENIR"
+    },
+    {
+      "code": "08",
+      "name": "SAN ANTONIO PAJONAL"
+    },
+    {
+      "code": "09",
+      "name": "SAN SEBASTIÁN SALITRILLO"
+    },
+    {
+      "code": "12",
+      "name": "SANTIAGO DE LA FRONTERA"
+    }
+  ],
+  "03-18": [
+    {
+      "code": "09",
+      "name": "NAHULINGO"
+    },
+    {
+      "code": "11",
+      "name": "SAN ANTONIO DEL MONTE"
+    },
+    {
+      "code": "14",
+      "name": "SANTO DOMINGO DE GUZMÁN"
+    },
+    {
+      "code": "15",
+      "name": "SONSONATE"
+    },
+    {
+      "code": "16",
+      "name": "SONZACATE"
+    }
+  ],
+  "03-19": [
+    {
+      "code": "02",
+      "name": "ARMENIA"
+    },
+    {
+      "code": "03",
+      "name": "CALUCO"
+    },
+    {
+      "code": "04",
+      "name": "CUISNAHUAT"
+    },
+    {
+      "code": "05",
+      "name": "SANTA ISABEL ISHUATÁN"
+    },
+    {
+      "code": "06",
+      "name": "IZALCO"
+    },
+    {
+      "code": "12",
+      "name": "SAN JULIÁN"
+    }
+  ],
+  "03-17": [
+    {
+      "code": "07",
+      "name": "JUAYÚA"
+    },
+    {
+      "code": "08",
+      "name": "NAHUIZALCO"
+    },
+    {
+      "code": "10",
+      "name": "SALCOATITÁN"
+    },
+    {
+      "code": "13",
+      "name": "SANTA CATARINA MASAHUAT"
+    }
+  ],
+  "03-20": [
+    {
+      "code": "01",
+      "name": "ACAJUTLA"
+    }
+  ],
+  "04-35": [
+    {
+      "code": "01",
+      "name": "AGUA CALIENTE"
+    },
+    {
+      "code": "08",
+      "name": "DULCE NOMBRE DE MARÍA"
+    },
+    {
+      "code": "10",
+      "name": "EL PARAÍSO"
+    },
+    {
+      "code": "13",
+      "name": "LA REINA"
+    },
+    {
+      "code": "16",
+      "name": "NUEVA CONCEPCIÓN"
+    },
+    {
+      "code": "22",
+      "name": "SAN FERNANDO"
+    },
+    {
+      "code": "24",
+      "name": "SAN FRANCISCO MORAZÁN"
+    },
+    {
+      "code": "31",
+      "name": "SAN RAFAEL"
+    },
+    {
+      "code": "32",
+      "name": "SANTA RITA"
+    },
+    {
+      "code": "33",
+      "name": "TEJUTLA"
+    }
+  ],
+  "04-34": [
+    {
+      "code": "04",
+      "name": "CITALÁ"
+    },
+    {
+      "code": "25",
+      "name": "SAN IGNACIO"
+    },
+    {
+      "code": "12",
+      "name": "LA PALMA"
+    }
+  ],
+  "04-36": [
+    {
+      "code": "02",
+      "name": "ARCATAO"
+    },
+    {
+      "code": "03",
+      "name": "AZACUALPA"
+    },
+    {
+      "code": "05",
+      "name": "COMALAPA"
+    },
+    {
+      "code": "06",
+      "name": "CONCEPCIÓN QUEZALTEPEQUE"
+    },
+    {
+      "code": "07",
+      "name": "CHALATENANGO"
+    },
+    {
+      "code": "09",
+      "name": "EL CARRIZAL"
+    },
+    {
+      "code": "11",
+      "name": "LA LAGUNA"
+    },
+    {
+      "code": "14",
+      "name": "LAS VUELTAS"
+    },
+    {
+      "code": "15",
+      "name": "NOMBRE DE JESÚS"
+    },
+    {
+      "code": "17",
+      "name": "NUEVA TRINIDAD"
+    },
+    {
+      "code": "18",
+      "name": "OJOS DE AGUA"
+    },
+    {
+      "code": "19",
+      "name": "POTONICO"
+    },
+    {
+      "code": "20",
+      "name": "SAN ANTONIO DE LA CRUZ"
+    },
+    {
+      "code": "21",
+      "name": "SAN ANTONIO LOS RANCHOS"
+    },
+    {
+      "code": "26",
+      "name": "SAN ISIDRO LABRADOR"
+    },
+    {
+      "code": "23",
+      "name": "SAN FRANCISCO LEMPA"
+    },
+    {
+      "code": "27",
+      "name": "SAN JOSÉ CANCASQUE / CANCASQUE"
+    },
+    {
+      "code": "28",
+      "name": "SAN JOSÉ LAS FLORES / LAS FLORES"
+    },
+    {
+      "code": "29",
+      "name": "SAN LUIS DEL CARMEN"
+    },
+    {
+      "code": "30",
+      "name": "SAN MIGUEL DE MERCEDES"
+    }
+  ],
+  "05-24": [
+    {
+      "code": "02",
+      "name": "CIUDAD ARCE"
+    },
+    {
+      "code": "15",
+      "name": "SAN JUAN OPICO"
+    }
+  ],
+  "05-27": [
+    {
+      "code": "05",
+      "name": "CHILTIUPÁN"
+    },
+    {
+      "code": "08",
+      "name": "JICALAPA"
+    },
+    {
+      "code": "09",
+      "name": "LA LIBERTAD"
+    },
+    {
+      "code": "18",
+      "name": "TAMANIQUE"
+    },
+    {
+      "code": "20",
+      "name": "TEOTEPEQUE"
+    }
+  ],
+  "05-26": [
+    {
+      "code": "01",
+      "name": "ANTIGUO CUSCATLÁN"
+    },
+    {
+      "code": "06",
+      "name": "HUIZÚCAR"
+    },
+    {
+      "code": "10",
+      "name": "NUEVO CUSCATLÁN"
+    },
+    {
+      "code": "14",
+      "name": "SAN JOSÉ VILLANUEVA"
+    },
+    {
+      "code": "22",
+      "name": "ZARAGOZA"
+    }
+  ],
+  "05-23": [
+    {
+      "code": "12",
+      "name": "QUEZALTEPEQUE"
+    },
+    {
+      "code": "16",
+      "name": "SAN MATÍAS"
+    },
+    {
+      "code": "17",
+      "name": "SAN PABLO TACACHICO"
+    }
+  ],
+  "05-25": [
+    {
+      "code": "03",
+      "name": "COLÓN"
+    },
+    {
+      "code": "07",
+      "name": "JAYAQUE"
+    },
+    {
+      "code": "13",
+      "name": "SACACOYO"
+    },
+    {
+      "code": "19",
+      "name": "TALNIQUE"
+    },
+    {
+      "code": "21",
+      "name": "TEPECOYO"
+    }
+  ],
+  "05-28": [
+    {
+      "code": "04",
+      "name": "COMASAGUA"
+    },
+    {
+      "code": "11",
+      "name": "SANTA TECLA ANTES: NUEVA SAN SALVADOR"
+    }
+  ],
+  "06-23": [
+    {
+      "code": "03",
+      "name": "AYUTUXTEPEQUE"
+    },
+    {
+      "code": "04",
+      "name": "CUSCATANCINGO"
+    },
+    {
+      "code": "08",
+      "name": "MEJICANOS"
+    },
+    {
+      "code": "14",
+      "name": "SAN SALVADOR"
+    },
+    {
+      "code": "19",
+      "name": "DELGADO"
+    }
+  ],
+  "06-22": [
+    {
+      "code": "07",
+      "name": "ILOPANGO"
+    },
+    {
+      "code": "13",
+      "name": "SAN MARTÍN"
+    },
+    {
+      "code": "17",
+      "name": "SOYAPANGO"
+    },
+    {
+      "code": "18",
+      "name": "TONACATEPEQUE"
+    }
+  ],
+  "06-20": [
+    {
+      "code": "01",
+      "name": "AGUILARES"
+    },
+    {
+      "code": "05",
+      "name": "EL PAISNAL"
+    },
+    {
+      "code": "06",
+      "name": "GUAZAPA"
+    }
+  ],
+  "06-21": [
+    {
+      "code": "02",
+      "name": "APOPA"
+    },
+    {
+      "code": "09",
+      "name": "NEJAPA"
+    }
+  ],
+  "06-24": [
+    {
+      "code": "10",
+      "name": "PANCHIMALCO"
+    },
+    {
+      "code": "11",
+      "name": "ROSARIO DE MORA"
+    },
+    {
+      "code": "12",
+      "name": "SAN MARCOS"
+    },
+    {
+      "code": "15",
+      "name": "SANTIAGO TEXACUANGOS"
+    },
+    {
+      "code": "16",
+      "name": "SANTO TOMÁS"
+    }
+  ],
+  "07-17": [
+    {
+      "code": "06",
+      "name": "ORATORIO DE CONCEPCIÓN"
+    },
+    {
+      "code": "07",
+      "name": "SAN BARTOLOMÉ PERULAPÍA"
+    },
+    {
+      "code": "09",
+      "name": "SAN JOSÉ GUAYABAL"
+    },
+    {
+      "code": "10",
+      "name": "SAN PEDRO PERULAPÁN"
+    },
+    {
+      "code": "15",
+      "name": "SUCHITOTO"
+    }
+  ],
+  "07-18": [
+    {
+      "code": "01",
+      "name": "CANDELARIA"
+    },
+    {
+      "code": "02",
+      "name": "COJUTEPEQUE"
+    },
+    {
+      "code": "03",
+      "name": "EL CARMEN"
+    },
+    {
+      "code": "04",
+      "name": "EL ROSARIO"
+    },
+    {
+      "code": "05",
+      "name": "MONTE SAN JUAN"
+    },
+    {
+      "code": "08",
+      "name": "SAN CRISTÓBAL"
+    },
+    {
+      "code": "11",
+      "name": "SAN RAFAEL CEDROS"
+    },
+    {
+      "code": "12",
+      "name": "SAN RAMÓN"
+    },
+    {
+      "code": "13",
+      "name": "SANTA CRUZ ANALQUITO"
+    },
+    {
+      "code": "14",
+      "name": "SANTA CRUZ MICHAPA"
+    },
+    {
+      "code": "16",
+      "name": "TENANCINGO"
+    }
+  ],
+  "08-24": [
+    {
+      "code": "02",
+      "name": "EL ROSARIO / ROSARIO DE LA PAZ"
+    },
+    {
+      "code": "03",
+      "name": "JERUSALÉN"
+    },
+    {
+      "code": "04",
+      "name": "MERCEDES LA CEIBA"
+    },
+    {
+      "code": "06",
+      "name": "PARAÍSO DE OSORIO"
+    },
+    {
+      "code": "07",
+      "name": "SAN ANTONIO MASAHUAT"
+    },
+    {
+      "code": "08",
+      "name": "SAN EMIGDIO"
+    },
+    {
+      "code": "12",
+      "name": "SAN JUAN TEPEZONTES"
+    },
+    {
+      "code": "14",
+      "name": "SAN MIGUEL TEPEZONTES"
+    },
+    {
+      "code": "16",
+      "name": "SAN PEDRO NONUALCO"
+    },
+    {
+      "code": "18",
+      "name": "SANTA MARÍA OSTUMA"
+    },
+    {
+      "code": "19",
+      "name": "SANTIAGO NONUALCO"
+    },
+    {
+      "code": "22",
+      "name": "SAN LUIS LA HERRADURA"
+    }
+  ],
+  "08-25": [
+    {
+      "code": "10",
+      "name": "SAN JUAN NONUALCO"
+    },
+    {
+      "code": "17",
+      "name": "SAN RAFAEL OBRAJUELO"
+    },
+    {
+      "code": "21",
+      "name": "ZACATECOLUCA"
+    }
+  ],
+  "08-23": [
+    {
+      "code": "01",
+      "name": "CUYULTITÁN"
+    },
+    {
+      "code": "05",
+      "name": "OLOCUILTA"
+    },
+    {
+      "code": "09",
+      "name": "SAN FRANCISCO CHINAMECA"
+    },
+    {
+      "code": "11",
+      "name": "SAN JUAN TALPA"
+    },
+    {
+      "code": "13",
+      "name": "SAN LUIS TALPA"
+    },
+    {
+      "code": "15",
+      "name": "SAN PEDRO MASAHUAT"
+    },
+    {
+      "code": "20",
+      "name": "TAPALHUACA"
+    }
+  ],
+  "09-10": [
+    {
+      "code": "09",
+      "name": "DOLORES / VILLA DOLORES"
+    },
+    {
+      "code": "02",
+      "name": "GUACOTECTI"
+    },
+    {
+      "code": "05",
+      "name": "SAN ISIDRO"
+    },
+    {
+      "code": "06",
+      "name": "SENSUNTEPEQUE"
+    },
+    {
+      "code": "08",
+      "name": "VICTORIA"
+    }
+  ],
+  "09-11": [
+    {
+      "code": "01",
+      "name": "CINQUERA"
+    },
+    {
+      "code": "03",
+      "name": "ILOBASCO"
+    },
+    {
+      "code": "04",
+      "name": "JUTIAPA"
+    },
+    {
+      "code": "07",
+      "name": "TEJUTEPEQUE"
+    }
+  ],
+  "10-14": [
+    {
+      "code": "01",
+      "name": "APASTEPEQUE"
+    },
+    {
+      "code": "06",
+      "name": "SAN ESTEBAN CATARINA"
+    },
+    {
+      "code": "07",
+      "name": "SAN ILDEFONSO"
+    },
+    {
+      "code": "08",
+      "name": "SAN LORENZO"
+    },
+    {
+      "code": "09",
+      "name": "SAN SEBASTIÁN"
+    },
+    {
+      "code": "04",
+      "name": "SANTA CLARA"
+    },
+    {
+      "code": "05",
+      "name": "SANTO DOMINGO"
+    }
+  ],
+  "10-15": [
+    {
+      "code": "02",
+      "name": "GUADALUPE"
+    },
+    {
+      "code": "03",
+      "name": "SAN CAYETANO ISTEPEQUE"
+    },
+    {
+      "code": "10",
+      "name": "SAN VICENTE"
+    },
+    {
+      "code": "11",
+      "name": "TECOLUCA"
+    },
+    {
+      "code": "12",
+      "name": "TEPETITÁN"
+    },
+    {
+      "code": "13",
+      "name": "VERAPAZ"
+    }
+  ],
+  "11-25": [
+    {
+      "code": "03",
+      "name": "CALIFORNIA"
+    },
+    {
+      "code": "04",
+      "name": "CONCEPCIÓN BATRES"
+    },
+    {
+      "code": "06",
+      "name": "EREGUAYQUÍN"
+    },
+    {
+      "code": "10",
+      "name": "JUCUARÁN"
+    },
+    {
+      "code": "13",
+      "name": "OZATLÁN"
+    },
+    {
+      "code": "23",
+      "name": "USULUTÁN"
+    },
+    {
+      "code": "17",
+      "name": "SAN DIONISIO"
+    },
+    {
+      "code": "18",
+      "name": "SANTA ELENA"
+    },
+    {
+      "code": "20",
+      "name": "SANTA MARÍA"
+    },
+    {
+      "code": "22",
+      "name": "TECAPÁN"
+    }
+  ],
+  "11-24": [
+    {
+      "code": "01",
+      "name": "ALEGRÍA"
+    },
+    {
+      "code": "02",
+      "name": "BERLÍN"
+    },
+    {
+      "code": "05",
+      "name": "EL TRIUNFO"
+    },
+    {
+      "code": "07",
+      "name": "ESTANZUELAS"
+    },
+    {
+      "code": "09",
+      "name": "JUCUAPA"
+    },
+    {
+      "code": "11",
+      "name": "MERCEDES UMAÑA"
+    },
+    {
+      "code": "12",
+      "name": "NUEVA GRANADA"
+    },
+    {
+      "code": "16",
+      "name": "SAN BUENAVENTURA"
+    },
+    {
+      "code": "21",
+      "name": "SANTIAGO DE MARÍA"
+    }
+  ],
+  "11-26": [
+    {
+      "code": "08",
+      "name": "JIQUILISCO"
+    },
+    {
+      "code": "14",
+      "name": "PUERTO EL TRIUNFO"
+    },
+    {
+      "code": "15",
+      "name": "SAN AGUSTÍN"
+    },
+    {
+      "code": "19",
+      "name": "SAN FRANCISCO JAVIER"
+    }
+  ],
+  "12-22": [
+    {
+      "code": "03",
+      "name": "COMACARÁN"
+    },
+    {
+      "code": "09",
+      "name": "MONCAGUA"
+    },
+    {
+      "code": "06",
+      "name": "CHIRILAGUA"
+    },
+    {
+      "code": "12",
+      "name": "QUELEPA"
+    },
+    {
+      "code": "17",
+      "name": "SAN MIGUEL"
+    },
+    {
+      "code": "20",
+      "name": "ULUAZAPA"
+    }
+  ],
+  "12-21": [
+    {
+      "code": "01",
+      "name": "CAROLINA"
+    },
+    {
+      "code": "02",
+      "name": "CIUDAD BARRIOS"
+    },
+    {
+      "code": "04",
+      "name": "CHAPELTIQUE"
+    },
+    {
+      "code": "11",
+      "name": "NUEVO EDÉN DE SAN JUAN"
+    },
+    {
+      "code": "13",
+      "name": "SAN ANTONIO DEL MOSCO"
+    },
+    {
+      "code": "14",
+      "name": "SAN GERARDO"
+    },
+    {
+      "code": "16",
+      "name": "SAN LUIS DE LA REINA"
+    },
+    {
+      "code": "19",
+      "name": "SESORI"
+    }
+  ],
+  "12-23": [
+    {
+      "code": "05",
+      "name": "CHINAMECA"
+    },
+    {
+      "code": "07",
+      "name": "EL TRÁNSITO"
+    },
+    {
+      "code": "08",
+      "name": "LOLOTIQUE"
+    },
+    {
+      "code": "10",
+      "name": "NUEVA GUADALUPE"
+    },
+    {
+      "code": "15",
+      "name": "SAN JORGE"
+    },
+    {
+      "code": "18",
+      "name": "SAN RAFAEL ORIENTE"
+    }
+  ],
+  "13-27": [
+    {
+      "code": "01",
+      "name": "ARAMBALA"
+    },
+    {
+      "code": "02",
+      "name": "CACAOPERA"
+    },
+    {
+      "code": "03",
+      "name": "CORINTO"
+    },
+    {
+      "code": "07",
+      "name": "EL ROSARIO"
+    },
+    {
+      "code": "10",
+      "name": "JOATECA"
+    },
+    {
+      "code": "11",
+      "name": "JOCOAITIQUE"
+    },
+    {
+      "code": "14",
+      "name": "MEANGUERA"
+    },
+    {
+      "code": "16",
+      "name": "PERQUÍN"
+    },
+    {
+      "code": "18",
+      "name": "SAN FERNANDO"
+    },
+    {
+      "code": "20",
+      "name": "SAN ISIDRO"
+    },
+    {
+      "code": "24",
+      "name": "TOROLA"
+    }
+  ],
+  "13-28": [
+    {
+      "code": "04",
+      "name": "CHILANGA"
+    },
+    {
+      "code": "05",
+      "name": "DELICIAS DE CONCEPCIÓN"
+    },
+    {
+      "code": "06",
+      "name": "EL DIVISADERO"
+    },
+    {
+      "code": "08",
+      "name": "GUALOCOCTI"
+    },
+    {
+      "code": "09",
+      "name": "GUATAJIAGUA"
+    },
+    {
+      "code": "12",
+      "name": "JOCORO"
+    },
+    {
+      "code": "13",
+      "name": "LOLOTIQUILLO"
+    },
+    {
+      "code": "15",
+      "name": "OSICALA"
+    },
+    {
+      "code": "17",
+      "name": "SAN CARLOS"
+    },
+    {
+      "code": "19",
+      "name": "SAN FRANCISCO GOTERA"
+    },
+    {
+      "code": "21",
+      "name": "SAN SIMÓN"
+    },
+    {
+      "code": "22",
+      "name": "SENSEMBRA"
+    },
+    {
+      "code": "23",
+      "name": "SOCIEDAD"
+    },
+    {
+      "code": "25",
+      "name": "YAMABAL"
+    },
+    {
+      "code": "26",
+      "name": "YOLOAIQUÍN"
+    }
+  ],
+  "14-19": [
+    {
+      "code": "01",
+      "name": "ANAMORÓS"
+    },
+    {
+      "code": "02",
+      "name": "BOLÍVAR"
+    },
+    {
+      "code": "03",
+      "name": "CONCEPCIÓN DE ORIENTE"
+    },
+    {
+      "code": "06",
+      "name": "EL SAUCE"
+    },
+    {
+      "code": "09",
+      "name": "LISLIQUE"
+    },
+    {
+      "code": "11",
+      "name": "NUEVA ESPARTA"
+    },
+    {
+      "code": "12",
+      "name": "PASAQUINA"
+    },
+    {
+      "code": "13",
+      "name": "POLORÓS"
+    },
+    {
+      "code": "15",
+      "name": "SAN JOSÉ LA FUENTE"
+    },
+    {
+      "code": "16",
+      "name": "SANTA ROSA DE LIMA"
+    }
+  ],
+  "14-20": [
+    {
+      "code": "04",
+      "name": "CONCHAGUA"
+    },
+    {
+      "code": "05",
+      "name": "EL CARMEN"
+    },
+    {
+      "code": "07",
+      "name": "INTIPUCÁ"
+    },
+    {
+      "code": "08",
+      "name": "LA UNIÓN"
+    },
+    {
+      "code": "10",
+      "name": "MEANGUERA DEL GOLFO"
+    },
+    {
+      "code": "14",
+      "name": "SAN ALEJO"
+    },
+    {
+      "code": "17",
+      "name": "YAYANTIQUE"
+    },
+    {
+      "code": "18",
+      "name": "YUCUAIQUÍN"
+    }
+  ]
+}
