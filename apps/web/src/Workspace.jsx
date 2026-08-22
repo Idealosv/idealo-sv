@@ -399,7 +399,7 @@ function ClientsModule({ company, supabase }) {
   }
 
   const deleteClient = async (client) => {
-    if (!window.confirm(\`¿Eliminar a \${client.name}? Esta acción no se puede deshacer.\`)) {
+    if (!window.confirm(`¿Eliminar a ${client.name}? Esta acción no se puede deshacer.`)) {
       return
     }
 
@@ -687,11 +687,11 @@ function ClientsModule({ company, supabase }) {
                     </td>
                     <td>
                       <strong>{client.tax_id || client.dui || 'Sin identificación'}</strong>
-                      <small>{client.nrc ? \`NRC \${client.nrc}\` : client.business_activity || 'Sin NRC'}</small>
+                      <small>{client.nrc ? `NRC ${client.nrc}` : client.business_activity || 'Sin NRC'}</small>
                     </td>
                     <td>
                       <strong>{client.payment_terms === 'credit' ? 'Crédito' : client.payment_terms === 'mixed' ? 'Mixto' : 'Contado'}</strong>
-                      <small>{Number(client.credit_limit || 0) > 0 ? \`Límite \${formatMoney(client.credit_limit)}\` : 'Sin límite asignado'}</small>
+                      <small>{Number(client.credit_limit || 0) > 0 ? `Límite ${formatMoney(client.credit_limit)}` : 'Sin límite asignado'}</small>
                     </td>
                     <td>
                       <span className={client.status === 'active' ? 'status active' : 'status'}>
