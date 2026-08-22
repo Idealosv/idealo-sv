@@ -23,6 +23,11 @@ test('detecta expedientes fiscales completos e incompletos', () => {
   assert.deepEqual(getIssuerReadiness({ ...company, nit: '' }).missing, ['NIT'])
 })
 
+test('acepta NIT salvadoreño de persona natural con 9 dígitos', () => {
+  const status = getIssuerReadiness({ ...company, nit: '07457849-9' })
+  assert.equal(status.ready, true)
+})
+
 test('rechaza datos fiscales del emisor con formato inválido', () => {
   const status = getIssuerReadiness({
     ...company,
@@ -32,7 +37,7 @@ test('rechaza datos fiscales del emisor con formato inválido', () => {
     establishment_code: 'M01',
   })
   assert.equal(status.ready, false)
-  assert.ok(status.invalid.includes('NIT debe contener 14 dígitos'))
+  assert.ok(status.invalid.includes('NIT debe contener 9 o 14 dígitos'))
   assert.ok(status.invalid.includes('teléfono debe contener 8 dígitos'))
   assert.ok(status.invalid.includes('correo inválido'))
   assert.ok(status.invalid.includes('código de establecimiento debe contener 4 caracteres alfanuméricos'))
@@ -82,7 +87,7 @@ test('impide construir DTE-01 cuando el emisor tiene datos inválidos', () => {
     numeroControl: 'DTE-01-M001P001-000000000000004',
     totalLetras: 'UNO 00/100 DÓLARES',
     items: [{ descripcion: 'Prueba', cantidad: 1, precioUni: 1 }],
-  }), /NIT debe contener 14 dígitos/)
+  }), /NIT debe contener 9 o 14 dígitos/)
 })
 
 test('no incorpora secretos de firma ni credenciales al DTE', () => {
