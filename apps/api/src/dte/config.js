@@ -9,6 +9,16 @@ function required(name, env) {
   return value
 }
 
+export function getDteSignerConfig(env = process.env) {
+  return Object.freeze({
+    signerUrl: required('DTE_SIGNER_URL', env).replace(/\/$/, ''),
+    signerToken: required('DTE_SIGNER_TOKEN', env),
+    nit: required('DTE_MH_NIT', env),
+    signerPassword: required('DTE_SIGNER_PASSWORD', env),
+    requestTimeoutMs: Number(env.DTE_REQUEST_TIMEOUT_MS || 8000),
+  })
+}
+
 export function getDteConfig(env = process.env) {
   const environment = env.DTE_ENVIRONMENT?.trim() || 'test'
   if (!Object.hasOwn(MH_BASE_URLS, environment)) {
@@ -22,28 +32,25 @@ export function getDteConfig(env = process.env) {
   return Object.freeze({
     environment,
     mhBaseUrl: env.DTE_MH_BASE_URL?.trim() || MH_BASE_URLS[environment],
-    signerUrl: required('DTE_SIGNER_URL', env).replace(/\/$/, ''),
-    signerToken: required('DTE_SIGNER_TOKEN', env),
-    nit: required('DTE_MH_NIT', env),
+    ...getDteSignerConfig(env),
     apiPassword: required('DTE_MH_API_PASSWORD', env),
-    signerPassword: required('DTE_SIGNER_PASSWORD', env),
-    requestTimeoutMs: Number(env.DTE_REQUEST_TIMEOUT_MS || 8000),
     maxResends: Math.min(Number(env.DTE_MAX_RESENDS || 2), 2),
   })
 }
 
 export function getDteConfigurationStatus(env = process.env) {
   const environment = env.DTE_ENVIRONMENT?.trim() || 'test'
-  const requiredNames = [
+  const signerRequired = [
     'DTE_SIGNER_URL',
     'DTE_SIGNER_TOKEN',
     'DTE_MH_NIT',
-    'DTE_MH_API_PASSWORD',
     'DTE_SIGNER_PASSWORD',
   ]
+  const requiredNames = [...signerRequired, 'DTE_MH_API_PASSWORD']
   return {
     environment,
     configured: requiredNames.every((name) => Boolean(env[name]?.trim())),
+    signerConfigured: signerRequired.every((name) => Boolean(env[name]?.trim())),
     productionEnabled: env.DTE_ENABLE_PRODUCTION === 'true',
   }
 }
