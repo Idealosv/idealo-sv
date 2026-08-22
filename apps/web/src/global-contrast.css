@@ -3,9 +3,9 @@
   --idealo-page:#e7eaee;
   --idealo-surface:#f7f8f9;
   --idealo-surface-strong:#eef1f4;
-  --idealo-border:#8f99a4;
-  --idealo-border-strong:#66717d;
-  --idealo-border-soft:#b4bcc5;
+  --idealo-border:#66717d;
+  --idealo-border-strong:#3f4852;
+  --idealo-border-soft:#9ea8b3;
 }
 
 /* Fondo general: ligeramente más oscuro que el blanco/gris anterior */
@@ -32,7 +32,7 @@
   border-color:var(--idealo-border-soft)!important;
 }
 
-/* Campos: borde oscuro y consistente en todo el ERP */
+/* Campos: borde más oscuro y consistente en TODO el ERP */
 .erp-content input:not([type="checkbox"]):not([type="radio"]),
 .erp-content select,
 .erp-content textarea,
@@ -42,10 +42,10 @@
 .field input,
 .field select,
 .field textarea{
-  border:1px solid var(--idealo-border)!important;
+  border:1.5px solid var(--idealo-border)!important;
   background:#fff!important;
   color:#171b20!important;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.015)!important;
+  box-shadow:none!important;
 }
 
 .erp-content input:not([type="checkbox"]):not([type="radio"]):hover,
@@ -64,7 +64,7 @@
 .erp-modal-panel select:focus,
 .erp-modal-panel textarea:focus{
   border-color:#f36c21!important;
-  box-shadow:0 0 0 2px rgba(243,108,33,.16)!important;
+  box-shadow:0 0 0 2px rgba(243,108,33,.14)!important;
   outline:none!important;
 }
 
@@ -99,7 +99,7 @@
 .erp-modal-panel td,
 .client-row,
 .check-item{
-  border-color:#c5ccd3!important;
+  border-color:#aeb7c0!important;
 }
 
 /* Pestañas y barras claras */
