@@ -4,10 +4,6 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus } from './dte/config.js'
-import {
-  getSignatureSelfTestStatus,
-  runSignatureSelfTest,
-} from './dte/signature-self-test.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -48,10 +44,6 @@ app.get('/api/dte/status', (_request, response) => {
   response.json(getDteConfigurationStatus())
 })
 
-app.get('/api/dte/signature-test/status', (_request, response) => {
-  response.json(getSignatureSelfTestStatus())
-})
-
 app.use((error, _request, response, _next) => {
   console.error(error)
   response.status(500).json({
@@ -64,7 +56,6 @@ app.use((error, _request, response, _next) => {
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`IDEALO SV API disponible en el puerto ${port}`)
-  void runSignatureSelfTest()
 })
 
 export { app }
