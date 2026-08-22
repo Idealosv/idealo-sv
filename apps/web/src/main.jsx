@@ -14,6 +14,7 @@ import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
 import MobileFieldTools from './MobileFieldTools.jsx'
 import MobileSalesFieldBlock from './MobileSalesFieldBlock.jsx'
+import MobileClient360 from './MobileClient360.jsx'
 import Client360Enhancer from './Client360Enhancer.jsx'
 import './styles.css'
 import './premium.css'
@@ -35,8 +36,9 @@ import './dashboard-owner-daily.css'
 import './mobile-app.css'
 import './mobile-field-tools.css'
 import './mobile-next-block.css'
+import './mobile-client-360.css'
 import './client-360.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
-createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><Client360Enhancer/></StrictMode>)
+createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/></StrictMode>)
