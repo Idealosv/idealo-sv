@@ -13,6 +13,7 @@ import MainMenuController from './MainMenuController.jsx'
 import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
 import MobileFieldTools from './MobileFieldTools.jsx'
+import MobileSalesFieldBlock from './MobileSalesFieldBlock.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -32,6 +33,7 @@ import './dashboard-advanced-insights.css'
 import './dashboard-owner-daily.css'
 import './mobile-app.css'
 import './mobile-field-tools.css'
+import './mobile-next-block.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function scrollIntoViewWithoutInvoiceJump(options) {
@@ -56,5 +58,6 @@ createRoot(document.getElementById('root')).render(
     <ExecutiveDashboardHost />
     <MobileAppHost />
     <MobileFieldTools />
+    <MobileSalesFieldBlock />
   </StrictMode>,
 )
