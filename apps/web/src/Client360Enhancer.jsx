@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Client360CrudPanel from './Client360CrudPanel.jsx'
 
 const s = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: true } })
 const usd = n => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(n || 0))
@@ -13,6 +14,7 @@ export default function Client360Enhancer() {
   const [selected, setSelected] = useState('')
   const [data, setData] = useState({})
   const [q, setQ] = useState('')
+  const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
     const f = () => setShow(document.querySelector('.erp-header h1')?.textContent?.trim() === 'Clientes')
@@ -29,7 +31,7 @@ export default function Client360Enhancer() {
       const { data: rows } = await s.from('clients').select('*').eq('company_id', id).order('name')
       setClients(rows || [])
     })()
-  }, [show])
+  }, [show, refresh])
 
   useEffect(() => {
     if (!selected || !company) return
@@ -42,25 +44,22 @@ export default function Client360Enhancer() {
         ['customer_payments', 'id,amount,paid_at,payment_method'],
         ['dte_documents', 'id,dte_type,status,generation_code,mh_receipt_seal,created_at'],
         ['quality_incidents', 'id,status,cost_impact,created_at'],
-        ['client_contacts', 'id,name,position,email,phone,whatsapp,is_primary'],
-        ['client_addresses', 'id,address_type,label,department,municipality,address,is_primary,latitude,longitude'],
-        ['client_interactions', 'id,interaction_type,channel,subject,details,occurred_at,next_follow_up_at,outcome'],
-        ['client_credit_profiles', 'client_id,credit_enabled,credit_limit,credit_days,risk_level,blocked,blocked_reason,last_review_at'],
+        ['client_contacts', 'id,name,position,email,phone,whatsapp,is_primary,notes,created_at,updated_at'],
+        ['client_addresses', 'id,address_type,label,department,municipality,address,is_primary,latitude,longitude,created_at,updated_at'],
+        ['client_interactions', 'id,interaction_type,channel,subject,details,occurred_at,next_follow_up_at,outcome,created_at'],
+        ['client_credit_profiles', 'client_id,credit_enabled,credit_limit,credit_days,risk_level,blocked,blocked_reason,last_review_at,updated_at'],
         ['client_audit_log', 'id,action,field_name,created_at']
       ]
       const out = {}
       await Promise.all(specs.map(async ([t, cols]) => {
-        let query = s.from(t).select(cols).eq('company_id', company).limit(100)
-        if (t === 'client_credit_profiles') query = query.eq('client_id', selected)
-        else query = query.eq('client_id', selected)
-        const r = await query
+        const r = await s.from(t).select(cols).eq('company_id', company).eq('client_id', selected).limit(100)
         out[t] = r.error ? [] : (r.data || [])
       }))
       const dup = await s.rpc('client_duplicate_candidates', { p_company_id: company, p_client_id: selected })
       out.duplicates = dup.error ? [] : (dup.data || [])
       setData(out)
     })()
-  }, [selected, company])
+  }, [selected, company, refresh])
 
   const c = clients.find(x => x.id === selected)
   const filtered = clients.filter(x => [x.name, x.trade_name, x.tax_id, x.nrc, x.phone, x.email, x.whatsapp].join(' ').toLowerCase().includes(q.toLowerCase()))
@@ -88,14 +87,16 @@ export default function Client360Enhancer() {
         <Card t="Integración total"><p>{(data.quotes || []).length} cotizaciones · {(data.work_orders || []).length} órdenes</p><p>{(data.deliveries || []).length} entregas · {(data.dte_documents || []).length} DTE</p><p>{(data.accounts_receivable || []).length} cuentas por cobrar · {(data.customer_payments || []).length} cobros</p></Card>
         <Card t="Duplicados y auditoría"><p>{data.duplicates?.length ? `⚠ ${data.duplicates.length} posible(s) duplicado(s)` : '✓ Sin duplicados fuertes detectados'}</p>{(data.duplicates || []).slice(0, 2).map(x => <p key={x.client_id}>{x.name} · {x.reason} · {x.score}%</p>)}<p>{(data.client_audit_log || []).length} evento(s) de auditoría</p></Card>
         <Card t="Alertas inteligentes"><p>{k.late ? '⚠ Tiene deuda vencida' : '✓ Sin deuda vencida'}</p><p>{k.quality ? '⚠ Tiene incidencias/retrabajos' : '✓ Sin incidencias registradas'}</p><p>{days(k.last) > 90 ? '⚠ Cliente inactivo >90 días' : '✓ Relación comercial activa'}</p></Card>
-      </div></>}
+      </div>
+      <Client360CrudPanel supabase={s} companyId={company} client={c} data={data} onChanged={() => setRefresh(value => value + 1)} />
+    </>}
   </section>, document.querySelector('.erp-content') || document.body)
 }
 
 function Card({ t, children }) { return <article className="c360card"><h3>{t}</h3>{children}</article> }
 function Dte({ client: c }) {
   const required = c.preferred_dte_type === '03'
-    ? [['name', c.name], ['NIT', c.tax_id], ['NRC', c.nrc], ['actividad', c.activity_code], ['descripción actividad', c.business_activity], ['departamento', c.department_code], ['municipio', c.municipality_code], ['dirección fiscal', c.address]]
+    ? [['nombre', c.name], ['NIT', c.tax_id], ['NRC', c.nrc], ['actividad', c.activity_code], ['descripción actividad', c.business_activity], ['departamento', c.department_code], ['municipio', c.municipality_code], ['dirección fiscal', c.address]]
     : [['nombre', c.name]]
   const missing = required.filter(([, v]) => !String(v || '').trim()).map(([k]) => k)
   return <div className={missing.length ? 'c360warn' : 'c360ready'}>{missing.length ? `⚠ Faltan para ${c.preferred_dte_type === '03' ? 'CCF DTE-03' : 'DTE-01'}: ${missing.join(', ')}` : '✓ Datos mínimos del tipo DTE completos'}{c.preferred_dte_type !== '03' && <small> DUI, correo, teléfono y dirección no se exigen indiscriminadamente al consumidor final.</small>}</div>

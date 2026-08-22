@@ -13,6 +13,7 @@ export default function CommercialLauncher() {
   const [company, setCompany] = useState(null)
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('Productos y trabajos')
+  const [contextClient, setContextClient] = useState({ id: '', name: '' })
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -31,13 +32,44 @@ export default function CommercialLauncher() {
     })
   }, [session])
 
+  useEffect(() => {
+    const openClientContext = (event) => {
+      const detail = event.detail || {}
+      if (detail.target !== 'commercial') return
+      const allowed = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción', 'Entregas', 'Cuentas por cobrar']
+      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' })
+      setTab(allowed.includes(detail.tab) ? detail.tab : 'Cotizaciones')
+      setOpen(true)
+    }
+    window.addEventListener('idealo-open-client-context', openClientContext)
+    return () => window.removeEventListener('idealo-open-client-context', openClientContext)
+  }, [])
+
+  useEffect(() => {
+    if (!open || !contextClient.id || tab !== 'Cotizaciones') return undefined
+    let attempts = 0
+    const timer = window.setInterval(() => {
+      attempts += 1
+      const panel = [...document.querySelectorAll('.erp-modal-panel')].at(-1)
+      const option = panel?.querySelector(`select option[value="${contextClient.id}"]`)
+      const select = option?.parentElement
+      if (select) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+        if (setter) setter.call(select, contextClient.id); else select.value = contextClient.id
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+        window.clearInterval(timer)
+      } else if (attempts >= 30) window.clearInterval(timer)
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [open, tab, contextClient.id])
+
   if (!session || !company) return null
 
   const tabs = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción', 'Entregas', 'Cuentas por cobrar']
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="sidebar-module-access commercial" aria-label="Abrir gestión comercial">
+      <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setOpen(true) }} className="sidebar-module-access commercial" aria-label="Abrir gestión comercial">
         <span className="module-glyph">◇</span>
         <span className="module-copy"><span>Operaciones comerciales</span><small>Ventas · Producción · Entregas · Cobros</small></span>
       </button>
@@ -52,12 +84,13 @@ export default function CommercialLauncher() {
               {tabs.map((name) => <button type="button" key={name} onClick={() => setTab(name)} className={`erp-module-tab ${tab === name ? 'active' : ''}`}>{name}</button>)}
             </nav>
             <div className="erp-modal-body commercial-module">
+              {contextClient.id && <p className="feedback success">Cliente 360 activo: <strong>{contextClient.name || 'cliente seleccionado'}</strong>. El flujo se abrió desde su expediente.</p>}
               {tab === 'Productos y trabajos' && <ProductsModule company={company} supabase={supabase} />}
-              {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} />}
-              {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} />}
-              {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} />}
-              {tab === 'Entregas' && <DeliveriesModule company={company} supabase={supabase} />}
-              {tab === 'Cuentas por cobrar' && <ReceivablesModule company={company} supabase={supabase} />}
+              {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
+              {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
+              {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
+              {tab === 'Entregas' && <DeliveriesModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
+              {tab === 'Cuentas por cobrar' && <ReceivablesModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
             </div>
           </section>
         </div>

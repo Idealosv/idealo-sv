@@ -15,6 +15,7 @@ export default function FacturacionLauncher() {
   const [session, setSession] = useState(null)
   const [company, setCompany] = useState(null)
   const [open, setOpen] = useState(false)
+  const [contextClient, setContextClient] = useState({ id: '', name: '' })
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -33,11 +34,39 @@ export default function FacturacionLauncher() {
     })
   }, [session])
 
+  useEffect(() => {
+    const openClientContext = (event) => {
+      const detail = event.detail || {}
+      if (detail.target !== 'billing') return
+      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' })
+      setOpen(true)
+    }
+    window.addEventListener('idealo-open-client-context', openClientContext)
+    return () => window.removeEventListener('idealo-open-client-context', openClientContext)
+  }, [])
+
+  useEffect(() => {
+    if (!open || !contextClient.id) return undefined
+    let attempts = 0
+    const timer = window.setInterval(() => {
+      attempts += 1
+      const option = document.querySelector(`.facturacion-dte select option[value="${contextClient.id}"]`)
+      const select = option?.parentElement
+      if (select) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+        if (setter) setter.call(select, contextClient.id); else select.value = contextClient.id
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+        window.clearInterval(timer)
+      } else if (attempts >= 30) window.clearInterval(timer)
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [open, contextClient.id])
+
   if (!session || !company) return null
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="sidebar-module-access billing" aria-label="Abrir facturación electrónica">
+      <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setOpen(true) }} className="sidebar-module-access billing" aria-label="Abrir facturación electrónica">
         <span className="module-glyph">▤</span>
         <span className="module-copy"><span>Facturación electrónica</span><small>DTE · Hacienda · Recepciones</small></span>
       </button>
@@ -49,6 +78,7 @@ export default function FacturacionLauncher() {
               <button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button>
             </header>
             <div className="erp-modal-body">
+              {contextClient.id && <p className="feedback success">Cliente 360 activo: <strong>{contextClient.name || 'receptor seleccionado'}</strong>. El receptor se seleccionará automáticamente.</p>}
               <SignerDiagnostic session={session} company={company} />
               <ProcessedDtePanel supabase={supabase} company={company} />
               <DteTestPlan supabase={supabase} company={company} />
