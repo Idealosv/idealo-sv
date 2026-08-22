@@ -12,6 +12,7 @@ import QualityControlLauncher from './QualityControlLauncher.jsx'
 import MainMenuController from './MainMenuController.jsx'
 import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
+import MobileFieldTools from './MobileFieldTools.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -53,5 +54,6 @@ createRoot(document.getElementById('root')).render(
     <MainMenuController />
     <ExecutiveDashboardHost />
     <MobileAppHost />
+    <MobileFieldTools />
   </StrictMode>,
 )
