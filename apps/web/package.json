@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "audit": "node scripts/audit-source.mjs && node scripts/audit-modal-structure.mjs && node scripts/audit-billing-tax.mjs",
+    "audit": "node scripts/audit-source.mjs && node scripts/audit-modal-structure.mjs && node scripts/audit-billing-tax.mjs && node scripts/audit-billing-documents.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
