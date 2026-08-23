@@ -13,16 +13,19 @@ const clickWorkspaceModule = (label) => {
   return true
 }
 
-const openLauncher = (selector, tabLabel) => {
+const openLauncher = (selector, tabLabel, attempt = 0) => {
   const launcher = document.querySelector(selector)
-  if (!launcher) return false
+  if (!launcher) {
+    if (attempt < 60) window.setTimeout(() => openLauncher(selector, tabLabel, attempt + 1), 50)
+    return false
+  }
   launcher.click()
   if (tabLabel) window.setTimeout(() => {
     const panels = [...document.querySelectorAll('.erp-modal-panel')]
     const panel = panels[panels.length - 1]
     const tabs = panel ? [...panel.querySelectorAll('.erp-module-tab')] : []
     tabs.find((button) => button.textContent.trim() === tabLabel)?.click()
-  }, 30)
+  }, 60)
   return true
 }
 
@@ -41,7 +44,7 @@ export default function MainMenuController() {
 
   const openModule = (name) => {
     setActive(name); setPlaceholder('')
-    window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
+    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
     if (name === 'App móviles') return true
     if (name === 'Clientes') return clickWorkspaceModule('Clientes')
