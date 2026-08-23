@@ -20,6 +20,7 @@ import CommercialAutomationCenter from './CommercialAutomationCenter.jsx'
 import ClientCrmPipeline from './ClientCrmPipeline.jsx'
 import ClientModuleOrganizer from './ClientModuleOrganizer.jsx'
 import Client360TimelineHost from './Client360TimelineHost.jsx'
+import ClientVatCardScannerHost from './ClientVatCardScannerHost.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -52,7 +53,8 @@ import './corporate-premium-global.css'
 import './corporate-gray-dark.css'
 import './orange-button-clean.css'
 import './solid-button-clean.css'
+import './client-vat-card-scanner.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
-createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/></StrictMode>)
+createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></StrictMode>)
