@@ -66,7 +66,7 @@ export default function ModuleRuntime() {
     {activeGroup === 'inventory' && <InventoryCostLauncher/>}
     {activeGroup === 'financial' && <FinancialDashboardLauncher/>}
     {activeGroup === 'planning' && <ProductionCalendarLauncher/>}
-    {activeGroup === 'billing' && <FacturacionLauncher/>}
+    {activeGroup === 'billing' && <FacturacionLauncher autoOpen/>}
     {activeGroup === 'dashboard' && <ExecutiveDashboardHost/>}
     {activeGroup === 'mobile' && <><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/></>}
     {activeGroup === 'clients' && <><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></>}
