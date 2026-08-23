@@ -5,13 +5,16 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const src = resolve(here, '../src')
 const mainPath = resolve(src, 'main.jsx')
+const runtimePath = resolve(src, 'ModuleRuntime.jsx')
 const menuPath = resolve(src, 'MainMenuController.jsx')
 const menuCssPath = resolve(src, 'main-menu.css')
 const main = await readFile(mainPath, 'utf8')
+const runtime = await readFile(runtimePath, 'utf8')
 const menu = await readFile(menuPath, 'utf8')
 const menuCss = await readFile(menuCssPath, 'utf8')
 
-const relativeImports = [...main.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"](\.\/[^'\"]+)['\"]/g)].map((match) => match[1])
+const importsFrom = (source) => [...source.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"](\.\/[^'\"]+)['\"]/g)].map((match) => match[1])
+const relativeImports = [...new Set([...importsFrom(main), ...importsFrom(runtime)])]
 const missing = []
 for (const specifier of relativeImports) {
   try { await access(resolve(src, specifier.replace(/^\.\//, ''))) } catch { missing.push(specifier) }
@@ -22,6 +25,25 @@ if (missing.length) failures.push(`Imports inexistentes: ${missing.join(', ')}`)
 if (!main.includes('RuntimeBoundary')) failures.push('Falta RuntimeBoundary en el arranque')
 if (!main.includes('FormAccordionManager')) failures.push('Falta el gestor seguro de formularios')
 if (main.includes('FormAccordionCoordinator')) failures.push('El coordinador global inestable volvió al arranque')
+if (!main.includes('ModuleRuntime')) failures.push('Falta el runtime aislado por módulo')
+
+const moduleScopedHosts = [
+  'ExecutiveDashboardHost',
+  'MobileFieldTools',
+  'MobileSalesFieldBlock',
+  'MobileClient360',
+  'Client360Enhancer',
+  'CommercialAutomationCenter',
+  'ClientCrmPipeline',
+  'ClientModuleOrganizer',
+  'Client360TimelineHost',
+  'ClientVatCardScannerHost',
+]
+const leakedHosts = moduleScopedHosts.filter((name) => main.includes(`<${name}`) || main.includes(`import ${name} `))
+if (leakedHosts.length) failures.push(`Hosts de módulo cargados globalmente: ${leakedHosts.join(', ')}`)
+if (!runtime.includes("activeModule === 'Dashboard'")) failures.push('Dashboard no está aislado por módulo')
+if (!runtime.includes("activeModule === 'App móviles'")) failures.push('Extensiones móviles no están aisladas por módulo')
+if (!runtime.includes("activeModule === 'Clientes'")) failures.push('Extensiones de Clientes no están aisladas por módulo')
 
 const obsoleteGlobalSheets = [
   'corporate-premium-global.css',
@@ -59,4 +81,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, menú consistente y arranque protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, runtime aislado, menú consistente y arranque protegido.`)
