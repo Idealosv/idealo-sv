@@ -35,11 +35,6 @@ function VatCardScanner() {
   const [front, setFront] = useState(null)
   const [back, setBack] = useState(null)
 
-  useEffect(() => () => {
-    if (front?.url) URL.revokeObjectURL(front.url)
-    if (back?.url) URL.revokeObjectURL(back.url)
-  }, [front, back])
-
   const capture = (side, file) => {
     if (!file) return
     const next = { file, url: URL.createObjectURL(file) }
@@ -52,7 +47,8 @@ function VatCardScanner() {
     }
   }
 
-  const ready = Boolean(front && back)
+  const capturedCount = (front ? 1 : 0) + (back ? 1 : 0)
+  const ready = capturedCount === 2
 
   return (
     <>
@@ -78,7 +74,7 @@ function VatCardScanner() {
               <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
               <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
             </div>
-            <div className="vat-scan-status"><strong>{ready ? '2/2 caras listas' : `${front ? 1 : 0 + (back ? 1 : 0)}/2 caras listas`}</strong><span>Las imágenes permanecen temporalmente en esta pantalla y no se guardan solas.</span></div>
+            <div className="vat-scan-status"><strong>{capturedCount}/2 caras listas</strong><span>Las imágenes permanecen temporalmente en esta pantalla y no se guardan solas.</span></div>
             <footer>
               <button type="button" className="secondary-button" onClick={() => setOpen(false)}>Cerrar</button>
               <button type="button" className="vat-scan-done" disabled={!ready} onClick={() => setOpen(false)}>Usar ambas capturas</button>
