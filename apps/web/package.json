@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "audit": "node scripts/audit-source.mjs && node scripts/audit-modal-structure.mjs && node scripts/audit-billing-tax.mjs && node scripts/audit-billing-documents.mjs && node scripts/audit-billing-client-tax-mode.mjs && node scripts/audit-billing-new-invoice-button.mjs && node scripts/audit-no-global-observers.mjs && node scripts/audit-buttons.mjs && node scripts/audit-functional-navigation.mjs && node scripts/audit-commercial-flow.mjs && node scripts/audit-quote-production-flow.mjs && node scripts/audit-production-inventory-flow.mjs && node scripts/audit-procurement-receiving-flow.mjs && node scripts/audit-payables-cash-flow.mjs && node scripts/audit-receivables-cash-flow.mjs && node scripts/audit-cash-reconciliation-flow.mjs && node scripts/audit-executive-financial-alerts.mjs",
+    "audit": "node scripts/audit-source.mjs && node scripts/audit-modal-structure.mjs && node scripts/audit-billing-tax.mjs && node scripts/audit-billing-documents.mjs && node scripts/audit-billing-client-tax-mode.mjs && node scripts/audit-billing-new-invoice-button.mjs && node scripts/audit-no-global-observers.mjs && node scripts/audit-buttons.mjs && node scripts/audit-functional-navigation.mjs && node scripts/audit-commercial-flow.mjs && node scripts/audit-quote-production-flow.mjs && node scripts/audit-production-inventory-flow.mjs && node scripts/audit-procurement-receiving-flow.mjs && node scripts/audit-payables-cash-flow.mjs && node scripts/audit-receivables-cash-flow.mjs && node scripts/audit-cash-reconciliation-flow.mjs && node scripts/audit-executive-financial-alerts.mjs && node scripts/audit-billing-reorganization.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
