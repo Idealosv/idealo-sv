@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { QuotesModule, WorkOrdersModule } from './CommercialFlow.jsx'
+import { WorkOrdersModule } from './CommercialFlow.jsx'
 import Products360Module from './Products360Module.jsx'
+import Quotes360Module from './Quotes360Module.jsx'
 import ProductionModule from './ProductionModule.jsx'
 import { DeliveriesModule, ReceivablesModule } from './DeliveryFinanceModules.jsx'
 
@@ -46,24 +47,6 @@ export default function CommercialLauncher() {
     return () => window.removeEventListener('idealo-open-client-context', openClientContext)
   }, [])
 
-  useEffect(() => {
-    if (!open || !contextClient.id || tab !== 'Cotizaciones') return undefined
-    let attempts = 0
-    const timer = window.setInterval(() => {
-      attempts += 1
-      const panel = [...document.querySelectorAll('.erp-modal-panel')].at(-1)
-      const option = panel?.querySelector(`select option[value="${contextClient.id}"]`)
-      const select = option?.parentElement
-      if (select) {
-        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
-        if (setter) setter.call(select, contextClient.id); else select.value = contextClient.id
-        select.dispatchEvent(new Event('change', { bubbles: true }))
-        window.clearInterval(timer)
-      } else if (attempts >= 30) window.clearInterval(timer)
-    }, 100)
-    return () => window.clearInterval(timer)
-  }, [open, tab, contextClient.id])
-
   if (!session || !company) return null
 
   const tabs = ['Productos y trabajos', 'Cotizaciones', 'Órdenes de trabajo', 'Producción', 'Entregas', 'Cuentas por cobrar']
@@ -78,7 +61,7 @@ export default function CommercialLauncher() {
         <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
           <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Gestión comercial y producción" onMouseDown={(event) => event.stopPropagation()}>
             <header className="erp-modal-head">
-              <div><strong>Operaciones comerciales</strong><small>Producto terminado → Cotización → Orden → Producción → Entrega → Cobro</small></div>
+              <div><strong>Operaciones comerciales</strong><small>Producto terminado → Cotización → Aprobación → Orden → Producción → Entrega → Facturación → Cobro</small></div>
               <button type="button" className="erp-modal-close" onClick={() => setOpen(false)} aria-label="Cerrar">×</button>
             </header>
             <nav className="erp-module-tabs" aria-label="Secciones comerciales">
@@ -87,7 +70,7 @@ export default function CommercialLauncher() {
             <div className="erp-modal-body commercial-module">
               {contextClient.id && <p className="feedback success">Cliente 360 activo: <strong>{contextClient.name || 'cliente seleccionado'}</strong>. El flujo se abrió desde su expediente.</p>}
               {tab === 'Productos y trabajos' && <Products360Module company={company} supabase={supabase} />}
-              {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
+              {tab === 'Cotizaciones' && <Quotes360Module company={company} supabase={supabase} initialClientId={contextClient.id} />}
               {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
               {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
               {tab === 'Entregas' && <DeliveriesModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
