@@ -22,7 +22,7 @@ function SectionLoader() {
   return <div className="billing-section-loader" role="status">Cargando…</div>
 }
 
-export default function FacturacionLauncher() {
+export default function FacturacionLauncher({ autoOpen = false }) {
   const [session, setSession] = useState(null)
   const [company, setCompany] = useState(null)
   const [open, setOpen] = useState(false)
@@ -45,6 +45,13 @@ export default function FacturacionLauncher() {
       setCompany(row || null)
     })
   }, [session])
+
+  useEffect(() => {
+    if (!autoOpen || !session || !company) return
+    setContextClient({ id: '', name: '' })
+    setActiveSection('emitir')
+    setOpen(true)
+  }, [autoOpen, session, company])
 
   useEffect(() => {
     const openClientContext = (event) => {
