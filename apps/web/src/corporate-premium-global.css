@@ -79,7 +79,7 @@ fieldset,.form-section,.dte-section,.client360-section,.crm360-col{border-color:
 }
 .erp-content button:hover:not(:disabled),.erp-modal-panel button:not(.erp-modal-close):not(.erp-module-tab):hover:not(:disabled){background:#242a31!important;border-color:#242a31!important}
 
-/* Acciones explícitamente primarias */
+/* Acciones explícitamente primarias: naranja limpio, SIN borde oscuro */
 .erp-content button[type="submit"],
 .erp-modal-panel button[type="submit"],
 .primary-action,
@@ -88,9 +88,27 @@ button[data-primary="true"],
 .client-form-full .form-actions button[type="submit"]{
   background:var(--corp-orange)!important;
   color:#fff!important;
-  border-color:var(--corp-orange)!important;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
 }
-.erp-content button[type="submit"]:hover:not(:disabled),.erp-modal-panel button[type="submit"]:hover:not(:disabled),.primary-action:hover:not(:disabled),.submit-button:hover:not(:disabled){background:var(--corp-orange-hover)!important;border-color:var(--corp-orange-hover)!important}
+.erp-content button[type="submit"]:hover:not(:disabled),.erp-modal-panel button[type="submit"]:hover:not(:disabled),.primary-action:hover:not(:disabled),.submit-button:hover:not(:disabled){
+  background:var(--corp-orange-hover)!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+
+/* Limpieza defensiva: cualquier acción primaria naranja conocida nunca lleva contorno negro */
+.clients-module .client-form-full .form-actions button[type="submit"],
+.clients-module .primary-action,
+.facturacion-dte .primary-action,
+.commercial-module .primary-action,
+.erp-modal-panel .primary-action,
+.erp-modal-panel .submit-button{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+}
 
 /* Botones secundarios / cancelar / cerrar */
 .secondary-button,.text-button,.erp-modal-close,
@@ -148,6 +166,17 @@ button[class*="secondary"],button[class*="cancel"],button[class*="close"]{
 
 /* Naranja reservado a micro-acento visual */
 a:focus-visible,button:focus-visible{outline:2px solid var(--corp-orange)!important;outline-offset:2px}
+
+/* Los botones naranjas conservan foco accesible sin borde negro permanente */
+.erp-content button[type="submit"]:focus-visible,
+.erp-modal-panel button[type="submit"]:focus-visible,
+.primary-action:focus-visible,
+.submit-button:focus-visible,
+button[data-primary="true"]:focus-visible{
+  outline:2px solid rgba(243,108,33,.45)!important;
+  outline-offset:2px!important;
+  border:0!important;
+}
 
 @media(max-width:760px){
   .erp-header{border-radius:9px!important;padding:12px!important}
