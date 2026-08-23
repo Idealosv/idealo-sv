@@ -15,11 +15,17 @@ export default function MainMenuController() {
   const searchRef = useRef(null)
 
   useEffect(() => {
-    const findSidebar = () => setSidebar(document.querySelector('.erp-sidebar'))
+    let cancelled = false
+    let attempts = 0
+    const findSidebar = () => {
+      if (cancelled) return
+      const node = document.querySelector('.erp-sidebar')
+      if (node) return setSidebar(node)
+      attempts += 1
+      if (attempts < 20) window.setTimeout(findSidebar, 100)
+    }
     findSidebar()
-    const observer = new MutationObserver(findSidebar)
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
