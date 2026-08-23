@@ -16,6 +16,11 @@ const paths = {
   inventory: resolve(src, 'InventoryCostLauncher.jsx'),
   billing: resolve(src, 'FacturacionLauncher.jsx'),
   procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
+  planning: resolve(src, 'ProductionCalendarLauncher.jsx'),
+  financial: resolve(src, 'FinancialDashboardLauncher.jsx'),
+  assistant: resolve(src, 'AssistantLauncher.jsx'),
+  security: resolve(src, 'SecurityLauncher.jsx'),
+  workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
 }
 const source = {}
 for (const [key,path] of Object.entries(paths)) source[key] = await readFile(path, 'utf8')
@@ -33,6 +38,9 @@ if (!source.main.includes('RuntimeBoundary')) failures.push('Falta RuntimeBounda
 if (!source.main.includes('FormAccordionManager')) failures.push('Falta el gestor seguro de formularios')
 if (source.main.includes('FormAccordionCoordinator')) failures.push('El coordinador global inestable volvió al arranque')
 if (!source.main.includes('ModuleRuntime')) failures.push('Falta el runtime aislado por módulo')
+if (!source.main.includes('AssistantLauncher')) failures.push('Asistente IA no tiene vista principal propia')
+if (!source.main.includes('SecurityLauncher')) failures.push('Seguridad no tiene vista principal propia')
+if (!source.main.includes('WorkspaceNavigationBridge')) failures.push('Falta el adaptador aislado para módulos legados de Workspace')
 
 const moduleScopedHosts = ['ExecutiveDashboardHost','MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
 const leakedHosts = moduleScopedHosts.filter((name) => source.main.includes(`<${name}`) || source.main.includes(`import ${name} `))
@@ -51,24 +59,22 @@ if (!source.clientsCss.includes('.client-form-open .client-stats,.client-form-op
 if (/\.erp-content:has\(\.executive-dashboard-host\)>:not\(\.executive-dashboard-host\)/.test(source.dashboardCss)) failures.push('Dashboard ejecutivo volvió a ocultar indiscriminadamente el encabezado del módulo')
 if (!source.dashboardCss.includes('>.welcome-strip') || !source.dashboardCss.includes('>.metric-grid') || !source.dashboardCss.includes('>.dashboard-grid')) failures.push('Dashboard debe ocultar únicamente los bloques básicos duplicados cuando está activo el ejecutivo')
 
-for (const [name,target,tab] of [['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja']]) {
-  if (!source.menu.includes(`openDirectModule('${target}', '${tab}')`)) failures.push(`${name} debe abrirse por evento directo, no por clic simulado`)
+const directRoutes = [
+  ['Dashboard','workspace','Resumen'],['Clientes','workspace','Clientes'],['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja'],['Asistente IA','assistant',null],['Agenda','planning',null],['Reportes','financial',null],['Seguridad','security',null],
+]
+for (const [name,target,tab] of directRoutes) {
+  const expected = tab ? `openDirectModule('${target}', '${tab}')` : `openDirectModule('${target}')`
+  if (!source.menu.includes(expected)) failures.push(`${name} debe abrirse por evento directo`)
 }
-if (!source.commercial.includes("window.addEventListener('idealo-open-module'")) failures.push('CommercialLauncher no escucha apertura directa desde el menú')
-if (!source.inventory.includes("window.addEventListener('idealo-open-module'")) failures.push('InventoryCostLauncher no escucha apertura directa desde el menú')
-if (!source.billing.includes("window.addEventListener('idealo-open-module'")) failures.push('FacturacionLauncher no escucha apertura directa desde el menú')
-if (!source.procurement.includes("window.addEventListener('idealo-open-module'")) failures.push('OperationsFinanceLauncher no escucha apertura directa desde el menú')
+
+for (const [key,label] of [['commercial','CommercialLauncher'],['inventory','InventoryCostLauncher'],['billing','FacturacionLauncher'],['procurement','OperationsFinanceLauncher'],['planning','ProductionCalendarLauncher'],['financial','FinancialDashboardLauncher'],['assistant','AssistantLauncher'],['security','SecurityLauncher']]) {
+  if (!source[key].includes("window.addEventListener('idealo-open-module'")) failures.push(`${label} no escucha apertura directa desde el menú`)
+}
+if (!source.workspaceBridge.includes("detail.target !== 'workspace'")) failures.push('WorkspaceNavigationBridge no está limitado al target workspace')
 if (!source.commercial.includes('mainModuleForTab')) failures.push('Las pestañas comerciales deben sincronizar el módulo activo del menú')
 if (!source.procurement.includes('menuForTab')) failures.push('Proveedores, Compras y Caja deben sincronizar el módulo activo del menú')
-
-const forbiddenLegacy = [
-  "openLauncher('.sidebar-module-access.billing')",
-  "openLauncher('.sidebar-module-access.procurement', 'Proveedores')",
-  "openLauncher('.sidebar-module-access.procurement', 'Compras y gastos')",
-  "openLauncher('.sidebar-module-access.procurement', 'Caja')",
-]
-const legacyFound = forbiddenLegacy.filter((entry) => source.menu.includes(entry))
-if (legacyFound.length) failures.push(`Navegación heredada todavía activa: ${legacyFound.join(', ')}`)
+if (source.menu.includes('openLauncher(') || source.menu.includes('clickWorkspaceModule(')) failures.push('El menú principal volvió a usar navegación por clic simulado')
+if (source.menu.includes('MÓDULO EN ESTRUCTURA') || source.menu.includes('module-placeholder-card')) failures.push('El menú principal no debe renderizar placeholders genéricos')
 
 const expectedModules = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
 const moduleBlock = source.menu.match(/const MODULES = \[([\s\S]*?)\]/)?.[1] || ''
@@ -85,4 +91,4 @@ if (failures.length) {
   failures.forEach((failure) => console.error(`- ${failure}`))
   process.exit(1)
 }
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, navegación directa en comercial/facturación/abastecimiento, Dashboard y Clientes consistentes, runtime aislado y menú protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, navegación directa consolidada, módulos IA/Seguridad propios, runtime aislado y menú protegido.`)
