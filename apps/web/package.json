@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "audit": "node scripts/audit-source.mjs && node scripts/audit-modal-structure.mjs && node scripts/audit-billing-tax.mjs && node scripts/audit-billing-documents.mjs && node scripts/audit-billing-client-tax-mode.mjs && node scripts/audit-billing-new-invoice-button.mjs && node scripts/audit-no-global-observers.mjs && node scripts/audit-buttons.mjs && node scripts/audit-functional-navigation.mjs && node scripts/audit-commercial-flow.mjs",
+    "audit": "node scripts/audit-source.mjs && node scripts/audit-modal-structure.mjs && node scripts/audit-billing-tax.mjs && node scripts/audit-billing-documents.mjs && node scripts/audit-billing-client-tax-mode.mjs && node scripts/audit-billing-new-invoice-button.mjs && node scripts/audit-no-global-observers.mjs && node scripts/audit-buttons.mjs && node scripts/audit-functional-navigation.mjs && node scripts/audit-commercial-flow.mjs && node scripts/audit-quote-production-flow.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
