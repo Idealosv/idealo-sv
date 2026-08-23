@@ -9,6 +9,8 @@ import FinancialDashboardLauncher from './FinancialDashboardLauncher.jsx'
 import HrPayrollLauncher from './HrPayrollLauncher.jsx'
 import ProductionCalendarLauncher from './ProductionCalendarLauncher.jsx'
 import QualityControlLauncher from './QualityControlLauncher.jsx'
+import AssistantLauncher from './AssistantLauncher.jsx'
+import SecurityLauncher from './SecurityLauncher.jsx'
 import MainMenuController from './MainMenuController.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import FormAccordionManager from './FormAccordionManager.jsx'
@@ -69,6 +71,8 @@ createRoot(document.getElementById('root')).render(
     <Safe label="Agenda de producción"><ProductionCalendarLauncher /></Safe>
     <Safe label="Control de calidad"><QualityControlLauncher /></Safe>
     <Safe label="Facturación"><FacturacionLauncher /></Safe>
+    <Safe label="Asistente IA"><AssistantLauncher /></Safe>
+    <Safe label="Seguridad"><SecurityLauncher /></Safe>
     <Safe label="Menú principal"><MainMenuController /></Safe>
     <Safe label="Coordinación UX"><ErpUxCoordinator /></Safe>
     <Safe label="Formularios"><FormAccordionManager /></Safe>
