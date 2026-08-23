@@ -1,0 +1,85 @@
+/* Estructura base de ventanas del ERP. No define tema visual. */
+.erp-modal-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:1000!important;
+  overflow:auto!important;
+  display:block!important;
+  padding:22px!important;
+}
+
+.erp-modal-panel{
+  position:relative!important;
+  width:min(1500px,100%)!important;
+  min-height:calc(100vh - 44px)!important;
+  max-height:none!important;
+  margin:0 auto!important;
+  padding:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+
+.erp-modal-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:10!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:20px!important;
+  flex:0 0 auto!important;
+}
+
+.erp-modal-head>div:first-child{
+  min-width:0!important;
+}
+
+.erp-modal-head strong,
+.erp-modal-head small{
+  display:block!important;
+}
+
+.erp-module-tabs{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  flex-wrap:wrap!important;
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:10px 18px!important;
+  border-bottom:1px solid var(--erp-border,#cfd4d9)!important;
+  background:#fff!important;
+}
+
+.erp-module-tab{
+  flex:0 0 auto!important;
+}
+
+.erp-modal-body{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  overflow:auto!important;
+}
+
+/* Los launchers existen solo como adaptadores internos; el menú principal los reemplaza. */
+.sidebar-module-access{
+  position:fixed!important;
+  left:-10000px!important;
+  top:-10000px!important;
+  width:1px!important;
+  height:1px!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+@media(max-width:760px){
+  .erp-modal-backdrop{padding:0!important}
+  .erp-modal-panel{width:100vw!important;min-height:100vh!important;border-radius:0!important}
+  .erp-module-tabs{overflow-x:auto!important;flex-wrap:nowrap!important;padding:8px 10px!important}
+  .erp-modal-head{padding:10px 12px!important}
+}
