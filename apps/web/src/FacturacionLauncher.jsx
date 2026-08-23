@@ -22,10 +22,19 @@ function SectionLoader() {
   return <div className="billing-section-loader" role="status">Cargando…</div>
 }
 
+function BillingBootstrap() {
+  return <div className="erp-modal-backdrop" role="status" aria-live="polite">
+    <section className="erp-modal-panel billing-modal" role="dialog" aria-modal="true" aria-label="Cargando facturación">
+      <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Preparando sesión y empresa activa</small></div></header>
+      <div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">CARGANDO</p><h2>Preparando Facturación…</h2><p>Estamos cargando únicamente los datos necesarios para emitir y consultar facturas.</p></section></div>
+    </section>
+  </div>
+}
+
 export default function FacturacionLauncher({ autoOpen = false }) {
   const [session, setSession] = useState(null)
   const [company, setCompany] = useState(null)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(autoOpen)
   const [activeSection, setActiveSection] = useState('emitir')
   const [contextClient, setContextClient] = useState({ id: '', name: '' })
 
@@ -38,20 +47,23 @@ export default function FacturacionLauncher({ autoOpen = false }) {
 
   useEffect(() => {
     if (!session || !supabase) { setCompany(null); return }
+    let cancelled = false
     supabase.rpc('get_my_companies').then(async ({ data }) => {
+      if (cancelled) return
       const id = data?.[0]?.id
       if (!id) return setCompany(null)
       const { data: row } = await supabase.from('companies').select('id,name,legal_name,nit,nrc,activity_code,business_activity,trade_name,department_code,municipality_code,district_code,address,phone,email,establishment_code,point_of_sale_code').eq('id', id).single()
-      setCompany(row || null)
+      if (!cancelled) setCompany(row || null)
     })
+    return () => { cancelled = true }
   }, [session])
 
   useEffect(() => {
-    if (!autoOpen || !session || !company) return
+    if (!autoOpen) return
+    setOpen(true)
     setContextClient({ id: '', name: '' })
     setActiveSection('emitir')
-    setOpen(true)
-  }, [autoOpen, session, company])
+  }, [autoOpen])
 
   useEffect(() => {
     const openClientContext = (event) => {
@@ -65,6 +77,7 @@ export default function FacturacionLauncher({ autoOpen = false }) {
     return () => window.removeEventListener('idealo-open-client-context', openClientContext)
   }, [])
 
+  if (open && (!session || !company)) return <BillingBootstrap/>
   if (!session || !company) return null
   const active = sections.find((item) => item.id === activeSection) || sections[0]
 
