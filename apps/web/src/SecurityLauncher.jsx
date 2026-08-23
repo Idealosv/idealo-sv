@@ -1,52 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
-import { useEffect, useState } from 'react'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: true } }) : null
-
-export default function SecurityLauncher() {
-  const [open, setOpen] = useState(false)
-  const [session, setSession] = useState(null)
-
-  useEffect(() => {
-    if (!supabase) return undefined
-    supabase.auth.getSession().then(({ data }) => setSession(data.session || null))
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession))
-    return () => listener.subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    const onOpen = (event) => {
-      const detail = event.detail || {}
-      if (detail.target !== 'security') return
-      setOpen(true)
-    }
-    window.addEventListener('idealo-open-module', onOpen)
-    return () => window.removeEventListener('idealo-open-module', onOpen)
-  }, [])
-
-  if (!open) return null
-
-  return <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
-    <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Seguridad" onMouseDown={(event) => event.stopPropagation()}>
-      <header className="erp-modal-head">
-        <div><strong>Seguridad</strong><small>Acceso, sesión y controles del ERP</small></div>
-        <button type="button" className="erp-modal-close" onClick={() => setOpen(false)} aria-label="Cerrar">×</button>
-      </header>
-      <div className="erp-modal-body">
-        <section className="panel">
-          <p className="form-kicker">ESTADO DE ACCESO</p>
-          <h2>Seguridad de la cuenta</h2>
-          <div className="metric-grid">
-            <article className="metric-card"><small>Sesión</small><strong>{session ? 'Activa' : 'No disponible'}</strong><span>Autenticación administrada por Supabase</span></article>
-            <article className="metric-card"><small>Usuario</small><strong>{session?.user?.email || 'Sin sesión'}</strong><span>Identidad de la sesión actual</span></article>
-            <article className="metric-card"><small>Datos</small><strong>Aislados</strong><span>Operaciones filtradas por empresa</span></article>
-            <article className="metric-card"><small>Credenciales DTE</small><strong>Servidor</strong><span>No se exponen en esta interfaz</span></article>
-          </div>
-          <p className="feedback success">Este módulo concentra el estado de seguridad sin reutilizar ni renombrar la pantalla fiscal de Empresa.</p>
-        </section>
-      </div>
-    </section>
-  </div>
+import { useEffect, useMemo, useState } from 'react'
+const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
+const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
+export default function SecurityLauncher(){
+ const [open,setOpen]=useState(false),[session,setSession]=useState(null),[company,setCompany]=useState(null),[members,setMembers]=useState([]),[msg,setMsg]=useState('')
+ useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>setSession(data.session||null));const {data:l}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>l.subscription.unsubscribe()},[])
+ useEffect(()=>{if(!session||!supabase)return;supabase.rpc('get_my_companies').then(async({data})=>{const id=data?.[0]?.id;if(!id)return;setCompany(data[0]);const {data:m,error}=await supabase.from('company_members').select('id,user_id,role,active,created_at').eq('company_id',id);if(error)setMsg(error.message);else setMembers(m||[])})},[session])
+ useEffect(()=>{const fn=e=>{if((e.detail||{}).target==='security')setOpen(true)};window.addEventListener('idealo-open-module',fn);return()=>window.removeEventListener('idealo-open-module',fn)},[])
+ const risk=useMemo(()=>({inactive:members.filter(x=>x.active===false).length,admins:members.filter(x=>['OWNER','ADMIN'].includes(String(x.role).toUpperCase())).length}),[members])
+ if(!open)return null
+ return <div className="erp-modal-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}><section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Seguridad" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>Seguridad</strong><small>Acceso, usuarios y controles críticos del ERP</small></div><button type="button" className="erp-modal-close" onClick={()=>setOpen(false)}>×</button></header><div className="erp-modal-body"><section className="panel"><div className="clients-titlebar"><div><p className="form-kicker">CENTRO DE SEGURIDAD</p><h2>Estado de protección</h2><p>Identidad, aislamiento empresarial, privilegios y credenciales sensibles.</p></div><span className={session?'status dte-ready':'status dte-pending'}>{session?'Sesión protegida':'Sin sesión'}</span></div>{msg&&<p className="feedback error">{msg}</p>}<div className="metric-grid"><article className="metric-card"><small>Sesión</small><strong>{session?'Activa':'No disponible'}</strong><span>Supabase Auth</span></article><article className="metric-card"><small>Empresa</small><strong>{company?'Aislada':'Pendiente'}</strong><span>Contexto company_id</span></article><article className="metric-card"><small>Usuarios activos</small><strong>{members.filter(x=>x.active!==false).length}</strong><span>{risk.admins} con privilegio alto</span></article><article className="metric-card"><small>Accesos inactivos</small><strong>{risk.inactive}</strong><span>Revisar usuarios dados de baja</span></article></div></section><div className="module-grid two-column"><section className="panel"><p className="form-kicker">CONTROLES CRÍTICOS</p><h3>Protección del ERP</h3><div className="schedule-list"><article className="schedule-card"><div><strong>Datos por empresa</strong><small>Consultas operativas aisladas por company_id y políticas de base de datos.</small></div><span className="status dte-ready">Activo</span></article><article className="schedule-card"><div><strong>Credenciales DTE</strong><small>Certificado, claves y secretos permanecen únicamente en servidor.</small></div><span className="status dte-ready">Servidor</span></article><article className="schedule-card"><div><strong>Sesión autenticada</strong><small>{session?.user?.email||'Sin identidad disponible'}</small></div><span className={session?'status dte-ready':'status dte-pending'}>{session?'OK':'Revisar'}</span></article></div></section><section className="panel"><p className="form-kicker">USUARIOS Y PRIVILEGIOS</p><h3>Resumen de accesos</h3>{members.slice(0,12).map(m=><div className="workload-row" key={m.id}><div><strong>{m.role||'USER'}</strong><small>{String(m.user_id).slice(0,8)}…</small></div><span className={m.active===false?'status dte-pending':'status dte-ready'}>{m.active===false?'Inactivo':'Activo'}</span></div>)}{!members.length&&<div className="empty-state"><strong>Sin membresías visibles</strong></div>}</section></div></div></section></div>
 }
