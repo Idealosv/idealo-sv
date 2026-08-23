@@ -71,6 +71,81 @@ export default function FacturacionLauncher() {
     return () => window.clearInterval(timer)
   }, [open, activeSection, contextClient.id])
 
+  useEffect(() => {
+    if (!open || activeSection !== 'emitir') return undefined
+
+    let mounted = true
+    const cleanups = []
+    const timer = window.setTimeout(() => {
+      if (!mounted) return
+      const fieldsets = [...document.querySelectorAll('.billing-issue-card .invoice-form > fieldset.form-section')]
+      fieldsets.forEach((fieldset, index) => {
+        const legend = fieldset.querySelector(':scope > legend')
+        if (!legend) return
+
+        const initiallyOpen = index === 2 || index === 3 || index === 5
+        fieldset.classList.add('billing-collapsible')
+        fieldset.dataset.open = initiallyOpen ? 'true' : 'false'
+        legend.setAttribute('role', 'button')
+        legend.setAttribute('tabindex', '0')
+        legend.setAttribute('aria-expanded', initiallyOpen ? 'true' : 'false')
+        legend.setAttribute('title', 'Abrir o cerrar sección')
+
+        const toggle = () => {
+          const next = fieldset.dataset.open !== 'true'
+          fieldset.dataset.open = next ? 'true' : 'false'
+          legend.setAttribute('aria-expanded', next ? 'true' : 'false')
+        }
+        const onKeyDown = (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            toggle()
+          }
+        }
+        legend.addEventListener('click', toggle)
+        legend.addEventListener('keydown', onKeyDown)
+        cleanups.push(() => {
+          legend.removeEventListener('click', toggle)
+          legend.removeEventListener('keydown', onKeyDown)
+        })
+      })
+
+      const history = document.querySelector('.billing-issue-card .invoice-history')
+      const historyHeading = history?.querySelector(':scope > .panel-heading')
+      if (history && historyHeading) {
+        history.classList.add('billing-history-collapsible')
+        history.dataset.open = 'false'
+        historyHeading.setAttribute('role', 'button')
+        historyHeading.setAttribute('tabindex', '0')
+        historyHeading.setAttribute('aria-expanded', 'false')
+        const toggleHistory = (event) => {
+          if (event?.target?.closest('button')) return
+          const next = history.dataset.open !== 'true'
+          history.dataset.open = next ? 'true' : 'false'
+          historyHeading.setAttribute('aria-expanded', next ? 'true' : 'false')
+        }
+        const onHistoryKeyDown = (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            toggleHistory()
+          }
+        }
+        historyHeading.addEventListener('click', toggleHistory)
+        historyHeading.addEventListener('keydown', onHistoryKeyDown)
+        cleanups.push(() => {
+          historyHeading.removeEventListener('click', toggleHistory)
+          historyHeading.removeEventListener('keydown', onHistoryKeyDown)
+        })
+      }
+    }, 0)
+
+    return () => {
+      mounted = false
+      window.clearTimeout(timer)
+      cleanups.forEach((cleanup) => cleanup())
+    }
+  }, [open, activeSection])
+
   if (!session || !company) return null
 
   const openBilling = () => {
@@ -131,7 +206,7 @@ export default function FacturacionLauncher() {
             {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company}/>} 
 
             {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card">
-              <div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Flujo de trabajo: receptor, productos o servicios, pago, totales y emisión.</small></div></div>
+              <div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Abre únicamente la sección que necesites: receptor, partidas, resumen, pago o información avanzada.</small></div></div>
               <FacturacionDte session={session} supabase={supabase} company={company}/>
             </section>}
 
