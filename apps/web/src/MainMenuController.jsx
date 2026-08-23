@@ -10,8 +10,6 @@ const MODULE_GROUPS = [
   { label: 'Administración', modules: ['Seguridad'] },
 ]
 
-const groupForModule = (name) => MODULE_GROUPS.find((group) => group.modules.includes(name))?.label || 'Principal'
-
 const clickWorkspaceModule = (label) => {
   const buttons = [...document.querySelectorAll('.erp-sidebar > nav:not(.idealo-main-menu) .nav-item')]
   const button = buttons.find((item) => item.textContent.trim().endsWith(label))
@@ -38,7 +36,6 @@ export default function MainMenuController() {
   const [active, setActive] = useState('Dashboard')
   const [placeholder, setPlaceholder] = useState('')
   const [query, setQuery] = useState('')
-  const [openGroups, setOpenGroups] = useState(() => new Set(['Principal']))
   const searchRef = useRef(null)
 
   useEffect(() => {
@@ -62,7 +59,6 @@ export default function MainMenuController() {
 
   const openModule = (name) => {
     setActive(name); setPlaceholder(''); setQuery('')
-    setOpenGroups(new Set([groupForModule(name)]))
     window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
     if (name === 'App móviles') return true
@@ -81,18 +77,6 @@ export default function MainMenuController() {
     setPlaceholder(name)
   }
 
-  const toggleGroup = (label) => {
-    setOpenGroups((current) => {
-      const next = new Set(current)
-      if (next.has(label)) next.delete(label)
-      else {
-        next.clear()
-        next.add(label)
-      }
-      return next
-    })
-  }
-
   const groups = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     if (!normalized) return MODULE_GROUPS
@@ -109,17 +93,10 @@ export default function MainMenuController() {
         <input ref={searchRef} className="idealo-menu-search" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Buscar módulo…" aria-label="Buscar módulo" />
         {query && <button type="button" className="idealo-menu-search-clear" onClick={()=>setQuery('')} aria-label="Limpiar búsqueda">×</button>}
       </div>
-      {groups.map((group) => {
-        const expanded = Boolean(query) || openGroups.has(group.label)
-        return <section className={`idealo-menu-group ${expanded ? 'open' : ''}`} key={group.label}>
-          <button type="button" className="idealo-menu-group-toggle" onClick={()=>toggleGroup(group.label)} aria-expanded={expanded}>
-            <span>{group.label}</span><span className="idealo-menu-group-chevron">⌄</span>
-          </button>
-          {expanded && <div className="idealo-menu-group-items">
-            {group.modules.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
-          </div>}
-        </section>
-      })}
+      {groups.map((group) => <section className="idealo-menu-group" key={group.label}>
+        <span className="idealo-menu-group-label">{group.label}</span>
+        {group.modules.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
+      </section>)}
       {groups.length===0 && <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>}
     </nav>
     {placeholder && createPortal(<div className="erp-modal-backdrop" onMouseDown={()=>setPlaceholder('')}><section className="erp-modal-panel compact-module-placeholder" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>{placeholder}</strong><small>Módulo principal IDEALO SV</small></div><button type="button" className="erp-modal-close" onClick={()=>setPlaceholder('')}>×</button></header><div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">ESTRUCTURA DEFINIDA</p><h2>{placeholder}</h2><p>Este módulo ya ocupa su posición definitiva en el menú principal y se desarrollará sobre esta misma estructura sin agregar accesos adicionales al lateral.</p></section></div></section></div>,document.body)}
