@@ -35,6 +35,16 @@ const moduleGroup = (name = '') => {
   return ''
 }
 
+function RuntimeLoader({ group }) {
+  if (!group) return null
+  return <div className="erp-modal-backdrop" role="status" aria-live="polite">
+    <section className="erp-modal-panel compact-module-placeholder">
+      <header className="erp-modal-head"><div><strong>{group === 'billing' ? 'Facturación' : 'Cargando módulo'}</strong><small>IDEALO SV</small></div></header>
+      <div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">CARGANDO</p><h2>Preparando módulo…</h2><p>Un momento mientras se carga la información necesaria.</p></section></div>
+    </section>
+  </div>
+}
+
 export default function ModuleRuntime() {
   const [activeGroup, setActiveGroup] = useState('')
 
@@ -60,7 +70,7 @@ export default function ModuleRuntime() {
     }
   }, [])
 
-  return <Suspense fallback={null}>
+  return <Suspense fallback={<RuntimeLoader group={activeGroup}/> }>
     {activeGroup === 'commercial' && <CommercialLauncher/>}
     {activeGroup === 'procurement' && <OperationsFinanceLauncher/>}
     {activeGroup === 'inventory' && <InventoryCostLauncher/>}

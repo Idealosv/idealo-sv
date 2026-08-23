@@ -52,7 +52,7 @@ export default function MainMenuController() {
     if (name === 'Cotizaciones') return openLauncher('.sidebar-module-access.commercial', 'Cotizaciones')
     if (name === 'Producción') return openLauncher('.sidebar-module-access.commercial', 'Producción')
     if (name === 'Inventario') return openLauncher('.sidebar-module-access.inventory')
-    if (name === 'Facturación') return openLauncher('.sidebar-module-access.billing')
+    if (name === 'Facturación') return true
     if (name === 'Proveedores') return openLauncher('.sidebar-module-access.procurement', 'Proveedores')
     if (name === 'Compras') return openLauncher('.sidebar-module-access.procurement', 'Compras y gastos')
     if (name === 'Caja') return openLauncher('.sidebar-module-access.procurement', 'Caja')
