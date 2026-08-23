@@ -48,6 +48,7 @@ import './inventory-360.css'
 import './billing-simplification.css'
 import './billing-classic-layout.css'
 import './erp-corporate-master.css'
+import './module-action-hierarchy.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function(options) {
