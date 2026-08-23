@@ -42,11 +42,27 @@ export default function FacturacionLauncher() {
   }, [session])
 
   useEffect(() => {
+    const openModule = (event) => {
+      const detail = event.detail || {}
+      if (detail.target !== 'billing') return
+      const nextSection = sections.some((section) => section.id === detail.tab) ? detail.tab : 'resumen'
+      setContextClient({ id: '', name: '' })
+      setActiveSection(nextSection)
+      setOpen(true)
+      window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
+    }
+    window.addEventListener('idealo-open-module', openModule)
+    return () => window.removeEventListener('idealo-open-module', openModule)
+  }, [])
+
+  useEffect(() => {
     const openClientContext = (event) => {
       const detail = event.detail || {}
       if (detail.target !== 'billing') return
       setContextClient({ id: detail.clientId || '', name: detail.clientName || '' })
-      setActiveSection('emitir'); setOpen(true)
+      setActiveSection('emitir')
+      setOpen(true)
+      window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
     }
     window.addEventListener('idealo-open-client-context', openClientContext)
     return () => window.removeEventListener('idealo-open-client-context', openClientContext)
@@ -62,7 +78,8 @@ export default function FacturacionLauncher() {
       if (select) {
         const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
         if (setter) setter.call(select, contextClient.id); else select.value = contextClient.id
-        select.dispatchEvent(new Event('change', { bubbles: true })); window.clearInterval(timer)
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+        window.clearInterval(timer)
       } else if (attempts >= 30) window.clearInterval(timer)
     }, 100)
     return () => window.clearInterval(timer)
@@ -70,9 +87,13 @@ export default function FacturacionLauncher() {
 
   if (!session || !company) return null
   const active = sections.find((item) => item.id === activeSection) || sections[0]
+  const selectSection = (id) => {
+    setActiveSection(id)
+    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
+  }
 
   return <>
-    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setActiveSection('resumen'); setOpen(true) }} className="sidebar-module-access billing" aria-label="Abrir facturación">
+    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setActiveSection('resumen'); setOpen(true); window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' })) }} className="sidebar-module-access billing" aria-label="Abrir facturación">
       <span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span>
     </button>
     {open && <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
@@ -81,7 +102,7 @@ export default function FacturacionLauncher() {
         <div className="billing-workspace">
           <nav className="billing-nav" aria-label="Secciones de facturación">
             <div className="billing-nav-title">Facturación</div>
-            {sections.map((section) => <button key={section.id} type="button" className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => setActiveSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span><small>{section.helper}</small></button>)}
+            {sections.map((section) => <button key={section.id} type="button" className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => selectSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span><small>{section.helper}</small></button>)}
           </nav>
           <main className="billing-content">
             <div className="billing-section-head"><div><span className="billing-section-kicker">{active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
