@@ -14,7 +14,8 @@ for (const token of [".in('dte_type', ['01', '03'])", "statusLabel", "'/api/dte/
 }
 if (!panel.includes("document.status === 'DRAFT'")) failures.push('La firma debe limitarse a DRAFT')
 if (!panel.includes("document.status === 'SIGNED'")) failures.push('La transmisión debe limitarse a SIGNED')
-if (!launcher.includes('session={session}') || !launcher.includes("selectSection('hacienda')")) failures.push('Facturas no está conectado con sesión/Hacienda')
+const hasHaciendaNavigation = launcher.includes("selectSection('hacienda')") || launcher.includes("openSection('hacienda')")
+if (!launcher.includes('session={session}') || !hasHaciendaNavigation) failures.push('Facturas no está conectado con sesión/Hacienda')
 if (!main.includes("'./billing-documents.css'")) failures.push('Falta la capa visual de Facturas y estados')
 if (panel.includes(".eq('status', 'PROCESSED')") || panel.includes('.limit(1)')) failures.push('Facturas volvió a limitarse al último documento procesado')
 
