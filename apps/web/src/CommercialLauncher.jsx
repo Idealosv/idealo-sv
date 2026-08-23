@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { ProductsModule, QuotesModule, WorkOrdersModule } from './CommercialFlow.jsx'
+import { QuotesModule, WorkOrdersModule } from './CommercialFlow.jsx'
+import Products360Module from './Products360Module.jsx'
 import ProductionModule from './ProductionModule.jsx'
 import { DeliveriesModule, ReceivablesModule } from './DeliveryFinanceModules.jsx'
 
@@ -85,7 +86,7 @@ export default function CommercialLauncher() {
             </nav>
             <div className="erp-modal-body commercial-module">
               {contextClient.id && <p className="feedback success">Cliente 360 activo: <strong>{contextClient.name || 'cliente seleccionado'}</strong>. El flujo se abrió desde su expediente.</p>}
-              {tab === 'Productos y trabajos' && <ProductsModule company={company} supabase={supabase} />}
+              {tab === 'Productos y trabajos' && <Products360Module company={company} supabase={supabase} />}
               {tab === 'Cotizaciones' && <QuotesModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
               {tab === 'Órdenes de trabajo' && <WorkOrdersModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
               {tab === 'Producción' && <ProductionModule company={company} supabase={supabase} initialClientId={contextClient.id} />}
