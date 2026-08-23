@@ -136,68 +136,85 @@ export default function FacturacionDte({ session, supabase, company }) {
   return <section className="facturacion-dte billing-simple-flow">
     {message && <p className={`feedback ${messageType === 'error' ? 'error' : 'success'}`} role="status">{message}</p>}
     <div className="billing-operational-banner">
-      <div><strong>{company.name || company.legal_name}</strong><small>Los datos fiscales del emisor y la estructura DTE se aplican automáticamente.</small></div>
-      <span>Factura DTE-01 · USD</span>
+      <div><strong>Nueva factura</strong><small>{company.name || company.legal_name} · Emisor y datos DTE automáticos</small></div>
+      <span>DTE-01 · USD</span>
     </div>
 
     <form className="panel invoice-form billing-simple-form" onSubmit={createInvoice} noValidate>
-      <fieldset className="form-section"><legend>1. Cliente</legend>
-        <div className="form-grid three">
-          <label className="field form-span-2"><span>Cliente / receptor</span><select value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">Consumidor final</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-          <Info label="Tipo" value={selectedClient ? 'Cliente identificado' : 'Consumidor final'}/>
-        </div>
-        {selectedClient && <div className="billing-client-summary"><strong>{selectedClient.name}</strong><span>{selectedClient.document_number || selectedClient.tax_id || 'Sin documento'}{selectedClient.nrc ? ` · NRC ${selectedClient.nrc}` : ''}</span><span>{selectedClient.phone || selectedClient.email || ''}</span></div>}
-      </fieldset>
-
-      <fieldset className="form-section"><legend>2. Productos o servicios</legend>
-        {items.map((item, index) => <article className="invoice-item billing-line-item" key={index}>
-          <div className="invoice-item-title"><strong>Partida {index + 1}</strong>{items.length > 1 && <button type="button" className="secondary-button" onClick={() => setItems((x) => x.filter((_, i) => i !== index))}>Quitar</button>}</div>
-          <div className="form-grid four">
-            <label className="field form-span-2"><span>Descripción *</span><input value={item.descripcion} onChange={(e) => updateItem(index, 'descripcion', e.target.value)} placeholder="Ej. Camisa personalizada"/></label>
-            <label className="field"><span>Cantidad *</span><input type="number" min="0.01" step="0.01" value={item.cantidad} onChange={(e) => updateItem(index, 'cantidad', e.target.value)}/></label>
-            <label className="field"><span>Precio unitario *</span><input type="number" min="0.01" step="0.01" value={item.precioUni} onChange={(e) => updateItem(index, 'precioUni', e.target.value)}/></label>
-            <label className="field"><span>Tipo</span><select value={item.tipoItem} onChange={(e) => updateItem(index, 'tipoItem', e.target.value)}>{ITEM_TYPES.map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></label>
-            <label className="field"><span>Unidad</span><select value={item.uniMedida} onChange={(e) => updateItem(index, 'uniMedida', e.target.value)}>{UNIT_OPTIONS.map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></label>
-            <label className="field"><span>Descuento</span><input type="number" min="0" step="0.01" value={item.montoDescu} onChange={(e) => updateItem(index, 'montoDescu', e.target.value)}/></label>
-            <label className="field"><span>Venta</span><select value={item.tipoVenta} onChange={(e) => updateItem(index, 'tipoVenta', e.target.value)}><option value="gravada">Gravada</option><option value="exenta">Exenta</option><option value="no_sujeta">No sujeta</option></select></label>
-            <label className="field form-span-2"><span>Código interno</span><input value={item.codigo} onChange={(e) => updateItem(index, 'codigo', e.target.value)} placeholder="Opcional"/></label>
-          </div>
-        </article>)}
-        <button type="button" className="secondary-button billing-add-line" onClick={() => setItems((x) => [...x, emptyItem()])}>+ Agregar producto o servicio</button>
-      </fieldset>
-
-      <fieldset className="form-section"><legend>3. Pago</legend>
-        <div className="form-grid three">
-          <label className="field"><span>Condición *</span><select value={condicionOperacion} onChange={(e) => setCondicionOperacion(e.target.value)}><option value="1">Contado</option><option value="2">Crédito</option><option value="3">Otro</option></select></label>
-          <label className="field"><span>Forma de pago *</span><select value={paymentCode} onChange={(e) => setPaymentCode(e.target.value)}>{PAYMENT_METHODS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-          <label className="field"><span>Referencia</span><input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} placeholder="Voucher o transferencia"/></label>
-          {condicionOperacion === '2' && <><label className="field"><span>Unidad del plazo</span><select value={paymentTerm} onChange={(e) => setPaymentTerm(e.target.value)}><option value="">Seleccionar</option><option value="01">Días</option><option value="02">Meses</option><option value="03">Años</option></select></label><label className="field"><span>Plazo</span><input type="number" min="1" value={paymentPeriod} onChange={(e) => setPaymentPeriod(e.target.value)}/></label></>}
-          <label className="field form-span-3"><span>Observaciones</span><textarea rows="2" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Opcional"/></label>
-        </div>
-      </fieldset>
-
-      <fieldset className="form-section billing-summary-section"><legend>4. Resumen y emisión</legend>
-        <div className="invoice-totals billing-simple-totals"><Total label="Subtotal" value={totals.operacion}/><Total label="Descuentos" value={totals.descuentos}/><Total label="IVA incluido" value={totals.iva}/><Total label="Total a pagar" value={totals.pagar} strong/></div>
-        <small className="billing-auto-note">El sistema genera automáticamente el total en letras y los campos técnicos del DTE.</small>
-
-        <button type="button" className="billing-fiscal-toggle secondary-button" onClick={() => setFiscalOptions((value) => !value)}>{fiscalOptions ? 'Ocultar opciones fiscales especiales' : 'Opciones fiscales especiales'}</button>
-        {fiscalOptions && <div className="billing-fiscal-options">
+      <div className="billing-main-column">
+        <fieldset className="form-section"><legend>1. Cliente</legend>
           <div className="form-grid three">
-            <label className="field"><span>IVA retenido</span><input type="number" min="0" step="0.01" value={ivaRete} onChange={(e) => setIvaRete(e.target.value)}/></label>
-            <label className="field"><span>Saldo a favor</span><input type="number" min="0" step="0.01" value={saldoFavor} onChange={(e) => setSaldoFavor(e.target.value)}/></label>
-            <label className="field"><span>No gravado adicional</span><input type="number" min="0" step="0.01" value={totalNoGravado} onChange={(e) => setTotalNoGravado(e.target.value)}/></label>
-            <label className="field"><span>N.º pago electrónico</span><input value={numPagoElectronico} onChange={(e) => setNumPagoElectronico(e.target.value)}/></label>
+            <label className="field form-span-2"><span>Cliente / receptor</span><select value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">Consumidor final</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <Info label="Tipo" value={selectedClient ? 'Identificado' : 'Consumidor final'}/>
           </div>
-          <details><summary>Documento relacionado</summary><div className="form-grid four"><label className="field"><span>Tipo DTE</span><input value={related.tipoDocumento} onChange={(e) => setRelated({...related,tipoDocumento:e.target.value})} placeholder="01, 03..."/></label><label className="field"><span>Generación</span><select value={related.tipoGeneracion} onChange={(e) => setRelated({...related,tipoGeneracion:e.target.value})}><option value="1">Físico</option><option value="2">Electrónico</option></select></label><label className="field"><span>Número / código</span><input value={related.numeroDocumento} onChange={(e) => setRelated({...related,numeroDocumento:e.target.value})}/></label><label className="field"><span>Fecha</span><input type="date" value={related.fechaEmision} onChange={(e) => setRelated({...related,fechaEmision:e.target.value})}/></label></div></details>
-          <details><summary>Venta a cuenta de tercero</summary><div className="form-grid three"><label className="field"><span>NIT tercero</span><input value={thirdParty.nit} onChange={(e) => setThirdParty({...thirdParty,nit:e.target.value})}/></label><label className="field form-span-2"><span>Nombre tercero</span><input value={thirdParty.nombre} onChange={(e) => setThirdParty({...thirdParty,nombre:e.target.value})}/></label></div></details>
-          <details><summary>Apéndice</summary><div className="form-grid three"><label className="field"><span>Campo</span><input value={appendix.campo} onChange={(e) => setAppendix({...appendix,campo:e.target.value})}/></label><label className="field"><span>Etiqueta</span><input value={appendix.etiqueta} onChange={(e) => setAppendix({...appendix,etiqueta:e.target.value})}/></label><label className="field"><span>Valor</span><input value={appendix.valor} onChange={(e) => setAppendix({...appendix,valor:e.target.value})}/></label></div></details>
-        </div>}
+          {selectedClient && <div className="billing-client-summary"><strong>{selectedClient.name}</strong><span>{selectedClient.document_number || selectedClient.tax_id || 'Sin documento'}{selectedClient.nrc ? ` · NRC ${selectedClient.nrc}` : ''}</span><span>{selectedClient.phone || selectedClient.email || ''}</span></div>}
+        </fieldset>
 
-        <div className="invoice-actions billing-final-action"><div><span>Cliente</span><strong>{selectedClient?.name || 'Consumidor final'}</strong></div><div><span>Total</span><strong>${totals.pagar.toFixed(2)}</strong></div><button type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Guardar factura'}</button></div>
-      </fieldset>
+        <fieldset className="form-section"><legend>2. Productos o servicios</legend>
+          {items.map((item, index) => <article className="invoice-item billing-line-item" key={index}>
+            <div className="invoice-item-title"><strong>Línea {index + 1}</strong>{items.length > 1 && <button type="button" className="secondary-button" onClick={() => setItems((x) => x.filter((_, i) => i !== index))}>Eliminar</button>}</div>
+            <div className="form-grid four">
+              <label className="field form-span-2"><span>Descripción *</span><input value={item.descripcion} onChange={(e) => updateItem(index, 'descripcion', e.target.value)} placeholder="Producto o trabajo realizado"/></label>
+              <label className="field"><span>Cantidad *</span><input type="number" min="0.01" step="0.01" value={item.cantidad} onChange={(e) => updateItem(index, 'cantidad', e.target.value)}/></label>
+              <label className="field"><span>Precio *</span><input type="number" min="0.01" step="0.01" value={item.precioUni} onChange={(e) => updateItem(index, 'precioUni', e.target.value)}/></label>
+              <label className="field"><span>Tipo</span><select value={item.tipoItem} onChange={(e) => updateItem(index, 'tipoItem', e.target.value)}>{ITEM_TYPES.map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></label>
+              <label className="field"><span>Unidad</span><select value={item.uniMedida} onChange={(e) => updateItem(index, 'uniMedida', e.target.value)}>{UNIT_OPTIONS.map(([v,l]) => <option value={v} key={v}>{l}</option>)}</select></label>
+              <label className="field"><span>Descuento</span><input type="number" min="0" step="0.01" value={item.montoDescu} onChange={(e) => updateItem(index, 'montoDescu', e.target.value)}/></label>
+              <label className="field"><span>Clasificación</span><select value={item.tipoVenta} onChange={(e) => updateItem(index, 'tipoVenta', e.target.value)}><option value="gravada">Gravada</option><option value="exenta">Exenta</option><option value="no_sujeta">No sujeta</option></select></label>
+              <label className="field form-span-2"><span>Código interno</span><input value={item.codigo} onChange={(e) => updateItem(index, 'codigo', e.target.value)} placeholder="Opcional"/></label>
+            </div>
+          </article>)}
+          <button type="button" className="secondary-button billing-add-line" onClick={() => setItems((x) => [...x, emptyItem()])}>+ Agregar línea</button>
+        </fieldset>
+
+        <fieldset className="form-section"><legend>3. Pago y observaciones</legend>
+          <div className="form-grid three">
+            <label className="field"><span>Condición *</span><select value={condicionOperacion} onChange={(e) => setCondicionOperacion(e.target.value)}><option value="1">Contado</option><option value="2">Crédito</option><option value="3">Otro</option></select></label>
+            <label className="field"><span>Forma de pago *</span><select value={paymentCode} onChange={(e) => setPaymentCode(e.target.value)}>{PAYMENT_METHODS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            <label className="field"><span>Referencia</span><input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} placeholder="Opcional"/></label>
+            {condicionOperacion === '2' && <><label className="field"><span>Unidad del plazo</span><select value={paymentTerm} onChange={(e) => setPaymentTerm(e.target.value)}><option value="">Seleccionar</option><option value="01">Días</option><option value="02">Meses</option><option value="03">Años</option></select></label><label className="field"><span>Plazo</span><input type="number" min="1" value={paymentPeriod} onChange={(e) => setPaymentPeriod(e.target.value)}/></label></>}
+            <label className="field form-span-3"><span>Observaciones</span><textarea rows="2" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Opcional"/></label>
+          </div>
+        </fieldset>
+      </div>
+
+      <aside className="billing-side-column">
+        <section className="billing-summary-card" aria-label="Resumen de factura">
+          <h3>Resumen</h3>
+          <SummaryRow label="Gravadas" value={totals.gravada}/>
+          <SummaryRow label="Exentas" value={totals.exenta}/>
+          <SummaryRow label="No sujetas" value={totals.noSujeta}/>
+          <SummaryRow label="Descuentos" value={-totals.descuentos}/>
+          <SummaryRow label="IVA incluido" value={totals.iva}/>
+          {Number(ivaRete || 0) > 0 && <SummaryRow label="IVA retenido" value={-Number(ivaRete || 0)}/>} 
+          {Number(saldoFavor || 0) > 0 && <SummaryRow label="Saldo a favor" value={-Number(saldoFavor || 0)}/>} 
+          <div className="billing-summary-row total"><span>Total</span><strong>${totals.pagar.toFixed(2)}</strong></div>
+          <small className="billing-total-words">{totalLetras}</small>
+          <div className="billing-side-actions"><button type="submit" className="primary-billing-action" disabled={busy}>{busy ? 'Guardando…' : 'Guardar factura'}</button></div>
+        </section>
+
+        <details className="billing-tech-box">
+          <summary>Datos técnicos DTE</summary>
+          <div className="billing-tech-content">
+            <small>DTE-01 · versión 2 · USD. Identificación, emisor, código de generación, número de control, firma y transmisión se administran fuera de la captura comercial.</small>
+            <button type="button" className="billing-fiscal-toggle secondary-button" onClick={() => setFiscalOptions((value) => !value)}>{fiscalOptions ? 'Ocultar opciones fiscales' : 'Opciones fiscales especiales'}</button>
+            {fiscalOptions && <div className="billing-fiscal-options">
+              <div className="form-grid three">
+                <label className="field"><span>IVA retenido</span><input type="number" min="0" step="0.01" value={ivaRete} onChange={(e) => setIvaRete(e.target.value)}/></label>
+                <label className="field"><span>Saldo a favor</span><input type="number" min="0" step="0.01" value={saldoFavor} onChange={(e) => setSaldoFavor(e.target.value)}/></label>
+                <label className="field"><span>No gravado adicional</span><input type="number" min="0" step="0.01" value={totalNoGravado} onChange={(e) => setTotalNoGravado(e.target.value)}/></label>
+                <label className="field"><span>N.º pago electrónico</span><input value={numPagoElectronico} onChange={(e) => setNumPagoElectronico(e.target.value)}/></label>
+              </div>
+              <details><summary>Documento relacionado</summary><div className="form-grid four"><label className="field"><span>Tipo DTE</span><input value={related.tipoDocumento} onChange={(e) => setRelated({...related,tipoDocumento:e.target.value})} placeholder="01, 03..."/></label><label className="field"><span>Generación</span><select value={related.tipoGeneracion} onChange={(e) => setRelated({...related,tipoGeneracion:e.target.value})}><option value="1">Físico</option><option value="2">Electrónico</option></select></label><label className="field"><span>Número / código</span><input value={related.numeroDocumento} onChange={(e) => setRelated({...related,numeroDocumento:e.target.value})}/></label><label className="field"><span>Fecha</span><input type="date" value={related.fechaEmision} onChange={(e) => setRelated({...related,fechaEmision:e.target.value})}/></label></div></details>
+              <details><summary>Venta a cuenta de tercero</summary><div className="form-grid three"><label className="field"><span>NIT tercero</span><input value={thirdParty.nit} onChange={(e) => setThirdParty({...thirdParty,nit:e.target.value})}/></label><label className="field form-span-2"><span>Nombre tercero</span><input value={thirdParty.nombre} onChange={(e) => setThirdParty({...thirdParty,nombre:e.target.value})}/></label></div></details>
+              <details><summary>Apéndice</summary><div className="form-grid three"><label className="field"><span>Campo</span><input value={appendix.campo} onChange={(e) => setAppendix({...appendix,campo:e.target.value})}/></label><label className="field"><span>Etiqueta</span><input value={appendix.etiqueta} onChange={(e) => setAppendix({...appendix,etiqueta:e.target.value})}/></label><label className="field"><span>Valor</span><input value={appendix.valor} onChange={(e) => setAppendix({...appendix,valor:e.target.value})}/></label></div></details>
+            </div>}
+          </div>
+        </details>
+      </aside>
     </form>
   </section>
 }
 
 function Info({ label, value }) { return <div className="invoice-info"><span>{label}</span><strong>{value || '—'}</strong></div> }
-function Total({ label, value, strong = false }) { return <div className={strong ? 'invoice-total strong' : 'invoice-total'}><span>{label}</span><strong>${Number(value || 0).toFixed(2)}</strong></div> }
+function SummaryRow({ label, value }) { const amount = Number(value || 0); return <div className="billing-summary-row"><span>{label}</span><strong>{amount < 0 ? '−' : ''}${Math.abs(amount).toFixed(2)}</strong></div> }
