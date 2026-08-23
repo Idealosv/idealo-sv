@@ -11,6 +11,8 @@ import ProductionCalendarLauncher from './ProductionCalendarLauncher.jsx'
 import QualityControlLauncher from './QualityControlLauncher.jsx'
 import MainMenuController from './MainMenuController.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
+import FormAccordionManager from './FormAccordionManager.jsx'
+import RuntimeBoundary from './RuntimeBoundary.jsx'
 import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
 import MobileFieldTools from './MobileFieldTools.jsx'
@@ -50,15 +52,7 @@ import './client-module-organizer.css'
 import './global-contrast.css'
 import './client-360-timeline.css'
 import './client-button-balance.css'
-import './corporate-premium-global.css'
-import './corporate-gray-dark.css'
-import './orange-button-clean.css'
-import './solid-button-clean.css'
 import './client-vat-card-scanner.css'
-import './less-orange-global.css'
-import './enterprise-theme-final.css'
-import './enterprise-ui-v2.css'
-import './enterprise-ui-v3-hotfix.css'
 import './products-360.css'
 import './quotes-360.css'
 import './inventory-360.css'
@@ -66,7 +60,44 @@ import './erp-corporate-master.css'
 import './billing-simplification.css'
 import './billing-classic-layout.css'
 import './erp-clean-system.css'
-const nativeScrollIntoView=Element.prototype.scrollIntoView
-Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
-if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
-createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ErpUxCoordinator/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></StrictMode>)
+import './erp-audit-clean.css'
+
+const nativeScrollIntoView = Element.prototype.scrollIntoView
+Element.prototype.scrollIntoView = function(options) {
+  if (this.classList?.contains('invoice-form')) return
+  return nativeScrollIntoView.call(this, options)
+}
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => null))
+}
+
+const Safe = ({ label, children, fatal = false }) => <RuntimeBoundary label={label} fatal={fatal}>{children}</RuntimeBoundary>
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <Safe label="ERP principal" fatal><App /></Safe>
+    <Safe label="Comercial"><CommercialLauncher /></Safe>
+    <Safe label="Compras y finanzas"><OperationsFinanceLauncher /></Safe>
+    <Safe label="Inventario"><InventoryCostLauncher /></Safe>
+    <Safe label="Reportes financieros"><FinancialDashboardLauncher /></Safe>
+    <Safe label="RRHH"><HrPayrollLauncher /></Safe>
+    <Safe label="Agenda de producción"><ProductionCalendarLauncher /></Safe>
+    <Safe label="Control de calidad"><QualityControlLauncher /></Safe>
+    <Safe label="Facturación"><FacturacionLauncher /></Safe>
+    <Safe label="Menú principal"><MainMenuController /></Safe>
+    <Safe label="Coordinación UX"><ErpUxCoordinator /></Safe>
+    <Safe label="Formularios"><FormAccordionManager /></Safe>
+    <Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost /></Safe>
+    <Safe label="App móvil"><MobileAppHost /></Safe>
+    <Safe label="Herramientas móviles"><MobileFieldTools /></Safe>
+    <Safe label="Ventas móviles"><MobileSalesFieldBlock /></Safe>
+    <Safe label="Clientes móvil"><MobileClient360 /></Safe>
+    <Safe label="Clientes 360"><Client360Enhancer /></Safe>
+    <Safe label="Automatización comercial"><CommercialAutomationCenter /></Safe>
+    <Safe label="CRM"><ClientCrmPipeline /></Safe>
+    <Safe label="Organizador clientes"><ClientModuleOrganizer /></Safe>
+    <Safe label="Historial cliente"><Client360TimelineHost /></Safe>
+    <Safe label="Escáner fiscal"><ClientVatCardScannerHost /></Safe>
+  </StrictMode>,
+)
