@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-const MODULE_GROUPS = [
-  { label: 'Principal', modules: ['Dashboard','App móviles'] },
-  { label: 'Ventas', modules: ['Clientes','Productos','Cotizaciones','Facturación'] },
-  { label: 'Operación', modules: ['Producción','Inventario'] },
-  { label: 'Compras y caja', modules: ['Proveedores','Compras','Caja'] },
-  { label: 'Gestión', modules: ['Asistente IA','Agenda','Reportes'] },
-  { label: 'Administración', modules: ['Seguridad'] },
+const MODULES = [
+  'Dashboard',
+  'App móviles',
+  'Clientes',
+  'Productos',
+  'Cotizaciones',
+  'Producción',
+  'Inventario',
+  'Facturación',
+  'Proveedores',
+  'Compras',
+  'Caja',
+  'Asistente IA',
+  'Agenda',
+  'Reportes',
+  'Seguridad',
 ]
 
 const clickWorkspaceModule = (label) => {
@@ -58,8 +67,11 @@ export default function MainMenuController() {
   }, [])
 
   const openModule = (name) => {
-    setActive(name); setPlaceholder(''); setQuery('')
-    window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
+    setActive(name)
+    setPlaceholder('')
+    setQuery('')
+    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
+
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
     if (name === 'App móviles') return true
     if (name === 'Clientes') return clickWorkspaceModule('Clientes')
@@ -74,31 +86,79 @@ export default function MainMenuController() {
     if (name === 'Agenda') return openLauncher('.sidebar-module-access.planning')
     if (name === 'Reportes') return openLauncher('.sidebar-module-access.financial')
     if (name === 'Seguridad') return clickWorkspaceModule('Empresa')
+
     setPlaceholder(name)
+    return true
   }
 
-  const groups = useMemo(() => {
+  const filteredModules = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return MODULE_GROUPS
-    return MODULE_GROUPS.map((group) => ({
-      ...group,
-      modules: group.modules.filter((name) => name.toLowerCase().includes(normalized)),
-    })).filter((group) => group.modules.length)
+    return normalized ? MODULES.filter((name) => name.toLowerCase().includes(normalized)) : MODULES
   }, [query])
 
   if (!sidebar) return null
+
   return createPortal(<>
     <nav className="idealo-main-menu" aria-label="Módulos principales IDEALO SV">
       <div className="idealo-menu-search-wrap">
-        <input ref={searchRef} className="idealo-menu-search" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Buscar módulo…" aria-label="Buscar módulo" />
-        {query && <button type="button" className="idealo-menu-search-clear" onClick={()=>setQuery('')} aria-label="Limpiar búsqueda">×</button>}
+        <input
+          ref={searchRef}
+          className="idealo-menu-search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar módulo…"
+          aria-label="Buscar módulo"
+        />
+        {query && (
+          <button
+            type="button"
+            className="idealo-menu-search-clear"
+            onClick={() => setQuery('')}
+            aria-label="Limpiar búsqueda"
+          >
+            ×
+          </button>
+        )}
       </div>
-      {groups.map((group) => <section className="idealo-menu-group" key={group.label}>
-        <span className="idealo-menu-group-label">{group.label}</span>
-        {group.modules.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
-      </section>)}
-      {groups.length===0 && <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>}
+
+      <div className="idealo-menu-list">
+        {filteredModules.map((name) => (
+          <button
+            type="button"
+            key={name}
+            className={active === name ? 'idealo-main-menu-item active' : 'idealo-main-menu-item'}
+            onClick={() => openModule(name)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {filteredModules.length === 0 && (
+        <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>
+      )}
     </nav>
-    {placeholder && createPortal(<div className="erp-modal-backdrop" onMouseDown={()=>setPlaceholder('')}><section className="erp-modal-panel compact-module-placeholder" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>{placeholder}</strong><small>Módulo principal IDEALO SV</small></div><button type="button" className="erp-modal-close" onClick={()=>setPlaceholder('')}>×</button></header><div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">ESTRUCTURA DEFINIDA</p><h2>{placeholder}</h2><p>Este módulo ya ocupa su posición definitiva en el menú principal y se desarrollará sobre esta misma estructura sin agregar accesos adicionales al lateral.</p></section></div></section></div>,document.body)}
-  </>,sidebar)
+
+    {placeholder && createPortal(
+      <div className="erp-modal-backdrop" onMouseDown={() => setPlaceholder('')}>
+        <section className="erp-modal-panel compact-module-placeholder" onMouseDown={(event) => event.stopPropagation()}>
+          <header className="erp-modal-head">
+            <div>
+              <strong>{placeholder}</strong>
+              <small>Módulo principal IDEALO SV</small>
+            </div>
+            <button type="button" className="erp-modal-close" onClick={() => setPlaceholder('')}>×</button>
+          </header>
+          <div className="erp-modal-body">
+            <section className="panel module-placeholder-card">
+              <p className="form-kicker">MÓDULO EN ESTRUCTURA</p>
+              <h2>{placeholder}</h2>
+              <p>Este acceso queda reservado para este módulo dentro de la navegación principal.</p>
+            </section>
+          </div>
+        </section>
+      </div>,
+      document.body,
+    )}
+  </>, sidebar)
 }
