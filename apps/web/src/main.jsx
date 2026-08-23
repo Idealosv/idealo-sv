@@ -49,6 +49,7 @@ import './products-360.css'
 import './quotes-360.css'
 import './inventory-360.css'
 import './inventory-control-center.css'
+import './procurement-control-center.css'
 import './billing-simplification.css'
 import './billing-classic-layout.css'
 import './billing-documents.css'
@@ -60,36 +61,7 @@ import './module-action-hierarchy.css'
 import './form-simplification.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
-Element.prototype.scrollIntoView = function(options) {
-  if (this.classList?.contains('invoice-form')) return
-  return nativeScrollIntoView.call(this, options)
-}
-
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => null))
-}
-
+Element.prototype.scrollIntoView = function(options) {if (this.classList?.contains('invoice-form')) return;return nativeScrollIntoView.call(this, options)}
+if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => null))
 const Safe = ({ label, children, fatal = false }) => <RuntimeBoundary label={label} fatal={fatal}>{children}</RuntimeBoundary>
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <Safe label="ERP principal" fatal><App /></Safe>
-    <Safe label="Comercial"><CommercialLauncher /></Safe>
-    <Safe label="Compras y finanzas"><OperationsFinanceLauncher /></Safe>
-    <Safe label="Inventario"><InventoryCostLauncher /></Safe>
-    <Safe label="Reportes financieros"><FinancialDashboardLauncher /></Safe>
-    <Safe label="RRHH"><HrPayrollLauncher /></Safe>
-    <Safe label="Agenda de producción"><ProductionCalendarLauncher /></Safe>
-    <Safe label="Control de calidad"><QualityControlLauncher /></Safe>
-    <Safe label="Facturación"><FacturacionLauncher /></Safe>
-    <Safe label="Asistente IA"><AssistantLauncher /></Safe>
-    <Safe label="Seguridad"><SecurityLauncher /></Safe>
-    <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge /></Safe>
-    <Safe label="Menú principal"><MainMenuController /></Safe>
-    <Safe label="Coordinación UX"><ErpUxCoordinator /></Safe>
-    <Safe label="Formularios"><FormAccordionManager /></Safe>
-    <Safe label="Simplificación de formularios"><FormSimplificationManager /></Safe>
-    <Safe label="App móvil"><MobileAppHost /></Safe>
-    <Safe label="Runtime por módulo"><ModuleRuntime /></Safe>
-  </StrictMode>,
-)
+createRoot(document.getElementById('root')).render(<StrictMode><Safe label="ERP principal" fatal><App /></Safe><Safe label="Comercial"><CommercialLauncher /></Safe><Safe label="Compras y finanzas"><OperationsFinanceLauncher /></Safe><Safe label="Inventario"><InventoryCostLauncher /></Safe><Safe label="Reportes financieros"><FinancialDashboardLauncher /></Safe><Safe label="RRHH"><HrPayrollLauncher /></Safe><Safe label="Agenda de producción"><ProductionCalendarLauncher /></Safe><Safe label="Control de calidad"><QualityControlLauncher /></Safe><Safe label="Facturación"><FacturacionLauncher /></Safe><Safe label="Asistente IA"><AssistantLauncher /></Safe><Safe label="Seguridad"><SecurityLauncher /></Safe><Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge /></Safe><Safe label="Menú principal"><MainMenuController /></Safe><Safe label="Coordinación UX"><ErpUxCoordinator /></Safe><Safe label="Formularios"><FormAccordionManager /></Safe><Safe label="Simplificación de formularios"><FormSimplificationManager /></Safe><Safe label="App móvil"><MobileAppHost /></Safe><Safe label="Runtime por módulo"><ModuleRuntime /></Safe></StrictMode>)
