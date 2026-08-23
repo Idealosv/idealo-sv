@@ -11,6 +11,8 @@ const menuCssPath = resolve(src, 'main-menu.css')
 const clientsOrganizerPath = resolve(src, 'ClientModuleOrganizer.jsx')
 const clientsCssPath = resolve(src, 'client-module-organizer.css')
 const dashboardCssPath = resolve(src, 'executive-dashboard-main.css')
+const commercialPath = resolve(src, 'CommercialLauncher.jsx')
+const inventoryPath = resolve(src, 'InventoryCostLauncher.jsx')
 const main = await readFile(mainPath, 'utf8')
 const runtime = await readFile(runtimePath, 'utf8')
 const menu = await readFile(menuPath, 'utf8')
@@ -18,6 +20,8 @@ const menuCss = await readFile(menuCssPath, 'utf8')
 const clientsOrganizer = await readFile(clientsOrganizerPath, 'utf8')
 const clientsCss = await readFile(clientsCssPath, 'utf8')
 const dashboardCss = await readFile(dashboardCssPath, 'utf8')
+const commercial = await readFile(commercialPath, 'utf8')
+const inventory = await readFile(inventoryPath, 'utf8')
 
 const importsFrom = (source) => [...source.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"](\.\/[^'\"]+)['\"]/g)].map((match) => match[1])
 const relativeImports = [...new Set([...importsFrom(main), ...importsFrom(runtime)])]
@@ -51,6 +55,13 @@ if (!clientsCss.includes('.client-form-open .client-stats,.client-form-open .cli
 if (/\.erp-content:has\(\.executive-dashboard-host\)>:not\(\.executive-dashboard-host\)/.test(dashboardCss)) failures.push('Dashboard ejecutivo volvió a ocultar indiscriminadamente el encabezado del módulo')
 if (!dashboardCss.includes('>.welcome-strip') || !dashboardCss.includes('>.metric-grid') || !dashboardCss.includes('>.dashboard-grid')) failures.push('Dashboard debe ocultar únicamente los bloques básicos duplicados cuando está activo el ejecutivo')
 
+for (const [name,target,tab] of [['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario']]) {
+  if (!menu.includes(`openDirectModule('${target}', '${tab}')`)) failures.push(`${name} debe abrirse por evento directo, no por clic simulado`)
+}
+if (!commercial.includes("window.addEventListener('idealo-open-module'")) failures.push('CommercialLauncher no escucha apertura directa desde el menú')
+if (!inventory.includes("window.addEventListener('idealo-open-module'")) failures.push('InventoryCostLauncher no escucha apertura directa desde el menú')
+if (!commercial.includes('mainModuleForTab')) failures.push('Las pestañas comerciales deben sincronizar el módulo activo del menú')
+
 const expectedModules = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
 const moduleBlock = menu.match(/const MODULES = \[([\s\S]*?)\]/)?.[1] || ''
 const actualModules = [...moduleBlock.matchAll(/'([^']+)'/g)].map((match) => match[1])
@@ -66,4 +77,4 @@ if (failures.length) {
   failures.forEach((failure) => console.error(`- ${failure}`))
   process.exit(1)
 }
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, Dashboard y Clientes consistentes, runtime aislado, CSS global consolidado y menú protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, navegación comercial directa, Dashboard y Clientes consistentes, runtime aislado, CSS consolidado y menú protegido.`)
