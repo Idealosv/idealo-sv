@@ -1,26 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
-import FacturacionLauncher from './FacturacionLauncher.jsx'
-import CommercialLauncher from './CommercialLauncher.jsx'
-import OperationsFinanceLauncher from './OperationsFinanceLauncher.jsx'
-import InventoryCostLauncher from './InventoryCostLauncher.jsx'
-import FinancialDashboardLauncher from './FinancialDashboardLauncher.jsx'
-import HrPayrollLauncher from './HrPayrollLauncher.jsx'
-import ProductionCalendarLauncher from './ProductionCalendarLauncher.jsx'
-import QualityControlLauncher from './QualityControlLauncher.jsx'
 import MainMenuController from './MainMenuController.jsx'
-import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
-import MobileAppHost from './MobileAppHost.jsx'
-import MobileFieldTools from './MobileFieldTools.jsx'
-import MobileSalesFieldBlock from './MobileSalesFieldBlock.jsx'
-import MobileClient360 from './MobileClient360.jsx'
-import Client360Enhancer from './Client360Enhancer.jsx'
-import CommercialAutomationCenter from './CommercialAutomationCenter.jsx'
-import ClientCrmPipeline from './ClientCrmPipeline.jsx'
-import ClientModuleOrganizer from './ClientModuleOrganizer.jsx'
-import Client360TimelineHost from './Client360TimelineHost.jsx'
-import ClientVatCardScannerHost from './ClientVatCardScannerHost.jsx'
+import ModuleRuntime from './ModuleRuntime.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -64,7 +46,21 @@ import './inventory-360.css'
 import './erp-corporate-master.css'
 import './billing-simplification.css'
 import './billing-classic-layout.css'
-const nativeScrollIntoView=Element.prototype.scrollIntoView
-Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
-if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
-createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></StrictMode>)
+
+const nativeScrollIntoView = Element.prototype.scrollIntoView
+Element.prototype.scrollIntoView = function(options) {
+  if (this.classList?.contains('invoice-form')) return
+  return nativeScrollIntoView.call(this, options)
+}
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => null))
+}
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App/>
+    <MainMenuController/>
+    <ModuleRuntime/>
+  </StrictMode>,
+)
