@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "audit": "node scripts/audit-source.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
