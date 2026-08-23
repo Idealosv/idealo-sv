@@ -1,0 +1,145 @@
+:root{
+  --erp-bg:#eef0f2;
+  --erp-surface:#ffffff;
+  --erp-surface-2:#f7f8f9;
+  --erp-surface-3:#eceff1;
+  --erp-sidebar:#17191c;
+  --erp-sidebar-2:#202327;
+  --erp-text:#1b1f24;
+  --erp-muted:#66707a;
+  --erp-border:#cfd4d9;
+  --erp-border-strong:#adb5bd;
+  --erp-accent:#e56a1f;
+  --erp-accent-dark:#c65312;
+  --erp-success:#20764a;
+  --erp-danger:#a93434;
+  --erp-warning:#95620d;
+  --erp-radius:8px;
+  --erp-radius-sm:6px;
+  --erp-shadow:0 1px 2px rgba(16,24,40,.05),0 8px 22px rgba(16,24,40,.04);
+  --erp-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+html,body,#root{background:var(--erp-bg);color:var(--erp-text);font-family:var(--erp-font)}
+body{font-size:14px;line-height:1.45}
+
+/* Estructura principal */
+.erp-shell{background:var(--erp-bg)!important;color:var(--erp-text)!important;grid-template-columns:248px minmax(0,1fr)!important}
+.erp-sidebar{background:var(--erp-sidebar)!important;border-right:1px solid #2e3237!important;padding:22px 16px!important;color:#f5f6f7!important}
+.erp-content{background:var(--erp-bg)!important;padding:28px 32px 40px!important}
+.erp-header{margin-bottom:22px!important;padding-bottom:18px;border-bottom:1px solid var(--erp-border)}
+.erp-header h1{font-size:1.85rem!important;letter-spacing:-.025em!important;line-height:1.15!important;color:var(--erp-text)!important;font-weight:760!important}
+.erp-header .form-kicker,.form-kicker,.eyebrow{color:var(--erp-accent)!important;letter-spacing:.11em!important;font-size:.68rem!important;font-weight:800!important;text-transform:uppercase}
+
+/* Marca, empresa y usuario */
+.brand{letter-spacing:.045em!important;font-size:.86rem!important}
+.brand-mark,.company-badge>span,.user-chip>span,.account-icon{border-radius:6px!important;background:var(--erp-accent)!important;color:#fff!important;box-shadow:none!important}
+.company-badge,.user-chip{border:1px solid #34383d!important;background:#202327!important;border-radius:8px!important;box-shadow:none!important}
+.company-badge{margin:24px 0 18px!important;padding:11px!important}
+.company-badge small,.user-chip small{color:#aeb5bc!important}
+.user-chip{background:var(--erp-surface)!important;border-color:var(--erp-border)!important;color:var(--erp-text)!important}
+.user-chip strong{color:var(--erp-text)!important}
+.user-chip small{color:var(--erp-muted)!important}
+
+/* Menú principal sobrio */
+.idealo-main-menu{gap:2px!important;padding:4px 0 16px!important}
+.idealo-main-menu-item{min-height:38px!important;padding:9px 11px!important;border-radius:6px!important;color:#d8dde2!important;font-size:.84rem!important;font-weight:620!important;letter-spacing:.005em!important;transition:background .12s ease,color .12s ease,border-color .12s ease!important}
+.idealo-main-menu-item:hover{background:#24282d!important;color:#fff!important}
+.idealo-main-menu-item.active{background:#2a2e33!important;color:#fff!important;box-shadow:inset 3px 0 0 var(--erp-accent)!important}
+.sidebar-logout{border:1px solid #3d4248!important;border-radius:6px!important;color:#d8dde2!important;background:#202327!important;padding:10px 12px!important}
+.sidebar-logout:hover{background:#292d32!important;color:#fff!important}
+
+/* Contenedores y tarjetas */
+.panel,.module-preview,.metric-card,.welcome-strip,.billing-section-card,.billing360-head,.billing360-kpi,.invoice-info,.invoice-total,.invoice-item,.issuer-card,
+.client-card,.product-card,.quote-card,.inventory-card,.dashboard-card,.executive-card,.finance-card,.timeline-card,.crm-card,
+[class*="-card"],[class*="-panel"]{border-radius:var(--erp-radius)!important;box-shadow:none!important}
+.panel,.module-preview,.metric-card,.billing-section-card,.billing360-kpi,.invoice-info,.invoice-total,.invoice-item,
+[class*="-panel"]{border-color:var(--erp-border)!important;background:var(--erp-surface)!important}
+.metric-card{padding:18px!important}
+.metric-card strong{font-size:1.65rem!important;color:var(--erp-text)!important}
+.metric-card small{color:var(--erp-muted)!important;text-transform:uppercase;letter-spacing:.045em;font-size:.69rem!important;font-weight:720}
+.metric-card span{color:var(--erp-muted)!important;font-size:.76rem!important}
+.welcome-strip{background:var(--erp-surface)!important;border:1px solid var(--erp-border)!important;padding:22px 24px!important}
+.welcome-strip h2{font-size:1.45rem!important;color:var(--erp-text)!important}
+.welcome-strip p{color:var(--erp-muted)!important}
+.ready-pill{background:#eef6f1!important;color:var(--erp-success)!important;border:1px solid #cfe3d6!important;border-radius:999px!important}
+
+/* Títulos y jerarquía */
+h1,h2,h3,h4,h5,h6{color:var(--erp-text);font-weight:730;letter-spacing:-.018em}
+h2{font-size:1.35rem}h3{font-size:1.05rem}h4{font-size:.92rem}
+p,small{color:var(--erp-muted)}
+.panel-heading,.billing-section-head,.billing-section-intro{border-color:var(--erp-border)!important}
+
+/* Formularios */
+.field{gap:6px!important;color:#424a52!important;font-size:.78rem!important;font-weight:680!important}
+input,select,textarea,.field input,.field select,.field textarea{border:1px solid var(--erp-border-strong)!important;border-radius:6px!important;background:#fff!important;color:var(--erp-text)!important;box-shadow:none!important;padding:10px 11px!important;min-height:38px}
+textarea{min-height:82px}
+input::placeholder,textarea::placeholder{color:#8b949e!important}
+input:focus,select:focus,textarea:focus,.field input:focus,.field select:focus,.field textarea:focus{outline:none!important;border-color:var(--erp-accent)!important;box-shadow:0 0 0 2px rgba(229,106,31,.12)!important}
+fieldset,.form-section{border:1px solid var(--erp-border)!important;border-radius:7px!important;background:#fff!important}
+legend{color:#313840!important;font-size:.79rem!important;font-weight:760!important}
+
+/* Botones */
+button,.primary-button,.submit-button,.wide-action{border-radius:6px!important;min-height:36px;padding:9px 14px!important;font-size:.8rem!important;font-weight:700!important;box-shadow:none!important;transition:background .12s ease,border-color .12s ease,color .12s ease!important}
+button:not(.idealo-main-menu-item):not(.erp-modal-close):not(.text-button):not(.auth-link):not(.sidebar-module-access){background:#2c3136;color:#fff;border:1px solid #2c3136}
+button:not(.idealo-main-menu-item):not(.erp-modal-close):not(.text-button):not(.auth-link):not(.sidebar-module-access):hover{background:#202428;border-color:#202428}
+.primary-button,.submit-button,.facturacion-dte .primary-button,.invoice-actions button[type="submit"],.wide-action.is-primary{background:var(--erp-accent)!important;border-color:var(--erp-accent)!important;color:#fff!important}
+.primary-button:hover,.submit-button:hover,.invoice-actions button[type="submit"]:hover{background:var(--erp-accent-dark)!important;border-color:var(--erp-accent-dark)!important}
+.secondary-button{background:#fff!important;color:#30363d!important;border:1px solid var(--erp-border-strong)!important}
+.secondary-button:hover{background:#f3f4f5!important;border-color:#8f979f!important}
+button:disabled{opacity:.52!important}
+
+/* Tablas */
+table{border-collapse:collapse!important;background:#fff!important;color:var(--erp-text)!important}
+th{background:#f0f2f4!important;color:#414950!important;text-transform:uppercase!important;letter-spacing:.045em!important;font-size:.68rem!important;font-weight:780!important;border-bottom:1px solid var(--erp-border-strong)!important}
+td{color:#30363d!important;border-bottom:1px solid #e2e5e8!important;font-size:.79rem!important}
+th,td{padding:10px 12px!important}
+tbody tr:hover td{background:#fafafa!important}
+.billing360-table th{background:#262a2e!important;color:#fff!important}
+
+/* Modales */
+.erp-modal-backdrop{background:rgba(17,20,24,.64)!important;backdrop-filter:blur(2px)}
+.erp-modal-panel{border:1px solid #3b4046!important;border-radius:8px!important;box-shadow:0 24px 60px rgba(0,0,0,.28)!important;overflow:hidden!important;background:var(--erp-surface)!important}
+.erp-modal-head{background:#202327!important;color:#fff!important;border-bottom:1px solid #353a40!important;padding:14px 18px!important}
+.erp-modal-head strong{font-size:.95rem!important;letter-spacing:.005em!important}
+.erp-modal-head small{color:#aeb6bf!important}
+.erp-modal-close{background:transparent!important;color:#d9dde2!important;border:0!important;border-radius:4px!important;font-size:1.4rem!important;padding:2px 8px!important;min-height:auto!important}
+.erp-modal-close:hover{background:#30353a!important;color:#fff!important}
+.erp-modal-body{background:var(--erp-bg)!important}
+
+/* Facturación y navegación interna */
+.billing-workspace{background:var(--erp-bg)!important;grid-template-columns:215px minmax(0,1fr)!important}
+.billing-nav{background:#23272b!important;border-color:#383d42!important;padding:16px 10px!important}
+.billing-nav-item{border-radius:5px!important;padding:10px 11px!important;font-size:.8rem!important}
+.billing-nav-item.active{background:#34393f!important;color:#fff!important;box-shadow:inset 3px 0 0 var(--erp-accent)!important}
+.billing-nav-item.active small{color:#c9cfd5!important}.billing-nav-item small{font-size:.68rem!important}
+.billing-content{background:var(--erp-bg)!important;padding:20px!important}
+.billing-company-pill{background:#2c3136!important;border-radius:999px!important}
+.billing-section-card{padding:16px!important}
+.billing-issue-card .billing-collapsible>legend{background:#f1f3f4!important;border-color:var(--erp-border)!important}
+.invoice-total.strong{background:#fff8f3!important;border-color:#d99063!important}.invoice-total.strong strong{color:#9d4514!important}
+.invoice-item{background:#fafafa!important}
+.issuer-card{background:#f6f7f8!important;border-left:3px solid var(--erp-accent)!important}
+
+/* Estados */
+.feedback{border-radius:6px!important;font-size:.78rem!important}
+.feedback.success{background:#eef7f1!important;color:var(--erp-success)!important;border:1px solid #c9e2d2!important}
+.feedback.error{background:#fff1f1!important;color:var(--erp-danger)!important;border:1px solid #e7c4c4!important}
+.billing-status,.status-pill,.badge,.chip{border-radius:999px!important;font-size:.68rem!important;font-weight:740!important}
+
+/* Dashboard */
+.metric-grid{gap:12px!important;margin:18px 0!important}
+.dashboard-grid{gap:14px!important}
+.executive-dashboard,.dashboard-intelligence,.dashboard-owner-daily{color:var(--erp-text)!important}
+
+/* Evitar estética juguetona */
+.module-icon,.empty-state>span{font-size:1.35rem!important;color:#6b737b!important}
+.check-item span{border-radius:5px!important;width:22px!important;height:22px!important}
+.check-item span.done{background:#2f6f50!important;border-color:#2f6f50!important;color:#fff!important}
+
+/* Scrollbars discretos */
+*{scrollbar-width:thin;scrollbar-color:#90979e transparent}
+*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-thumb{background:#90979e;border-radius:8px}*::-webkit-scrollbar-track{background:transparent}
+
+@media(max-width:1000px){.erp-shell{grid-template-columns:220px minmax(0,1fr)!important}.erp-content{padding:22px!important}.billing-workspace{grid-template-columns:190px minmax(0,1fr)!important}}
+@media(max-width:760px){.erp-shell{display:block!important}.erp-sidebar{position:relative!important;height:auto!important}.erp-content{padding:14px!important}.erp-header h1{font-size:1.5rem!important}.panel,.module-preview{padding:16px!important}.billing-workspace{display:block!important}}

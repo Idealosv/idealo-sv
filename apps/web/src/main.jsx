@@ -61,6 +61,7 @@ import './enterprise-ui-v3-hotfix.css'
 import './products-360.css'
 import './quotes-360.css'
 import './inventory-360.css'
+import './erp-corporate-master.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
