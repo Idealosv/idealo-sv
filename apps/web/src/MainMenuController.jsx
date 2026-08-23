@@ -13,19 +13,16 @@ const clickWorkspaceModule = (label) => {
   return true
 }
 
-const openLauncher = (selector, tabLabel, attempt = 0) => {
+const openLauncher = (selector, tabLabel) => {
   const launcher = document.querySelector(selector)
-  if (!launcher) {
-    if (attempt < 60) window.setTimeout(() => openLauncher(selector, tabLabel, attempt + 1), 50)
-    return false
-  }
+  if (!launcher) return false
   launcher.click()
   if (tabLabel) window.setTimeout(() => {
     const panels = [...document.querySelectorAll('.erp-modal-panel')]
     const panel = panels[panels.length - 1]
     const tabs = panel ? [...panel.querySelectorAll('.erp-module-tab')] : []
     tabs.find((button) => button.textContent.trim() === tabLabel)?.click()
-  }, 60)
+  }, 30)
   return true
 }
 
@@ -44,7 +41,7 @@ export default function MainMenuController() {
 
   const openModule = (name) => {
     setActive(name); setPlaceholder('')
-    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
+    window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
     if (name === 'App móviles') return true
     if (name === 'Clientes') return clickWorkspaceModule('Clientes')
@@ -52,7 +49,7 @@ export default function MainMenuController() {
     if (name === 'Cotizaciones') return openLauncher('.sidebar-module-access.commercial', 'Cotizaciones')
     if (name === 'Producción') return openLauncher('.sidebar-module-access.commercial', 'Producción')
     if (name === 'Inventario') return openLauncher('.sidebar-module-access.inventory')
-    if (name === 'Facturación') return true
+    if (name === 'Facturación') return openLauncher('.sidebar-module-access.billing')
     if (name === 'Proveedores') return openLauncher('.sidebar-module-access.procurement', 'Proveedores')
     if (name === 'Compras') return openLauncher('.sidebar-module-access.procurement', 'Compras y gastos')
     if (name === 'Caja') return openLauncher('.sidebar-module-access.procurement', 'Caja')
