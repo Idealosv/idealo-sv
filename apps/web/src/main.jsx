@@ -15,6 +15,7 @@ import WorkspaceNavigationBridge from './WorkspaceNavigationBridge.jsx'
 import MainMenuController from './MainMenuController.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import FormAccordionManager from './FormAccordionManager.jsx'
+import FormSimplificationManager from './FormSimplificationManager.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
 import ModuleRuntime from './ModuleRuntime.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
@@ -49,6 +50,7 @@ import './billing-simplification.css'
 import './billing-classic-layout.css'
 import './erp-corporate-master.css'
 import './module-action-hierarchy.css'
+import './form-simplification.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function(options) {
@@ -79,6 +81,7 @@ createRoot(document.getElementById('root')).render(
     <Safe label="Menú principal"><MainMenuController /></Safe>
     <Safe label="Coordinación UX"><ErpUxCoordinator /></Safe>
     <Safe label="Formularios"><FormAccordionManager /></Safe>
+    <Safe label="Simplificación de formularios"><FormSimplificationManager /></Safe>
     <Safe label="App móvil"><MobileAppHost /></Safe>
     <Safe label="Runtime por módulo"><ModuleRuntime /></Safe>
   </StrictMode>,
