@@ -61,6 +61,7 @@ import './billing-simplification.css'
 import './billing-classic-layout.css'
 import './erp-clean-system.css'
 import './erp-audit-clean.css'
+import './executive-minimal.css'
 
 const nativeScrollIntoView = Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView = function(options) {
