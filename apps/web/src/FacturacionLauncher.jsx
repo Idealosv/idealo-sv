@@ -5,16 +5,18 @@ import SignerDiagnostic from './SignerDiagnostic.jsx'
 import ProcessedDtePanel from './ProcessedDtePanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
+import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: true } }) : null
 
 const sections = [
-  { id: 'resumen', label: 'Resumen', helper: 'Control de facturación' },
-  { id: 'emitir', label: 'Nueva factura', helper: 'Cliente, productos y pago' },
-  { id: 'documentos', label: 'Facturas', helper: 'Documentos y estados' },
-  { id: 'hacienda', label: 'Hacienda', helper: 'Firma y control técnico' },
+  { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control', group: 'Operación diaria' },
+  { id: 'emitir', label: 'Nueva factura', helper: 'Cliente, productos y pago', group: 'Operación diaria' },
+  { id: 'documentos', label: 'Documentos', helper: 'DTE y estados', group: 'Operación diaria' },
+  { id: 'cobros', label: 'Cuentas por cobrar', helper: 'Crédito, vencidos y cobros', group: 'Cobranza' },
+  { id: 'hacienda', label: 'Hacienda', helper: 'Firma y control técnico', group: 'Administración fiscal' },
 ]
 
 export default function FacturacionLauncher() {
@@ -49,6 +51,10 @@ export default function FacturacionLauncher() {
   const openNewInvoice = () => {
     setContextClient({ id: '', name: '' })
     setActiveSection('emitir')
+  }
+  const openCash = () => {
+    setOpen(false)
+    window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target: 'procurement', tab: 'Caja' } }))
   }
 
   useEffect(() => {
@@ -97,6 +103,7 @@ export default function FacturacionLauncher() {
 
   if (!session || !company) return null
   const active = sections.find((item) => item.id === activeSection) || sections[0]
+  const groups = [...new Set(sections.map((section) => section.group))]
 
   return <>
     <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setActiveSection('resumen'); setOpen(true); notifyBillingActive() }} className="sidebar-module-access billing" aria-label="Abrir facturación">
@@ -104,19 +111,20 @@ export default function FacturacionLauncher() {
     </button>
     {open && <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
       <section className="erp-modal-panel billing-modal" role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
-        <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Emisión, consulta y control fiscal</small></div><button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button></header>
-        <div className="billing-workspace">
+        <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Emisión · documentos · cobranza · Hacienda</small></div><button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button></header>
+        <div className="billing-workspace billing-workspace-organized">
           <nav className="billing-nav" aria-label="Secciones de facturación">
             <div className="billing-nav-title">Facturación</div>
-            {sections.map((section) => <button key={section.id} type="button" data-billing-section={section.id} className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => openSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span><small>{section.helper}</small></button>)}
+            {groups.map((group) => <div className="billing-nav-group" key={group}><span className="billing-nav-group-label">{group}</span>{sections.filter((section) => section.group === group).map((section) => <button key={section.id} type="button" data-billing-section={section.id} className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => openSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span><small>{section.helper}</small></button>)}</div>)}
           </nav>
           <main className="billing-content" data-active-billing-section={activeSection}>
-            <div className="billing-section-head"><div><span className="billing-section-kicker">{active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
+            <div className="billing-section-head"><div><span className="billing-section-kicker">{active.group} · {active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
             {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
             {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/>} 
-            {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa únicamente cliente, productos o servicios y pago. El sistema prepara el DTE automáticamente.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company}/></section>}
-            {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Facturas y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/></section>}
-            {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda</strong><small>Área técnica separada de la operación diaria.</small></div></div><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
+            {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa cliente, productos o servicios y condición de pago. El sistema prepara DTE-01 o DTE-03 según corresponda.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company}/></section>}
+            {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/></section>}
+            {activeSection === 'cobros' && <BillingReceivablesPanel supabase={supabase} company={company} onOpenCash={openCash}/>} 
+            {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, transmisión, diagnóstico y pruebas separadas de la facturación diaria.</small></div></div><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
           </main>
         </div>
       </section>
