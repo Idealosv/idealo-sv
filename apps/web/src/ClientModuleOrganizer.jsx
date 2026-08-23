@@ -28,6 +28,7 @@ export default function ClientModuleOrganizer() {
   const [counts, setCounts] = useState({})
 
   useEffect(() => {
+    let timers = []
     const refresh = () => {
       const isClients = document.querySelector('.erp-header h1')?.textContent?.trim() === 'Clientes'
       const nextModule = isClients ? document.querySelector('.clients-module') : null
@@ -37,11 +38,24 @@ export default function ClientModuleOrganizer() {
       setForm(nextForm)
       nextModule?.classList.toggle('client-form-open', Boolean(nextForm))
     }
-    refresh()
-    const observer = new MutationObserver(refresh)
-    observer.observe(document.body, { childList: true, subtree: true })
+    const schedule = () => {
+      timers.forEach(window.clearTimeout)
+      timers = [0, 60, 180, 400].map(delay => window.setTimeout(refresh, delay))
+    }
+    const onModule = (event) => {
+      if (event.detail === 'Clientes') schedule()
+      else refresh()
+    }
+    const onClick = (event) => {
+      if (event.target.closest('.idealo-main-menu-item,.clients-module button,.clients-module [role="tab"]')) schedule()
+    }
+    schedule()
+    window.addEventListener('idealo-module-change', onModule)
+    document.addEventListener('click', onClick)
     return () => {
-      observer.disconnect()
+      timers.forEach(window.clearTimeout)
+      window.removeEventListener('idealo-module-change', onModule)
+      document.removeEventListener('click', onClick)
       module?.classList.remove('client-form-open')
     }
   }, [module])
@@ -90,10 +104,7 @@ export default function ClientModuleOrganizer() {
     <div className="client-organizer">
       <div className="client-section-organizer">
         <div className="client-organizer-head">
-          <div>
-            <small>EXPEDIENTE DEL CLIENTE</small>
-            <strong>Completa una sección a la vez</strong>
-          </div>
+          <div><small>EXPEDIENTE DEL CLIENTE</small><strong>Completa una sección a la vez</strong></div>
           <span>{currentIndex + 1} de {TABS.length}</span>
         </div>
         <div className="client-organizer-tabs" role="tablist" aria-label="Secciones del cliente">
