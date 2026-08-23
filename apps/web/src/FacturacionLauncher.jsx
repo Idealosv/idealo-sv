@@ -1,27 +1,32 @@
 import { createClient } from '@supabase/supabase-js'
-import { useEffect, useState } from 'react'
-import FacturacionDte from './FacturacionDte.jsx'
-import SignerDiagnostic from './SignerDiagnostic.jsx'
-import ProcessedDtePanel from './ProcessedDtePanel.jsx'
-import DteTestPlan from './DteTestPlan.jsx'
-import Billing360Dashboard from './Billing360Dashboard.jsx'
+import { lazy, Suspense, useEffect, useState } from 'react'
+
+const FacturacionDte = lazy(() => import('./FacturacionDte.jsx'))
+const SignerDiagnostic = lazy(() => import('./SignerDiagnostic.jsx'))
+const ProcessedDtePanel = lazy(() => import('./ProcessedDtePanel.jsx'))
+const DteTestPlan = lazy(() => import('./DteTestPlan.jsx'))
+const Billing360Dashboard = lazy(() => import('./Billing360Dashboard.jsx'))
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: true } }) : null
 
 const sections = [
-  { id: 'resumen', label: 'Resumen', helper: 'Control de facturación' },
   { id: 'emitir', label: 'Nueva factura', helper: 'Cliente, productos y pago' },
   { id: 'documentos', label: 'Facturas', helper: 'Documentos y estados' },
+  { id: 'resumen', label: 'Resumen', helper: 'Control de facturación' },
   { id: 'hacienda', label: 'Hacienda', helper: 'Firma y control técnico' },
 ]
+
+function SectionLoader() {
+  return <div className="billing-section-loader" role="status">Cargando…</div>
+}
 
 export default function FacturacionLauncher() {
   const [session, setSession] = useState(null)
   const [company, setCompany] = useState(null)
   const [open, setOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState('resumen')
+  const [activeSection, setActiveSection] = useState('emitir')
   const [contextClient, setContextClient] = useState({ id: '', name: '' })
 
   useEffect(() => {
@@ -36,7 +41,7 @@ export default function FacturacionLauncher() {
     supabase.rpc('get_my_companies').then(async ({ data }) => {
       const id = data?.[0]?.id
       if (!id) return setCompany(null)
-      const { data: row } = await supabase.from('companies').select('*').eq('id', id).single()
+      const { data: row } = await supabase.from('companies').select('id,name,legal_name,nit,nrc,activity_code,business_activity,trade_name,department_code,municipality_code,district_code,address,phone,email,establishment_code,point_of_sale_code').eq('id', id).single()
       setCompany(row || null)
     })
   }, [session])
@@ -46,33 +51,18 @@ export default function FacturacionLauncher() {
       const detail = event.detail || {}
       if (detail.target !== 'billing') return
       setContextClient({ id: detail.clientId || '', name: detail.clientName || '' })
-      setActiveSection('emitir'); setOpen(true)
+      setActiveSection('emitir')
+      setOpen(true)
     }
     window.addEventListener('idealo-open-client-context', openClientContext)
     return () => window.removeEventListener('idealo-open-client-context', openClientContext)
   }, [])
 
-  useEffect(() => {
-    if (!open || activeSection !== 'emitir' || !contextClient.id) return undefined
-    let attempts = 0
-    const timer = window.setInterval(() => {
-      attempts += 1
-      const option = document.querySelector(`.facturacion-dte select option[value="${contextClient.id}"]`)
-      const select = option?.parentElement
-      if (select) {
-        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
-        if (setter) setter.call(select, contextClient.id); else select.value = contextClient.id
-        select.dispatchEvent(new Event('change', { bubbles: true })); window.clearInterval(timer)
-      } else if (attempts >= 30) window.clearInterval(timer)
-    }, 100)
-    return () => window.clearInterval(timer)
-  }, [open, activeSection, contextClient.id])
-
   if (!session || !company) return null
   const active = sections.find((item) => item.id === activeSection) || sections[0]
 
   return <>
-    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setActiveSection('resumen'); setOpen(true) }} className="sidebar-module-access billing" aria-label="Abrir facturación">
+    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setActiveSection('emitir'); setOpen(true) }} className="sidebar-module-access billing" aria-label="Abrir facturación">
       <span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span>
     </button>
     {open && <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
@@ -86,10 +76,12 @@ export default function FacturacionLauncher() {
           <main className="billing-content">
             <div className="billing-section-head"><div><span className="billing-section-kicker">{active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
             {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
-            {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company}/>} 
-            {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa únicamente cliente, productos o servicios y pago. El sistema prepara el DTE automáticamente.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company}/></section>}
-            {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Facturas</strong><small>Consulta documentos emitidos, estados y respuestas de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company}/></section>}
-            {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda</strong><small>Área técnica separada de la operación diaria.</small></div></div><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
+            <Suspense fallback={<SectionLoader/>}>
+              {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card"><FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/></section>}
+              {activeSection === 'documentos' && <section className="billing-section-card"><ProcessedDtePanel supabase={supabase} company={company}/></section>}
+              {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company}/>} 
+              {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><Suspense fallback={<SectionLoader/>}><DteTestPlan supabase={supabase} company={company}/></Suspense></div></details></section>}
+            </Suspense>
           </main>
         </div>
       </section>
