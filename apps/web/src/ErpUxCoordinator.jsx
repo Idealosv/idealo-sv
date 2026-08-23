@@ -15,6 +15,11 @@ const SEARCH_SELECTORS = [
   '.timeline-item',
 ]
 
+const SEARCHABLE_MODULES = new Set([
+  'Clientes', 'Productos', 'Cotizaciones', 'Producción', 'Inventario',
+  'Facturación', 'Proveedores', 'Compras', 'Caja', 'Agenda', 'Reportes',
+])
+
 const RELATED = {
   Dashboard: ['Clientes','Facturación','Caja','Reportes'],
   Clientes: ['Cotizaciones','Facturación','Agenda'],
@@ -45,14 +50,20 @@ export default function ErpUxCoordinator() {
   const [activeModule, setActiveModule] = useState('Dashboard')
   const [panel, setPanel] = useState(null)
   const [query, setQuery] = useState('')
+  const [candidateCount, setCandidateCount] = useState(0)
 
   useEffect(() => {
-    const detect = () => setPanel(visiblePanel())
+    const detect = () => {
+      const nextPanel = visiblePanel()
+      setPanel(nextPanel)
+      setCandidateCount(nextPanel ? uniqueCandidates(nextPanel).length : 0)
+    }
     const onModule = (event) => {
       setActiveModule(event.detail || 'Dashboard')
       setQuery('')
       window.setTimeout(detect, 0)
       window.setTimeout(detect, 80)
+      window.setTimeout(detect, 300)
     }
 
     detect()
@@ -69,6 +80,7 @@ export default function ErpUxCoordinator() {
   useEffect(() => {
     if (!panel) return
     const candidates = uniqueCandidates(panel)
+    setCandidateCount(candidates.length)
     const normalized = query.trim().toLowerCase()
     candidates.forEach((node) => {
       const matches = !normalized || node.textContent.toLowerCase().includes(normalized)
@@ -79,11 +91,10 @@ export default function ErpUxCoordinator() {
   }, [panel, query])
 
   if (!panel) return null
-  const candidates = uniqueCandidates(panel)
-  const showSearch = candidates.length >= 6
   const related = RELATED[activeModule] || []
   const head = panel.querySelector('.erp-modal-head')
   if (!head) return null
+  const showSearch = SEARCHABLE_MODULES.has(activeModule)
 
   const openRelated = (name) => {
     if (!name) return
@@ -94,9 +105,13 @@ export default function ErpUxCoordinator() {
   }
 
   return createPortal(<div className="erp-global-tools">
-    {showSearch && <label className="erp-global-search"><span>Buscar</span><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder={`Buscar en ${activeModule.toLowerCase()}…`} /></label>}
+    {showSearch && <label className="erp-global-search">
+      <span>Buscar</span>
+      <input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder={`Buscar en ${activeModule.toLowerCase()}…`} />
+      <small>{candidateCount ? `${candidateCount} registro${candidateCount === 1 ? '' : 's'}` : 'Buscador listo'}</small>
+    </label>}
     {related.length > 0 && <select className="erp-related-select" value="" onChange={(event)=>openRelated(event.target.value)} aria-label="Ir a módulo relacionado">
-      <option value="">Ir a…</option>
+      <option value="">Ir a módulo…</option>
       {related.map((name)=><option value={name} key={name}>{name}</option>)}
     </select>}
   </div>, head)
