@@ -79,7 +79,10 @@ export default function ErpUxCoordinator() {
 
   const openRelated = (name) => {
     const button = [...document.querySelectorAll('.idealo-main-menu-item')].find((item) => item.textContent.trim() === name)
-    if (button) button.click()
+    if (!button) return
+    const close = panel.querySelector('.erp-modal-close')
+    if (close) close.click()
+    window.setTimeout(() => button.click(), 40)
   }
 
   return createPortal(<div className="erp-global-tools">
