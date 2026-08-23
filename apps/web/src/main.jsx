@@ -13,17 +13,8 @@ import MainMenuController from './MainMenuController.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import FormAccordionManager from './FormAccordionManager.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
-import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
+import ModuleRuntime from './ModuleRuntime.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
-import MobileFieldTools from './MobileFieldTools.jsx'
-import MobileSalesFieldBlock from './MobileSalesFieldBlock.jsx'
-import MobileClient360 from './MobileClient360.jsx'
-import Client360Enhancer from './Client360Enhancer.jsx'
-import CommercialAutomationCenter from './CommercialAutomationCenter.jsx'
-import ClientCrmPipeline from './ClientCrmPipeline.jsx'
-import ClientModuleOrganizer from './ClientModuleOrganizer.jsx'
-import Client360TimelineHost from './Client360TimelineHost.jsx'
-import ClientVatCardScannerHost from './ClientVatCardScannerHost.jsx'
 import './styles.css'
 import './premium.css'
 import './executive.css'
@@ -88,16 +79,7 @@ createRoot(document.getElementById('root')).render(
     <Safe label="Menú principal"><MainMenuController /></Safe>
     <Safe label="Coordinación UX"><ErpUxCoordinator /></Safe>
     <Safe label="Formularios"><FormAccordionManager /></Safe>
-    <Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost /></Safe>
     <Safe label="App móvil"><MobileAppHost /></Safe>
-    <Safe label="Herramientas móviles"><MobileFieldTools /></Safe>
-    <Safe label="Ventas móviles"><MobileSalesFieldBlock /></Safe>
-    <Safe label="Clientes móvil"><MobileClient360 /></Safe>
-    <Safe label="Clientes 360"><Client360Enhancer /></Safe>
-    <Safe label="Automatización comercial"><CommercialAutomationCenter /></Safe>
-    <Safe label="CRM"><ClientCrmPipeline /></Safe>
-    <Safe label="Organizador clientes"><ClientModuleOrganizer /></Safe>
-    <Safe label="Historial cliente"><Client360TimelineHost /></Safe>
-    <Safe label="Escáner fiscal"><ClientVatCardScannerHost /></Safe>
+    <Safe label="Runtime por módulo"><ModuleRuntime /></Safe>
   </StrictMode>,
 )
