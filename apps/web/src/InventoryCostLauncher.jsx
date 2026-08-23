@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { ConsumptionCostsModule, InventoryModule, ProfitabilityModule } from './InventoryCostModules.jsx'
+import { ConsumptionCostsModule, ProfitabilityModule } from './InventoryCostModules.jsx'
+import Inventory360Module from './Inventory360Module.jsx'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -14,12 +15,12 @@ export default function InventoryCostLauncher(){
   const tabs=['Inventario','Consumo y costos','Rentabilidad']
   return <>
     <button type="button" onClick={()=>setOpen(true)} className="sidebar-module-access inventory" aria-label="Abrir inventario y costos">
-      <span className="module-glyph">▦</span><span className="module-copy"><span>Inventario y costos</span><small>Almacén · Consumo · Rentabilidad</small></span>
+      <span className="module-glyph">▦</span><span className="module-copy"><span>Inventario</span><small>Stock · Kardex · Reservas · Costos</small></span>
     </button>
     {open&&<div className="erp-modal-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}><section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Inventario, costos y rentabilidad" onMouseDown={e=>e.stopPropagation()}>
-      <header className="erp-modal-head"><div><strong>Inventario, costos y rentabilidad</strong><small>Compra interna → almacén → consumo por orden → utilidad real</small></div><button type="button" className="erp-modal-close" onClick={()=>setOpen(false)}>×</button></header>
+      <header className="erp-modal-head"><div><strong>Inventario 360</strong><small>Compra → entrada → bodega → reserva → producción → consumo → costo real</small></div><button type="button" className="erp-modal-close" onClick={()=>setOpen(false)}>×</button></header>
       <nav className="erp-module-tabs">{tabs.map(name=><button type="button" key={name} onClick={()=>setTab(name)} className={`erp-module-tab ${tab===name?'active':''}`}>{name}</button>)}</nav>
-      <div className="erp-modal-body commercial-module">{tab==='Inventario'&&<InventoryModule company={company} supabase={supabase}/>} {tab==='Consumo y costos'&&<ConsumptionCostsModule company={company} supabase={supabase}/>} {tab==='Rentabilidad'&&<ProfitabilityModule company={company} supabase={supabase}/>}</div>
+      <div className="erp-modal-body commercial-module">{tab==='Inventario'&&<Inventory360Module company={company} supabase={supabase}/>} {tab==='Consumo y costos'&&<ConsumptionCostsModule company={company} supabase={supabase}/>} {tab==='Rentabilidad'&&<ProfitabilityModule company={company} supabase={supabase}/>}</div>
     </section></div>}
   </>
 }
