@@ -23,6 +23,7 @@ create index if not exists purchase_items_inventory_order_idx
   where inventory_item_id is not null;
 
 -- Reposición neta: descuenta compras ya abiertas para no seguir sugiriendo lo que ya se pidió.
+-- Conserva el orden original de columnas de la vista y agrega trazabilidad al final.
 create or replace view public.inventory_replenishment_needs
 with (security_invoker=true)
 as
@@ -68,9 +69,10 @@ with production_need as (
 )
 select c.inventory_item_id,c.company_id,c.sku,c.name,c.unit,c.current_stock,c.reserved_stock,c.available_stock,
        c.minimum_stock,c.reorder_point,c.target_stock,c.maximum_stock,c.average_cost,c.last_cost,c.replacement_cost,
-       c.supplier_id,c.supplier_name,c.work_order_id,c.production_shortage,c.open_purchase_qty,
+       c.supplier_id,c.supplier_name,c.production_shortage,
        greatest(c.gross_need-c.open_purchase_qty,0)::numeric(18,3) as suggested_qty,
-       c.estimated_unit_cost
+       c.estimated_unit_cost,
+       c.work_order_id,c.open_purchase_qty
 from calculated c
 where greatest(c.gross_need-c.open_purchase_qty,0)>0;
 
