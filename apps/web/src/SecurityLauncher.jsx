@@ -1,8 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
-const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
+import { supabase } from './lib/supabase.js'
 export default function SecurityLauncher(){
  const [open,setOpen]=useState(false),[session,setSession]=useState(null),[company,setCompany]=useState(null),[members,setMembers]=useState([]),[msg,setMsg]=useState('')
  useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>setSession(data.session||null));const {data:l}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>l.subscription.unsubscribe()},[])
