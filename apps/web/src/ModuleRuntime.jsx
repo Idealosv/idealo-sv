@@ -36,26 +36,20 @@ const moduleGroup = (name = '') => {
 }
 
 export default function ModuleRuntime() {
-  const [loaded, setLoaded] = useState(() => new Set())
+  const [activeGroup, setActiveGroup] = useState('')
 
   useEffect(() => {
-    const load = (name) => {
+    const activate = (name) => {
       const group = moduleGroup(name)
-      if (!group) return
-      setLoaded((current) => {
-        if (current.has(group)) return current
-        const next = new Set(current)
-        next.add(group)
-        return next
-      })
+      if (group) setActiveGroup((current) => current === group ? current : group)
     }
 
-    const onModuleChange = (event) => load(event.detail)
+    const onModuleChange = (event) => activate(event.detail)
     const onClientContext = (event) => {
       const target = event.detail?.target
-      if (target === 'billing') load('Facturación')
-      else if (target === 'commercial') load('Cotizaciones')
-      else if (target === 'clients') load('Clientes')
+      if (target === 'billing') activate('Facturación')
+      else if (target === 'commercial') activate('Cotizaciones')
+      else if (target === 'clients') activate('Clientes')
     }
 
     window.addEventListener('idealo-module-change', onModuleChange)
@@ -67,16 +61,16 @@ export default function ModuleRuntime() {
   }, [])
 
   return <Suspense fallback={null}>
-    {loaded.has('commercial') && <CommercialLauncher/>}
-    {loaded.has('procurement') && <OperationsFinanceLauncher/>}
-    {loaded.has('inventory') && <InventoryCostLauncher/>}
-    {loaded.has('financial') && <FinancialDashboardLauncher/>}
-    {loaded.has('planning') && <ProductionCalendarLauncher/>}
-    {loaded.has('billing') && <FacturacionLauncher/>}
-    {loaded.has('dashboard') && <ExecutiveDashboardHost/>}
-    {loaded.has('mobile') && <><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/></>}
-    {loaded.has('clients') && <><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></>}
-    {loaded.has('hr') && <HrPayrollLauncher/>}
-    {loaded.has('quality') && <QualityControlLauncher/>}
+    {activeGroup === 'commercial' && <CommercialLauncher/>}
+    {activeGroup === 'procurement' && <OperationsFinanceLauncher/>}
+    {activeGroup === 'inventory' && <InventoryCostLauncher/>}
+    {activeGroup === 'financial' && <FinancialDashboardLauncher/>}
+    {activeGroup === 'planning' && <ProductionCalendarLauncher/>}
+    {activeGroup === 'billing' && <FacturacionLauncher/>}
+    {activeGroup === 'dashboard' && <ExecutiveDashboardHost/>}
+    {activeGroup === 'mobile' && <><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/></>}
+    {activeGroup === 'clients' && <><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></>}
+    {activeGroup === 'hr' && <HrPayrollLauncher/>}
+    {activeGroup === 'quality' && <QualityControlLauncher/>}
   </Suspense>
 }
