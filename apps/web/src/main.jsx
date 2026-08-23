@@ -16,6 +16,7 @@ import MainMenuController from './MainMenuController.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import FormAccordionManager from './FormAccordionManager.jsx'
 import FormSimplificationManager from './FormSimplificationManager.jsx'
+import BillingConsumerClientEnhancer from './BillingConsumerClientEnhancer.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
 import ModuleRuntime from './ModuleRuntime.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
@@ -78,6 +79,7 @@ createRoot(document.getElementById('root')).render(
     <Safe label="Agenda de producción"><ProductionCalendarLauncher /></Safe>
     <Safe label="Control de calidad"><QualityControlLauncher /></Safe>
     <Safe label="Facturación"><FacturacionLauncher /></Safe>
+    <Safe label="Clientes en factura"><BillingConsumerClientEnhancer /></Safe>
     <Safe label="Asistente IA"><AssistantLauncher /></Safe>
     <Safe label="Seguridad"><SecurityLauncher /></Safe>
     <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge /></Safe>
