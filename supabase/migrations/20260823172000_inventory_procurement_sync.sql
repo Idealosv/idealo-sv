@@ -35,7 +35,7 @@ as
 with production_shortage as (
   select pm.company_id,
          pm.inventory_item_id,
-         max(pm.work_order_id) filter (where pm.work_order_id is not null) as work_order_id,
+         (array_agg(pm.work_order_id) filter (where pm.work_order_id is not null))[1] as work_order_id,
          sum(greatest(coalesce(pm.required_qty,0)-coalesce(pm.reserved_qty,0),0)) as production_shortage
   from public.production_material_requirements pm
   join public.work_orders wo on wo.id=pm.work_order_id
