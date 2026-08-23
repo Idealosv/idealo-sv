@@ -5,6 +5,7 @@ import ExecutiveDashboard from './ExecutiveDashboard.jsx'
 import DashboardIntelligence from './DashboardIntelligence.jsx'
 import DashboardAdvancedInsights from './DashboardAdvancedInsights.jsx'
 import DashboardOwnerDailyControl from './DashboardOwnerDailyControl.jsx'
+import FinancialAlertsDashboard from './FinancialAlertsDashboard.jsx'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -16,8 +17,15 @@ export default function ExecutiveDashboardHost(){
   const [visible,setVisible]=useState(true)
 
   useEffect(()=>{
-    const find=()=>setContent(document.querySelector('.erp-content'))
-    find();const observer=new MutationObserver(find);observer.observe(document.body,{childList:true,subtree:true});return()=>observer.disconnect()
+    let attempts=0
+    const find=()=>{
+      const target=document.querySelector('.erp-content')
+      if(target){setContent(target);return true}
+      return false
+    }
+    if(find())return undefined
+    const timer=window.setInterval(()=>{attempts+=1;if(find()||attempts>=40)window.clearInterval(timer)},250)
+    return()=>window.clearInterval(timer)
   },[])
 
   useEffect(()=>{
@@ -33,5 +41,5 @@ export default function ExecutiveDashboardHost(){
   },[])
 
   if(!content||!visible||!company||!supabase)return null
-  return createPortal(<div className="executive-dashboard-host"><DashboardOwnerDailyControl company={company} supabase={supabase}/><DashboardIntelligence company={company} supabase={supabase}/><DashboardAdvancedInsights company={company} supabase={supabase}/><ExecutiveDashboard company={company} supabase={supabase}/></div>,content)
+  return createPortal(<div className="executive-dashboard-host"><FinancialAlertsDashboard company={company} supabase={supabase}/><DashboardOwnerDailyControl company={company} supabase={supabase}/><DashboardIntelligence company={company} supabase={supabase}/><DashboardAdvancedInsights company={company} supabase={supabase}/><ExecutiveDashboard company={company} supabase={supabase}/></div>,content)
 }
