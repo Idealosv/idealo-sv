@@ -1,34 +1,27 @@
-import { useEffect, useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { useEffect, useMemo, useState } from 'react'
 
-export default function AssistantLauncher() {
-  const [open, setOpen] = useState(false)
+const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
+const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
+const today=()=>new Date().toISOString().slice(0,10)
+const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(v||0))
 
-  useEffect(() => {
-    const onOpen = (event) => {
-      const detail = event.detail || {}
-      if (detail.target !== 'assistant') return
-      setOpen(true)
-    }
-    window.addEventListener('idealo-open-module', onOpen)
-    return () => window.removeEventListener('idealo-open-module', onOpen)
-  }, [])
-
-  if (!open) return null
-
-  return <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
-    <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente IA" onMouseDown={(event) => event.stopPropagation()}>
-      <header className="erp-modal-head">
-        <div><strong>Asistente IA</strong><small>Centro inteligente de IDEALO SV</small></div>
-        <button type="button" className="erp-modal-close" onClick={() => setOpen(false)} aria-label="Cerrar">×</button>
-      </header>
-      <div className="erp-modal-body">
-        <section className="panel module-placeholder-card">
-          <p className="form-kicker">ASISTENTE IA</p>
-          <h2>Centro de asistencia</h2>
-          <p>El módulo ya tiene un acceso propio y estable dentro del ERP. La conexión con un modelo de IA todavía no está configurada, por lo que no se muestran acciones ficticias ni respuestas simuladas.</p>
-          <div className="feedback success">Navegación y estructura listas para integrar funciones de IA reales sin mezclar este módulo con otros procesos.</div>
-        </section>
-      </div>
-    </section>
-  </div>
+export default function AssistantLauncher(){
+ const [open,setOpen]=useState(false),[session,setSession]=useState(null),[company,setCompany]=useState(null),[data,setData]=useState({orders:[],ar:[],ap:[],inventory:[],agenda:[],cash:[]}),[loading,setLoading]=useState(false),[message,setMessage]=useState('')
+ useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>setSession(data.session||null));const {data:l}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>l.subscription.unsubscribe()},[])
+ useEffect(()=>{const fn=e=>{if((e.detail||{}).target==='assistant')setOpen(true)};window.addEventListener('idealo-open-module',fn);return()=>window.removeEventListener('idealo-open-module',fn)},[])
+ useEffect(()=>{if(!session||!supabase)return;supabase.rpc('get_my_companies').then(({data})=>setCompany(data?.[0]||null))},[session])
+ useEffect(()=>{if(!open||!company)return;let live=true;(async()=>{setLoading(true);setMessage('');const r=await Promise.all([
+  supabase.from('work_orders').select('id,number,title,status,due_at,total').eq('company_id',company.id),
+  supabase.from('accounts_receivable').select('id,amount_total,amount_paid,status,due_date').eq('company_id',company.id),
+  supabase.from('accounts_payable').select('id,amount_total,amount_paid,status,due_date').eq('company_id',company.id),
+  supabase.from('inventory_items').select('id,name,current_stock,minimum_stock,active').eq('company_id',company.id).eq('active',true),
+  supabase.from('production_schedule_events').select('id,title,status,priority,scheduled_start').eq('company_id',company.id).gte('scheduled_start',`${today()}T00:00:00`).order('scheduled_start').limit(50),
+  supabase.from('cash_account_balances').select('cash_account_id,name,current_balance,active').eq('company_id',company.id)
+ ]);if(!live)return;const err=r.find(x=>x.error)?.error;if(err)setMessage(err.message);else setData({orders:r[0].data||[],ar:r[1].data||[],ap:r[2].data||[],inventory:r[3].data||[],agenda:r[4].data||[],cash:r[5].data||[]});setLoading(false)})();return()=>{live=false}},[open,company?.id])
+ const insights=useMemo(()=>{const now=today(),openStatus=x=>!['PAID','CANCELLED'].includes(x.status),late=data.orders.filter(x=>x.due_at&&x.due_at.slice(0,10)<now&&!['DELIVERED','COMPLETED','CANCELLED'].includes(x.status)),ar=data.ar.filter(x=>openStatus(x)&&x.due_date&&x.due_date<now),ap=data.ap.filter(x=>openStatus(x)&&x.due_date&&x.due_date<now),low=data.inventory.filter(x=>Number(x.current_stock||0)<=Number(x.minimum_stock||0)),urgent=data.agenda.filter(x=>x.priority==='URGENT'&&x.status!=='COMPLETED'),cash=data.cash.filter(x=>x.active!==false).reduce((s,x)=>s+Number(x.current_balance||0),0),arValue=ar.reduce((s,x)=>s+Math.max(0,Number(x.amount_total||0)-Number(x.amount_paid||0)),0),apValue=ap.reduce((s,x)=>s+Math.max(0,Number(x.amount_total||0)-Number(x.amount_paid||0)),0);const list=[];if(late.length)list.push({level:'critical',title:`${late.length} órdenes atrasadas`,detail:'Priorizar producción y reprogramar entregas.',target:'planning'});if(ar.length)list.push({level:'critical',title:`CxC vencida ${money(arValue)}`,detail:'Cobrar primero los saldos vencidos para proteger caja.',target:'financial'});if(ap.length)list.push({level:'important',title:`CxP vencida ${money(apValue)}`,detail:'Revisar pagos y proveedores antes de generar recargos.',target:'procurement'});if(low.length)list.push({level:'important',title:`${low.length} materiales en mínimo`,detail:'Generar reposición antes de bloquear producción.',target:'inventory'});if(urgent.length)list.push({level:'important',title:`${urgent.length} actividades urgentes`,detail:'Revisar agenda y responsables del día.',target:'planning'});if(cash<0)list.unshift({level:'critical',title:`Caja negativa ${money(cash)}`,detail:'Revisar movimientos, cobros y pagos inmediatamente.',target:'financial'});return{list,cash,late,ar,ap,low,urgent}},[data])
+ const go=target=>{setOpen(false);window.dispatchEvent(new CustomEvent('idealo-open-module',{detail:{target}}))}
+ if(!open)return null
+ return <div className="erp-modal-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}><section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente IA" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>Asistente IA</strong><small>Prioridades inteligentes basadas en datos reales del ERP</small></div><button type="button" className="erp-modal-close" onClick={()=>setOpen(false)}>×</button></header><div className="erp-modal-body"><section className="panel"><div className="clients-titlebar"><div><p className="form-kicker">ASISTENTE OPERATIVO</p><h2>Qué requiere atención ahora</h2><p>Analiza caja, cobranza, pagos, inventario, producción y agenda. No simula respuestas de un modelo externo.</p></div><span className={insights.list.some(x=>x.level==='critical')?'status dte-pending':'status dte-ready'}>{insights.list.length} prioridades</span></div>{message&&<p className="feedback error">{message}</p>}{loading?<div className="empty-state"><strong>Analizando ERP…</strong></div>:<><div className="metric-grid"><article className="metric-card"><small>Caja disponible</small><strong>{money(insights.cash)}</strong></article><article className="metric-card"><small>OT atrasadas</small><strong>{insights.late.length}</strong></article><article className="metric-card"><small>CxC vencidas</small><strong>{insights.ar.length}</strong></article><article className="metric-card"><small>Stock crítico</small><strong>{insights.low.length}</strong></article></div><div className="schedule-list">{insights.list.map((x,i)=><article className="schedule-card" key={`${x.title}-${i}`}><div><strong>{x.title}</strong><small>{x.detail}</small></div><button type="button" className={x.level==='critical'?'':'secondary-button'} onClick={()=>go(x.target)}>Abrir módulo</button></article>)}{!insights.list.length&&<div className="empty-state"><strong>Sin alertas críticas</strong><p>Los principales indicadores operativos están bajo control.</p></div>}</div></>}</section><section className="panel"><p className="form-kicker">SIGUIENTE ETAPA</p><h3>IA generativa</h3><p>La estructura ya queda preparada para conectar un modelo real posteriormente. Hasta entonces, este asistente solo muestra recomendaciones calculadas con datos verificables del ERP.</p></section></div></section></div>
 }
