@@ -11,7 +11,6 @@ const forbidText=(text,token,label)=>{if(text.includes(token))throw new Error(`$
 const security=read('apps/web/src/SecurityLauncher.jsx')
 requireText(security,"select('company_id,user_id,role,created_at')",'Seguridad ↔ company_members')
 forbidText(security,"select('id,user_id,role,active,created_at')",'Seguridad ↔ company_members')
-forbidText(security,"from '@supabase/supabase-js'",'Seguridad singleton')
 
 const receivables=read('apps/web/src/BillingReceivablesPanel.jsx')
 forbidText(receivables,'source_type','CxC ↔ accounts_receivable')
@@ -38,6 +37,9 @@ for(const relative of [
   'apps/web/src/HrPayrollLauncher.jsx',
   'apps/web/src/ProductionCalendarLauncher.jsx',
   'apps/web/src/SecurityLauncher.jsx',
+  'apps/web/src/AssistantLauncher.jsx',
+  'apps/web/src/QualityControlLauncher.jsx',
+  'apps/web/src/MobileAppHost.jsx',
 ]){
   const source=read(relative)
   requireText(source,"from './lib/supabase.js'",`${relative} singleton Supabase`)
@@ -54,4 +56,8 @@ for(const table of ['work_orders','finished_products','accounts_receivable','cus
   requireText(permissions,`public.${table}`,`Permiso ${table}`)
 }
 
-console.log('OK auditoría maestra: esquema, permisos, CORS, PWA y singleton Supabase')
+const integrity=read('supabase/migrations/20260823210000_financial_integrity_guards.sql')
+requireText(integrity,'accounts_receivable_paid_not_over_total','Integridad CxC')
+requireText(integrity,'accounts_payable_paid_not_over_total','Integridad CxP')
+
+console.log('OK auditoría maestra: esquema, permisos, integridad, CORS, PWA y singleton Supabase')
