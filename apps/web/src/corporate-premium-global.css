@@ -1,0 +1,155 @@
+/* IDEALO SV · Opción A — Corporativo Premium global
+   Negro + blanco + gris como base. Naranja reservado a acentos y acciones primarias. */
+:root{
+  --corp-black:#111318;
+  --corp-black-deep:#090b0e;
+  --corp-black-soft:#1b1f25;
+  --corp-white:#ffffff;
+  --corp-white-soft:#f8f9fb;
+  --corp-bg:#eef1f4;
+  --corp-gray-50:#f5f6f8;
+  --corp-gray-100:#e5e9ee;
+  --corp-gray-200:#d2d8df;
+  --corp-gray-400:#9aa3ad;
+  --corp-gray-600:#66717d;
+  --corp-gray-800:#313841;
+  --corp-orange:#f36c21;
+  --corp-orange-hover:#dc5d16;
+  --corp-shadow:0 10px 28px rgba(17,19,24,.07);
+}
+
+/* Estructura principal */
+.erp-shell{background:var(--corp-bg)!important;color:var(--corp-black)!important}
+.erp-content{background:var(--corp-bg)!important;color:var(--corp-black)!important}
+.erp-sidebar{background:linear-gradient(180deg,var(--corp-black) 0%,var(--corp-black-deep) 100%)!important;border-right:1px solid #252b32!important;box-shadow:12px 0 30px rgba(0,0,0,.10)!important}
+.erp-sidebar .brand,.erp-sidebar .company-badge strong{color:#fff!important}
+.company-badge{background:#15191e!important;border-color:#30363d!important;box-shadow:none!important}
+.company-badge small{color:#a7afb8!important}
+.company-badge>span,.user-chip>span{background:var(--corp-orange)!important;color:#fff!important;border:0!important}
+
+/* Menú: naranja solo como indicador del módulo activo */
+.nav-item{color:#d0d5db!important;background:transparent!important;border-radius:8px!important}
+.nav-item span{color:#9ca3aa!important}
+.nav-item:hover{color:#fff!important;background:#1a1f25!important}
+.nav-item.active{color:#fff!important;background:#20252c!important;box-shadow:inset 3px 0 var(--corp-orange)!important}
+.nav-item.active span{color:var(--corp-orange)!important}
+.sidebar-logout{color:#f3f4f6!important;border-color:#414851!important;background:#11151a!important}
+.sidebar-logout:hover{background:#1c2229!important}
+
+/* Cabecera y superficies */
+.erp-header{background:var(--corp-white)!important;border:1px solid var(--corp-gray-200)!important;border-radius:12px!important;padding:16px 18px!important;margin-bottom:24px!important;box-shadow:var(--corp-shadow)!important}
+.erp-header h1{color:var(--corp-black)!important}
+.user-chip{background:#fff!important;border-color:var(--corp-gray-200)!important;color:var(--corp-black)!important}
+.user-chip small{color:var(--corp-gray-600)!important}
+.welcome-strip,.panel,.metric-card,.module-preview,.client-form-full,.clients-directory,.client360,.crm360,.automation-card,.erp-modal-panel .panel{background:var(--corp-white)!important;color:var(--corp-black)!important;border:1px solid var(--corp-gray-200)!important;box-shadow:var(--corp-shadow)!important}
+.welcome-strip{background:#fff!important}
+.metric-card span,.form-kicker,.eyebrow{color:var(--corp-orange)!important}
+
+/* Títulos y textos */
+.erp-content h1,.erp-content h2,.erp-content h3,.erp-content h4,.erp-modal-panel h1,.erp-modal-panel h2,.erp-modal-panel h3,.erp-modal-panel h4{color:var(--corp-black)!important}
+.erp-content p,.erp-content small,.erp-modal-panel p,.erp-modal-panel small{color:var(--corp-gray-600)}
+
+/* Formularios globales: bordes oscuros y consistentes */
+.erp-content input:not([type="checkbox"]):not([type="radio"]),
+.erp-content select,
+.erp-content textarea,
+.erp-modal-panel input:not([type="checkbox"]):not([type="radio"]),
+.erp-modal-panel select,
+.erp-modal-panel textarea,
+.field input,.field select,.field textarea{
+  background:#fff!important;
+  color:var(--corp-black)!important;
+  border:1.5px solid #727c87!important;
+  border-radius:8px!important;
+  box-shadow:none!important;
+}
+.erp-content input:hover,.erp-content select:hover,.erp-content textarea:hover,.erp-modal-panel input:hover,.erp-modal-panel select:hover,.erp-modal-panel textarea:hover{border-color:#4d5660!important}
+.erp-content input:focus,.erp-content select:focus,.erp-content textarea:focus,.erp-modal-panel input:focus,.erp-modal-panel select:focus,.erp-modal-panel textarea:focus{border-color:var(--corp-black)!important;box-shadow:0 0 0 2px rgba(17,19,24,.10)!important;outline:none!important}
+fieldset,.form-section,.dte-section,.client360-section,.crm360-col{border-color:#aab2bb!important;background:#fff!important}
+
+/* Botones globales: negro por defecto, naranja solo acción primaria */
+.erp-content button,
+.erp-modal-panel button:not(.erp-modal-close):not(.erp-module-tab),
+.panel button,
+.module-preview button{
+  background:var(--corp-black)!important;
+  color:#fff!important;
+  border:1px solid var(--corp-black)!important;
+  box-shadow:none!important;
+}
+.erp-content button:hover:not(:disabled),.erp-modal-panel button:not(.erp-modal-close):not(.erp-module-tab):hover:not(:disabled){background:#242a31!important;border-color:#242a31!important}
+
+/* Acciones explícitamente primarias */
+.erp-content button[type="submit"],
+.erp-modal-panel button[type="submit"],
+.primary-action,
+.submit-button,
+button[data-primary="true"],
+.client-form-full .form-actions button[type="submit"]{
+  background:var(--corp-orange)!important;
+  color:#fff!important;
+  border-color:var(--corp-orange)!important;
+}
+.erp-content button[type="submit"]:hover:not(:disabled),.erp-modal-panel button[type="submit"]:hover:not(:disabled),.primary-action:hover:not(:disabled),.submit-button:hover:not(:disabled){background:var(--corp-orange-hover)!important;border-color:var(--corp-orange-hover)!important}
+
+/* Botones secundarios / cancelar / cerrar */
+.secondary-button,.text-button,.erp-modal-close,
+button[class*="secondary"],button[class*="cancel"],button[class*="close"]{
+  background:#fff!important;
+  color:var(--corp-black)!important;
+  border:1px solid #737d88!important;
+}
+.secondary-button:hover,.erp-modal-close:hover{background:var(--corp-gray-50)!important;color:var(--corp-black)!important}
+
+/* Pestañas: negro/gris, sin bloques naranjas */
+.erp-module-tabs,.client-organizer-tabs,.client-view-tabs{background:#fff!important;border-color:var(--corp-gray-200)!important}
+.erp-module-tab,.client-organizer-tabs button,.client-view-tabs button{
+  background:#fff!important;
+  color:var(--corp-gray-800)!important;
+  border:1px solid var(--corp-gray-200)!important;
+  box-shadow:none!important;
+}
+.erp-module-tab:hover,.client-organizer-tabs button:hover,.client-view-tabs button:hover{background:var(--corp-gray-50)!important;border-color:var(--corp-gray-400)!important}
+.erp-module-tab.active,.client-organizer-tabs button.active,.client-view-tabs button.active{
+  background:var(--corp-black)!important;
+  color:#fff!important;
+  border-color:var(--corp-black)!important;
+  box-shadow:none!important;
+}
+.client-organizer-tabs button b{background:#dfe4e9!important;color:#333a42!important}
+.client-organizer-tabs button.active b{background:#363d46!important;color:#fff!important}
+
+/* Navegación entre pasos: neutra/negra */
+.client-organizer-help button{background:#fff!important;color:var(--corp-black)!important;border:1px solid #737d88!important}
+.client-organizer-help button:last-child{background:var(--corp-black)!important;color:#fff!important;border-color:var(--corp-black)!important}
+.client-organizer-help button:disabled{background:#e5e7eb!important;color:#818a94!important;border-color:#c8cfd6!important}
+
+/* Tablas */
+.erp-content table,.erp-modal-panel table{background:#fff!important;border-color:var(--corp-gray-200)!important}
+.erp-content th,.erp-modal-panel th{background:#e8ecf0!important;color:#39414a!important;border-color:#cbd2d9!important}
+.erp-content td,.erp-modal-panel td{background:#fff!important;color:#20262d!important;border-color:#d6dce2!important}
+.erp-content tr:hover td,.erp-modal-panel tr:hover td{background:#f6f7f9!important}
+
+/* Modales */
+.erp-modal-backdrop{background:rgba(5,7,9,.72)!important}
+.erp-modal-panel{background:var(--corp-bg)!important;border-color:#5d6670!important}
+.erp-modal-head{background:var(--corp-black)!important;color:#fff!important;border-bottom-color:#333941!important}
+.erp-modal-head strong{color:#fff!important}
+.erp-modal-head small{color:#aeb6bf!important}
+.erp-modal-body{background:var(--corp-bg)!important}
+
+/* Tarjetas y secciones especiales */
+.ready-pill{background:#eef1f4!important;color:#38414a!important;border:1px solid #aab2bb!important}
+.production-card{border-top:3px solid var(--corp-black)!important}
+.production-status{background:#eceff2!important;color:#343b43!important}
+.sidebar-module-access{color:#d5d9de!important;border-color:#3a4149!important;background:transparent!important}
+.sidebar-module-access:hover{background:#1b2026!important;color:#fff!important}
+.sidebar-module-access .module-glyph{color:var(--corp-orange)!important}
+
+/* Naranja reservado a micro-acento visual */
+a:focus-visible,button:focus-visible{outline:2px solid var(--corp-orange)!important;outline-offset:2px}
+
+@media(max-width:760px){
+  .erp-header{border-radius:9px!important;padding:12px!important}
+  .erp-content{padding:14px!important}
+}
