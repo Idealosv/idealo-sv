@@ -1,4 +1,4 @@
-import { buildFacturaFromRecords } from './fiscal-profile.js'
+import { buildCreditoFiscalFromRecords, buildFacturaFromRecords } from './fiscal-profile.js'
 
 const TEST_ESTABLISHMENT_CODE = 'M001'
 const TEST_POINT_OF_SALE_CODE = 'P001'
@@ -9,10 +9,10 @@ function bearerToken(request) {
 }
 
 function padSequence(value) { return String(value).padStart(15, '0') }
-function nextControlNumber(lastControlNumber) {
+function nextControlNumber(lastControlNumber, dteType = '01') {
   const current = Number(String(lastControlNumber || '').split('-').at(-1) || 0)
   const next = Number.isFinite(current) ? current + 1 : 1
-  return `DTE-01-${TEST_ESTABLISHMENT_CODE}${TEST_POINT_OF_SALE_CODE}-${padSequence(next)}`
+  return `DTE-${dteType}-${TEST_ESTABLISHMENT_CODE}${TEST_POINT_OF_SALE_CODE}-${padSequence(next)}`
 }
 
 export async function createInvoiceDraft({ request, supabase }) {
@@ -23,12 +23,17 @@ export async function createInvoiceDraft({ request, supabase }) {
   if (userError || !userData?.user) { const error = new Error('La sesión no es válida o ya venció.'); error.statusCode = 401; throw error }
 
   const {
-    companyId, clientId = null, items, condicionOperacion = 1, totalLetras, observaciones = null,
+    companyId, clientId = null, dteType = '01', items, condicionOperacion = 1, totalLetras, observaciones = null,
     payment = null, numPagoElectronico = null, documentoRelacionado = null, ventaTercero = null,
-    apendice = null, ivaRete = 0, saldoFavor = 0, totalNoGravado = 0,
+    apendice = null, ivaRete = 0, ivaPerci = 0, reteRenta = 0, saldoFavor = 0, totalNoGravado = 0,
   } = request.body || {}
+  const type = String(dteType)
+  if (!['01', '03'].includes(type)) { const error = new Error('Tipo DTE no soportado. Usa 01 o 03.'); error.statusCode = 400; throw error }
   if (!companyId || !Array.isArray(items) || items.length === 0 || !totalLetras) {
-    const error = new Error('Faltan datos obligatorios para crear la factura DTE-01.'); error.statusCode = 400; throw error
+    const error = new Error(`Faltan datos obligatorios para crear el DTE-${type}.`); error.statusCode = 400; throw error
+  }
+  if (type === '03' && !clientId) {
+    const error = new Error('El Comprobante de Crédito Fiscal requiere seleccionar un cliente contribuyente.'); error.statusCode = 400; throw error
   }
 
   const { data: membership, error: membershipError } = await supabase.from('company_members').select('role').eq('company_id', companyId).eq('user_id', userData.user.id).maybeSingle()
@@ -45,10 +50,10 @@ export async function createInvoiceDraft({ request, supabase }) {
     client = data
   }
 
-  const { data: lastDocument, error: lastError } = await supabase.from('dte_documents').select('control_number').eq('company_id', companyId).eq('dte_type', '01').order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const { data: lastDocument, error: lastError } = await supabase.from('dte_documents').select('control_number').eq('company_id', companyId).eq('dte_type', type).order('created_at', { ascending: false }).limit(1).maybeSingle()
   if (lastError) throw lastError
 
-  const controlNumber = nextControlNumber(lastDocument?.control_number)
+  const controlNumber = nextControlNumber(lastDocument?.control_number, type)
   const testCompany = { ...company, establishment_code: TEST_ESTABLISHMENT_CODE, point_of_sale_code: TEST_POINT_OF_SALE_CODE }
   const normalizedItems = items.map((item) => ({
     descripcion: String(item.descripcion || '').trim(), cantidad: Number(item.cantidad), precioUni: Number(item.precioUni), montoDescu: Number(item.montoDescu || 0),
@@ -56,17 +61,20 @@ export async function createInvoiceDraft({ request, supabase }) {
     tipoVenta: item.tipoVenta || 'gravada', numeroDocumento: item.numeroDocumento || null, codTributo: item.codTributo || null,
   }))
 
-  const dte = buildFacturaFromRecords({
+  const common = {
     company: testCompany, client, items: normalizedItems, numeroControl: controlNumber,
     condicionOperacion: Number(condicionOperacion), totalLetras: String(totalLetras).trim(), observaciones: observaciones ? String(observaciones).trim() : null,
     payment, numPagoElectronico: numPagoElectronico || null, documentoRelacionado, ventaTercero, apendice,
     ivaRete: Number(ivaRete || 0), saldoFavor: Number(saldoFavor || 0), totalNoGravado: Number(totalNoGravado || 0),
-  })
+  }
+  const dte = type === '03'
+    ? buildCreditoFiscalFromRecords({ ...common, ivaPerci: Number(ivaPerci || 0), reteRenta: Number(reteRenta || 0) })
+    : buildFacturaFromRecords(common)
 
   const { data: document, error: insertError } = await supabase.from('dte_documents').insert({
-    company_id: companyId, client_id: client?.id || null, dte_type: '01', generation_code: dte.identificacion.codigoGeneracion,
+    company_id: companyId, client_id: client?.id || null, dte_type: type, generation_code: dte.identificacion.codigoGeneracion,
     control_number: dte.identificacion.numeroControl, environment: 'test', status: 'DRAFT', dte_payload: dte, created_by: userData.user.id,
-  }).select('id, client_id, generation_code, control_number, environment, status, created_at, dte_payload').single()
+  }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload').single()
   if (insertError) throw insertError
   return { ...document, transmissionAllowed: false, signingPrepared: true }
 }

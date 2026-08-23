@@ -1,4 +1,5 @@
 import { buildFacturaElectronica } from './factura-electronica.js'
+import { buildCreditoFiscal } from './credito-fiscal.js'
 
 const ISSUER_FIELDS = [
   ['nit', 'NIT'], ['nrc', 'NRC'], ['name', 'razón social'],
@@ -17,6 +18,13 @@ const RECEIVER_FIELDS = [
   ['address', 'dirección'], ['phone', 'teléfono'], ['email', 'correo'],
 ]
 
+const CCF_RECEIVER_FIELDS = [
+  ['name', 'nombre o razón social'], ['tax_id', 'NIT'], ['nrc', 'NRC'],
+  ['activity_code', 'código de actividad'], ['business_activity', 'actividad económica'],
+  ['department_code', 'departamento'], ['municipality_code', 'municipio'],
+  ['district_code', 'distrito'], ['address', 'dirección'], ['phone', 'teléfono'], ['email', 'correo'],
+]
+
 const digits = (value) => String(value || '').replace(/\D/g, '')
 const text = (value) => String(value || '').trim()
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value))
@@ -26,7 +34,6 @@ function validateIssuer(company = {}) {
   const nit = digits(company.nit)
   const nrc = digits(company.nrc)
   const phone = digits(company.phone)
-
   if (nit && ![9, 14].includes(nit.length)) errors.push('NIT debe contener 9 o 14 dígitos')
   if (nrc && (nrc.length < 1 || nrc.length > 8)) errors.push('NRC debe contener entre 1 y 8 dígitos')
   if (text(company.activity_code) && !/^\d{5,6}$/.test(text(company.activity_code))) errors.push('código de actividad inválido')
@@ -37,7 +44,16 @@ function validateIssuer(company = {}) {
   if (text(company.email) && !validEmail(company.email)) errors.push('correo inválido')
   if (text(company.establishment_code) && !/^[A-Z0-9]{4}$/i.test(text(company.establishment_code))) errors.push('código de establecimiento debe contener 4 caracteres alfanuméricos')
   if (text(company.point_of_sale_code) && !/^[A-Z0-9]{4}$/i.test(text(company.point_of_sale_code))) errors.push('código de punto de venta debe contener 4 caracteres alfanuméricos')
+  return errors
+}
 
+function validateCcfReceiver(client = {}) {
+  const errors = []
+  const nit = digits(client.tax_id)
+  const nrc = digits(client.nrc)
+  if (nit && ![9, 14].includes(nit.length)) errors.push('NIT del receptor debe contener 9 o 14 dígitos')
+  if (nrc && (nrc.length < 1 || nrc.length > 8)) errors.push('NRC del receptor debe contener entre 1 y 8 dígitos')
+  if (text(client.email) && !validEmail(client.email)) errors.push('correo del receptor inválido')
   return errors
 }
 
@@ -49,6 +65,7 @@ function readiness(record, fields, validator = null) {
 
 export const getIssuerReadiness = (company) => readiness(company, ISSUER_FIELDS, validateIssuer)
 export const getReceiverReadiness = (client) => readiness(client, RECEIVER_FIELDS)
+export const getCcfReceiverReadiness = (client) => readiness(client, CCF_RECEIVER_FIELDS, validateCcfReceiver)
 
 export function mapCompanyToDteIssuer(company) {
   const status = getIssuerReadiness(company)
@@ -57,22 +74,12 @@ export function mapCompanyToDteIssuer(company) {
     throw new Error(`Expediente fiscal del emisor inválido o incompleto: ${problems.join(', ')}.`)
   }
   return {
-    nit: digits(company.nit),
-    nrc: digits(company.nrc),
-    nombre: text(company.name),
-    codActividad: text(company.activity_code),
-    descActividad: text(company.business_activity),
+    nit: digits(company.nit), nrc: digits(company.nrc), nombre: text(company.name),
+    codActividad: text(company.activity_code), descActividad: text(company.business_activity),
     nombreComercial: text(company.trade_name) || null,
-    direccion: {
-      departamento: text(company.department_code),
-      municipio: text(company.municipality_code),
-      distrito: text(company.district_code),
-      complemento: text(company.address),
-    },
-    telefono: digits(company.phone),
-    correo: text(company.email).toLowerCase(),
-    codEstable: text(company.establishment_code).toUpperCase(),
-    codPuntoVenta: text(company.point_of_sale_code).toUpperCase(),
+    direccion: { departamento: text(company.department_code), municipio: text(company.municipality_code), distrito: text(company.district_code), complemento: text(company.address) },
+    telefono: digits(company.phone), correo: text(company.email).toLowerCase(),
+    codEstable: text(company.establishment_code).toUpperCase(), codPuntoVenta: text(company.point_of_sale_code).toUpperCase(),
   }
 }
 
@@ -80,27 +87,32 @@ export function mapClientToDteReceiver(client) {
   const status = getReceiverReadiness(client)
   if (!status.ready) throw new Error(`Expediente fiscal del receptor incompleto: ${status.missing.join(', ')}.`)
   return {
-    tipoDocumento: client.document_type,
-    numDocumento: client.document_number,
-    nrc: client.nrc || null,
-    nombre: client.name,
-    codActividad: client.activity_code,
-    descActividad: client.business_activity,
-    direccion: {
-      departamento: client.department_code,
-      municipio: client.municipality_code,
-      distrito: client.district_code,
-      complemento: client.address,
-    },
-    telefono: client.phone,
-    correo: client.email,
+    tipoDocumento: client.document_type, numDocumento: client.document_number, nrc: client.nrc || null,
+    nombre: client.name, codActividad: client.activity_code, descActividad: client.business_activity,
+    direccion: { departamento: client.department_code, municipio: client.municipality_code, distrito: client.district_code, complemento: client.address },
+    telefono: client.phone, correo: client.email,
+  }
+}
+
+export function mapClientToCcfReceiver(client) {
+  const status = getCcfReceiverReadiness(client)
+  if (!status.ready) {
+    const problems = [...status.missing, ...status.invalid]
+    throw new Error(`Para Crédito Fiscal completa en Clientes: ${problems.join(', ')}.`)
+  }
+  return {
+    nit: digits(client.tax_id), nrc: digits(client.nrc), nombre: text(client.name),
+    codActividad: text(client.activity_code), descActividad: text(client.business_activity),
+    nombreComercial: text(client.trade_name) || null,
+    direccion: { departamento: text(client.department_code), municipio: text(client.municipality_code), distrito: text(client.district_code), complemento: text(client.address) },
+    telefono: digits(client.phone), correo: text(client.email).toLowerCase(),
   }
 }
 
 export function buildFacturaFromRecords({ company, client = null, ...sale }) {
-  return buildFacturaElectronica({
-    ...sale,
-    emisor: mapCompanyToDteIssuer(company),
-    receptor: client ? mapClientToDteReceiver(client) : null,
-  })
+  return buildFacturaElectronica({ ...sale, emisor: mapCompanyToDteIssuer(company), receptor: client ? mapClientToDteReceiver(client) : null })
+}
+
+export function buildCreditoFiscalFromRecords({ company, client, ...sale }) {
+  return buildCreditoFiscal({ ...sale, emisor: mapCompanyToDteIssuer(company), receptor: mapClientToCcfReceiver(client) })
 }
