@@ -5,22 +5,11 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const src = resolve(here, '../src')
 const paths = {
-  main: resolve(src, 'main.jsx'),
-  runtime: resolve(src, 'ModuleRuntime.jsx'),
-  menu: resolve(src, 'MainMenuController.jsx'),
-  menuCss: resolve(src, 'main-menu.css'),
-  clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'),
-  clientsCss: resolve(src, 'client-module-organizer.css'),
-  dashboardCss: resolve(src, 'executive-dashboard-main.css'),
-  commercial: resolve(src, 'CommercialLauncher.jsx'),
-  inventory: resolve(src, 'InventoryCostLauncher.jsx'),
-  billing: resolve(src, 'FacturacionLauncher.jsx'),
-  procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
-  planning: resolve(src, 'ProductionCalendarLauncher.jsx'),
-  financial: resolve(src, 'FinancialDashboardLauncher.jsx'),
-  assistant: resolve(src, 'AssistantLauncher.jsx'),
-  security: resolve(src, 'SecurityLauncher.jsx'),
-  workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
+  main: resolve(src, 'main.jsx'), runtime: resolve(src, 'ModuleRuntime.jsx'), menu: resolve(src, 'MainMenuController.jsx'), menuCss: resolve(src, 'main-menu.css'),
+  clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'), clientsCss: resolve(src, 'client-module-organizer.css'), dashboardCss: resolve(src, 'executive-dashboard-main.css'),
+  commercial: resolve(src, 'CommercialLauncher.jsx'), inventory: resolve(src, 'InventoryCostLauncher.jsx'), billing: resolve(src, 'FacturacionLauncher.jsx'), procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
+  planning: resolve(src, 'ProductionCalendarLauncher.jsx'), financial: resolve(src, 'FinancialDashboardLauncher.jsx'), assistant: resolve(src, 'AssistantLauncher.jsx'), security: resolve(src, 'SecurityLauncher.jsx'), workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
+  actionHierarchy: resolve(src, 'module-action-hierarchy.css'),
 }
 const source = {}
 for (const [key,path] of Object.entries(paths)) source[key] = await readFile(path, 'utf8')
@@ -28,9 +17,7 @@ for (const [key,path] of Object.entries(paths)) source[key] = await readFile(pat
 const importsFrom = (text) => [...text.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"](\.\/[^'\"]+)['\"]/g)].map((match) => match[1])
 const relativeImports = [...new Set([...importsFrom(source.main), ...importsFrom(source.runtime)])]
 const missing = []
-for (const specifier of relativeImports) {
-  try { await access(resolve(src, specifier.replace(/^\.\//, ''))) } catch { missing.push(specifier) }
-}
+for (const specifier of relativeImports) { try { await access(resolve(src, specifier.replace(/^\.\//, ''))) } catch { missing.push(specifier) } }
 
 const failures = []
 if (missing.length) failures.push(`Imports inexistentes: ${missing.join(', ')}`)
@@ -41,6 +28,10 @@ if (!source.main.includes('ModuleRuntime')) failures.push('Falta el runtime aisl
 if (!source.main.includes('AssistantLauncher')) failures.push('Asistente IA no tiene vista principal propia')
 if (!source.main.includes('SecurityLauncher')) failures.push('Seguridad no tiene vista principal propia')
 if (!source.main.includes('WorkspaceNavigationBridge')) failures.push('Falta el adaptador aislado para módulos legados de Workspace')
+if (!source.main.includes("'./module-action-hierarchy.css'")) failures.push('Falta la capa final de jerarquía visual de acciones')
+if (!source.actionHierarchy.includes('.products360-savebar') || !source.actionHierarchy.includes('.production-detail-actions')) failures.push('La jerarquía visual no cubre Productos y Producción')
+if (!source.actionHierarchy.includes("button[type='submit']")) failures.push('La acción primaria debe quedar diferenciada de las secundarias')
+if (!source.actionHierarchy.includes('.danger-action')) failures.push('Las acciones destructivas necesitan tratamiento visual propio')
 
 const moduleScopedHosts = ['ExecutiveDashboardHost','MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
 const leakedHosts = moduleScopedHosts.filter((name) => source.main.includes(`<${name}`) || source.main.includes(`import ${name} `))
@@ -62,14 +53,8 @@ if (!source.dashboardCss.includes('>.welcome-strip') || !source.dashboardCss.inc
 const directRoutes = [
   ['Dashboard','workspace','Resumen'],['Clientes','workspace','Clientes'],['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja'],['Asistente IA','assistant',null],['Agenda','planning',null],['Reportes','financial',null],['Seguridad','security',null],
 ]
-for (const [name,target,tab] of directRoutes) {
-  const expected = tab ? `openDirectModule('${target}', '${tab}')` : `openDirectModule('${target}')`
-  if (!source.menu.includes(expected)) failures.push(`${name} debe abrirse por evento directo`)
-}
-
-for (const [key,label] of [['commercial','CommercialLauncher'],['inventory','InventoryCostLauncher'],['billing','FacturacionLauncher'],['procurement','OperationsFinanceLauncher'],['planning','ProductionCalendarLauncher'],['financial','FinancialDashboardLauncher'],['assistant','AssistantLauncher'],['security','SecurityLauncher']]) {
-  if (!source[key].includes("window.addEventListener('idealo-open-module'")) failures.push(`${label} no escucha apertura directa desde el menú`)
-}
+for (const [name,target,tab] of directRoutes) { const expected = tab ? `openDirectModule('${target}', '${tab}')` : `openDirectModule('${target}')`; if (!source.menu.includes(expected)) failures.push(`${name} debe abrirse por evento directo`) }
+for (const [key,label] of [['commercial','CommercialLauncher'],['inventory','InventoryCostLauncher'],['billing','FacturacionLauncher'],['procurement','OperationsFinanceLauncher'],['planning','ProductionCalendarLauncher'],['financial','FinancialDashboardLauncher'],['assistant','AssistantLauncher'],['security','SecurityLauncher']]) { if (!source[key].includes("window.addEventListener('idealo-open-module'")) failures.push(`${label} no escucha apertura directa desde el menú`) }
 if (!source.workspaceBridge.includes("detail.target !== 'workspace'")) failures.push('WorkspaceNavigationBridge no está limitado al target workspace')
 if (!source.commercial.includes('mainModuleForTab')) failures.push('Las pestañas comerciales deben sincronizar el módulo activo del menú')
 if (!source.procurement.includes('menuForTab')) failures.push('Proveedores, Compras y Caja deben sincronizar el módulo activo del menú')
@@ -86,9 +71,5 @@ if (!source.menuCss.includes('.erp-sidebar > nav:not(.idealo-main-menu){display:
 if (/\.idealo-main-menu-item\.active\s*\{[^}]*background\s*:\s*#f36c21/i.test(source.menuCss)) failures.push('El módulo activo volvió a usar fondo naranja')
 if (!/\.idealo-main-menu-item\.active\s*\{[^}]*color\s*:\s*#f36c21/i.test(source.menuCss)) failures.push('El módulo activo debe marcarse con texto naranja')
 
-if (failures.length) {
-  console.error('\nAuditoría frontend falló:')
-  failures.forEach((failure) => console.error(`- ${failure}`))
-  process.exit(1)
-}
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, navegación directa consolidada, módulos IA/Seguridad propios, runtime aislado y menú protegido.`)
+if (failures.length) { console.error('\nAuditoría frontend falló:'); failures.forEach((failure) => console.error(`- ${failure}`)); process.exit(1) }
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, jerarquía visual protegida, navegación directa consolidada, runtime aislado y menú protegido.`)
