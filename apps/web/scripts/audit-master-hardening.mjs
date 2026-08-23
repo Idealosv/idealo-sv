@@ -46,6 +46,20 @@ for(const relative of [
   forbidText(source,"from '@supabase/supabase-js'",`${relative} cliente duplicado`)
 }
 
+const srcDir=path.join(root,'apps/web/src')
+const sourceFiles=[]
+const walk=(dir)=>{for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,entry.name);if(entry.isDirectory())walk(full);else if(/\.(?:js|jsx|mjs)$/.test(entry.name))sourceFiles.push(full)}}
+walk(srcDir)
+const candidates=(target)=>[target,`${target}.js`,`${target}.jsx`,`${target}.css`,path.join(target,'index.js'),path.join(target,'index.jsx')]
+for(const file of sourceFiles){
+  const source=fs.readFileSync(file,'utf8')
+  const specs=[...source.matchAll(/(?:import\s+(?:[^'";]+?\s+from\s+)?|export\s+[^'";]+?\s+from\s+|import\s*\()['"](\.[^'"]+)['"]/g)].map(m=>m[1])
+  for(const spec of specs){
+    const target=path.resolve(path.dirname(file),spec)
+    if(!candidates(target).some(fs.existsSync))throw new Error(`Import relativo roto: ${path.relative(root,file)} → ${spec}`)
+  }
+}
+
 const hardening=read('supabase/migrations/20260823203000_master_security_performance_hardening.sql')
 requireText(hardening,'security_invoker = true','Vista financiera')
 requireText(hardening,'clients_delete_admins','RLS Clientes')
@@ -60,4 +74,4 @@ const integrity=read('supabase/migrations/20260823210000_financial_integrity_gua
 requireText(integrity,'accounts_receivable_paid_not_over_total','Integridad CxC')
 requireText(integrity,'accounts_payable_paid_not_over_total','Integridad CxP')
 
-console.log('OK auditoría maestra: esquema, permisos, integridad, CORS, PWA y singleton Supabase')
+console.log(`OK auditoría maestra: esquema, permisos, integridad, CORS, PWA, singleton Supabase e imports relativos (${sourceFiles.length} archivos)`) 
