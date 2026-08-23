@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import FinancialDashboard from './FinancialDashboard.jsx'
+import CashReconciliationPanel from './CashReconciliationPanel.jsx'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -18,7 +19,7 @@ export default function FinancialDashboardLauncher(){
     </button>
     {open&&<div className="erp-modal-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}><section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Reportes financieros" onMouseDown={e=>e.stopPropagation()}>
       <header className="erp-modal-head"><div><strong>Reportes</strong><small>Ventas → costos → gastos → utilidad → caja y obligaciones</small></div><button type="button" className="erp-modal-close" onClick={()=>setOpen(false)}>×</button></header>
-      <div className="erp-modal-body commercial-module"><FinancialDashboard company={company} supabase={supabase}/></div>
+      <div className="erp-modal-body commercial-module"><FinancialDashboard company={company} supabase={supabase}/><CashReconciliationPanel company={company} supabase={supabase}/></div>
     </section></div>}
   </>
 }
