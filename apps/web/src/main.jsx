@@ -19,7 +19,6 @@ import FormSimplificationManager from './FormSimplificationManager.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
 import ModuleRuntime from './ModuleRuntime.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
-import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import './styles.css'
 import './facturacion-feedback.css'
 import './sidebar-modules.css'
@@ -72,7 +71,6 @@ const Safe = ({ label, children, fatal = false }) => <RuntimeBoundary label={lab
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Safe label="ERP principal" fatal><App /></Safe>
-    <Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost /></Safe>
     <Safe label="Comercial"><CommercialLauncher /></Safe>
     <Safe label="Compras y finanzas"><OperationsFinanceLauncher /></Safe>
     <Safe label="Inventario"><InventoryCostLauncher /></Safe>
