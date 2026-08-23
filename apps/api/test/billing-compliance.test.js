@@ -1,0 +1,11 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { inspectDte,billingComplianceMetrics,canMutateFiscalDocument } from '../../web/src/billingCompliance.js'
+
+const valid={dte_type:'01',status:'PROCESSED',environment:'00',control_number:'DTE-01-M001P001-000000000000001',generation_code:'550E8400-E29B-41D4-A716-446655440000',mh_receipt_seal:'SELLO',dte_payload:{identificacion:{tipoDte:'01',ambiente:'00',numeroControl:'DTE-01-M001P001-000000000000001',codigoGeneracion:'550E8400-E29B-41D4-A716-446655440000'},cuerpoDocumento:[{numItem:1}],resumen:{totalPagar:113}}}
+
+test('aceptado requiere consistencia e identidad MH',()=>{const c=inspectDte(valid);assert.equal(c.ok,true);assert.equal(c.accepted,true);assert.equal(c.total,113);assert.equal(canMutateFiscalDocument(valid),false)})
+test('procesado sin sello se considera crítico',()=>{const c=inspectDte({...valid,mh_receipt_seal:null});assert.equal(c.ok,false);assert.match(c.issues.join(' '),/sello/i)})
+test('detecta UUID no v4 o no mayúscula',()=>{const c=inspectDte({...valid,generation_code:'550e8400-e29b-11d4-a716-446655440000',dte_payload:{...valid.dte_payload,identificacion:{...valid.dte_payload.identificacion,codigoGeneracion:'550e8400-e29b-11d4-a716-446655440000'}}});assert.equal(c.ok,false);assert.match(c.issues.join(' '),/UUID v4/i)})
+test('DTE-03 exige receptor fiscal mínimo',()=>{const row={...valid,dte_type:'03',control_number:'DTE-03-M001P001-000000000000001',dte_payload:{...valid.dte_payload,identificacion:{...valid.dte_payload.identificacion,tipoDte:'03',numeroControl:'DTE-03-M001P001-000000000000001'},receptor:{nombre:'Empresa'}}};const c=inspectDte(row);assert.equal(c.ok,false);assert.match(c.issues.join(' '),/NIT/);assert.match(c.issues.join(' '),/NRC/)})
+test('métricas separan TEST y producción y solo valorizan aceptados con sello',()=>{const p={...valid,environment:'01',dte_payload:{...valid.dte_payload,identificacion:{...valid.dte_payload.identificacion,ambiente:'01'}}};const m=billingComplianceMetrics([valid,p,{...valid,status:'DRAFT',mh_receipt_seal:null}]);assert.equal(m.total,3);assert.equal(m.test,2);assert.equal(m.production,1);assert.equal(m.amountAccepted,226)})
