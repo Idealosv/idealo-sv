@@ -9,7 +9,7 @@ const paths = {
   clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'), clientsCss: resolve(src, 'client-module-organizer.css'), dashboardCss: resolve(src, 'executive-dashboard-main.css'),
   commercial: resolve(src, 'CommercialLauncher.jsx'), inventory: resolve(src, 'InventoryCostLauncher.jsx'), billing: resolve(src, 'FacturacionLauncher.jsx'), procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
   planning: resolve(src, 'ProductionCalendarLauncher.jsx'), financial: resolve(src, 'FinancialDashboardLauncher.jsx'), assistant: resolve(src, 'AssistantLauncher.jsx'), security: resolve(src, 'SecurityLauncher.jsx'), workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
-  actionHierarchy: resolve(src, 'module-action-hierarchy.css'),
+  actionHierarchy: resolve(src, 'module-action-hierarchy.css'), formSimplification: resolve(src, 'FormSimplificationManager.jsx'), formSimplificationCss: resolve(src, 'form-simplification.css'),
 }
 const source = {}
 for (const [key,path] of Object.entries(paths)) source[key] = await readFile(path, 'utf8')
@@ -23,6 +23,8 @@ const failures = []
 if (missing.length) failures.push(`Imports inexistentes: ${missing.join(', ')}`)
 if (!source.main.includes('RuntimeBoundary')) failures.push('Falta RuntimeBoundary en el arranque')
 if (!source.main.includes('FormAccordionManager')) failures.push('Falta el gestor seguro de formularios')
+if (!source.main.includes('FormSimplificationManager')) failures.push('Falta el gestor de simplificación de formularios')
+if (!source.main.includes("'./form-simplification.css'")) failures.push('Falta la capa visual de simplificación de formularios')
 if (source.main.includes('FormAccordionCoordinator')) failures.push('El coordinador global inestable volvió al arranque')
 if (!source.main.includes('ModuleRuntime')) failures.push('Falta el runtime aislado por módulo')
 if (!source.main.includes('AssistantLauncher')) failures.push('Asistente IA no tiene vista principal propia')
@@ -32,6 +34,8 @@ if (!source.main.includes("'./module-action-hierarchy.css'")) failures.push('Fal
 if (!source.actionHierarchy.includes('.products360-savebar') || !source.actionHierarchy.includes('.production-detail-actions')) failures.push('La jerarquía visual no cubre Productos y Producción')
 if (!source.actionHierarchy.includes("button[type='submit']")) failures.push('La acción primaria debe quedar diferenciada de las secundarias')
 if (!source.actionHierarchy.includes('.danger-action')) failures.push('Las acciones destructivas necesitan tratamiento visual propio')
+if (!source.formSimplification.includes('simplified-quote-item-grid') || !source.formSimplification.includes('simplified-quote-document-grid')) failures.push('Cotizaciones debe ocultar opciones avanzadas detrás de controles explícitos')
+if (!source.formSimplificationCss.includes('.show-advanced-fields')) failures.push('Las opciones avanzadas deben poder reabrirse sin perder campos')
 
 const moduleScopedHosts = ['ExecutiveDashboardHost','MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
 const leakedHosts = moduleScopedHosts.filter((name) => source.main.includes(`<${name}`) || source.main.includes(`import ${name} `))
@@ -72,4 +76,4 @@ if (/\.idealo-main-menu-item\.active\s*\{[^}]*background\s*:\s*#f36c21/i.test(so
 if (!/\.idealo-main-menu-item\.active\s*\{[^}]*color\s*:\s*#f36c21/i.test(source.menuCss)) failures.push('El módulo activo debe marcarse con texto naranja')
 
 if (failures.length) { console.error('\nAuditoría frontend falló:'); failures.forEach((failure) => console.error(`- ${failure}`)); process.exit(1) }
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, jerarquía visual protegida, navegación directa consolidada, runtime aislado y menú protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, formularios simplificados, jerarquía visual protegida, navegación directa consolidada, runtime aislado y menú protegido.`)
