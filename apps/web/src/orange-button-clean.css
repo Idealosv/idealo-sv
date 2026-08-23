@@ -1,0 +1,73 @@
+/* IDEALO SV · limpieza final de botones naranjas
+   Ninguna acción naranja debe mostrar borde/contorno negro permanente. */
+
+/* Acciones primarias habituales */
+.erp-shell button[type="submit"],
+.erp-content button[type="submit"],
+.erp-modal-panel button[type="submit"],
+button.primary-action,
+button.submit-button,
+button.btn-primary,
+button.primary-button,
+button.action-primary,
+button.save-button,
+button.create-button,
+button[data-primary="true"],
+button[class*="primary"],
+button[class*="submit"],
+button[class*="save"],
+button[class*="create"]{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+}
+
+/* Casos con naranja aplicado directamente en style */
+button[style*="#f36c21" i],
+button[style*="#f97316" i],
+button[style*="#fb923c" i],
+button[style*="rgb(243, 108, 33)" i],
+button[style*="rgb(249, 115, 22)" i]{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+}
+
+/* Hover/active: sin borde negro al interactuar */
+.erp-shell button[type="submit"]:hover,
+.erp-shell button[type="submit"]:active,
+button.primary-action:hover,
+button.primary-action:active,
+button.submit-button:hover,
+button.submit-button:active,
+button.btn-primary:hover,
+button.btn-primary:active,
+button.primary-button:hover,
+button.primary-button:active,
+button.action-primary:hover,
+button.action-primary:active,
+button.save-button:hover,
+button.save-button:active,
+button.create-button:hover,
+button.create-button:active,
+button[data-primary="true"]:hover,
+button[data-primary="true"]:active{
+  border:0!important;
+  box-shadow:none!important;
+}
+
+/* El foco queda visible, pero naranja y externo; nunca negro */
+.erp-shell button[type="submit"]:focus-visible,
+button.primary-action:focus-visible,
+button.submit-button:focus-visible,
+button.btn-primary:focus-visible,
+button.primary-button:focus-visible,
+button.action-primary:focus-visible,
+button.save-button:focus-visible,
+button.create-button:focus-visible,
+button[data-primary="true"]:focus-visible{
+  border:0!important;
+  outline:2px solid rgba(243,108,33,.42)!important;
+  outline-offset:2px!important;
+  box-shadow:none!important;
+}

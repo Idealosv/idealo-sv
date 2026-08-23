@@ -50,6 +50,7 @@ import './client-360-timeline.css'
 import './client-button-balance.css'
 import './corporate-premium-global.css'
 import './corporate-gray-dark.css'
+import './orange-button-clean.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
