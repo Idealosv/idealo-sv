@@ -1,0 +1,15 @@
+.form-advanced-toggle{margin-left:auto;white-space:nowrap}
+.simplified-quote-document-grid>label:nth-child(n+9),
+.simplified-quote-item-grid>label:nth-child(n+8),
+.simplified-quote-conditions-grid>label:nth-child(n+9){display:none!important}
+.show-advanced-fields .simplified-quote-document-grid>label,
+.show-advanced-fields .simplified-quote-item-grid>label,
+.show-advanced-fields .simplified-quote-conditions-grid>label{display:flex!important}
+.q360-item-head{align-items:center}
+.q360-item-head>.form-advanced-toggle{font-size:12px;min-height:32px;padding:6px 10px}
+.erp-audit-titled-form .form-section-title{cursor:pointer;position:relative;padding-right:30px}
+.erp-audit-titled-form .form-section-title::after{content:'−';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-weight:800;color:#4b5563}
+.erp-audit-titled-form .form-section-title.erp-audit-title-collapsed::after{content:'+'}
+.erp-audit-title-content-hidden{display:none!important}
+.billing-admin-tools:not([open])>.billing-admin-tools-body{display:none}
+@media(max-width:760px){.form-advanced-toggle{width:100%;margin-left:0}.q360-item-head{align-items:stretch}.q360-item-head>.form-advanced-toggle{width:auto}}
