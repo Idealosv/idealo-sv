@@ -10,6 +10,7 @@ import HrPayrollLauncher from './HrPayrollLauncher.jsx'
 import ProductionCalendarLauncher from './ProductionCalendarLauncher.jsx'
 import QualityControlLauncher from './QualityControlLauncher.jsx'
 import MainMenuController from './MainMenuController.jsx'
+import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
 import MobileFieldTools from './MobileFieldTools.jsx'
@@ -64,7 +65,8 @@ import './inventory-360.css'
 import './erp-corporate-master.css'
 import './billing-simplification.css'
 import './billing-classic-layout.css'
+import './erp-clean-system.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>null))
-createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></StrictMode>)
+createRoot(document.getElementById('root')).render(<StrictMode><App/><CommercialLauncher/><OperationsFinanceLauncher/><InventoryCostLauncher/><FinancialDashboardLauncher/><HrPayrollLauncher/><ProductionCalendarLauncher/><QualityControlLauncher/><FacturacionLauncher/><MainMenuController/><ErpUxCoordinator/><ExecutiveDashboardHost/><MobileAppHost/><MobileFieldTools/><MobileSalesFieldBlock/><MobileClient360/><Client360Enhancer/><CommercialAutomationCenter/><ClientCrmPipeline/><ClientModuleOrganizer/><Client360TimelineHost/><ClientVatCardScannerHost/></StrictMode>)

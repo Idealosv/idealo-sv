@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-const MODULES = [
-  'Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad',
+const MODULE_GROUPS = [
+  { label: 'Principal', modules: ['Dashboard','App móviles'] },
+  { label: 'Ventas', modules: ['Clientes','Productos','Cotizaciones','Facturación'] },
+  { label: 'Operación', modules: ['Producción','Inventario'] },
+  { label: 'Compras y caja', modules: ['Proveedores','Compras','Caja'] },
+  { label: 'Gestión', modules: ['Asistente IA','Agenda','Reportes'] },
+  { label: 'Administración', modules: ['Seguridad'] },
 ]
 
 const clickWorkspaceModule = (label) => {
@@ -30,6 +35,8 @@ export default function MainMenuController() {
   const [sidebar, setSidebar] = useState(null)
   const [active, setActive] = useState('Dashboard')
   const [placeholder, setPlaceholder] = useState('')
+  const [query, setQuery] = useState('')
+  const searchRef = useRef(null)
 
   useEffect(() => {
     const findSidebar = () => setSidebar(document.querySelector('.erp-sidebar'))
@@ -39,8 +46,19 @@ export default function MainMenuController() {
     return () => observer.disconnect()
   }, [])
 
+  useEffect(() => {
+    const shortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', shortcut)
+    return () => window.removeEventListener('keydown', shortcut)
+  }, [])
+
   const openModule = (name) => {
-    setActive(name); setPlaceholder('')
+    setActive(name); setPlaceholder(''); setQuery('')
     window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
     if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
     if (name === 'App móviles') return true
@@ -59,10 +77,27 @@ export default function MainMenuController() {
     setPlaceholder(name)
   }
 
+  const groups = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) return MODULE_GROUPS
+    return MODULE_GROUPS.map((group) => ({
+      ...group,
+      modules: group.modules.filter((name) => name.toLowerCase().includes(normalized)),
+    })).filter((group) => group.modules.length)
+  }, [query])
+
   if (!sidebar) return null
   return createPortal(<>
     <nav className="idealo-main-menu" aria-label="Módulos principales IDEALO SV">
-      {MODULES.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
+      <div className="idealo-menu-search-wrap">
+        <input ref={searchRef} className="idealo-menu-search" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Buscar módulo…" aria-label="Buscar módulo" />
+        {query && <button type="button" className="idealo-menu-search-clear" onClick={()=>setQuery('')} aria-label="Limpiar búsqueda">×</button>}
+      </div>
+      {groups.map((group) => <section className="idealo-menu-group" key={group.label}>
+        <span className="idealo-menu-group-label">{group.label}</span>
+        {group.modules.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
+      </section>)}
+      {groups.length===0 && <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>}
     </nav>
     {placeholder && createPortal(<div className="erp-modal-backdrop" onMouseDown={()=>setPlaceholder('')}><section className="erp-modal-panel compact-module-placeholder" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>{placeholder}</strong><small>Módulo principal IDEALO SV</small></div><button type="button" className="erp-modal-close" onClick={()=>setPlaceholder('')}>×</button></header><div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">ESTRUCTURA DEFINIDA</p><h2>{placeholder}</h2><p>Este módulo ya ocupa su posición definitiva en el menú principal y se desarrollará sobre esta misma estructura sin agregar accesos adicionales al lateral.</p></section></div></section></div>,document.body)}
   </>,sidebar)
