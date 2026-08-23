@@ -11,10 +11,11 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: true } }) : null
 
 const sections = [
-  { id: 'resumen', label: 'Resumen', helper: 'KPIs y estado fiscal' },
-  { id: 'emitir', label: 'Emitir DTE', helper: 'Factura y CCF' },
-  { id: 'documentos', label: 'Documentos MH', helper: 'Procesados y respuestas' },
-  { id: 'tecnico', label: 'Herramientas MH', helper: 'Diagnóstico y pruebas' },
+  { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control diario' },
+  { id: 'emitir', label: 'Nueva factura', helper: 'Crear y guardar DTE' },
+  { id: 'documentos', label: 'Documentos DTE', helper: 'Estados y respuestas MH' },
+  { id: 'hacienda', label: 'Hacienda / DTE', helper: 'Firma y diagnóstico' },
+  { id: 'configuracion', label: 'Configuración', helper: 'Pruebas y parámetros' },
 ]
 
 export default function FacturacionLauncher() {
@@ -78,6 +79,8 @@ export default function FacturacionLauncher() {
     setOpen(true)
   }
 
+  const active = sections.find((item) => item.id === activeSection) || sections[0]
+
   return <>
     <button type="button" onClick={openBilling} className="sidebar-module-access billing" aria-label="Abrir facturación">
       <span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>DTE · Hacienda · Control fiscal</small></span>
@@ -86,16 +89,16 @@ export default function FacturacionLauncher() {
       <section className="erp-modal-panel billing-modal" role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
         <header className="erp-modal-head billing-module-head">
           <div>
-            <span className="billing-eyebrow">IDEALO SV · CONTROL FISCAL</span>
-            <strong>Facturación 360</strong>
-            <small>Documentos tributarios electrónicos · Ministerio de Hacienda</small>
+            <span className="billing-eyebrow">IDEALO SV · FACTURACIÓN</span>
+            <strong>Facturación</strong>
+            <small>Operación comercial y documentos tributarios electrónicos</small>
           </div>
           <button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button>
         </header>
 
         <div className="billing-workspace">
           <nav className="billing-nav" aria-label="Secciones de facturación">
-            <div className="billing-nav-title">Facturación</div>
+            <div className="billing-nav-title">Módulo</div>
             {sections.map((section) => <button
               key={section.id}
               type="button"
@@ -107,46 +110,45 @@ export default function FacturacionLauncher() {
               <small>{section.helper}</small>
             </button>)}
             <div className="billing-nav-note">
-              <strong>Conexión MH protegida</strong>
-              <small>Esta reorganización no modifica firma, certificado, credenciales ni endpoints.</small>
+              <strong>Operación protegida</strong>
+              <small>Firma, certificado, credenciales y endpoints de Hacienda permanecen sin cambios.</small>
             </div>
           </nav>
 
           <main className="billing-content">
             <div className="billing-section-head">
               <div>
-                <span className="billing-section-kicker">{sections.find((item) => item.id === activeSection)?.helper}</span>
-                <h2>{sections.find((item) => item.id === activeSection)?.label}</h2>
+                <span className="billing-section-kicker">{active.helper}</span>
+                <h2>{active.label}</h2>
               </div>
               <span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span>
             </div>
 
             {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">
-              Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>. Se cargará automáticamente en el DTE.
+              Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>. Se cargará automáticamente en la factura.
             </div>}
 
             {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company}/>} 
 
             {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card">
-              <div className="billing-section-intro"><div><strong>Nueva emisión</strong><small>Complete primero el receptor y las partidas. Los controles fiscales permanecen integrados al flujo MH.</small></div></div>
+              <div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Flujo de trabajo: receptor, productos o servicios, pago, totales y emisión.</small></div></div>
               <FacturacionDte session={session} supabase={supabase} company={company}/>
             </section>}
 
             {activeSection === 'documentos' && <section className="billing-section-card">
-              <div className="billing-section-intro"><div><strong>Documentos y respuestas de Hacienda</strong><small>Consulta de DTE procesados, sello, estado y representación registrada.</small></div></div>
+              <div className="billing-section-intro"><div><strong>Documentos DTE</strong><small>Consulta estados, sellos, respuestas y documentos registrados por Ministerio de Hacienda.</small></div></div>
               <ProcessedDtePanel supabase={supabase} company={company}/>
             </section>}
 
-            {activeSection === 'tecnico' && <div className="billing-tech-grid">
-              <section className="billing-section-card">
-                <div className="billing-section-intro"><div><strong>Diagnóstico de firma</strong><small>Certificado, firmador y comprobaciones técnicas.</small></div></div>
-                <SignerDiagnostic session={session} company={company}/>
-              </section>
-              <section className="billing-section-card">
-                <div className="billing-section-intro"><div><strong>Plan de pruebas DTE</strong><small>Herramientas de validación separadas de la operación diaria.</small></div></div>
-                <DteTestPlan supabase={supabase} company={company}/>
-              </section>
-            </div>}
+            {activeSection === 'hacienda' && <section className="billing-section-card">
+              <div className="billing-section-intro"><div><strong>Hacienda / DTE</strong><small>Diagnóstico de firma, certificado y conexión técnica separado de la operación diaria.</small></div></div>
+              <SignerDiagnostic session={session} company={company}/>
+            </section>}
+
+            {activeSection === 'configuracion' && <section className="billing-section-card">
+              <div className="billing-section-intro"><div><strong>Configuración y pruebas</strong><small>Validaciones de ambiente y herramientas de prueba que no deben ocupar la pantalla de facturación normal.</small></div></div>
+              <DteTestPlan supabase={supabase} company={company}/>
+            </section>}
           </main>
         </div>
       </section>
