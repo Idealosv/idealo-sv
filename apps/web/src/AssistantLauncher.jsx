@@ -1,9 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
+import { supabase } from './lib/supabase.js'
 
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
-const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 const today=()=>new Date().toISOString().slice(0,10)
 const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(v||0))
 

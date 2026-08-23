@@ -1,11 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import { AttendanceLaborModule, EmployeesModule, PayrollModule } from './HrPayrollModules.jsx'
 import EmployeeCommissions from './EmployeeCommissions.jsx'
-
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
-const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 
 export default function HrPayrollLauncher(){
   const [session,setSession]=useState(null),[company,setCompany]=useState(null),[open,setOpen]=useState(false),[tab,setTab]=useState('Empleados')

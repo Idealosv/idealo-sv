@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import { WorkOrdersModule } from './CommercialFlow.jsx'
 import Products360Module from './Products360Module.jsx'
 import Quotes360Module from './Quotes360Module.jsx'
@@ -7,9 +7,6 @@ import Production360Module from './Production360Module.jsx'
 import ProductionControlCenter from './ProductionControlCenter.jsx'
 import { DeliveriesModule, ReceivablesModule } from './DeliveryFinanceModules.jsx'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: true } }) : null
 const tabs=['Productos y trabajos','Cotizaciones','Órdenes de trabajo','Producción','Entregas','Cuentas por cobrar']
 const mainModuleForTab={ 'Productos y trabajos':'Productos', Cotizaciones:'Cotizaciones', Producción:'Producción' }
 

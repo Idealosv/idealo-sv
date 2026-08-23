@@ -1,12 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import { ConsumptionCostsModule, ProfitabilityModule } from './InventoryCostModules.jsx'
 import Inventory360Module from './Inventory360Module.jsx'
 import InventoryControlCenter from './InventoryControlCenter.jsx'
 
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
-const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 const tabs=['Inventario','Consumo y costos','Rentabilidad']
 
 export default function InventoryCostLauncher(){

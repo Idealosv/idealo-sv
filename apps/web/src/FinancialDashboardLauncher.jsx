@@ -1,9 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect,useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import FinancialDashboard from './FinancialDashboard.jsx'
 import CashReconciliationPanel from './CashReconciliationPanel.jsx'
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL,supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 const tabs=['Resultados','Liquidez','Rentabilidad','Conciliación']
 export default function FinancialDashboardLauncher(){
  const [session,setSession]=useState(null),[company,setCompany]=useState(null),[open,setOpen]=useState(false),[tab,setTab]=useState('Resultados')

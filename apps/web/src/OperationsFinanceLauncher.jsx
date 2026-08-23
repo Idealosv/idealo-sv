@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import { CashModule, PurchasesExpensesModule, SuppliersModule } from './OperationsFinanceModules.jsx'
 import SupplierPayablesModule from './SupplierPayablesModule.jsx'
 import ReplenishmentModule from './ReplenishmentModule.jsx'
@@ -7,9 +7,6 @@ import PurchaseReceivingModule from './PurchaseReceivingModule.jsx'
 import ProcurementControlCenter from './ProcurementControlCenter.jsx'
 import CashControlCenter from './CashControlCenter.jsx'
 
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
-const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 const tabs=['Control','Proveedores','Reposición','Recepción','Compras y gastos','Cuentas por pagar','Caja']
 const menuForTab=name=>name==='Proveedores'?'Proveedores':name==='Caja'?'Caja':'Compras'
 export default function OperationsFinanceLauncher(){

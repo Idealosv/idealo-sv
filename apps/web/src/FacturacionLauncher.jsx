@@ -1,15 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import FacturacionDte from './FacturacionDte.jsx'
 import SignerDiagnostic from './SignerDiagnostic.jsx'
 import ProcessedDtePanel from './ProcessedDtePanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
 import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: true } }) : null
 
 const sections = [
   { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control', group: 'Operación diaria' },
