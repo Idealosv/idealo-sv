@@ -36,26 +36,34 @@ const uniqueCandidates = (panel) => {
   return [...set].filter((node) => !node.closest('.erp-global-search'))
 }
 
+const visiblePanel = () => {
+  const panels = [...document.querySelectorAll('.erp-modal-panel')].filter((item) => item.offsetParent !== null)
+  return panels[panels.length - 1] || null
+}
+
 export default function ErpUxCoordinator() {
   const [activeModule, setActiveModule] = useState('Dashboard')
   const [panel, setPanel] = useState(null)
   const [query, setQuery] = useState('')
 
   useEffect(() => {
-    const onModule = (event) => { setActiveModule(event.detail || 'Dashboard'); setQuery('') }
-    window.addEventListener('idealo-module-change', onModule)
-    return () => window.removeEventListener('idealo-module-change', onModule)
-  }, [])
-
-  useEffect(() => {
-    const detect = () => {
-      const panels = [...document.querySelectorAll('.erp-modal-panel')].filter((item) => item.offsetParent !== null)
-      setPanel(panels[panels.length - 1] || null)
+    const detect = () => setPanel(visiblePanel())
+    const onModule = (event) => {
+      setActiveModule(event.detail || 'Dashboard')
+      setQuery('')
+      window.setTimeout(detect, 0)
+      window.setTimeout(detect, 80)
     }
+
     detect()
+    window.addEventListener('idealo-module-change', onModule)
     const observer = new MutationObserver(detect)
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class','style'] })
-    return () => observer.disconnect()
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      window.removeEventListener('idealo-module-change', onModule)
+      observer.disconnect()
+    }
   }, [])
 
   useEffect(() => {
@@ -81,8 +89,7 @@ export default function ErpUxCoordinator() {
     if (!name) return
     const button = [...document.querySelectorAll('.idealo-main-menu-item')].find((item) => item.textContent.trim() === name)
     if (!button) return
-    const close = panel.querySelector('.erp-modal-close')
-    if (close) close.click()
+    panel.querySelector('.erp-modal-close')?.click()
     window.setTimeout(() => button.click(), 40)
   }
 
