@@ -57,11 +57,20 @@ function scanForms() {
 
 export default function FormAccordionManager() {
   useEffect(() => {
-    const timers = []
+    const timers = new Set()
+    const later = (delay) => {
+      const id = window.setTimeout(() => {
+        timers.delete(id)
+        scanForms()
+      }, delay)
+      timers.add(id)
+    }
     const schedule = () => {
-      timers.push(window.setTimeout(scanForms, 0))
-      timers.push(window.setTimeout(scanForms, 120))
-      timers.push(window.setTimeout(scanForms, 450))
+      timers.forEach(window.clearTimeout)
+      timers.clear()
+      later(0)
+      later(120)
+      later(450)
     }
 
     const onModuleChange = () => schedule()
@@ -80,6 +89,7 @@ export default function FormAccordionManager() {
 
     return () => {
       timers.forEach(window.clearTimeout)
+      timers.clear()
       window.removeEventListener('idealo-module-change', onModuleChange)
       document.removeEventListener('click', onClick)
       document.removeEventListener('invalid', onInvalid, true)
