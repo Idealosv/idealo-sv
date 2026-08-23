@@ -1,50 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
+import { billingComplianceMetrics, inspectDte, mhEnvironmentLabel } from './billingCompliance.js'
 
-const money = (value) => `$${Number(value || 0).toFixed(2)}`
-const statusLabel = { DRAFT: 'Borrador', SIGNED: 'Firmado', PROCESSED: 'Procesado', REJECTED: 'Rechazado', INVALIDATED: 'Invalidado' }
+const money=(value)=>`$${Number(value||0).toFixed(2)}`
+const statusLabel={DRAFT:'Borrador',SIGNED:'Firmado',PROCESSED:'Procesado',REJECTED:'Rechazado',INVALIDATED:'Invalidado'}
 
-export default function Billing360Dashboard({ supabase, company }) {
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  const load = async () => {
-    setLoading(true); setError('')
-    const { data, error: queryError } = await supabase.from('dte_documents')
-      .select('id,dte_type,status,environment,control_number,generation_code,created_at,dte_payload,mh_response,mh_receipt_seal,mh_message')
-      .eq('company_id', company.id).order('created_at', { ascending: false }).limit(200)
-    if (queryError) setError(queryError.message)
-    setRows(data || []); setLoading(false)
-  }
-
-  useEffect(() => { load() }, [company.id])
-
-  const stats = useMemo(() => {
-    const result = { total: rows.length, processed: 0, draft: 0, rejected: 0, amount: 0, today: 0 }
-    const today = new Date().toISOString().slice(0, 10)
-    rows.forEach((row) => {
-      if (row.status === 'PROCESSED') result.processed += 1
-      if (row.status === 'DRAFT') result.draft += 1
-      if (row.status === 'REJECTED') result.rejected += 1
-      if (String(row.created_at || '').slice(0, 10) === today) result.today += 1
-      if (row.status === 'PROCESSED') result.amount += Number(row.dte_payload?.resumen?.totalPagar ?? row.dte_payload?.resumen?.montoTotalOperacion ?? 0)
-    })
-    return result
-  }, [rows])
-
-  if (loading) return <section className="billing360"><p>Cargando centro de facturación…</p></section>
-
+export default function Billing360Dashboard({supabase,company}){
+  const [rows,setRows]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[filter,setFilter]=useState('ALL')
+  const load=async()=>{setLoading(true);setError('');const {data,error:queryError}=await supabase.from('dte_documents').select('id,dte_type,status,environment,control_number,generation_code,created_at,dte_payload,mh_response,mh_receipt_seal,mh_message').eq('company_id',company.id).order('created_at',{ascending:false}).limit(300);if(queryError)setError(queryError.message);setRows(data||[]);setLoading(false)}
+  useEffect(()=>{load()},[company.id])
+  const stats=useMemo(()=>billingComplianceMetrics(rows),[rows])
+  const visible=useMemo(()=>rows.filter(row=>{const c=inspectDte(row);if(filter==='CRITICAL')return c.issues.length>0;if(filter==='PROD')return c.environment==='01';if(filter==='TEST')return c.environment==='00';if(filter==='REJECTED')return row.status==='REJECTED';if(filter==='ACCEPTED')return c.accepted;return true}),[rows,filter])
+  if(loading)return <section className="billing360"><p>Cargando centro de facturación…</p></section>
   return <section className="billing360">
-    <div className="billing360-head"><div><p className="form-kicker">FACTURACIÓN 360</p><h2>Centro de control fiscal</h2><p>Estado operativo de documentos electrónicos, recepción MH y facturación acumulada.</p></div><button type="button" className="secondary-button" onClick={load}>Actualizar</button></div>
-    {error && <p className="feedback error">{error}</p>}
-    <div className="billing360-kpis">
-      <Kpi label="DTE registrados" value={stats.total}/><Kpi label="Procesados MH" value={stats.processed}/><Kpi label="Borradores" value={stats.draft}/><Kpi label="Rechazados" value={stats.rejected}/><Kpi label="Emitidos hoy" value={stats.today}/><Kpi label="Facturación procesada" value={money(stats.amount)}/>
-    </div>
-    <div className="billing360-table-wrap"><table className="billing360-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Número de control</th><th>Estado</th><th>MH</th><th>Total</th></tr></thead><tbody>
-      {rows.slice(0, 20).map((row) => <tr key={row.id}><td>{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</td><td>DTE-{row.dte_type || '—'}</td><td><strong>{row.control_number || 'Pendiente'}</strong><small>{row.generation_code || ''}</small></td><td><span className={`billing-status ${String(row.status || '').toLowerCase()}`}>{statusLabel[row.status] || row.status || '—'}</span></td><td>{row.mh_message || row.mh_response?.descripcionMsg || (row.mh_receipt_seal ? 'Recibido' : '—')}</td><td>{money(row.dte_payload?.resumen?.totalPagar ?? row.dte_payload?.resumen?.montoTotalOperacion)}</td></tr>)}
-      {!rows.length && <tr><td colSpan="6">Todavía no hay DTE registrados.</td></tr>}
+    <div className="billing360-head"><div><p className="form-kicker">FACTURACIÓN 360 · CONTROL MH</p><h2>Centro de control fiscal</h2><p>Supervisa identidad DTE, ambiente, respuesta de Hacienda, sello de recepción y coherencia del documento sin alterar las conexiones MH existentes.</p></div><button type="button" className="secondary-button" onClick={load}>Actualizar</button></div>
+    {error&&<p className="feedback error">{error}</p>}
+    <div className="billing360-kpis"><Kpi label="DTE registrados" value={stats.total}/><Kpi label="Aceptados con sello" value={stats.accepted}/><Kpi label="Rechazados" value={stats.rejected}/><Kpi label="Pruebas" value={stats.test}/><Kpi label="Producción" value={stats.production}/><Kpi label="Alertas críticas" value={stats.critical}/><Kpi label="Con sello MH" value={stats.withSeal}/><Kpi label="Facturación aceptada" value={money(stats.amountAccepted)}/></div>
+    <div className="dte-note"><strong>Regla fiscal:</strong> IDEALO SV no considera un documento fiscalmente aceptado solo porque esté generado o firmado. Para el tablero, un DTE aceptado debe estar <strong>PROCESSED</strong> y conservar su <strong>sello de recepción MH</strong>. Los documentos aceptados se consideran inmutables.</div>
+    <div className="form-actions" style={{justifyContent:'flex-start',flexWrap:'wrap'}}>{[['ALL','Todos'],['CRITICAL','Alertas'],['ACCEPTED','Aceptados'],['REJECTED','Rechazados'],['TEST','TEST'],['PROD','PRODUCCIÓN']].map(([key,label])=><button type="button" key={key} className={filter===key?'':'secondary-button'} onClick={()=>setFilter(key)}>{label}</button>)}</div>
+    <div className="billing360-table-wrap"><table className="billing360-table"><thead><tr><th>Fecha</th><th>Tipo / ambiente</th><th>Identidad DTE</th><th>Estado</th><th>MH</th><th>Cumplimiento</th><th>Total</th></tr></thead><tbody>
+      {visible.slice(0,50).map(row=>{const check=inspectDte(row);return <tr key={row.id}><td>{row.created_at?new Date(row.created_at).toLocaleString('es-SV'):'—'}</td><td><strong>DTE-{check.type||'—'}</strong><small>{mhEnvironmentLabel(check.environment)}</small></td><td><strong>{row.control_number||'Pendiente'}</strong><small>{row.generation_code||'Sin código de generación'}</small></td><td><span className={`billing-status ${String(row.status||'').toLowerCase()}`}>{statusLabel[row.status]||row.status||'—'}</span><small>{check.immutable?'Documento fiscal protegido':'Editable según estado'}</small></td><td>{row.mh_message||row.mh_response?.descripcionMsg||(row.mh_receipt_seal?'Sello recibido':'Sin confirmación MH')}<small>{row.mh_receipt_seal?`Sello: ${row.mh_receipt_seal}`:''}</small></td><td>{check.issues.length?<><strong>⚠ {check.issues.length} alerta(s)</strong><small>{check.issues[0]}</small></>:check.warnings.length?<><strong>Revisar</strong><small>{check.warnings[0]}</small></>:<><strong>Consistente</strong><small>{check.accepted?'Aceptado con evidencia MH':'Sin inconsistencias locales'}</small></>}</td><td>{money(check.total)}</td></tr>})}
+      {!visible.length&&<tr><td colSpan="7">No hay DTE para este filtro.</td></tr>}
     </tbody></table></div>
   </section>
 }
-
-function Kpi({ label, value }) { return <article className="billing360-kpi"><small>{label}</small><strong>{value}</strong></article> }
+function Kpi({label,value}){return <article className="billing360-kpi"><small>{label}</small><strong>{value}</strong></article>}
