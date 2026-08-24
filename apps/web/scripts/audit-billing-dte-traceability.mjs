@@ -10,12 +10,16 @@ const receivables = fs.readFileSync(path.join(root, 'supabase/migrations/2026082
 const requireText = (text, token, label) => { if (!text.includes(token)) throw new Error(`${label}: falta ${token}`) }
 
 requireText(launcher, "table: 'dte_documents'", 'Facturación escucha cambios DTE')
-requireText(launcher, "payload.eventType === 'INSERT'", 'Factura nueva abre Documentos')
-requireText(launcher, "setActiveSection('documentos')", 'Factura nueva se muestra inmediatamente')
+requireText(launcher, "activeSection === 'documentos'", 'Documentos sigue disponible como sección explícita')
+requireText(launcher, 'ProcessedDtePanel', 'Documentos conserva trazabilidad DTE')
 requireText(launcher, "row.status || '').toUpperCase() === 'PROCESSED'", 'Procesado MH refresca cobranza')
 requireText(launcher, 'receivablesVersion', 'CxC tiene invalidación por cambio DTE')
 requireText(receivables, "new.status <> 'PROCESSED'", 'CxC solo nace con DTE procesado')
 requireText(receivables, 'v_condition<>2', 'CxC solo nace para crédito')
 requireText(receivables, 'dte_document_id', 'CxC mantiene vínculo con DTE')
 
-console.log('OK trazabilidad Facturación: guardar DTE → Documentos → PROCESSED → CxC')
+if (launcher.includes("payload.eventType === 'INSERT'") && launcher.includes("setActiveSection('documentos')")) {
+  throw new Error('Guardar DTE no debe desmontar Nueva factura antes de terminar la respuesta API')
+}
+
+console.log('OK trazabilidad Facturación: guardado estable → Documentos explícito → PROCESSED → CxC')
