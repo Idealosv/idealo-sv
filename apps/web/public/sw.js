@@ -1,4 +1,4 @@
-const CACHE='idealo-mobile-v3'
+const CACHE='idealo-mobile-v4'
 const CORE=['/','/mobile','/manifest.webmanifest']
 
 self.addEventListener('install',(event)=>{
@@ -16,7 +16,6 @@ self.addEventListener('fetch',(event)=>{
   if(request.method!=='GET')return
   const url=new URL(request.url)
 
-  // Nunca almacenar API, Supabase ni cualquier recurso de otro origen.
   if(url.origin!==self.location.origin)return
 
   if(request.mode==='navigate'){
