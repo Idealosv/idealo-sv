@@ -13,6 +13,7 @@ if (!launcher.includes('data-billing-section={section.id}')) failures.push('Las 
 if (!launcher.includes('onClick={() => openSection(section.id)}')) failures.push('La navegación interna no usa el manejador estable')
 if (!launcher.includes('onOpenNewInvoice={openNewInvoice}')) failures.push('El resumen no tiene acceso directo a Nueva factura')
 if (!dashboard.includes('onOpenNewInvoice')) failures.push('El dashboard no recibe el acceso directo a Nueva factura')
+if (launcher.includes("payload.eventType === 'INSERT'") && launcher.includes("setActiveSection('documentos')")) failures.push('Realtime no debe desmontar Nueva factura durante el guardado')
 
 if (failures.length) {
   console.error('\nAuditoría botón Nueva factura falló:')
