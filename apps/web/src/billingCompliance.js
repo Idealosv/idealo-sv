@@ -3,7 +3,8 @@ const CONTROL=/^DTE-(01|03|04|05|06|07|08|09|11|14)-[A-Z]\d{3}P\d{3}-\d{15}$/
 export const SUPPORTED_DTE_TYPES=['01','03','04','05','06','07','08','09','11','14']
 export const FINAL_DTE_STATES=new Set(['PROCESSED','REJECTED','INVALIDATED'])
 
-export function mhEnvironmentLabel(value){return value==='01'?'PRODUCCIÓN':value==='00'?'PRUEBAS':'SIN DEFINIR'}
+export function normalizeMhEnvironment(value){const raw=String(value||'').trim().toLowerCase();if(raw==='test'||raw==='00')return'00';if(raw==='production'||raw==='01')return'01';return String(value||'').trim()}
+export function mhEnvironmentLabel(value){const normalized=normalizeMhEnvironment(value);return normalized==='01'?'PRODUCCIÓN':normalized==='00'?'PRUEBAS':'SIN DEFINIR'}
 export function isFiscalImmutable(row){return row?.status==='PROCESSED'||Boolean(row?.mh_receipt_seal)}
 export function hasMhAcceptanceEvidence(row){return Boolean(row?.mh_receipt_seal)&&row?.status==='PROCESSED'}
 
@@ -13,7 +14,8 @@ export function inspectDte(row){
   const issues=[]
   const warnings=[]
   const type=String(row?.dte_type||id.tipoDte||'')
-  const environment=String(row?.environment||id.ambiente||'')
+  const environment=normalizeMhEnvironment(row?.environment||id.ambiente||'')
+  const payloadEnvironment=normalizeMhEnvironment(id.ambiente||'')
   const generation=String(row?.generation_code||id.codigoGeneracion||'')
   const control=String(row?.control_number||id.numeroControl||'')
   if(!SUPPORTED_DTE_TYPES.includes(type))issues.push('Tipo DTE fuera del catálogo controlado')
@@ -21,7 +23,7 @@ export function inspectDte(row){
   if(generation&&!UUID_V4_UPPER.test(generation))issues.push('Código de generación no es UUID v4 en mayúsculas')
   if(control&&!CONTROL.test(control))issues.push('Número de control no cumple el patrón DTE esperado')
   if(id.tipoDte&&String(id.tipoDte)!==type)issues.push('Tipo DTE no coincide entre registro e identificación')
-  if(id.ambiente&&String(id.ambiente)!==environment)issues.push('Ambiente no coincide entre registro e identificación')
+  if(payloadEnvironment&&payloadEnvironment!==environment)issues.push('Ambiente no coincide entre registro e identificación')
   if(id.codigoGeneracion&&String(id.codigoGeneracion)!==generation)issues.push('Código de generación no coincide con el payload')
   if(id.numeroControl&&String(id.numeroControl)!==control)issues.push('Número de control no coincide con el payload')
   if(row?.status==='PROCESSED'&&!row?.mh_receipt_seal)issues.push('Marcado procesado sin sello de recepción MH')

@@ -46,10 +46,6 @@ export default function FacturacionLauncher() {
       .channel(`billing-dte-trace-${company.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dte_documents', filter: `company_id=eq.${company.id}` }, (payload) => {
         const row = payload.new || {}
-        if (payload.eventType === 'INSERT' && ['01', '03'].includes(String(row.dte_type || ''))) {
-          setContextClient({ id: '', name: '' })
-          setActiveSection('documentos')
-        }
         if (payload.eventType === 'UPDATE' && String(row.status || '').toUpperCase() === 'PROCESSED') {
           setReceivablesVersion((value) => value + 1)
         }
