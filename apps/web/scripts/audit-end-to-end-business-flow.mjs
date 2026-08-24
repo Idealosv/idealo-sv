@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 const steps = [
   ['Clientes → Productos → Cotizaciones', 'audit-commercial-flow.mjs'],
@@ -11,7 +12,8 @@ const steps = [
 ]
 
 for (const [label, script] of steps) {
-  const result = spawnSync(process.execPath, [new URL(script, import.meta.url)], {
+  const scriptPath = fileURLToPath(new URL(script, import.meta.url))
+  const result = spawnSync(process.execPath, [scriptPath], {
     stdio: 'inherit',
   })
   if (result.status !== 0) {
