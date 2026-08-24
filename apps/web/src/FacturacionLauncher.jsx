@@ -80,23 +80,6 @@ export default function FacturacionLauncher() {
     return () => window.removeEventListener('idealo-open-client-context', openClientContext)
   }, [])
 
-  useEffect(() => {
-    if (!open || activeSection !== 'emitir' || !contextClient.id) return undefined
-    let attempts = 0
-    const timer = window.setInterval(() => {
-      attempts += 1
-      const option = document.querySelector(`.facturacion-dte select option[value="${contextClient.id}"]`)
-      const select = option?.parentElement
-      if (select) {
-        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
-        if (setter) setter.call(select, contextClient.id); else select.value = contextClient.id
-        select.dispatchEvent(new Event('change', { bubbles: true }))
-        window.clearInterval(timer)
-      } else if (attempts >= 30) window.clearInterval(timer)
-    }, 100)
-    return () => window.clearInterval(timer)
-  }, [open, activeSection, contextClient.id])
-
   if (!session || !company) return null
   const active = sections.find((item) => item.id === activeSection) || sections[0]
   const groups = [...new Set(sections.map((section) => section.group))]
@@ -117,7 +100,7 @@ export default function FacturacionLauncher() {
             <div className="billing-section-head"><div><span className="billing-section-kicker">{active.group} · {active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
             {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
             {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/>} 
-            {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa cliente, productos o servicios y condición de pago. El sistema prepara DTE-01 o DTE-03 según corresponda.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company}/></section>}
+            {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa cliente, productos o servicios y condición de pago. El sistema prepara DTE-01 o DTE-03 según corresponda.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/></section>}
             {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/></section>}
             {activeSection === 'cobros' && <BillingReceivablesPanel supabase={supabase} company={company} onOpenCash={openCash}/>} 
             {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, transmisión, diagnóstico y pruebas separadas de la facturación diaria.</small></div></div><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
