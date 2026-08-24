@@ -53,9 +53,9 @@ function toFiscalItems(items,dteType,priceMode){
   })
 }
 
-export default function FacturacionDte({session,supabase,company}){
+export default function FacturacionDte({session,supabase,company,initialClientId=''}){
   const [clients,setClients]=useState([])
-  const [clientId,setClientId]=useState('')
+  const [clientId,setClientId]=useState(initialClientId||'')
   const [dteType,setDteType]=useState('01')
   const [priceMode,setPriceMode]=useState('sin_iva')
   const [items,setItems]=useState([emptyItem()])
@@ -79,6 +79,7 @@ export default function FacturacionDte({session,supabase,company}){
   const [busy,setBusy]=useState(false)
 
   useEffect(()=>{supabase.from('clients').select('*').eq('company_id',company.id).order('name').then(({data,error})=>{if(error){setMessage(error.message);setMessageType('error')}setClients(data||[])})},[company.id,supabase])
+  useEffect(()=>{if(initialClientId){setClientId(initialClientId);setMessage('')}},[initialClientId])
   const selectedClient=clients.find(client=>client.id===clientId)||null
   const ccfMissing=useMemo(()=>missingCcfData(selectedClient),[selectedClient])
 
