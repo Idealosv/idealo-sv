@@ -21,6 +21,7 @@ export default function FacturacionLauncher() {
   const [open, setOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('resumen')
   const [contextClient, setContextClient] = useState({ id: '', name: '' })
+  const [receivablesVersion, setReceivablesVersion] = useState(0)
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -38,6 +39,24 @@ export default function FacturacionLauncher() {
       setCompany(row || null)
     })
   }, [session])
+
+  useEffect(() => {
+    if (!company?.id || !supabase) return undefined
+    const channel = supabase
+      .channel(`billing-dte-trace-${company.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dte_documents', filter: `company_id=eq.${company.id}` }, (payload) => {
+        const row = payload.new || {}
+        if (payload.eventType === 'INSERT' && ['01', '03'].includes(String(row.dte_type || ''))) {
+          setContextClient({ id: '', name: '' })
+          setActiveSection('documentos')
+        }
+        if (payload.eventType === 'UPDATE' && String(row.status || '').toUpperCase() === 'PROCESSED') {
+          setReceivablesVersion((value) => value + 1)
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [company?.id])
 
   const notifyBillingActive = () => window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
   const openSection = (id) => {
@@ -102,7 +121,7 @@ export default function FacturacionLauncher() {
             {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/>} 
             {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa cliente, productos o servicios y condición de pago. El sistema prepara DTE-01 o DTE-03 según corresponda.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/></section>}
             {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/></section>}
-            {activeSection === 'cobros' && <BillingReceivablesPanel supabase={supabase} company={company} onOpenCash={openCash}/>} 
+            {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
             {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, transmisión, diagnóstico y pruebas separadas de la facturación diaria.</small></div></div><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
           </main>
         </div>
