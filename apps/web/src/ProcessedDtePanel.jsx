@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import RejectedDteRecovery from './RejectedDteRecovery.jsx'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const money = (value) => `$${Number(value || 0).toFixed(2)}`
@@ -36,7 +37,7 @@ export default function ProcessedDtePanel({ supabase, company, session, onOpenHa
     setError('')
     const { data, error: queryError } = await supabase
       .from('dte_documents')
-      .select('id, client_id, dte_type, control_number, generation_code, environment, status, dte_payload, mh_response, created_at, updated_at')
+      .select('id, client_id, dte_type, control_number, generation_code, environment, status, dte_payload, mh_response, reissued_from_id, created_at, updated_at')
       .eq('company_id', company.id)
       .in('dte_type', ['01', '03'])
       .order('created_at', { ascending: false })
@@ -152,7 +153,7 @@ export default function ProcessedDtePanel({ supabase, company, session, onOpenHa
         const resumen = payload.resumen || {}
         const receptor = payload.receptor || {}
         return <tr key={document.id} className={selectedId === document.id ? 'selected' : ''}>
-          <td><strong>{document.dte_type === '03' ? 'CCF DTE-03' : 'Factura DTE-01'}</strong><small>{document.control_number}</small></td>
+          <td><strong>{document.dte_type === '03' ? 'CCF DTE-03' : 'Factura DTE-01'}</strong><small>{document.control_number}</small>{document.reissued_from_id && <small>Reemisión vinculada</small>}</td>
           <td><strong>{receptor.nombre || 'Consumidor final'}</strong><small>{receptor.numDocumento || receptor.nit || receptor.nrc || 'Sin documento'}</small></td>
           <td>{dateTime(document.created_at)}</td>
           <td><strong>{money(resumen.totalPagar ?? resumen.montoTotalOperacion)}</strong><small>Gravado {money(resumen.totalGravada)}</small></td>
@@ -163,6 +164,7 @@ export default function ProcessedDtePanel({ supabase, company, session, onOpenHa
     </table></div>}
 
     {selected && <DocumentDetail document={selected} busy={busyId === selected.id} onSign={() => runAction(selected, 'sign')} onTransmit={() => runAction(selected, 'transmit')} onPrint={() => printRepresentation(selected)} onOpenHacienda={onOpenHacienda}/>} 
+    {selected?.status === 'REJECTED' && <RejectedDteRecovery document={selected} company={company} session={session} onCreated={async (created) => { setSelectedId(created.id); await load() }}/>} 
   </section>
 }
 
