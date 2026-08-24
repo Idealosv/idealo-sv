@@ -26,10 +26,10 @@ function mhErrorDetail(body) {
   return candidates.find((item) => typeof item === 'string' && item.trim())?.trim().slice(0, 500) || ''
 }
 
-export function buildTestReceptionPayload(document) {
+export function buildTestReceptionPayload(document, attemptNumber = 1) {
   return {
     ambiente: '00',
-    idEnvio: 1,
+    idEnvio: attemptNumber,
     version: Number(document.dte_payload?.identificacion?.version || 2),
     tipoDte: String(document.dte_payload?.identificacion?.tipoDte || document.dte_type || '01'),
     documento: document.signed_document,
@@ -48,6 +48,22 @@ export function buildMhPublicError(error, phase = 'recepcion') {
   publicError.mhBody = error?.body || null
   publicError.mhPhase = phase
   return publicError
+}
+
+export function nextTransmissionAttempt(existingAttempts = []) {
+  const attempts = [...existingAttempts].sort((a, b) => Number(a.attempt_number || 0) - Number(b.attempt_number || 0))
+  const active = attempts.find((attempt) => !attempt.finished_at)
+  if (active) {
+    const error = new Error(`El intento ${active.attempt_number} todavía está en curso. Esperá su resultado antes de reenviar.`)
+    error.statusCode = 409
+    throw error
+  }
+  if (attempts.length >= 3) {
+    const error = new Error('Este DTE alcanzó el máximo de 3 intentos de transmisión TEST. Revisá la configuración antes de crear y firmar un DTE nuevo.')
+    error.statusCode = 409
+    throw error
+  }
+  return attempts.length + 1
 }
 
 export async function transmitSignedTestDte({ request, supabase, env = process.env, fetchImpl = fetch }) {
@@ -108,6 +124,11 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
   if (document.status === 'PROCESSED') {
     return { ...document, alreadyProcessed: true, transmissionAttempted: false }
   }
+  if (document.status === 'REJECTED') {
+    const error = new Error('Hacienda rechazó este DTE. No se reenvía automáticamente el mismo documento firmado; corregí la causa y generá un DTE nuevo.')
+    error.statusCode = 409
+    throw error
+  }
   if (document.status !== 'SIGNED' || !document.signed_document) {
     const error = new Error(`Solo se pueden transmitir documentos SIGNED. Estado actual: ${document.status}.`)
     error.statusCode = 409
@@ -116,22 +137,18 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
 
   const { data: existingAttempts, error: attemptsError } = await supabase
     .from('dte_transmission_attempts')
-    .select('id, attempt_number, response_payload, error_message, finished_at')
+    .select('id, attempt_number, response_payload, error_message, started_at, finished_at')
     .eq('dte_document_id', document.id)
     .order('attempt_number', { ascending: true })
   if (attemptsError) throw attemptsError
-  if ((existingAttempts || []).length > 0) {
-    const error = new Error('Este DTE ya tiene un intento de transmisión registrado. Crea y firma un DTE nuevo para la siguiente prueba.')
-    error.statusCode = 409
-    throw error
-  }
 
-  const payload = buildTestReceptionPayload(document)
+  const attemptNumber = nextTransmissionAttempt(existingAttempts || [])
+  const payload = buildTestReceptionPayload(document, attemptNumber)
   const { data: attempt, error: attemptError } = await supabase
     .from('dte_transmission_attempts')
     .insert({
       dte_document_id: document.id,
-      attempt_number: 1,
+      attempt_number: attemptNumber,
       request_payload: payload,
     })
     .select('id')
@@ -179,7 +196,7 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     return {
       ...updated,
       transmissionAttempted: true,
-      attemptNumber: 1,
+      attemptNumber,
       productionAllowed: false,
     }
   } catch (error) {
