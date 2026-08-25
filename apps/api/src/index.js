@@ -3,7 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
-import { getDteConfigurationStatus } from './dte/config.js'
+import { getDteConfigurationStatus, getDteProductionPreflightStatus } from './dte/config.js'
 import { createTestDteDraft } from './dte/draft-service.js'
 import { createInvoiceDraft } from './dte/invoice-service.js'
 import { signTestDteDraft } from './dte/sign-service.js'
@@ -51,6 +51,10 @@ app.get('/api/system/status', async (_request, response, next) => {
 
 app.get('/api/dte/status', (_request, response) => {
   response.json(getDteConfigurationStatus())
+})
+
+app.get('/api/dte/production-preflight', (_request, response) => {
+  response.json(getDteProductionPreflightStatus())
 })
 
 app.get('/api/dte/signer-diagnostic', async (request, response, next) => {
