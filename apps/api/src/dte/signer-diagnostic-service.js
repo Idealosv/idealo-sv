@@ -8,6 +8,48 @@ function bearerToken(request) {
 }
 
 const digits = (value) => String(value || '').replace(/\D/g, '')
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export function classifySignerFailure(error) {
+  const message = String(error?.message || '')
+  const status = Number(error?.status || 0)
+  if (status === 401 || status === 403) return { kind: 'AUTH', message: `El firmador rechazó la credencial interna (HTTP ${status}).` }
+  if (status >= 400) return { kind: 'HTTP', message: `El firmador respondió HTTP ${status}.` }
+  if (/superó\s+\d+\s+ms|timeout|aborted|abort/i.test(message)) return { kind: 'TIMEOUT', message: 'El firmador no respondió dentro del tiempo de espera.' }
+  if (/conectar|fetch|network|econn|enotfound|socket/i.test(message)) return { kind: 'NETWORK', message: 'No fue posible establecer conexión con el firmador.' }
+  return { kind: 'UNKNOWN', message: 'El firmador no pudo completar la comprobación.' }
+}
+
+async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 20000 }) {
+  let signerStatus = null
+  let certificate = null
+  let lastFailure = null
+  let attemptsUsed = 0
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    attemptsUsed = attempt
+    const config = Object.freeze({ ...baseConfig, requestTimeoutMs: timeoutMs })
+    const signer = new DteSignerClient(config, { fetchImpl })
+    const [statusResult, diagnosticResult] = await Promise.allSettled([signer.status(), signer.diagnostic()])
+
+    if (statusResult.status === 'fulfilled') signerStatus = statusResult.value
+    if (diagnosticResult.status === 'fulfilled') certificate = diagnosticResult.value
+
+    if (signerStatus || certificate) {
+      if (!certificate) {
+        try { certificate = await signer.diagnostic() } catch (error) { lastFailure = classifySignerFailure(error) }
+      }
+      return { reachable: true, signerStatus, certificate, failure: lastFailure, attemptsUsed, timeoutMs }
+    }
+
+    const statusFailure = classifySignerFailure(statusResult.reason)
+    const diagnosticFailure = classifySignerFailure(diagnosticResult.reason)
+    lastFailure = diagnosticFailure.kind !== 'UNKNOWN' ? diagnosticFailure : statusFailure
+    if (attempt < attempts) await wait(1500)
+  }
+
+  return { reachable: false, signerStatus: null, certificate: null, failure: lastFailure, attemptsUsed, timeoutMs }
+}
 
 function extractSignedDocument(response) {
   const value = response?.body || response
@@ -58,16 +100,15 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   if (companyError) throw companyError
 
   const baseConfig = getDteSignerConfig(env)
-  const config = Object.freeze({ ...baseConfig, requestTimeoutMs: Math.max(baseConfig.requestTimeoutMs || 0, 90000) })
+  const attemptTimeoutMs = Math.min(Math.max(baseConfig.requestTimeoutMs || 8000, 12000), 20000)
+  const probe = await probeSigner({ baseConfig, fetchImpl, attempts: 3, timeoutMs: attemptTimeoutMs })
+  const config = Object.freeze({ ...baseConfig, requestTimeoutMs: attemptTimeoutMs })
   const signer = new DteSignerClient(config, { fetchImpl })
-
-  let signerReachable = false
-  let signerStatus = null
-  let certificate = null
-  let signerError = null
-
-  try { signerStatus = await signer.status(); signerReachable = true } catch (error) { signerError = error.message }
-  try { certificate = await signer.diagnostic(); signerReachable = true } catch (error) { signerError = signerError || error.message }
+  const signerReachable = probe.reachable
+  const signerStatus = probe.signerStatus
+  const certificate = probe.certificate
+  const signerError = probe.failure?.message || null
+  const signerFailureKind = probe.failure?.kind || null
 
   const companyNit = digits(company.nit)
   const configuredNit = digits(config.nit)
@@ -84,10 +125,10 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   let cryptoSelfTest = { valid: false, algorithm: null, reason: signerReachable ? 'No ejecutada.' : 'Firmador sin respuesta.' }
   if (certificatePresent && certificate?.publicKeyDer && signerReachable) {
     try {
-      const probe = { diagnostico: 'IDEALO-SV-SIGNER-SELF-TEST', nit: configuredNit, timestamp: new Date().toISOString() }
-      const signedProbe = extractSignedDocument(await signer.sign(probe))
+      const probePayload = { diagnostico: 'IDEALO-SV-SIGNER-SELF-TEST', nit: configuredNit, timestamp: new Date().toISOString() }
+      const signedProbe = extractSignedDocument(await signer.sign(probePayload))
       cryptoSelfTest = signedProbe ? verifyJws(signedProbe, certificate.publicKeyDer) : { valid: false, algorithm: null, reason: 'El firmador no devolvió JWS en la autoprueba.' }
-    } catch (error) { cryptoSelfTest = { valid: false, algorithm: null, reason: error.message } }
+    } catch (error) { cryptoSelfTest = { valid: false, algorithm: null, reason: classifySignerFailure(error).message } }
   }
 
   const { data: docs, error: docsError } = await supabase.from('dte_documents').select('id, control_number').eq('company_id', companyId).eq('dte_type', '01').order('created_at', { ascending: false }).limit(10)
@@ -107,15 +148,24 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
 
   const previousSignatureRejected = lastMhRejection?.code === '802' || lastMhRejection?.description === 'Firma no válida'
   let overall = 'READY'
-  if (!signerReachable || !certificatePresent || !nitMatchesCompany || !mountedNitMatches || !certificateActive || !certificateInValidity || !cryptoSelfTest.valid) overall = 'CONFIG_ERROR'
+  if (!signerReachable) overall = 'SIGNER_UNAVAILABLE'
+  else if (!certificatePresent || !nitMatchesCompany || !mountedNitMatches || !certificateActive || !certificateInValidity || !cryptoSelfTest.valid) overall = 'CONFIG_ERROR'
   else if (previousSignatureRejected) overall = 'READY_FOR_SINGLE_RETRY'
 
   return {
-    overall, signerReachable, signerStatus: signerReachable ? 'online' : 'offline', signerError,
-    diagnosticTimeoutMs: config.requestTimeoutMs,
+    overall,
+    signerReachable,
+    signerStatus: signerReachable ? 'online' : 'offline',
+    signerServiceStatus: signerStatus || null,
+    signerError,
+    signerFailureKind,
+    probeAttempts: probe.attemptsUsed,
+    diagnosticTimeoutMs: probe.timeoutMs * 3 + 3000,
     certificate: { present: certificatePresent, count: Number(certificate?.certificateCount || 0), mountedNit: certificate?.mountedNit || null, fingerprint: certificate?.sha256 ? String(certificate.sha256).slice(0, 16) : null, sizeBytes: Number(certificate?.sizeBytes || 0), active: certificateActive, inValidity: certificateInValidity, notBefore: Number.isFinite(notBefore) ? new Date(notBefore * 1000).toISOString() : null, notAfter: Number.isFinite(notAfter) ? new Date(notAfter * 1000).toISOString() : null },
     nit: { companyMatchesConfigured: nitMatchesCompany, mountedCertificateMatchesConfigured: mountedNitMatches },
-    cryptoSelfTest, lastMhRejection, previousSignatureRejected,
+    cryptoSelfTest,
+    lastMhRejection,
+    previousSignatureRejected,
     transmissionRecommended: overall === 'READY' || overall === 'READY_FOR_SINGLE_RETRY',
   }
 }
