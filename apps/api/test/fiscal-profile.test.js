@@ -77,7 +77,8 @@ test('construye DTE-01 de prueba desde empresa y cliente registrados', () => {
   })
   assert.equal(dte.identificacion.ambiente, '00')
   assert.equal(dte.emisor.nit, company.nit)
-  assert.equal(dte.receptor.numDocumento, client.document_number)
+  assert.equal(dte.receptor.numDocumento, '000000000')
+  assert.equal(dte.receptor.nrc, null)
   assert.equal(dte.receptor.direccion.distrito, '01')
 })
 
