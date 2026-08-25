@@ -12,7 +12,9 @@ const INSTITUTIONAL = [
   /C[ÓO]DIGO\s+[ÚU]NICO/i,
 ]
 
-const ADDRESS_HINT = /\b(CALLE|AV(?:ENIDA)?|BOULEVARD|BLVD|COL(?:ONIA)?|URB(?:ANIZACI[ÓO]N)?|BARRIO|POL[IÍ]GONO|KM|CARRETERA|PAS(?:AJE)?|RESIDENCIAL|LOT(?:E)?|CASA|FINAL|CONTIGUO|SAN\s+SALVADOR|SANTA\s+ANA|AHUACHAP[AÁ]N|SONSONATE|LA\s+LIBERTAD)\b/i
+const ADDRESS_HINT = /\b(CALLE|AV(?:ENIDA)?|BOULEVARD|BLVD|COL(?:ONIA)?|URB(?:ANIZACI[ÓO]N)?|BARRIO|POL[IÍ]GONO|KM|CARRETERA|PAS(?:AJE)?|RESIDENCIAL|LOT(?:E)?|CASA|FINAL|CONTIGUO|CTGO|DISTRITO|MUNICIPIO|DEPARTAMENTO|SAN\s+SALVADOR|SANTA\s+ANA|AHUACHAP[AÁ]N|SONSONATE|LA\s+LIBERTAD)\b/i
+const NIT_LABEL = /(?:NIT|IDENTIFICACI[ÓO]N\s+TRIBUTARIA|NO\.?\s*DE\s*IDENTIFICACI[ÓO]N\s+TRIBUTARIA)/i
+const ACTIVITY_LABEL = /(?:GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA|GIRO|ACTIVIDAD\s+ECON[ÓO]MICA)/i
 
 export function parseVatCardSides(frontText = '', backText = '') {
   const front = linesOf(frontText)
@@ -20,15 +22,12 @@ export function parseVatCardSides(frontText = '', backText = '') {
   const all = [...front, ...back]
   const compact = all.join('\n')
 
-  const nit = findNit(compact)
+  const nit = findNit(front, compact)
   const nrc = findNrc(front, compact, nit)
-  const name = findField(front, /(?:NOMBRE\s+DEL\s+CONTRIBUYENTE|RAZ[ÓO]N\s+SOCIAL|DENOMINACI[ÓO]N)/i, {
+  const name = cleanName(findField(front, /(?:NOMBRE\s+DEL\s+CONTRIBUYENTE|RAZ[ÓO]N\s+SOCIAL|DENOMINACI[ÓO]N)/i, {
     reject: isInstitutional,
-  })
-  const activityRaw = findField(front, /(?:GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA|GIRO|ACTIVIDAD\s+ECON[ÓO]MICA)/i, {
-    maxNext: 3,
-    reject: isInstitutional,
-  })
+  }))
+  const activityRaw = findActivity(front)
   const address = findAddress(back)
   const activity = matchActivity(activityRaw)
 
@@ -64,13 +63,31 @@ function isInstitutional(value = '') {
   return INSTITUTIONAL.some((pattern) => pattern.test(value))
 }
 
-function findNit(text) {
-  const candidates = String(text).match(/\b\d{4}[\s-]?\d{6}[\s-]?\d{3}[\s-]?\d\b/g) || []
-  for (const candidate of candidates) {
-    const digits = candidate.replace(/\D/g, '')
-    if (digits.length === 14) return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+function findNit(lines, compact) {
+  const labelIndex = lines.findIndex((line) => NIT_LABEL.test(line))
+  const preferred = []
+  if (labelIndex >= 0) preferred.push(lines.slice(labelIndex, labelIndex + 4).join(' '))
+  preferred.push(compact)
+
+  for (const source of preferred) {
+    const candidates = String(source || '').match(/(?:[0-9OQDILSB]{3,4}[\s.\-_/]*){3,5}[0-9OQDILSB]{1,4}/gi) || []
+    for (const candidate of candidates) {
+      const digits = normalizeOcrDigits(candidate)
+      if (digits.length !== 14) continue
+      return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+    }
   }
   return ''
+}
+
+function normalizeOcrDigits(value = '') {
+  return String(value)
+    .toUpperCase()
+    .replace(/O|Q|D/g, '0')
+    .replace(/I|L/g, '1')
+    .replace(/S/g, '5')
+    .replace(/B/g, '8')
+    .replace(/\D/g, '')
 }
 
 function findNrc(lines, compact, nit) {
@@ -87,14 +104,34 @@ function findNrc(lines, compact, nit) {
   return ''
 }
 
-function findField(lines, label, { maxNext = 2, reject = () => false } = {}) {
+function findActivity(lines) {
+  const direct = findField(lines, ACTIVITY_LABEL, {
+    maxNext: 4,
+    reject: (value) => isInstitutional(value) || /^\d[\d\s.-]*$/.test(value),
+    allowActivityValue: true,
+  })
+  if (direct) return cleanActivity(direct)
+
+  const hintIndex = lines.findIndex((line) => /GIRO|ACTIVIDAD|ECON[ÓO]MIC/i.test(line))
+  if (hintIndex >= 0) {
+    for (let offset = 1; offset <= 4; offset += 1) {
+      const candidate = clean(lines[hintIndex + offset] || '')
+      if (!candidate || isInstitutional(candidate) || isHardLabel(candidate) || /^\d[\d\s.-]*$/.test(candidate)) continue
+      if (candidate.length >= 5) return cleanActivity(candidate)
+    }
+  }
+  return ''
+}
+
+function findField(lines, label, { maxNext = 2, reject = () => false, allowActivityValue = false } = {}) {
   for (let index = 0; index < lines.length; index += 1) {
     if (!label.test(lines[index])) continue
     const inline = clean(lines[index].replace(label, '').replace(/^\s*[:.\-–]+\s*/, ''))
     if (inline.length > 2 && !reject(inline)) return inline
     for (let offset = 1; offset <= maxNext; offset += 1) {
       const candidate = clean(lines[index + offset] || '')
-      if (!candidate || isLabel(candidate) || reject(candidate)) continue
+      if (!candidate || reject(candidate)) continue
+      if (allowActivityValue ? isHardLabel(candidate) : isLabel(candidate)) continue
       return candidate
     }
   }
@@ -107,7 +144,7 @@ function findAddress(backLines) {
     const inline = clean(backLines[matrixIndex].replace(/DIRECCI[ÓO]N\s+DE\s+CASA\s+MATRIZ/i, ''))
     if (validAddress(inline)) return inline
     const collected = []
-    for (let i = matrixIndex + 1; i < Math.min(backLines.length, matrixIndex + 5); i += 1) {
+    for (let i = matrixIndex + 1; i < Math.min(backLines.length, matrixIndex + 6); i += 1) {
       const candidate = clean(backLines[i])
       if (!candidate || isInstitutional(candidate)) continue
       if (/CATEGOR[IÍ]A|FIRMA|FUNCIONARIO|ESTA\s+TARJETA|C[ÓO]DIGO\s+[ÚU]NICO/i.test(candidate)) break
@@ -116,9 +153,6 @@ function findAddress(backLines) {
     const joined = collected.join(' ').trim()
     if (validAddress(joined)) return joined
   }
-
-  // No usar una etiqueta genérica "DIRECCIÓN": evita confundir
-  // "Dirección General de Impuestos Internos" con el domicilio fiscal.
   return ''
 }
 
@@ -126,12 +160,32 @@ function validAddress(value = '') {
   return value.length >= 8 && ADDRESS_HINT.test(value) && !isInstitutional(value)
 }
 
+function isHardLabel(value = '') {
+  return /^(NIT|NRC|NOMBRE|RAZ[ÓO]N|DIRECCI[ÓO]N|FECHA|C[ÓO]DIGO|N[°ºO.]?\s*DE\s*REGISTRO)\b/i.test(value)
+}
+
 function isLabel(value = '') {
-  return /^(NIT|NRC|NOMBRE|RAZ[ÓO]N|GIRO|ACTIVIDAD|DIRECCI[ÓO]N|FECHA|C[ÓO]DIGO|N[°ºO.]?\s*DE\s*REGISTRO)\b/i.test(value)
+  if (isHardLabel(value)) return true
+  return /^(GIRO\b|ACTIVIDAD\s+ECON[ÓO]MICA\b)/i.test(value)
 }
 
 function clean(value = '') {
   return String(value).replace(/^[^A-ZÁÉÍÓÚÑ0-9]+/i, '').replace(/\s{2,}/g, ' ').trim()
+}
+
+function cleanName(value = '') {
+  return clean(value)
+    .replace(/^(?:[EÉ]S|E5|IS|I5)\s+(?=[A-ZÁÉÍÓÚÑ]{3,})/i, '')
+    .replace(/\s+[I1L|]$/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function cleanActivity(value = '') {
+  return clean(value)
+    .replace(/\s+[I1L|]$/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
 }
 
 function normalize(value = '') {
