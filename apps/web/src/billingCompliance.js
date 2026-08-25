@@ -40,7 +40,7 @@ export function inspectDte(row){
     if(!receptor.nrc)issues.push('DTE-03 sin NRC del receptor')
     if(!receptor.nombre)issues.push('DTE-03 sin nombre del receptor')
   }
-  if(type==='01'&&!payload.receptor)warnings.push('DTE-01 sin receptor identificado: permitido solo cuando las reglas aplicables lo permitan')
+  // DTE-01 permite consumidor final sin receptor identificado. No es una inconsistencia por sí sola.
   const total=Number(payload?.resumen?.totalPagar??payload?.resumen?.montoTotalOperacion??0)
   if(!Number.isFinite(total)||total<0)issues.push('Total fiscal inválido')
   if(!Array.isArray(payload?.cuerpoDocumento)||payload.cuerpoDocumento.length===0)warnings.push('Documento sin cuerpo cargado en la copia local')
