@@ -67,3 +67,24 @@ if (!billingSource.includes(newFeedback)) {
 } else {
   console.log('Facturación: feedback fiscal ya está tipificado.')
 }
+
+const invoiceFile = path.resolve(here, '../src/FacturacionDte.jsx')
+let invoiceSource = fs.readFileSync(invoiceFile, 'utf8')
+const guidedImport = `import { applyDteTestScenarioPreset, DTE_TEST_SCENARIO_LABELS, readPendingDteTestScenario, scenarioInstruction } from './dteTestScenarioPresets.js'`
+if (!invoiceSource.includes(guidedImport)) {
+  invoiceSource = invoiceSource.replace("import './facturacion.css'", `import './facturacion.css'\n${guidedImport}`)
+}
+const busyAnchor = `  const [busy,setBusy]=useState(false)`
+const guidedState = `${busyAnchor}\n  const [guidedScenario,setGuidedScenario]=useState('')`
+if (!invoiceSource.includes("const [guidedScenario,setGuidedScenario]")) invoiceSource = invoiceSource.replace(busyAnchor, guidedState)
+const clientEffectAnchor = `  useEffect(()=>{if(initialClientId){setClientId(initialClientId);setMessage('')}},[initialClientId])`
+const guidedEffect = `${clientEffectAnchor}\n  useEffect(()=>{\n    const code=readPendingDteTestScenario()\n    if(!code)return\n    applyDteTestScenarioPreset(code,{setDteType,setClientId,setCondicionOperacion,setPaymentCode,setPaymentPeriod,setPaymentTerm,setNumPagoElectronico,setItems,emptyItem})\n    setGuidedScenario(code)\n    setMessage('')\n  },[])`
+if (!invoiceSource.includes('readPendingDteTestScenario()')) invoiceSource = invoiceSource.replace(clientEffectAnchor, guidedEffect)
+const readinessAnchor = `    if(dteType==='03'&&ccfMissing.length)pending.push(\`datos fiscales: \${ccfMissing.join(', ')}\`)`
+const readinessGuided = `${readinessAnchor}\n    if(guidedScenario==='consumer_identified'&&!selectedClient)pending.push('receptor identificado')\n    if(guidedScenario==='discount'&&!items.some(item=>Number(item.montoDescu)>0))pending.push('descuento mayor que cero')`
+if (!invoiceSource.includes("guidedScenario==='consumer_identified'")) invoiceSource = invoiceSource.replace(readinessAnchor, readinessGuided).replace(`  },[dteType,selectedClient,ccfMissing,items,condicionOperacion,paymentPeriod,paymentTerm])`, `  },[dteType,selectedClient,ccfMissing,items,condicionOperacion,paymentPeriod,paymentTerm,guidedScenario])`)
+const returnAnchor = `  return <section className="facturacion-dte billing-simple-flow">`
+const guidedBanner = `${returnAnchor}\n    {guidedScenario&&<div className="dte-note"><strong>Prueba MH guiada: {DTE_TEST_SCENARIO_LABELS[guidedScenario]}.</strong> {scenarioInstruction(guidedScenario)} La evidencia solo contará cuando Hacienda TEST responda PROCESSED.</div>}`
+if (!invoiceSource.includes('Prueba MH guiada:')) invoiceSource = invoiceSource.replace(returnAnchor, guidedBanner)
+fs.writeFileSync(invoiceFile, invoiceSource)
+console.log('Facturación: escenarios MH pendientes se preparan automáticamente sin inventar datos fiscales.')
