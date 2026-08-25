@@ -10,8 +10,11 @@ assert.match(parserSource, /normalizeOcrDigits/)
 assert.match(parserSource, /allowActivityValue/)
 assert.match(parserSource, /cleanName/)
 assert.match(parserSource, /ready_for_dte03:\s*missing\.length\s*===\s*0/)
-assert.match(scanner, /parseVatCardSides\(frontOcr\.data\.text \|\| '', backOcr\.data\.text \|\| ''\)/)
-assert.match(scanner, /disabled=\{!result\.ready_for_dte03\}/)
+assert.match(scanner, /prepareNitFocus\(front\.file\)/)
+assert.match(scanner, /Reintentando NIT con lectura ampliada/)
+assert.match(scanner, /NIT manual \(respaldo\)/)
+assert.match(scanner, /digits\.length !== 14/)
+assert.match(scanner, /disabled=\{!resolvedResult\?\.ready_for_dte03\}/)
 
 const executable = parserSource.replace(
   "import { DTE_ACTIVITIES } from './dteCatalogs'",
@@ -52,4 +55,4 @@ const unsafe = parseVatCardSides(noisyFront, 'DIRECCION GENERAL DE IMPUESTOS INT
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: NIT con confusiones O/I, nombre limpio, giro real y dirección casa matriz verificados')
+console.log('✓ OCR IVA: NIT ruidoso, reintento focalizado, respaldo manual y datos DTE-03 verificados')
