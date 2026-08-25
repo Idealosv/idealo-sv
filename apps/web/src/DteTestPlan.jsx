@@ -36,7 +36,7 @@ function autoMatches(code, doc) {
   }
 }
 
-export default function DteTestPlan({ supabase, company }) {
+export default function DteTestPlan({ supabase, company, onPrepareCase }) {
   const [rows, setRows] = useState([])
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(false)
@@ -83,8 +83,12 @@ export default function DteTestPlan({ supabase, company }) {
 
   const prepare = (row) => {
     sessionStorage.setItem('idealo:dte-test-scenario', row.code)
-    window.dispatchEvent(new CustomEvent('idealo:navigate-module', {
-      detail: { module: 'Facturación', action: 'new-invoice', dteTestScenario: row.code },
+    if (typeof onPrepareCase === 'function') {
+      onPrepareCase(row.code)
+      return
+    }
+    window.dispatchEvent(new CustomEvent('idealo-open-module', {
+      detail: { target: 'billing', tab: 'emitir', dteTestScenario: row.code },
     }))
   }
 
