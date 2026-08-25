@@ -50,6 +50,8 @@ services:
         sync: false
       - key: DTE_REQUEST_TIMEOUT_MS
         value: 8000
+      - key: DTE_SIGNER_WARMUP_TIMEOUT_MS
+        value: 45000
       - key: DTE_MAX_RESENDS
         value: 2
 
