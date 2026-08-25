@@ -50,6 +50,11 @@ export function parseVatCardSides(frontText = '', backText = '') {
   }
 }
 
+export function extractVatNit(text = '') {
+  const lines = linesOf(text)
+  return findNit(lines, lines.join('\n'))
+}
+
 function linesOf(text) {
   return String(text || '')
     .replace(/\r/g, '\n')
