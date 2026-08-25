@@ -201,6 +201,7 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     }
   } catch (error) {
     const now = new Date().toISOString()
+    const documentRejected = error.mhPhase === 'recepcion' && Boolean(error.mhBody)
     await supabase
       .from('dte_transmission_attempts')
       .update({
@@ -211,7 +212,12 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
       .eq('id', attempt.id)
     await supabase
       .from('dte_documents')
-      .update({ status: 'SIGNED', updated_at: now })
+      .update({
+        status: documentRejected ? 'REJECTED' : 'SIGNED',
+        mh_response: error.mhBody || document.mh_response || null,
+        mh_message: error.message,
+        updated_at: now,
+      })
       .eq('id', document.id)
     throw error
   }
