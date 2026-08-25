@@ -8,7 +8,7 @@ test('DTE-03 conserva el contrato que MH TEST aceptó', () => {
   const dte = buildCreditoFiscal({
     numeroControl: 'DTE-03-M001P001-000000000000002',
     codigoGeneracion: 'EFC3C108-91DA-4604-A69E-A7BD10965841',
-    emittedAt: new Date('2026-08-25T00:27:17-06:00'),
+    emittedAt: new Date(2026, 7, 25, 6, 27, 17),
     condicionOperacion: 1,
     totalLetras: 'DIEZ 50/100 DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA',
     payment: { codigo: '01', montoPago: 10.5 },
@@ -58,7 +58,7 @@ test('DTE-03 conserva el contrato que MH TEST aceptó', () => {
     tipoContingencia: null,
     motivoContin: null,
     fecEmi: '2026-08-25',
-    horEmi: '00:27:17',
+    horEmi: '06:27:17',
     tipoMoneda: 'USD',
   })
 
