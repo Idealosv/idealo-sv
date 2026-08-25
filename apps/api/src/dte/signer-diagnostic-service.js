@@ -9,15 +9,18 @@ function bearerToken(request) {
 
 const digits = (value) => String(value || '').replace(/\D/g, '')
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const diagnosticCache = new Map()
+const CACHE_TTL_MS = 2 * 60 * 1000
 
 export function classifySignerFailure(error) {
   const message = String(error?.message || '')
   const status = Number(error?.status || 0)
-  if (status === 401 || status === 403) return { kind: 'AUTH', message: `El firmador rechazó la credencial interna (HTTP ${status}).` }
-  if (status >= 400) return { kind: 'HTTP', message: `El firmador respondió HTTP ${status}.` }
-  if (/superó\s+\d+\s+ms|timeout|aborted|abort/i.test(message)) return { kind: 'TIMEOUT', message: 'El firmador no respondió dentro del tiempo de espera.' }
-  if (/conectar|fetch|network|econn|enotfound|socket/i.test(message)) return { kind: 'NETWORK', message: 'No fue posible establecer conexión con el firmador.' }
-  return { kind: 'UNKNOWN', message: 'El firmador no pudo completar la comprobación.' }
+  if (status === 429) return { kind: 'RATE_LIMIT', status, retryable: true, message: 'El firmador limitó temporalmente las solicitudes (HTTP 429). Esperá un momento; no implica un certificado inválido.' }
+  if (status === 401 || status === 403) return { kind: 'AUTH', status, retryable: false, message: `El firmador rechazó la credencial interna (HTTP ${status}).` }
+  if (status >= 400) return { kind: 'HTTP', status, retryable: status >= 500, message: `El firmador respondió HTTP ${status}.` }
+  if (/superó\s+\d+\s+ms|timeout|aborted|abort/i.test(message)) return { kind: 'TIMEOUT', retryable: true, message: 'El firmador no respondió dentro del tiempo de espera.' }
+  if (/conectar|fetch|network|econn|enotfound|socket/i.test(message)) return { kind: 'NETWORK', retryable: true, message: 'No fue posible establecer conexión con el firmador.' }
+  return { kind: 'UNKNOWN', retryable: false, message: 'El firmador no pudo completar la comprobación.' }
 }
 
 async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 12000, warmupTimeoutMs = 45000 }) {
@@ -25,7 +28,7 @@ async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 12
   let certificate = null
   let lastFailure = null
   let attemptsUsed = 0
-  let warmup = { attempted: false, ok: false, failure: null }
+  const warmup = { attempted: false, ok: false, failure: null }
 
   const warmConfig = Object.freeze({ ...baseConfig, requestTimeoutMs: timeoutMs })
   const warmSigner = new DteSignerClient(warmConfig, { fetchImpl })
@@ -36,28 +39,22 @@ async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 12
     await wait(500)
   } catch (error) {
     warmup.failure = classifySignerFailure(error)
+    // Un 429 en warmup indica saturación: no agregamos más solicitudes simultáneas.
+    if (warmup.failure.kind === 'RATE_LIMIT') return { reachable: false, signerStatus: null, certificate: null, failure: warmup.failure, attemptsUsed: 0, timeoutMs, warmupTimeoutMs, warmup }
   }
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     attemptsUsed = attempt
     const config = Object.freeze({ ...baseConfig, requestTimeoutMs: timeoutMs })
     const signer = new DteSignerClient(config, { fetchImpl })
-    const [statusResult, diagnosticResult] = await Promise.allSettled([signer.status(), signer.diagnostic()])
+    // Secuencial para no duplicar presión sobre un firmador que puede estar arrancando o limitado.
+    try { signerStatus = await signer.status() } catch (error) { lastFailure = classifySignerFailure(error) }
+    if (lastFailure?.kind === 'RATE_LIMIT') return { reachable: false, signerStatus: null, certificate: null, failure: lastFailure, attemptsUsed, timeoutMs, warmupTimeoutMs, warmup }
+    try { certificate = await signer.diagnostic() } catch (error) { lastFailure = classifySignerFailure(error) }
 
-    if (statusResult.status === 'fulfilled') signerStatus = statusResult.value
-    if (diagnosticResult.status === 'fulfilled') certificate = diagnosticResult.value
-
-    if (signerStatus || certificate) {
-      if (!certificate) {
-        try { certificate = await signer.diagnostic() } catch (error) { lastFailure = classifySignerFailure(error) }
-      }
-      return { reachable: true, signerStatus, certificate, failure: lastFailure, attemptsUsed, timeoutMs, warmupTimeoutMs, warmup }
-    }
-
-    const statusFailure = classifySignerFailure(statusResult.reason)
-    const diagnosticFailure = classifySignerFailure(diagnosticResult.reason)
-    lastFailure = diagnosticFailure.kind !== 'UNKNOWN' ? diagnosticFailure : statusFailure
-    if (attempt < attempts) await wait(1500)
+    if (signerStatus || certificate) return { reachable: true, signerStatus, certificate, failure: lastFailure, attemptsUsed, timeoutMs, warmupTimeoutMs, warmup }
+    if (lastFailure?.kind === 'RATE_LIMIT') return { reachable: false, signerStatus: null, certificate: null, failure: lastFailure, attemptsUsed, timeoutMs, warmupTimeoutMs, warmup }
+    if (attempt < attempts) await wait(1500 * (2 ** (attempt - 1)))
   }
 
   if (!lastFailure && warmup.failure) lastFailure = warmup.failure
@@ -79,12 +76,10 @@ function base64UrlBuffer(value) {
 function verifyJws(jws, publicKeyDer) {
   const parts = String(jws || '').split('.')
   if (parts.length !== 3) return { valid: false, algorithm: null, reason: 'JWS inválido: debe contener tres segmentos.' }
-
   try {
     const header = JSON.parse(base64UrlBuffer(parts[0]).toString('utf8'))
     const algorithm = header?.alg || null
     if (algorithm !== 'RS512') return { valid: false, algorithm, reason: `Algoritmo inesperado: ${algorithm || 'sin alg'}.` }
-
     const publicKey = createPublicKey({ key: Buffer.from(publicKeyDer, 'base64'), format: 'der', type: 'spki' })
     const signingInput = Buffer.from(`${parts[0]}.${parts[1]}`, 'ascii')
     const signature = base64UrlBuffer(parts[2])
@@ -98,19 +93,18 @@ function verifyJws(jws, publicKeyDer) {
 export async function diagnoseDteSigner({ request, supabase, env = process.env, fetchImpl = fetch }) {
   const token = bearerToken(request)
   if (!token) { const error = new Error('Debes iniciar sesión para diagnosticar el firmador DTE.'); error.statusCode = 401; throw error }
-
   const { data: userData, error: userError } = await supabase.auth.getUser(token)
   if (userError || !userData?.user) { const error = new Error('La sesión no es válida o ya venció.'); error.statusCode = 401; throw error }
-
   const companyId = request.query?.companyId || request.body?.companyId
   if (!companyId) { const error = new Error('Debes indicar la empresa para diagnosticar el firmador.'); error.statusCode = 400; throw error }
-
   const { data: membership, error: membershipError } = await supabase.from('company_members').select('role').eq('company_id', companyId).eq('user_id', userData.user.id).maybeSingle()
   if (membershipError) throw membershipError
   if (!membership) { const error = new Error('No tienes permiso para diagnosticar DTE de esta empresa.'); error.statusCode = 403; throw error }
-
   const { data: company, error: companyError } = await supabase.from('companies').select('id, nit, name').eq('id', companyId).single()
   if (companyError) throw companyError
+
+  const cached = diagnosticCache.get(companyId)
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return { ...cached.result, cached: true, cacheAgeMs: Date.now() - cached.at }
 
   const baseConfig = getDteSignerConfig(env)
   const attemptTimeoutMs = Math.min(Math.max(baseConfig.requestTimeoutMs || 8000, 10000), 15000)
@@ -123,7 +117,6 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   const certificate = probe.certificate
   const signerError = probe.failure?.message || null
   const signerFailureKind = probe.failure?.kind || null
-
   const companyNit = digits(company.nit)
   const configuredNit = digits(config.nit)
   const mountedNit = digits(certificate?.mountedNit)
@@ -147,7 +140,6 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
 
   const { data: docs, error: docsError } = await supabase.from('dte_documents').select('id, control_number').eq('company_id', companyId).eq('dte_type', '01').order('created_at', { ascending: false }).limit(10)
   if (docsError) throw docsError
-
   let lastMhRejection = null
   const ids = (docs || []).map((row) => row.id)
   if (ids.length) {
@@ -159,28 +151,23 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
       lastMhRejection = { controlNumber: document?.control_number || null, code: rejected.response_payload?.codigoMsg || null, description: rejected.response_payload?.descripcionMsg || rejected.error_message || null, at: rejected.started_at }
     }
   }
-
   const previousSignatureRejected = lastMhRejection?.code === '802' || lastMhRejection?.description === 'Firma no válida'
   let overall = 'READY'
-  if (!signerReachable) overall = 'SIGNER_UNAVAILABLE'
+  if (!signerReachable) overall = signerFailureKind === 'RATE_LIMIT' ? 'SIGNER_RATE_LIMITED' : 'SIGNER_UNAVAILABLE'
   else if (!certificatePresent || !nitMatchesCompany || !mountedNitMatches || !certificateActive || !certificateInValidity || !cryptoSelfTest.valid) overall = 'CONFIG_ERROR'
   else if (previousSignatureRejected) overall = 'READY_FOR_SINGLE_RETRY'
 
-  return {
-    overall,
-    signerReachable,
-    signerStatus: signerReachable ? 'online' : 'offline',
-    signerServiceStatus: signerStatus || null,
-    signerError,
-    signerFailureKind,
-    probeAttempts: probe.attemptsUsed,
-    warmup: probe.warmup,
+  const result = {
+    overall, signerReachable, signerStatus: signerReachable ? 'online' : 'offline', signerServiceStatus: signerStatus || null,
+    signerError, signerFailureKind, retryable: probe.failure?.retryable === true, retryAfterMs: signerFailureKind === 'RATE_LIMIT' ? 60000 : null,
+    probeAttempts: probe.attemptsUsed, warmup: probe.warmup,
     diagnosticTimeoutMs: probe.warmupTimeoutMs + (probe.timeoutMs * 3) + 4000,
     certificate: { present: certificatePresent, count: Number(certificate?.certificateCount || 0), mountedNit: certificate?.mountedNit || null, fingerprint: certificate?.sha256 ? String(certificate.sha256).slice(0, 16) : null, sizeBytes: Number(certificate?.sizeBytes || 0), active: certificateActive, inValidity: certificateInValidity, notBefore: Number.isFinite(notBefore) ? new Date(notBefore * 1000).toISOString() : null, notAfter: Number.isFinite(notAfter) ? new Date(notAfter * 1000).toISOString() : null },
     nit: { companyMatchesConfigured: nitMatchesCompany, mountedCertificateMatchesConfigured: mountedNitMatches },
-    cryptoSelfTest,
-    lastMhRejection,
-    previousSignatureRejected,
-    transmissionRecommended: overall === 'READY' || overall === 'READY_FOR_SINGLE_RETRY',
+    cryptoSelfTest, lastMhRejection, previousSignatureRejected,
+    transmissionRecommended: overall === 'READY' || overall === 'READY_FOR_SINGLE_RETRY', cached: false,
   }
+  // Solo cacheamos estados sanos. Un 429 no debe reemplazar la última evidencia válida.
+  if (result.transmissionRecommended) diagnosticCache.set(companyId, { at: Date.now(), result })
+  return result
 }
