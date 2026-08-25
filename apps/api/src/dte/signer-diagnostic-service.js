@@ -20,11 +20,23 @@ export function classifySignerFailure(error) {
   return { kind: 'UNKNOWN', message: 'El firmador no pudo completar la comprobación.' }
 }
 
-async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 20000 }) {
+async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 12000, warmupTimeoutMs = 45000 }) {
   let signerStatus = null
   let certificate = null
   let lastFailure = null
   let attemptsUsed = 0
+  let warmup = { attempted: false, ok: false, failure: null }
+
+  const warmConfig = Object.freeze({ ...baseConfig, requestTimeoutMs: timeoutMs })
+  const warmSigner = new DteSignerClient(warmConfig, { fetchImpl })
+  warmup.attempted = true
+  try {
+    await warmSigner.warmup({ timeoutMs: warmupTimeoutMs })
+    warmup.ok = true
+    await wait(500)
+  } catch (error) {
+    warmup.failure = classifySignerFailure(error)
+  }
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     attemptsUsed = attempt
@@ -39,7 +51,7 @@ async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 20
       if (!certificate) {
         try { certificate = await signer.diagnostic() } catch (error) { lastFailure = classifySignerFailure(error) }
       }
-      return { reachable: true, signerStatus, certificate, failure: lastFailure, attemptsUsed, timeoutMs }
+      return { reachable: true, signerStatus, certificate, failure: lastFailure, attemptsUsed, timeoutMs, warmupTimeoutMs, warmup }
     }
 
     const statusFailure = classifySignerFailure(statusResult.reason)
@@ -48,7 +60,8 @@ async function probeSigner({ baseConfig, fetchImpl, attempts = 3, timeoutMs = 20
     if (attempt < attempts) await wait(1500)
   }
 
-  return { reachable: false, signerStatus: null, certificate: null, failure: lastFailure, attemptsUsed, timeoutMs }
+  if (!lastFailure && warmup.failure) lastFailure = warmup.failure
+  return { reachable: false, signerStatus: null, certificate: null, failure: lastFailure, attemptsUsed, timeoutMs, warmupTimeoutMs, warmup }
 }
 
 function extractSignedDocument(response) {
@@ -100,8 +113,9 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
   if (companyError) throw companyError
 
   const baseConfig = getDteSignerConfig(env)
-  const attemptTimeoutMs = Math.min(Math.max(baseConfig.requestTimeoutMs || 8000, 12000), 20000)
-  const probe = await probeSigner({ baseConfig, fetchImpl, attempts: 3, timeoutMs: attemptTimeoutMs })
+  const attemptTimeoutMs = Math.min(Math.max(baseConfig.requestTimeoutMs || 8000, 10000), 15000)
+  const warmupTimeoutMs = Math.min(Math.max(Number(env.DTE_SIGNER_WARMUP_TIMEOUT_MS || 45000), 30000), 60000)
+  const probe = await probeSigner({ baseConfig, fetchImpl, attempts: 3, timeoutMs: attemptTimeoutMs, warmupTimeoutMs })
   const config = Object.freeze({ ...baseConfig, requestTimeoutMs: attemptTimeoutMs })
   const signer = new DteSignerClient(config, { fetchImpl })
   const signerReachable = probe.reachable
@@ -160,7 +174,8 @@ export async function diagnoseDteSigner({ request, supabase, env = process.env, 
     signerError,
     signerFailureKind,
     probeAttempts: probe.attemptsUsed,
-    diagnosticTimeoutMs: probe.timeoutMs * 3 + 3000,
+    warmup: probe.warmup,
+    diagnosticTimeoutMs: probe.warmupTimeoutMs + (probe.timeoutMs * 3) + 4000,
     certificate: { present: certificatePresent, count: Number(certificate?.certificateCount || 0), mountedNit: certificate?.mountedNit || null, fingerprint: certificate?.sha256 ? String(certificate.sha256).slice(0, 16) : null, sizeBytes: Number(certificate?.sizeBytes || 0), active: certificateActive, inValidity: certificateInValidity, notBefore: Number.isFinite(notBefore) ? new Date(notBefore * 1000).toISOString() : null, notAfter: Number.isFinite(notAfter) ? new Date(notAfter * 1000).toISOString() : null },
     nit: { companyMatchesConfigured: nitMatchesCompany, mountedCertificateMatchesConfigured: mountedNitMatches },
     cryptoSelfTest,
