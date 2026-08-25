@@ -38,6 +38,7 @@ function VatCardScanner() {
   const [reading, setReading] = useState(false)
   const [progress, setProgress] = useState('')
   const [result, setResult] = useState(null)
+  const [manualNit, setManualNit] = useState('')
   const [error, setError] = useState('')
 
   const capture = (side, file) => {
@@ -51,26 +52,37 @@ function VatCardScanner() {
       setBack(next)
     }
     setResult(null)
+    setManualNit('')
     setError('')
   }
 
   const capturedCount = (front ? 1 : 0) + (back ? 1 : 0)
   const ready = capturedCount === 2
+  const resolvedResult = applyManualNit(result, manualNit)
 
   const scan = async () => {
     if (!ready || reading) return
     setReading(true)
     setError('')
     setResult(null)
+    setManualNit('')
     try {
       setProgress('Leyendo frente…')
       const frontOcr = await recognize(front.file, 'spa')
       setProgress('Leyendo reverso…')
       const backOcr = await recognize(back.file, 'spa')
-      const parsed = parseVatCardSides(frontOcr.data.text || '', backOcr.data.text || '')
+      let parsed = parseVatCardSides(frontOcr.data.text || '', backOcr.data.text || '')
+
+      if (!parsed.nit) {
+        setProgress('Reintentando NIT con lectura ampliada…')
+        const focused = await prepareNitFocus(front.file)
+        const nitOcr = await recognize(focused, 'eng')
+        parsed = parseVatCardSides(`${frontOcr.data.text || ''}\n${nitOcr.data.text || ''}`, backOcr.data.text || '')
+      }
+
       setResult(parsed)
       if (!parsed.ready_for_dte03) {
-        setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. No se llenará el formulario hasta reconocer los datos fiscales obligatorios.`)
+        setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. Puede volver a capturar o completar manualmente el NIT si es el único dato pendiente.`)
       }
       setProgress('Lectura terminada')
     } catch (scanError) {
@@ -83,11 +95,11 @@ function VatCardScanner() {
   }
 
   const apply = () => {
-    if (!result?.ready_for_dte03) {
+    if (!resolvedResult?.ready_for_dte03) {
       setError('No se puede llenar el formulario: NIT, NRC, razón social, giro y dirección de casa matriz deben estar confirmados.')
       return
     }
-    if (!applyToFiscalForm(result)) {
+    if (!applyToFiscalForm(resolvedResult)) {
       setError('Se leyeron los datos, pero no se encontró el formulario Fiscal DTE visible.')
       return
     }
@@ -96,15 +108,15 @@ function VatCardScanner() {
 
   return <>
     <div className="vat-scan-toolbar">
-      <div><strong>Tarjeta IVA</strong><small>{result?.ready_for_dte03 ? 'Datos fiscales completos y listos para aplicar' : ready ? 'Frente y reverso capturados' : 'Capture las dos caras y el ERP leerá los datos'}</small></div>
-      <button type="button" className="vat-scan-trigger" onClick={() => setOpen(true)}>{result?.ready_for_dte03 ? '✓ Datos IVA verificados' : '▣ Escanear datos tarjeta IVA'}</button>
+      <div><strong>Tarjeta IVA</strong><small>{resolvedResult?.ready_for_dte03 ? 'Datos fiscales completos y listos para aplicar' : ready ? 'Frente y reverso capturados' : 'Capture las dos caras y el ERP leerá los datos'}</small></div>
+      <button type="button" className="vat-scan-trigger" onClick={() => setOpen(true)}>{resolvedResult?.ready_for_dte03 ? '✓ Datos IVA verificados' : '▣ Escanear datos tarjeta IVA'}</button>
     </div>
 
     {open && createPortal(
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. El ERP identifica NIT, NRC, razón social y giro en el frente, y la dirección únicamente desde “Dirección de casa matriz” del reverso. Los encabezados de Hacienda nunca se usan como datos del cliente.</p>
+          <p className="vat-scan-help">Capture frente y reverso. Si el NIT no se distingue en la primera lectura, el ERP hace automáticamente un segundo OCR ampliado sobre el frente. Los encabezados de Hacienda nunca se usan como datos del cliente.</p>
           <div className="vat-scan-grid">
             <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
             <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
@@ -112,12 +124,12 @@ function VatCardScanner() {
           <div className="vat-scan-status"><strong>{capturedCount}/2 caras listas</strong><span>Las imágenes se usan temporalmente para OCR y no se guardan automáticamente.</span></div>
           {error && <p className="vat-scan-error">{error}</p>}
           {reading && <div className="vat-scan-reading"><span className="spinner" /><strong>{progress || 'Leyendo documento…'}</strong></div>}
-          {result && <DetectedData data={result} />}
+          {result && <DetectedData data={resolvedResult} original={result} manualNit={manualNit} onManualNit={setManualNit} />}
           <footer>
             <button type="button" className="secondary-button" onClick={() => setOpen(false)}>Cerrar</button>
             {!result
               ? <button type="button" className="vat-scan-done" disabled={!ready || reading} onClick={scan}>{reading ? 'Leyendo…' : 'Leer datos'}</button>
-              : <button type="button" className="vat-scan-done brand-orange" disabled={!result.ready_for_dte03} onClick={apply}>{result.ready_for_dte03 ? 'Llenar formulario' : 'Datos incompletos'}</button>}
+              : <button type="button" className="vat-scan-done brand-orange" disabled={!resolvedResult?.ready_for_dte03} onClick={apply}>{resolvedResult?.ready_for_dte03 ? 'Llenar formulario' : 'Datos incompletos'}</button>}
           </footer>
         </section>
       </div>, document.body,
@@ -133,12 +145,51 @@ function SideCapture({ side, title, item, onFile }) {
   </article>
 }
 
-function DetectedData({ data }) {
+function DetectedData({ data, original, manualNit, onManualNit }) {
   const items = [['Razón social', data.name], ['NIT', data.nit], ['NRC', data.nrc], ['Actividad / giro', data.business_activity], ['Dirección casa matriz', data.address]]
+  const allowManualNit = original && !original.nit
   return <section className="vat-detected">
     <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : 'OCR incompleto: vuelva a capturar la cara donde falten datos.'}</small></div>
     <dl>{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'No reconocido'}</dd></div>)}</dl>
+    {allowManualNit && <div style={{ marginTop: 12 }}>
+      <label><strong>NIT manual (respaldo)</strong><br /><small>Úselo solo si puede leerlo directamente de la tarjeta. Debe contener 14 dígitos.</small></label>
+      <input type="text" inputMode="numeric" placeholder="0000-000000-000-0" value={manualNit} onChange={(event) => onManualNit(event.target.value)} style={{ width: '100%', marginTop: 6 }} />
+    </div>}
   </section>
+}
+
+async function prepareNitFocus(file) {
+  const bitmap = await createImageBitmap(file)
+  const sourceX = Math.round(bitmap.width * 0.16)
+  const sourceY = Math.round(bitmap.height * 0.18)
+  const sourceW = Math.round(bitmap.width * 0.68)
+  const sourceH = Math.round(bitmap.height * 0.58)
+  const canvas = document.createElement('canvas')
+  canvas.width = 1800
+  canvas.height = Math.max(700, Math.round(1800 * sourceH / sourceW))
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(bitmap, sourceX, sourceY, sourceW, sourceH, 0, 0, canvas.width, canvas.height)
+  bitmap.close?.()
+
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  for (let i = 0; i < image.data.length; i += 4) {
+    const gray = Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114)
+    const boosted = gray < 150 ? Math.max(0, gray - 35) : Math.min(255, gray + 25)
+    image.data[i] = boosted
+    image.data[i + 1] = boosted
+    image.data[i + 2] = boosted
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}
+
+function applyManualNit(result, value) {
+  if (!result) return result
+  const digits = String(value || '').replace(/\D/g, '')
+  if (result.nit || digits.length !== 14) return result
+  const nit = `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+  const missing = result.missing.filter((item) => item !== 'NIT')
+  return { ...result, nit, missing, ready_for_dte03: missing.length === 0 }
 }
 
 function applyToFiscalForm(data) {
