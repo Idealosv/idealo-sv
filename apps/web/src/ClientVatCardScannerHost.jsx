@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { recognize } from 'tesseract.js'
-import { parseVatCardSides } from './clientVatCardParser'
+import { extractVatNit, parseVatCardSides } from './clientVatCardParser'
 
 export default function ClientVatCardScannerHost() {
   const [mount, setMount] = useState(null)
@@ -74,10 +74,11 @@ function VatCardScanner() {
       let parsed = parseVatCardSides(frontOcr.data.text || '', backOcr.data.text || '')
 
       if (!parsed.nit) {
-        setProgress('Reintentando NIT con lectura ampliada…')
-        const focused = await prepareNitFocus(front.file)
-        const nitOcr = await recognize(focused, 'eng')
-        parsed = parseVatCardSides(`${frontOcr.data.text || ''}\n${nitOcr.data.text || ''}`, backOcr.data.text || '')
+        const recoveredNit = await recoverNitFromFront(front.file, setProgress)
+        if (recoveredNit) {
+          const missing = parsed.missing.filter((item) => item !== 'NIT')
+          parsed = { ...parsed, nit: recoveredNit, missing, ready_for_dte03: missing.length === 0 }
+        }
       }
 
       setResult(parsed)
@@ -116,7 +117,7 @@ function VatCardScanner() {
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. Si el NIT no se distingue en la primera lectura, el ERP hace automáticamente un segundo OCR ampliado sobre el frente. Los encabezados de Hacienda nunca se usan como datos del cliente.</p>
+          <p className="vat-scan-help">Capture frente y reverso. Si el NIT no se distingue en la primera lectura, el ERP prueba automáticamente varias lecturas ampliadas del frente. Los encabezados de Hacienda nunca se usan como datos del cliente.</p>
           <div className="vat-scan-grid">
             <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
             <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
@@ -158,23 +159,47 @@ function DetectedData({ data, original, manualNit, onManualNit }) {
   </section>
 }
 
-async function prepareNitFocus(file) {
+async function recoverNitFromFront(file, setProgress) {
+  for (let variant = 0; variant < 3; variant += 1) {
+    setProgress(`Reintentando NIT · lectura ${variant + 1}/3…`)
+    const focused = await prepareNitFocus(file, variant)
+    try {
+      const nitOcr = await recognize(focused, 'eng')
+      const nit = extractVatNit(nitOcr.data.text || '')
+      if (nit) return nit
+    } finally {
+      focused.width = 1
+      focused.height = 1
+    }
+  }
+  return ''
+}
+
+async function prepareNitFocus(file, variant = 0) {
   const bitmap = await createImageBitmap(file)
-  const sourceX = Math.round(bitmap.width * 0.16)
-  const sourceY = Math.round(bitmap.height * 0.18)
-  const sourceW = Math.round(bitmap.width * 0.68)
-  const sourceH = Math.round(bitmap.height * 0.58)
+  const configs = [
+    { x: 0.10, y: 0.10, w: 0.80, h: 0.76, threshold: 150, width: 2200 },
+    { x: 0.15, y: 0.22, w: 0.70, h: 0.46, threshold: 165, width: 2400 },
+    { x: 0.05, y: 0.18, w: 0.90, h: 0.58, threshold: 135, width: 2600 },
+  ]
+  const config = configs[variant] || configs[0]
+  const sourceX = Math.round(bitmap.width * config.x)
+  const sourceY = Math.round(bitmap.height * config.y)
+  const sourceW = Math.round(bitmap.width * config.w)
+  const sourceH = Math.round(bitmap.height * config.h)
   const canvas = document.createElement('canvas')
-  canvas.width = 1800
-  canvas.height = Math.max(700, Math.round(1800 * sourceH / sourceW))
+  canvas.width = config.width
+  canvas.height = Math.max(700, Math.round(canvas.width * sourceH / sourceW))
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(bitmap, sourceX, sourceY, sourceW, sourceH, 0, 0, canvas.width, canvas.height)
   bitmap.close?.()
 
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
   for (let i = 0; i < image.data.length; i += 4) {
     const gray = Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114)
-    const boosted = gray < 150 ? Math.max(0, gray - 35) : Math.min(255, gray + 25)
+    const boosted = gray < config.threshold ? Math.max(0, gray - 45) : Math.min(255, gray + 35)
     image.data[i] = boosted
     image.data[i + 1] = boosted
     image.data[i + 2] = boosted
