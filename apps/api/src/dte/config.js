@@ -54,7 +54,9 @@ export function getDteProductionPreflightStatus(env = process.env) {
     credentialsConfigured: missing.length === 0,
     usingOfficialProductionUrl,
     configurationReady: blockers.length === 0,
-    transmissionEndpointAvailable: false,
+    transmissionEndpointAvailable: true,
+    productionConfirmationRequired: true,
+    duplicateProtection: true,
     blockers,
   })
 }
