@@ -1,6 +1,7 @@
 import { getDteConfig, getDteProductionPreflightStatus } from './config.js'
 import { MhDteClient } from './mh-client.js'
 import { buildCompanyDteEnv } from './runtime-settings-service.js'
+import { sendProcessedInvoiceEmail } from './invoice-email-service.js'
 
 function bearerToken(request) { const authorization = request.headers.authorization || ''; return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '' }
 function mhStatus(response) { const value = response?.body || response || {}; return String(value.estado || value.status || '').toUpperCase() }
@@ -65,7 +66,23 @@ export async function transmitSignedProductionDte({ request, supabase, env = pro
     await supabase.from('dte_transmission_attempts').update({ response_payload: response, finished_at: now }).eq('id', attempt.id)
     const { data: updated, error: updateError } = await supabase.from('dte_documents').update({ status, mh_response: response, updated_at: now }).eq('id', document.id).select('id, control_number, generation_code, environment, status, mh_response, updated_at').single()
     if (updateError) throw updateError
-    return { ...updated, transmissionAttempted: true, attemptNumber, production: true }
+
+    let emailDelivery = null
+    if (status === 'PROCESSED') {
+      try {
+        emailDelivery = await sendProcessedInvoiceEmail({
+          supabase,
+          env,
+          document: { ...document, status, mh_response: response },
+        })
+      } catch (emailError) {
+        // Un fallo de correo jamás debe transformar un DTE aceptado por Hacienda en rechazo fiscal.
+        console.error('DTE aceptado, pero no se pudo procesar el correo automático:', emailError)
+        emailDelivery = { attempted: true, status: 'failed', error: emailError.message }
+      }
+    }
+
+    return { ...updated, transmissionAttempted: true, attemptNumber, production: true, emailDelivery }
   } catch (error) {
     const now = new Date().toISOString(); const rejectedByMh = error.mhPhase === 'recepcion' && Boolean(error.mhBody)
     await supabase.from('dte_transmission_attempts').update({ response_payload: error.mhBody || null, error_message: error.message, finished_at: now }).eq('id', attempt.id)
