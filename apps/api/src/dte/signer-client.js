@@ -6,6 +6,14 @@ export class DteSignerClient {
     this.fetchImpl = fetchImpl
   }
 
+  warmup({ timeoutMs = 45000 } = {}) {
+    return requestJson(`${this.config.signerUrl}/actuator/health`, {}, {
+      timeoutMs,
+      fetchImpl: this.fetchImpl,
+      headers: {},
+    })
+  }
+
   status() {
     return requestJson(`${this.config.signerUrl}/firmardocumento/status`, {}, this.requestOptions())
   }
