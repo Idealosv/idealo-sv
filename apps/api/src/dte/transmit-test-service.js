@@ -1,5 +1,6 @@
 import { getDteConfig } from './config.js'
 import { MhDteClient } from './mh-client.js'
+import { registerProcessedTestEvidence } from './test-scenario-service.js'
 
 function bearerToken(request) {
   const authorization = request.headers.authorization || ''
@@ -193,11 +194,25 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
       .single()
     if (documentUpdateError) throw documentUpdateError
 
+    let completedScenarioCodes = []
+    if (status === 'PROCESSED') {
+      try {
+        completedScenarioCodes = await registerProcessedTestEvidence({
+          supabase,
+          document: { ...document, status },
+        })
+      } catch (evidenceError) {
+        // Un error del tablero interno nunca debe convertir una recepción aceptada por MH en fallo fiscal.
+        console.error('No se pudo sincronizar la evidencia interna de pruebas MH:', evidenceError)
+      }
+    }
+
     return {
       ...updated,
       transmissionAttempted: true,
       attemptNumber,
       productionAllowed: false,
+      completedScenarioCodes,
     }
   } catch (error) {
     const now = new Date().toISOString()
