@@ -1,5 +1,6 @@
 -- IDEALO SV: protección de inmutabilidad para DTE aceptados por Hacienda
--- Permite actualizar únicamente metadatos no fiscales después de PROCESSED.
+-- Un DTE PROCESSED conserva para siempre su contenido fiscal y evidencia MH.
+-- Solo se reserva la transición de estado PROCESSED -> INVALIDATED para un futuro evento fiscal válido.
 
 create or replace function public.guard_processed_dte_immutability()
 returns trigger
@@ -11,6 +12,10 @@ begin
   end if;
 
   if tg_op = 'UPDATE' and old.status = 'PROCESSED' then
+    if new.status not in ('PROCESSED', 'INVALIDATED') then
+      raise exception 'DTE_PROCESSED_IMMUTABLE: un DTE aceptado solo puede permanecer PROCESSED o pasar a INVALIDATED mediante el flujo fiscal correspondiente';
+    end if;
+
     if new.company_id is distinct from old.company_id
       or new.client_id is distinct from old.client_id
       or new.dte_type is distinct from old.dte_type
@@ -39,4 +44,4 @@ before update or delete on public.dte_documents
 for each row execute function public.guard_processed_dte_immutability();
 
 comment on function public.guard_processed_dte_immutability() is
-  'Impide alterar o eliminar el contenido fiscal y evidencia MH de DTE ya procesados.';
+  'Impide alterar o eliminar contenido fiscal/evidencia MH de DTE procesados; reserva únicamente PROCESSED->INVALIDATED.';
