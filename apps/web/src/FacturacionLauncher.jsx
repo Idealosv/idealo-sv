@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase.js'
 import FacturacionDte from './FacturacionDte.jsx'
 import SignerDiagnostic from './SignerDiagnostic.jsx'
 import ProductionPreflightPanel from './ProductionPreflightPanel.jsx'
+import MhAuthDiagnostic from './MhAuthDiagnostic.jsx'
 import ProcessedDtePanel from './ProcessedDtePanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
@@ -119,7 +120,7 @@ export default function FacturacionLauncher() {
             {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa cliente, productos o servicios y condición de pago. El sistema prepara DTE-01 o DTE-03 según corresponda.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/></section>}
             {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/></section>}
             {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
-            {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, transmisión, diagnóstico y pruebas separadas de la facturación diaria.</small></div></div><ProductionPreflightPanel/><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
+            {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, autenticación, transmisión y pruebas separadas de la facturación diaria.</small></div></div><ProductionPreflightPanel/><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company}/></div></details></section>}
           </main>
         </div>
       </section>
