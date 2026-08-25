@@ -58,7 +58,7 @@ function VatCardScanner() {
 
   const capturedCount = (front ? 1 : 0) + (back ? 1 : 0)
   const ready = capturedCount === 2
-  const resolvedResult = applyManualNit(result, manualNit)
+  const resolvedResult = applyManualTaxId(result, manualNit)
 
   const scan = async () => {
     if (!ready || reading) return
@@ -83,7 +83,7 @@ function VatCardScanner() {
 
       setResult(parsed)
       if (!parsed.ready_for_dte03) {
-        setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. Puede volver a capturar o completar manualmente el NIT si es el único dato pendiente.`)
+        setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. Puede volver a capturar o completar manualmente el NIT/DUI homologado si es el único dato pendiente.`)
       }
       setProgress('Lectura terminada')
     } catch (scanError) {
@@ -97,7 +97,7 @@ function VatCardScanner() {
 
   const apply = () => {
     if (!resolvedResult?.ready_for_dte03) {
-      setError('No se puede llenar el formulario: NIT, NRC, razón social, giro y dirección de casa matriz deben estar confirmados.')
+      setError('No se puede llenar el formulario: NIT/DUI homologado, NRC, razón social, giro y dirección de casa matriz deben estar confirmados.')
       return
     }
     if (!applyToFiscalForm(resolvedResult)) {
@@ -117,7 +117,7 @@ function VatCardScanner() {
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. Si el NIT no se distingue en la primera lectura, el ERP prueba automáticamente varias lecturas ampliadas del frente. Los encabezados de Hacienda nunca se usan como datos del cliente.</p>
+          <p className="vat-scan-help">Capture frente y reverso. Para persona natural salvadoreña mayor de 18 años, el ERP acepta DUI homologado de 9 dígitos como NIT; también conserva compatibilidad con NIT tradicional de 14 dígitos cuando corresponda.</p>
           <div className="vat-scan-grid">
             <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
             <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
@@ -147,21 +147,21 @@ function SideCapture({ side, title, item, onFile }) {
 }
 
 function DetectedData({ data, original, manualNit, onManualNit }) {
-  const items = [['Razón social', data.name], ['NIT', data.nit], ['NRC', data.nrc], ['Actividad / giro', data.business_activity], ['Dirección casa matriz', data.address]]
+  const items = [['Razón social', data.name], ['NIT / DUI homologado', data.nit], ['NRC', data.nrc], ['Actividad / giro', data.business_activity], ['Dirección casa matriz', data.address]]
   const allowManualNit = original && !original.nit
   return <section className="vat-detected">
     <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : 'OCR incompleto: vuelva a capturar la cara donde falten datos.'}</small></div>
     <dl>{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'No reconocido'}</dd></div>)}</dl>
     {allowManualNit && <div style={{ marginTop: 12 }}>
-      <label><strong>NIT manual (respaldo)</strong><br /><small>Úselo solo si puede leerlo directamente de la tarjeta. Debe contener 14 dígitos.</small></label>
-      <input type="text" inputMode="numeric" placeholder="0000-000000-000-0" value={manualNit} onChange={(event) => onManualNit(event.target.value)} style={{ width: '100%', marginTop: 6 }} />
+      <label><strong>NIT / DUI homologado manual (respaldo)</strong><br /><small>Persona natural salvadoreña: DUI homologado de 9 dígitos. Otros casos: NIT tradicional de 14 dígitos.</small></label>
+      <input type="text" inputMode="numeric" placeholder="00000000-0 o 0000-000000-000-0" value={manualNit} onChange={(event) => onManualNit(event.target.value)} style={{ width: '100%', marginTop: 6 }} />
     </div>}
   </section>
 }
 
 async function recoverNitFromFront(file, setProgress) {
   for (let variant = 0; variant < 3; variant += 1) {
-    setProgress(`Reintentando NIT · lectura ${variant + 1}/3…`)
+    setProgress(`Reintentando NIT/DUI · lectura ${variant + 1}/3…`)
     const focused = await prepareNitFocus(file, variant)
     try {
       const nitOcr = await recognize(focused, 'eng')
@@ -208,11 +208,13 @@ async function prepareNitFocus(file, variant = 0) {
   return canvas
 }
 
-function applyManualNit(result, value) {
+function applyManualTaxId(result, value) {
   if (!result) return result
   const digits = String(value || '').replace(/\D/g, '')
-  if (result.nit || digits.length !== 14) return result
-  const nit = `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+  if (result.nit || ![9, 14].includes(digits.length)) return result
+  const nit = digits.length === 9
+    ? `${digits.slice(0, 8)}-${digits.slice(8)}`
+    : `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
   const missing = result.missing.filter((item) => item !== 'NIT')
   return { ...result, nit, missing, ready_for_dte03: missing.length === 0 }
 }
@@ -220,8 +222,10 @@ function applyManualNit(result, value) {
 function applyToFiscalForm(data) {
   const root = document.querySelector('.clients-module')
   if (!root) return false
+  const digits = String(data.nit || '').replace(/\D/g, '')
+  const isHomologatedDui = digits.length === 9
   const values = {
-    preferred_dte_type: '03', taxpayer_type: '2', document_type: '36', document_number: data.nit,
+    preferred_dte_type: '03', taxpayer_type: '2', document_type: isHomologatedDui ? '13' : '36', document_number: data.nit,
     nit: data.nit, nrc: data.nrc, name: data.name, business_activity: data.business_activity,
     activity_code: data.activity_code, address: data.address,
   }
