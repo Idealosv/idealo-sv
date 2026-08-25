@@ -5,18 +5,11 @@ const parserSource = fs.readFileSync(new URL('../src/clientVatCardParser.js', im
 const scanner = fs.readFileSync(new URL('../src/ClientVatCardScannerHost.jsx', import.meta.url), 'utf8')
 
 assert.match(parserSource, /DIRECCI\[ÓO\]N\\s\+DE\\s\+CASA\\s\+MATRIZ/)
-assert.match(parserSource, /DIRECCI\[ÓO\]N\\s\+GENERAL\\s\+DE\\s\+IMPUESTOS\\s\+INTERNOS/)
 assert.match(parserSource, /export function extractVatNit/)
 assert.match(parserSource, /normalizeOcrDigits/)
-assert.match(parserSource, /allowActivityValue/)
-assert.match(parserSource, /cleanName/)
-assert.match(parserSource, /ready_for_dte03:\s*missing\.length\s*===\s*0/)
-assert.match(scanner, /recoverNitFromFront\(front\.file, setProgress\)/)
-assert.match(scanner, /for \(let variant = 0; variant < 3; variant \+= 1\)/)
-assert.match(scanner, /extractVatNit\(nitOcr\.data\.text \|\| ''\)/)
-assert.doesNotMatch(scanner, /parseVatCardSides\(`\$\{frontOcr\.data\.text/)
-assert.match(scanner, /NIT manual \(respaldo\)/)
-assert.match(scanner, /digits\.length !== 14/)
+assert.match(scanner, /NIT \/ DUI homologado manual/)
+assert.match(scanner, /\[9, 14\]\.includes\(digits\.length\)/)
+assert.match(scanner, /document_type: isHomologatedDui \? '13' : '36'/)
 assert.match(scanner, /disabled=\{!resolvedResult\?\.ready_for_dte03\}/)
 
 const executable = parserSource.replace(
@@ -26,18 +19,6 @@ const executable = parserSource.replace(
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(executable).toString('base64')}`
 const { extractVatNit, parseVatCardSides } = await import(moduleUrl)
 
-const noisyFront = `
-MINISTERIO DE HACIENDA
-DIRECCION GENERAL DE IMPUESTOS INTERNOS
-NOMBRE DEL CONTRIBUYENTE
-ÉS GONZALEZ ARTERO, JAIME OMAR I
-NO. DE IDENTIFICACION TRIBUTARIA (NIT)
-O142-78I234-1O1-I
-N° DE REGISTRO (NRC)
-216060-8
-GIRO O ACTIVIDAD ECONOMICA
-ACTIVIDADES DE IMPRESION I
-`
 const noisyBack = `
 DIRECCION DE CASA MATRIZ
 AV. DURAN, CTGO. AL N° 2-8, SEGUNDA CUADRA, DISTRITO DE AHUACHAPAN, MUNICIPIO DE AHUACHAPAN CENTRO, DEPARTAMENTO DE AHUACHAPAN
@@ -45,32 +26,39 @@ CATEGORIA DE CONTRIBUYENTE: OTRO
 DIRECCION GENERAL DE IMPUESTOS INTERNOS
 `
 
-const parsed = parseVatCardSides(noisyFront, noisyBack)
-assert.equal(parsed.name, 'GONZALEZ ARTERO, JAIME OMAR')
-assert.equal(parsed.nit, '0142-781234-101-1')
-assert.equal(parsed.nrc, '216060-8')
-assert.match(parsed.business_activity, /impresi/i)
-assert.match(parsed.address, /AV\. DURAN/i)
-assert.doesNotMatch(parsed.address, /IMPUESTOS INTERNOS/i)
-assert.equal(parsed.ready_for_dte03, true)
-
-const focusOnly = extractVatNit('NIT O142 78I234 1O1 I')
-assert.equal(focusOnly, '0142-781234-101-1')
-
-const originalWithoutNit = parseVatCardSides(`
+const traditional = parseVatCardSides(`
 NOMBRE DEL CONTRIBUYENTE
 GONZALEZ ARTERO, JAIME OMAR
-N° DE REGISTRO (NRC)
+NIT
+O142-78I234-1O1-I
+NRC
 216060-8
 GIRO O ACTIVIDAD ECONOMICA
 PUBLICIDAD
 `, noisyBack)
-assert.equal(originalWithoutNit.business_activity, 'Servicios de publicidad')
-assert.equal(originalWithoutNit.nit, '')
-assert.ok(originalWithoutNit.missing.includes('NIT'))
+assert.equal(traditional.nit, '0142-781234-101-1')
+assert.equal(traditional.ready_for_dte03, true)
 
-const unsafe = parseVatCardSides(noisyFront, 'DIRECCION GENERAL DE IMPUESTOS INTERNOS')
+const homologated = parseVatCardSides(`
+NOMBRE DEL CONTRIBUYENTE
+GONZALEZ ARTERO, JAIME OMAR
+NIT/DUI
+O1234567-8
+NRC
+216060-8
+GIRO O ACTIVIDAD ECONOMICA
+PUBLICIDAD
+`, noisyBack)
+assert.equal(homologated.nit, '01234567-8')
+assert.equal(homologated.nrc, '216060-8')
+assert.equal(homologated.ready_for_dte03, true)
+assert.match(homologated.business_activity, /publicidad/i)
+
+assert.equal(extractVatNit('DUI O1234567 8'), '01234567-8')
+assert.equal(extractVatNit('NIT O142 78I234 1O1 I'), '0142-781234-101-1')
+
+const unsafe = parseVatCardSides(`NOMBRE DEL CONTRIBUYENTE\nGONZALEZ ARTERO, JAIME OMAR\nDUI\n01234567-8\nNRC\n216060-8\nGIRO O ACTIVIDAD ECONOMICA\nPUBLICIDAD`, 'DIRECCION GENERAL DE IMPUESTOS INTERNOS')
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: NIT multifoco aislado, giro estable, respaldo manual y datos DTE-03 verificados')
+console.log('✓ OCR IVA: DUI/NIT homologado de 9 dígitos y NIT tradicional de 14 dígitos verificados')

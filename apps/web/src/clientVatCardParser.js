@@ -13,7 +13,7 @@ const INSTITUTIONAL = [
 ]
 
 const ADDRESS_HINT = /\b(CALLE|AV(?:ENIDA)?|BOULEVARD|BLVD|COL(?:ONIA)?|URB(?:ANIZACI[ÓO]N)?|BARRIO|POL[IÍ]GONO|KM|CARRETERA|PAS(?:AJE)?|RESIDENCIAL|LOT(?:E)?|CASA|FINAL|CONTIGUO|CTGO|DISTRITO|MUNICIPIO|DEPARTAMENTO|SAN\s+SALVADOR|SANTA\s+ANA|AHUACHAP[AÁ]N|SONSONATE|LA\s+LIBERTAD)\b/i
-const NIT_LABEL = /(?:NIT|IDENTIFICACI[ÓO]N\s+TRIBUTARIA|NO\.?\s*DE\s*IDENTIFICACI[ÓO]N\s+TRIBUTARIA)/i
+const NIT_LABEL = /(?:NIT(?:\s*\/\s*DUI)?|DUI(?:\s*\/\s*NIT)?|IDENTIFICACI[ÓO]N\s+TRIBUTARIA|NO\.?\s*DE\s*IDENTIFICACI[ÓO]N\s+TRIBUTARIA)/i
 const ACTIVITY_LABEL = /(?:GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA|GIRO|ACTIVIDAD\s+ECON[ÓO]MICA)/i
 
 export function parseVatCardSides(frontText = '', backText = '') {
@@ -24,9 +24,7 @@ export function parseVatCardSides(frontText = '', backText = '') {
 
   const nit = findNit(front, compact)
   const nrc = findNrc(front, compact, nit)
-  const name = cleanName(findField(front, /(?:NOMBRE\s+DEL\s+CONTRIBUYENTE|RAZ[ÓO]N\s+SOCIAL|DENOMINACI[ÓO]N)/i, {
-    reject: isInstitutional,
-  }))
+  const name = cleanName(findField(front, /(?:NOMBRE\s+DEL\s+CONTRIBUYENTE|RAZ[ÓO]N\s+SOCIAL|DENOMINACI[ÓO]N)/i, { reject: isInstitutional }))
   const activityRaw = findActivity(front)
   const address = findAddress(back)
   const activity = matchActivity(activityRaw)
@@ -38,16 +36,7 @@ export function parseVatCardSides(frontText = '', backText = '') {
   if (!activityRaw) missing.push('giro / actividad')
   if (!address) missing.push('dirección de casa matriz')
 
-  return {
-    name,
-    nit,
-    nrc,
-    business_activity: activity?.name || activityRaw,
-    activity_code: activity?.code || '',
-    address,
-    missing,
-    ready_for_dte03: missing.length === 0,
-  }
+  return { name, nit, nrc, business_activity: activity?.name || activityRaw, activity_code: activity?.code || '', address, missing, ready_for_dte03: missing.length === 0 }
 }
 
 export function extractVatNit(text = '') {
@@ -56,17 +45,10 @@ export function extractVatNit(text = '') {
 }
 
 function linesOf(text) {
-  return String(text || '')
-    .replace(/\r/g, '\n')
-    .replace(/[|]/g, 'I')
-    .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
+  return String(text || '').replace(/\r/g, '\n').replace(/[|]/g, 'I').split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean)
 }
 
-function isInstitutional(value = '') {
-  return INSTITUTIONAL.some((pattern) => pattern.test(value))
-}
+function isInstitutional(value = '') { return INSTITUTIONAL.some((pattern) => pattern.test(value)) }
 
 function findNit(lines, compact) {
   const labelIndex = lines.findIndex((line) => NIT_LABEL.test(line))
@@ -75,24 +57,23 @@ function findNit(lines, compact) {
   preferred.push(compact)
 
   for (const source of preferred) {
-    const candidates = String(source || '').match(/(?:[0-9OQDILSB]{3,4}[\s.\-_/]*){3,5}[0-9OQDILSB]{1,4}/gi) || []
-    for (const candidate of candidates) {
+    const traditional = String(source || '').match(/(?:[0-9OQDILSB]{3,4}[\s.\-_/]*){3,5}[0-9OQDILSB]{1,4}/gi) || []
+    for (const candidate of traditional) {
       const digits = normalizeOcrDigits(candidate)
-      if (digits.length !== 14) continue
-      return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+      if (digits.length === 14) return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+    }
+
+    const duiCandidates = String(source || '').match(/[0-9OQDILSB]{8}[\s.\-_/]*[0-9OQDILSB]/gi) || []
+    for (const candidate of duiCandidates) {
+      const digits = normalizeOcrDigits(candidate)
+      if (digits.length === 9) return `${digits.slice(0, 8)}-${digits.slice(8)}`
     }
   }
   return ''
 }
 
 function normalizeOcrDigits(value = '') {
-  return String(value)
-    .toUpperCase()
-    .replace(/O|Q|D/g, '0')
-    .replace(/I|L/g, '1')
-    .replace(/S/g, '5')
-    .replace(/B/g, '8')
-    .replace(/\D/g, '')
+  return String(value).toUpperCase().replace(/O|Q|D/g, '0').replace(/I|L/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/\D/g, '')
 }
 
 function findNrc(lines, compact, nit) {
@@ -110,13 +91,8 @@ function findNrc(lines, compact, nit) {
 }
 
 function findActivity(lines) {
-  const direct = findField(lines, ACTIVITY_LABEL, {
-    maxNext: 4,
-    reject: (value) => isInstitutional(value) || /^\d[\d\s.-]*$/.test(value),
-    allowActivityValue: true,
-  })
+  const direct = findField(lines, ACTIVITY_LABEL, { maxNext: 4, reject: (value) => isInstitutional(value) || /^\d[\d\s.-]*$/.test(value), allowActivityValue: true })
   if (direct) return cleanActivity(direct)
-
   const hintIndex = lines.findIndex((line) => /GIRO|ACTIVIDAD|ECON[ÓO]MIC/i.test(line))
   if (hintIndex >= 0) {
     for (let offset = 1; offset <= 4; offset += 1) {
@@ -161,41 +137,13 @@ function findAddress(backLines) {
   return ''
 }
 
-function validAddress(value = '') {
-  return value.length >= 8 && ADDRESS_HINT.test(value) && !isInstitutional(value)
-}
-
-function isHardLabel(value = '') {
-  return /^(NIT|NRC|NOMBRE|RAZ[ÓO]N|DIRECCI[ÓO]N|FECHA|C[ÓO]DIGO|N[°ºO.]?\s*DE\s*REGISTRO)\b/i.test(value)
-}
-
-function isLabel(value = '') {
-  if (isHardLabel(value)) return true
-  return /^(GIRO\b|ACTIVIDAD\s+ECON[ÓO]MICA\b)/i.test(value)
-}
-
-function clean(value = '') {
-  return String(value).replace(/^[^A-ZÁÉÍÓÚÑ0-9]+/i, '').replace(/\s{2,}/g, ' ').trim()
-}
-
-function cleanName(value = '') {
-  return clean(value)
-    .replace(/^(?:[EÉ]S|E5|IS|I5)\s+(?=[A-ZÁÉÍÓÚÑ]{3,})/i, '')
-    .replace(/\s+[I1L|]$/i, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
-
-function cleanActivity(value = '') {
-  return clean(value)
-    .replace(/\s+[I1L|]$/i, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
-
-function normalize(value = '') {
-  return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
-}
+function validAddress(value = '') { return value.length >= 8 && ADDRESS_HINT.test(value) && !isInstitutional(value) }
+function isHardLabel(value = '') { return /^(NIT|DUI|NRC|NOMBRE|RAZ[ÓO]N|DIRECCI[ÓO]N|FECHA|C[ÓO]DIGO|N[°ºO.]?\s*DE\s*REGISTRO)\b/i.test(value) }
+function isLabel(value = '') { if (isHardLabel(value)) return true; return /^(GIRO\b|ACTIVIDAD\s+ECON[ÓO]MICA\b)/i.test(value) }
+function clean(value = '') { return String(value).replace(/^[^A-ZÁÉÍÓÚÑ0-9]+/i, '').replace(/\s{2,}/g, ' ').trim() }
+function cleanName(value = '') { return clean(value).replace(/^(?:[EÉ]S|E5|IS|I5)\s+(?=[A-ZÁÉÍÓÚÑ]{3,})/i, '').replace(/\s+[I1L|]$/i, '').replace(/\s{2,}/g, ' ').trim() }
+function cleanActivity(value = '') { return clean(value).replace(/\s+[I1L|]$/i, '').replace(/\s{2,}/g, ' ').trim() }
+function normalize(value = '') { return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() }
 
 function matchActivity(raw = '') {
   const target = normalize(raw)
@@ -205,17 +153,9 @@ function matchActivity(raw = '') {
   let bestScore = 0
   DTE_ACTIVITIES.forEach((item) => {
     const candidate = normalize(item.name)
-    if (candidate.includes(target) || target.includes(candidate)) {
-      best = item
-      bestScore = 100
-      return
-    }
-    const score = candidate.split(' ').filter((word) => word.length > 3)
-      .reduce((sum, word) => sum + (targetWords.has(word) ? 1 : 0), 0)
-    if (score > bestScore) {
-      bestScore = score
-      best = item
-    }
+    if (candidate.includes(target) || target.includes(candidate)) { best = item; bestScore = 100; return }
+    const score = candidate.split(' ').filter((word) => word.length > 3).reduce((sum, word) => sum + (targetWords.has(word) ? 1 : 0), 0)
+    if (score > bestScore) { bestScore = score; best = item }
   })
   return bestScore >= 2 ? best : null
 }
