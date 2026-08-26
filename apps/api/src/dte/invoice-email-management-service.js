@@ -30,11 +30,21 @@ async function loadAuthorizedDocument({request,supabase}){
 
 export async function getInvoiceEmailStatus({request,supabase}){
   const document=await loadAuthorizedDocument({request,supabase})
-  const {data,error}=await supabase.from('invoice_email_deliveries').select('id,recipient_email,delivery_kind,status,provider_message_id,error_message,sent_at,created_at,updated_at').eq('dte_document_id',document.id).order('created_at',{ascending:false}).limit(20)
-  if(error)throw error
-  const deliveries=data||[]
-  const latest=deliveries[0]||null
-  return{documentId:document.id,controlNumber:document.control_number,recipient:invoiceRecipient(document)||null,eligible:document.environment==='production'&&document.status==='PROCESSED'&&Boolean(receiptSeal(document.mh_response)),latest,deliveries}
+  const base={
+    documentId:document.id,
+    controlNumber:document.control_number,
+    recipient:invoiceRecipient(document)||null,
+    eligible:document.environment==='production'&&document.status==='PROCESSED'&&Boolean(receiptSeal(document.mh_response)),
+  }
+  try{
+    const {data,error}=await supabase.from('invoice_email_deliveries').select('id,recipient_email,delivery_kind,status,provider_message_id,error_message,sent_at,created_at,updated_at').eq('dte_document_id',document.id).order('created_at',{ascending:false}).limit(20)
+    if(error)throw error
+    const deliveries=data||[]
+    return{...base,trackingAvailable:true,trackingError:null,latest:deliveries[0]||null,deliveries}
+  }catch(error){
+    console.error('INVOICE_EMAIL_STATUS_HISTORY_FAILED',{documentId:document.id,code:error?.code,message:error?.message})
+    return{...base,trackingAvailable:false,trackingError:'No se pudo consultar temporalmente el historial de entregas.',latest:null,deliveries:[]}
+  }
 }
 
 export async function resendInvoiceEmail({request,supabase,env=process.env,transporterFactory}){
