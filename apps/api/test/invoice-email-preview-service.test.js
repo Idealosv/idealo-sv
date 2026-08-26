@@ -79,3 +79,23 @@ test('convierte un rechazo SMTP en un error útil para la interfaz', async () =>
     (error) => error.statusCode === 502 && /Gmail rechazó la autenticación/.test(error.message),
   )
 })
+
+test('no deja escapar Ocurrió un error inesperado y conserva la etapa real', async () => {
+  const genericError = new Error('Ocurrió un error inesperado.')
+  genericError.statusCode = 500
+  const brokenQuery = {
+    select: () => brokenQuery,
+    eq: () => brokenQuery,
+    maybeSingle: async () => ({ data: null, error: genericError }),
+  }
+  const supabase = {
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
+    from: () => brokenQuery,
+  }
+  const request = { headers: { authorization: 'Bearer test-token' }, body: { documentId: document.id } }
+
+  await assert.rejects(
+    sendInvoicePdfSelfTest({ request, supabase, env: {} }),
+    (error) => error.stage === 'document' && error.statusCode === 500 && error.message === 'No se pudo leer el DTE seleccionado.' && !/Ocurrió un error inesperado/.test(error.message),
+  )
+})

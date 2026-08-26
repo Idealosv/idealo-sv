@@ -3,6 +3,7 @@ import { buildInvoiceEmailWithPdf } from './invoice-email-service.js'
 
 const text = (value) => String(value ?? '').trim()
 const GMAIL_TIMEOUT_MS = 20_000
+const GENERIC_MESSAGES = new Set(['Ocurrió un error inesperado.', 'Internal Server Error', 'INTERNAL_SERVER_ERROR'])
 
 function bearerToken(request) {
   const authorization = request.headers.authorization || ''
@@ -36,20 +37,23 @@ function withTimeout(promise, label, timeoutMs = GMAIL_TIMEOUT_MS) {
 }
 
 function stagedError(stage, error, fallback, statusCode = 500) {
-  const wrapped = error instanceof Error ? error : new Error(fallback)
-  if (!text(wrapped.message)) wrapped.message = fallback
+  const originalMessage = text(error?.message || error?.details || error?.hint)
+  const usefulOriginal = originalMessage && !GENERIC_MESSAGES.has(originalMessage)
+  const message = usefulOriginal ? `${fallback} Detalle: ${originalMessage}` : fallback
+  const wrapped = new Error(message)
   wrapped.stage = stage
-  wrapped.statusCode = Number(wrapped.statusCode || statusCode)
+  wrapped.statusCode = Number(error?.statusCode || error?.status || statusCode)
+  wrapped.code = text(error?.code || error?.responseCode) || `STAGE_${stage.toUpperCase().replace(/-/g, '_')}`
   return wrapped
 }
 
 function normalizeSelfTestError(error, stage = error?.stage || 'smtp') {
-  if (error?.statusCode && error?.stage) return error
+  if (error?.stage) return error
   const code = text(error?.code || error?.responseCode)
   const detail = text(error?.response || error?.message)
   const message = code === 'EAUTH' || String(error?.responseCode) === '535'
     ? 'Gmail rechazó la autenticación. Revisá el usuario SMTP y la contraseña de aplicación en Render.'
-    : `No se pudo enviar la prueba PDF${code ? ` (${code})` : ''}${detail ? `: ${detail}` : '.'}`
+    : `No se pudo enviar la prueba PDF${code ? ` (${code})` : ''}${detail && !GENERIC_MESSAGES.has(detail) ? `: ${detail}` : '.'}`
   const normalized = new Error(message)
   normalized.statusCode = Number(error?.statusCode || 502)
   normalized.code = code || 'PDF_EMAIL_TEST_FAILED'
