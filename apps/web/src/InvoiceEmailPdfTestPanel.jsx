@@ -3,6 +3,13 @@ import { useEffect, useMemo, useState } from 'react'
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const dateTime = (value) => value ? new Date(value).toLocaleString('es-SV', { dateStyle: 'short', timeStyle: 'short' }) : '—'
 const DELIVERY_LABELS = { pending: 'Correo pendiente', sent: 'Correo enviado', failed: 'Error de correo', skipped: 'Correo omitido' }
+const STAGE_LABELS = { session: 'sesión', document: 'lectura del DTE', permissions: 'permisos', 'gmail-config': 'configuración de Gmail', pdf: 'generación del PDF', smtp: 'envío por Gmail' }
+const apiErrorMessage = (payload, status) => {
+  const base = payload?.message || `La API respondió HTTP ${status}.`
+  const stage = payload?.stage ? `Etapa: ${STAGE_LABELS[payload.stage] || payload.stage}. ` : ''
+  const code = payload?.code && payload.code !== 'PDF_EMAIL_TEST_FAILED' ? ` Código: ${payload.code}.` : ''
+  return `${stage}${base}${code}`
+}
 
 export default function InvoiceEmailPdfTestPanel({ supabase, company, session }) {
   const [documents, setDocuments] = useState([])
@@ -79,9 +86,12 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ documentId: selected.id }),
       })
       const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload.message || `La API respondió HTTP ${response.status}.`)
+      if (!response.ok) throw new Error(apiErrorMessage(payload, response.status))
       setMessage(`✓ Prueba enviada a ${payload.recipient} con PDF adjunto. No se generó, firmó ni transmitió ningún DTE nuevo a Hacienda.`)
-    } catch (cause) { setMessage(''); setError(cause.message) } finally { setBusy(false) }
+    } catch (cause) {
+      setMessage('')
+      setError(cause?.message === 'Failed to fetch' ? `No fue posible conectar con la API ${apiUrl}.` : cause.message)
+    } finally { setBusy(false) }
   }
 
   const resendClient = async () => {
