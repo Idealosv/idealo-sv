@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 
 const text = (value) => String(value ?? '').trim()
 const testCooldowns = new Map()
+const GMAIL_TIMEOUT_MS = 15_000
 
 function bearerToken(request) {
   const authorization = request.headers.authorization || ''
@@ -14,6 +15,33 @@ function gmailConfig(env) {
     appPassword: text(env.GMAIL_APP_PASSWORD).replace(/\s+/g, ''),
     fromName: text(env.GMAIL_FROM_NAME || 'IDEALO SV - Facturación'),
   }
+}
+
+function withTimeout(promise, label, timeoutMs = GMAIL_TIMEOUT_MS) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(`${label} tardó más de ${Math.round(timeoutMs / 1000)} segundos. Gmail no respondió a tiempo.`)
+      error.statusCode = 504
+      error.code = 'GMAIL_TIMEOUT'
+      reject(error)
+    }, timeoutMs)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
+function normalizeGmailError(error) {
+  if (error?.code === 'GMAIL_TIMEOUT') return error
+  const code = text(error?.code || error?.responseCode)
+  const detail = text(error?.response || error?.message)
+  const normalized = new Error(
+    code === 'EAUTH' || String(error?.responseCode) === '535'
+      ? 'Gmail rechazó la autenticación. Revisá GMAIL_SMTP_USER y la contraseña de aplicación en Render.'
+      : `No se pudo completar la prueba de Gmail${code ? ` (${code})` : ''}${detail ? `: ${detail}` : '.'}`,
+  )
+  normalized.statusCode = 502
+  normalized.code = code || 'GMAIL_ERROR'
+  return normalized
 }
 
 export function buildGmailTestMessage({ fromName = 'IDEALO SV - Facturación', recipient }) {
@@ -76,27 +104,39 @@ export async function sendGmailSelfTest({ request, supabase, env = process.env, 
 
   const transporter = transporterFactory
     ? transporterFactory(config)
-    : nodemailer.createTransport({ service: 'gmail', auth: { user: config.user, pass: config.appPassword } })
+    : nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: config.user, pass: config.appPassword },
+        connectionTimeout: GMAIL_TIMEOUT_MS,
+        greetingTimeout: GMAIL_TIMEOUT_MS,
+        socketTimeout: GMAIL_TIMEOUT_MS,
+      })
 
-  await transporter.verify()
-  const message = buildGmailTestMessage({ fromName: config.fromName, recipient: config.user })
-  const sent = await transporter.sendMail({
-    from: { name: config.fromName, address: config.user },
-    to: config.user,
-    replyTo: config.user,
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
-  })
+  try {
+    await withTimeout(transporter.verify(), 'La verificación SMTP de Gmail')
+    const message = buildGmailTestMessage({ fromName: config.fromName, recipient: config.user })
+    const sent = await withTimeout(transporter.sendMail({
+      from: { name: config.fromName, address: config.user },
+      to: config.user,
+      replyTo: config.user,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    }), 'El envío del correo de prueba')
 
-  testCooldowns.set(cooldownKey, Date.now())
-  return {
-    ok: true,
-    verified: true,
-    sent: true,
-    recipient: config.user,
-    messageId: text(sent?.messageId) || null,
-    fiscalDocumentTouched: false,
-    checkedAt: new Date().toISOString(),
+    testCooldowns.set(cooldownKey, Date.now())
+    return {
+      ok: true,
+      verified: true,
+      sent: true,
+      recipient: config.user,
+      messageId: text(sent?.messageId) || null,
+      fiscalDocumentTouched: false,
+      checkedAt: new Date().toISOString(),
+    }
+  } catch (error) {
+    throw normalizeGmailError(error)
+  } finally {
+    if (!transporterFactory && typeof transporter.close === 'function') transporter.close()
   }
 }
