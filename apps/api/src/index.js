@@ -14,6 +14,7 @@ import { diagnoseMhAuthentication } from './dte/mh-auth-diagnostic-service.js'
 import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-settings-service.js'
 import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
+import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -48,20 +49,21 @@ app.get('/api/dte/signer-diagnostic', async (request, response, next) => {
   try { response.json(await diagnoseDteSigner({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.post('/api/dte/gmail-test', async (request, response) => {
-  try {
-    response.json(await sendGmailSelfTest({ request, supabase: getSupabaseAdmin() }))
-  } catch (error) {
+  try { response.json(await sendGmailSelfTest({ request, supabase: getSupabaseAdmin() })) }
+  catch (error) {
     console.error('GMAIL_TEST_FAILED', { code: error?.code, statusCode: error?.statusCode, message: error?.message })
     const status = Number(error?.statusCode || 502)
-    response.status(status).json({
-      error: 'GMAIL_TEST_FAILED',
-      code: String(error?.code || 'GMAIL_ERROR'),
-      message: String(error?.message || 'No se pudo completar la prueba de Gmail.'),
-    })
+    response.status(status).json({ error: 'GMAIL_TEST_FAILED', code: String(error?.code || 'GMAIL_ERROR'), message: String(error?.message || 'No se pudo completar la prueba de Gmail.') })
   }
 })
 app.post('/api/dte/invoice-email-self-test', async (request, response, next) => {
   try { response.json(await sendInvoicePdfSelfTest({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.get('/api/dte/invoice-email-status', async (request, response, next) => {
+  try { response.json(await getInvoiceEmailStatus({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/dte/invoice-email-resend', async (request, response, next) => {
+  try { response.json(await resendInvoiceEmail({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.post('/api/dte/drafts', async (request, response, next) => {
   try { response.status(201).json(await createTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
