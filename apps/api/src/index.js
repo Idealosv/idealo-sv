@@ -12,6 +12,7 @@ import { transmitSignedProductionDte } from './dte/transmit-production-service.j
 import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
 import { diagnoseMhAuthentication } from './dte/mh-auth-diagnostic-service.js'
 import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-settings-service.js'
+import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -44,6 +45,9 @@ app.get('/api/dte/mh-auth-diagnostic', async (request, response, next) => {
 })
 app.get('/api/dte/signer-diagnostic', async (request, response, next) => {
   try { response.json(await diagnoseDteSigner({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/dte/gmail-test', async (request, response, next) => {
+  try { response.json(await sendGmailSelfTest({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.post('/api/dte/drafts', async (request, response, next) => {
   try { response.status(201).json(await createTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
