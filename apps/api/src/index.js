@@ -13,6 +13,7 @@ import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
 import { diagnoseMhAuthentication } from './dte/mh-auth-diagnostic-service.js'
 import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-settings-service.js'
 import { sendGmailSelfTest } from './dte/gmail-test-service.js'
+import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -58,6 +59,9 @@ app.post('/api/dte/gmail-test', async (request, response) => {
       message: String(error?.message || 'No se pudo completar la prueba de Gmail.'),
     })
   }
+})
+app.post('/api/dte/invoice-email-self-test', async (request, response, next) => {
+  try { response.json(await sendInvoicePdfSelfTest({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.post('/api/dte/drafts', async (request, response, next) => {
   try { response.status(201).json(await createTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
