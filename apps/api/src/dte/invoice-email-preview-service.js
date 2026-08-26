@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer'
 import { buildInvoiceEmailWithPdf } from './invoice-email-service.js'
 
 const text = (value) => String(value ?? '').trim()
-const GMAIL_TIMEOUT_MS = 15_000
+const GMAIL_TIMEOUT_MS = 20_000
 
 function bearerToken(request) {
   const authorization = request.headers.authorization || ''
@@ -113,16 +113,17 @@ export async function sendInvoicePdfSelfTest({ request, supabase, env = process.
     : nodemailer.createTransport({
         service: 'gmail',
         auth: { user: config.user, pass: config.appPassword },
+        pool: false,
         connectionTimeout: GMAIL_TIMEOUT_MS,
         greetingTimeout: GMAIL_TIMEOUT_MS,
         socketTimeout: GMAIL_TIMEOUT_MS,
       })
 
   try {
-    if (typeof transporter.verify === 'function') {
-      await withTimeout(transporter.verify(), 'La verificación SMTP de Gmail')
-    }
-
+    // La prueba básica de Gmail ya verifica credenciales. Aquí evitamos abrir una
+    // segunda conexión SMTP con transporter.verify(), porque en algunos hosts
+    // esa doble conexión puede terminar cerrada por el proxy y el navegador
+    // solo recibe "Failed to fetch".
     const message = await buildInvoiceEmailWithPdf(document)
     const pdfAttachment = message.attachments.find((attachment) => attachment.contentType === 'application/pdf')
     if (!pdfAttachment?.content) {
