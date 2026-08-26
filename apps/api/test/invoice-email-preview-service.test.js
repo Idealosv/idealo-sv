@@ -30,8 +30,9 @@ function queryResult(data) {
   return chain
 }
 
-test('envía a Gmail configurado un DTE aceptado con PDF sin transmitir a MH', async () => {
+test('verifica Gmail y envía solamente el PDF del DTE aceptado sin transmitir a MH', async () => {
   let sentMail
+  let verified = false
   const supabase = {
     auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
     from: (table) => table === 'dte_documents' ? queryResult(document) : queryResult({ role: 'owner' }),
@@ -41,16 +42,40 @@ test('envía a Gmail configurado un DTE aceptado con PDF sin transmitir a MH', a
     request,
     supabase,
     env: { GMAIL_SMTP_USER: 'idealo@example.com', GMAIL_APP_PASSWORD: 'abcdefghijklmnop', GMAIL_FROM_NAME: 'IDEALO SV - Facturación' },
-    transporterFactory: () => ({ sendMail: async (mail) => { sentMail = mail; return { messageId: 'preview-123' } } }),
+    transporterFactory: () => ({
+      verify: async () => { verified = true },
+      sendMail: async (mail) => { sentMail = mail; return { messageId: 'preview-123' } },
+    }),
   })
 
+  assert.equal(verified, true)
   assert.equal(result.ok, true)
   assert.equal(result.recipient, 'idealo@example.com')
   assert.equal(result.pdfAttached, true)
+  assert.equal(result.attachmentCount, 1)
   assert.equal(result.transmittedToMh, false)
   assert.equal(result.fiscalDocumentTouched, false)
   assert.equal(sentMail.to, 'idealo@example.com')
   assert.match(sentMail.subject, /^\[PRUEBA PDF\]/)
-  assert.ok(sentMail.attachments.some((item) => item.contentType === 'application/pdf'))
-  assert.ok(sentMail.attachments.find((item) => item.contentType === 'application/pdf').content.subarray(0, 5).toString().startsWith('%PDF-'))
+  assert.equal(sentMail.attachments.length, 1)
+  assert.equal(sentMail.attachments[0].contentType, 'application/pdf')
+  assert.ok(sentMail.attachments[0].content.subarray(0, 5).toString().startsWith('%PDF-'))
+})
+
+test('convierte un rechazo SMTP en un error útil para la interfaz', async () => {
+  const supabase = {
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
+    from: (table) => table === 'dte_documents' ? queryResult(document) : queryResult({ role: 'owner' }),
+  }
+  const request = { headers: { authorization: 'Bearer test-token' }, body: { documentId: document.id } }
+
+  await assert.rejects(
+    sendInvoicePdfSelfTest({
+      request,
+      supabase,
+      env: { GMAIL_SMTP_USER: 'idealo@example.com', GMAIL_APP_PASSWORD: 'abcdefghijklmnop' },
+      transporterFactory: () => ({ verify: async () => true, sendMail: async () => { const error = new Error('Authentication failed'); error.code = 'EAUTH'; throw error } }),
+    }),
+    (error) => error.statusCode === 502 && /Gmail rechazó la autenticación/.test(error.message),
+  )
 })
