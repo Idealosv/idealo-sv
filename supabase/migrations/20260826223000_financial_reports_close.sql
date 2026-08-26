@@ -11,11 +11,11 @@ begin
  if not public.is_company_member(p_company) then raise exception 'Sin acceso a esta empresa'; end if;
  return query
  with
- s as (select coalesce(sum(amount_total),0)::numeric v from public.accounts_receivable where company_id=p_company and status<>'CANCELLED' and issued_at between p_from and p_to),
- p as (select coalesce(sum(total),0)::numeric v from public.purchases where company_id=p_company and status not in ('CANCELLED','VOID') and coalesce(received_at,created_at)::date between p_from and p_to),
- cm as (select coalesce(sum(case when movement_type in ('INCOME','TRANSFER_IN') and source_type<>'CASH_TRANSFER' then amount else 0 end),0)::numeric i,coalesce(sum(case when movement_type in ('EXPENSE','TRANSFER_OUT') and source_type<>'CASH_TRANSFER' then amount else 0 end),0)::numeric e from public.cash_movements where company_id=p_company and movement_date::date between p_from and p_to),
- ar as (select coalesce(sum(balance),0)::numeric v from public.accounts_receivable where company_id=p_company and status not in ('PAID','CANCELLED')),
- ap as (select coalesce(sum(balance),0)::numeric v from public.accounts_payable where company_id=p_company and status not in ('PAID','CANCELLED')),
+ s as (select coalesce(sum(amount_total),0)::numeric v from public.accounts_receivable where company_id=p_company and status<>'CANCELLED' and created_at::date between p_from and p_to),
+ p as (select coalesce(sum(total),0)::numeric v from public.purchases where company_id=p_company and coalesce(received_at,created_at)::date between p_from and p_to),
+ cm as (select coalesce(sum(case when movement_type='INCOME' then amount else 0 end),0)::numeric i,coalesce(sum(case when movement_type='EXPENSE' then amount else 0 end),0)::numeric e from public.cash_movements where company_id=p_company and movement_date::date between p_from and p_to),
+ ar as (select coalesce(sum(greatest(amount_total-amount_paid,0)),0)::numeric v from public.accounts_receivable where company_id=p_company and status not in ('PAID','CANCELLED')),
+ ap as (select coalesce(sum(greatest(amount_total-amount_paid,0)),0)::numeric v from public.accounts_payable where company_id=p_company and status not in ('PAID','CANCELLED')),
  cb as (select coalesce(sum(current_balance),0)::numeric v from public.cash_account_balances where company_id=p_company and active=true),
  rc as (select count(*)::bigint v from public.cash_reconciliations where company_id=p_company and reconciliation_date between p_from and p_to and abs(difference)>=0.01),
  dc as (select count(*)::bigint v from public.cash_daily_closures where company_id=p_company and closure_date between p_from and p_to)
@@ -24,17 +24,17 @@ end;$$;
 revoke all on function public.financial_report_summary(uuid,date,date) from public,anon;
 grant execute on function public.financial_report_summary(uuid,date,date) to authenticated;
 
-create or replace view public.financial_integrity_alerts as
+create or replace view public.financial_integrity_alerts with (security_invoker=true) as
 select ca.company_id,'NEGATIVE_CASH'::text alert_type,ca.id source_id,ca.name detail,round(cb.current_balance::numeric,2) amount
 from public.cash_accounts ca join public.cash_account_balances cb on cb.cash_account_id=ca.id where cb.current_balance<0
 union all
 select r.company_id,'RECONCILIATION_DIFFERENCE',r.id,coalesce(a.name,'Caja/Banco'),round(r.difference::numeric,2)
 from public.cash_reconciliations r left join public.cash_accounts a on a.id=r.cash_account_id where abs(r.difference)>=0.01 and r.status<>'CANCELLED'
 union all
-select ar.company_id,'OVERDUE_RECEIVABLE',ar.id,coalesce(ar.reference,'Cuenta por cobrar'),round(ar.balance::numeric,2)
-from public.accounts_receivable ar where ar.balance>0 and ar.due_date<current_date and ar.status not in ('PAID','CANCELLED')
+select ar.company_id,'OVERDUE_RECEIVABLE',ar.id,coalesce(ar.number,ar.concept,'Cuenta por cobrar'),round(greatest(ar.amount_total-ar.amount_paid,0)::numeric,2)
+from public.accounts_receivable ar where ar.amount_total-ar.amount_paid>0 and ar.due_date<current_date and ar.status not in ('PAID','CANCELLED')
 union all
-select ap.company_id,'OVERDUE_PAYABLE',ap.id,coalesce(ap.reference,'Cuenta por pagar'),round(ap.balance::numeric,2)
-from public.accounts_payable ap where ap.balance>0 and ap.due_date<current_date and ap.status not in ('PAID','CANCELLED');
+select ap.company_id,'OVERDUE_PAYABLE',ap.id,coalesce(ap.number,ap.concept,'Cuenta por pagar'),round(greatest(ap.amount_total-ap.amount_paid,0)::numeric,2)
+from public.accounts_payable ap where ap.amount_total-ap.amount_paid>0 and ap.due_date<current_date and ap.status not in ('PAID','CANCELLED');
 
 grant select on public.financial_integrity_alerts to authenticated;
