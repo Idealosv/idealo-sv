@@ -1,112 +1,86 @@
 import PDFDocument from 'pdfkit'
 
-const text = (value) => String(value ?? '').trim()
-const money = (value) => `$${Number(value || 0).toFixed(2)}`
-const safe = (value, fallback = '—') => text(value) || fallback
-const responseBody = (value) => value?.body || value || {}
-const receiptSeal = (response) => { const b = responseBody(response); return text(b.selloRecibido || b.selloRecepcion || b.sello || '') }
-const itemTotal = (item) => Number(item?.ventaGravada || 0) + Number(item?.ventaExenta || 0) + Number(item?.ventaNoSuj || 0)
+const text = (v) => String(v ?? '').trim()
+const safe = (v, f = '—') => text(v) || f
+const money = (v) => `$${Number(v || 0).toFixed(2)}`
+const responseBody = (v) => v?.body || v || {}
+const receiptSeal = (r) => { const b = responseBody(r); return text(b.selloRecibido || b.selloRecepcion || b.sello || '') }
+const itemTotal = (i) => Number(i?.ventaGravada || 0) + Number(i?.ventaExenta || 0) + Number(i?.ventaNoSuj || 0)
 
-export function dtePdfFilename(document) {
-  return `${text(document?.control_number) || 'DTE'}-representacion-grafica.pdf`
+export function dtePdfFilename(document) { return `${text(document?.control_number) || 'DTE'}-representacion-grafica.pdf` }
+
+function header(doc, type) {
+  doc.rect(38, 30, 519, 44).fill('#17191d')
+  doc.fillColor('#f97316').font('Helvetica-Bold').fontSize(18).text('IDEALO SV', 51, 41)
+  doc.fillColor('#d1d5db').font('Helvetica').fontSize(7).text('DOCUMENTO TRIBUTARIO ELECTRÓNICO', 51, 61)
+  doc.fillColor('#fff').font('Helvetica-Bold').fontSize(8).text(type, 290, 45, { width: 252, align: 'right' })
 }
-
-function sectionTitle(doc, label, y) {
-  doc.fillColor('#f97316').font('Helvetica-Bold').fontSize(9).text(label, 46, y)
-  doc.moveTo(46, y + 14).lineTo(549, y + 14).strokeColor('#d1d5db').stroke()
-  return y + 22
+function title(doc, label, y) {
+  doc.fillColor('#ea580c').font('Helvetica-Bold').fontSize(8).text(label, 38, y)
+  doc.moveTo(38, y + 11).lineTo(557, y + 11).strokeColor('#d1d5db').stroke()
+  return y + 16
 }
-
-function field(doc, label, value, x, y, width) {
-  doc.fillColor('#6b7280').font('Helvetica').fontSize(7).text(label.toUpperCase(), x, y, { width })
-  doc.fillColor('#111827').font('Helvetica-Bold').fontSize(8.5).text(safe(value), x, y + 10, { width })
+function field(doc, label, value, x, y, w) {
+  doc.fillColor('#6b7280').font('Helvetica').fontSize(6.2).text(label.toUpperCase(), x, y, { width: w })
+  doc.fillColor('#111827').font('Helvetica-Bold').fontSize(7.6).text(safe(value), x, y + 8, { width: w, height: 20, ellipsis: true })
 }
-
-function addPageHeader(doc, typeLabel) {
-  doc.rect(46, 36, 503, 52).fill('#17191d')
-  doc.fillColor('#f97316').font('Helvetica-Bold').fontSize(19).text('IDEALO SV', 60, 49)
-  doc.fillColor('#ffffff').font('Helvetica').fontSize(8.5).text('DOCUMENTO TRIBUTARIO ELECTRÓNICO', 60, 71)
-  doc.font('Helvetica-Bold').fontSize(9).text(typeLabel, 300, 52, { width: 235, align: 'right' })
+function detailHeader(doc, y) {
+  doc.rect(38, y, 519, 19).fill('#25282d')
+  doc.fillColor('#fff').font('Helvetica-Bold').fontSize(6.5)
+  doc.text('#', 43, y + 6, { width: 16 }); doc.text('DESCRIPCIÓN', 62, y + 6, { width: 292 })
+  doc.text('CANT.', 356, y + 6, { width: 44, align: 'right' }); doc.text('PRECIO', 405, y + 6, { width: 64, align: 'right' }); doc.text('TOTAL', 475, y + 6, { width: 75, align: 'right' })
+  return y + 25
 }
 
 export async function generateDtePdf(document, mhResponse = document?.mh_response) {
-  const dte = document?.dte_payload || {}
-  const id = dte.identificacion || {}
-  const emisor = dte.emisor || {}
-  const receptor = dte.receptor || {}
-  const resumen = dte.resumen || {}
-  const mh = responseBody(mhResponse)
-  const seal = receiptSeal(mhResponse)
-  const items = Array.isArray(dte.cuerpoDocumento) ? dte.cuerpoDocumento : []
-  const isCcf = document?.dte_type === '03'
-  const typeLabel = isCcf ? 'COMPROBANTE DE CRÉDITO FISCAL · DTE-03' : 'FACTURA · DTE-01'
-
+  const dte = document?.dte_payload || {}, id = dte.identificacion || {}, emisor = dte.emisor || {}, receptor = dte.receptor || {}, resumen = dte.resumen || {}
+  const mh = responseBody(mhResponse), seal = receiptSeal(mhResponse), items = Array.isArray(dte.cuerpoDocumento) ? dte.cuerpoDocumento : []
+  const isCcf = document?.dte_type === '03', type = isCcf ? 'COMPROBANTE DE CRÉDITO FISCAL · DTE-03' : 'FACTURA · DTE-01'
   return await new Promise((resolve, reject) => {
-    const chunks = []
-    const doc = new PDFDocument({ size: 'A4', margin: 46, bufferPages: true, info: { Title: dtePdfFilename(document), Author: 'IDEALO SV', Subject: 'Representación gráfica DTE' } })
-    doc.on('data', (c) => chunks.push(c)); doc.on('error', reject); doc.on('end', () => resolve(Buffer.concat(chunks)))
-    addPageHeader(doc, typeLabel)
+    const chunks = [], doc = new PDFDocument({ size: 'A4', margin: 38, bufferPages: true, info: { Title: dtePdfFilename(document), Author: 'IDEALO SV', Subject: 'Representación gráfica DTE' } })
+    doc.on('data', c => chunks.push(c)); doc.on('error', reject); doc.on('end', () => resolve(Buffer.concat(chunks)))
+    header(doc, type)
+    let y = 86
+    doc.roundedRect(38, y, 519, 54, 4).fillAndStroke('#f8fafc', '#d1d5db')
+    field(doc, 'Número de control', document?.control_number, 49, y + 8, 240); field(doc, 'Código de generación', document?.generation_code, 303, y + 8, 242)
+    field(doc, 'Fecha / hora', `${safe(id.fecEmi, '')} ${safe(id.horEmi, '')}`.trim(), 49, y + 31, 240); field(doc, 'Ambiente', document?.environment === 'test' ? '00 · PRUEBAS' : '01 · PRODUCCIÓN', 303, y + 31, 242)
 
-    let y = 103
-    doc.roundedRect(46, y, 503, 70, 5).fillAndStroke('#f8fafc', '#d1d5db')
-    field(doc, 'Número de control', document?.control_number, 58, y + 10, 235)
-    field(doc, 'Código de generación', document?.generation_code, 305, y + 10, 232)
-    field(doc, 'Fecha y hora de emisión', `${safe(id.fecEmi, '')} ${safe(id.horEmi, '')}`.trim(), 58, y + 40, 235)
-    field(doc, 'Ambiente', document?.environment === 'test' ? '00 · PRUEBAS' : '01 · PRODUCCIÓN', 305, y + 40, 232)
+    y = title(doc, 'EMISOR', 151)
+    field(doc, 'Nombre', emisor.nombre || emisor.nombreComercial, 38, y, 250); field(doc, 'NIT / NRC', [emisor.nit, emisor.nrc].filter(Boolean).join(' / '), 306, y, 251)
+    field(doc, 'Actividad económica', emisor.descActividad, 38, y + 27, 250); field(doc, 'Dirección', emisor.direccion?.complemento, 306, y + 27, 251)
+    y = title(doc, 'RECEPTOR', y + 55)
+    field(doc, 'Nombre', receptor.nombre || 'Consumidor final', 38, y, 250); field(doc, 'Documento / NRC', [receptor.numDocumento || receptor.nit, receptor.nrc].filter(Boolean).join(' / '), 306, y, 251)
+    field(doc, 'Correo', receptor.correo, 38, y + 27, 250); field(doc, 'Dirección', receptor.direccion?.complemento, 306, y + 27, 251)
 
-    y = sectionTitle(doc, 'EMISOR', 190)
-    const emitterAddress = emisor.direccion?.complemento
-    field(doc, 'Nombre', emisor.nombre || emisor.nombreComercial, 46, y, 245)
-    field(doc, 'NIT / NRC', [emisor.nit, emisor.nrc].filter(Boolean).join(' / '), 304, y, 245)
-    field(doc, 'Actividad económica', emisor.descActividad, 46, y + 32, 245)
-    field(doc, 'Dirección', emitterAddress, 304, y + 32, 245)
-
-    y = sectionTitle(doc, 'RECEPTOR', y + 70)
-    field(doc, 'Nombre', receptor.nombre || 'Consumidor final', 46, y, 245)
-    field(doc, 'Documento / NRC', [receptor.numDocumento || receptor.nit, receptor.nrc].filter(Boolean).join(' / '), 304, y, 245)
-    field(doc, 'Correo', receptor.correo, 46, y + 32, 245)
-    field(doc, 'Dirección', receptor.direccion?.complemento, 304, y + 32, 245)
-
-    y = sectionTitle(doc, 'DETALLE DEL DOCUMENTO', y + 75)
-    const col = { n: 46, desc: 70, qty: 348, price: 402, total: 476 }
-    doc.rect(46, y, 503, 22).fill('#25282d')
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(7.5)
-    doc.text('#', col.n + 5, y + 7, { width: 18 }); doc.text('DESCRIPCIÓN', col.desc, y + 7, { width: 265 }); doc.text('CANT.', col.qty, y + 7, { width: 42, align: 'right' }); doc.text('PRECIO', col.price, y + 7, { width: 60, align: 'right' }); doc.text('TOTAL', col.total, y + 7, { width: 68, align: 'right' })
-    y += 29
+    y = title(doc, 'DETALLE', y + 58); y = detailHeader(doc, y)
     for (const item of items) {
-      const desc = safe(item.descripcion, '')
-      const h = Math.max(22, doc.heightOfString(desc, { width: 265 }) + 9)
-      if (y + h > 690) { doc.addPage(); addPageHeader(doc, typeLabel); y = 105 }
-      doc.fillColor('#111827').font('Helvetica').fontSize(8)
-      doc.text(safe(item.numItem, ''), col.n + 5, y, { width: 18 }); doc.text(desc, col.desc, y, { width: 265 }); doc.text(safe(item.cantidad, ''), col.qty, y, { width: 42, align: 'right' }); doc.text(money(item.precioUni), col.price, y, { width: 60, align: 'right' }); doc.text(money(itemTotal(item)), col.total, y, { width: 68, align: 'right' })
-      doc.moveTo(46, y + h).lineTo(549, y + h).strokeColor('#e5e7eb').stroke(); y += h + 5
+      const desc = safe(item.descripcion, ''), h = Math.max(18, Math.min(34, doc.heightOfString(desc, { width: 286 }) + 6))
+      if (y + h > 585) { doc.addPage(); header(doc, type); y = detailHeader(doc, 92) }
+      doc.fillColor('#111827').font('Helvetica').fontSize(7.2)
+      doc.text(safe(item.numItem, ''), 43, y, { width: 16 }); doc.text(desc, 62, y, { width: 286, height: h - 2, ellipsis: true })
+      doc.text(safe(item.cantidad, ''), 356, y, { width: 44, align: 'right' }); doc.text(money(item.precioUni), 405, y, { width: 64, align: 'right' }); doc.text(money(itemTotal(item)), 475, y, { width: 75, align: 'right' })
+      doc.moveTo(38, y + h).lineTo(557, y + h).strokeColor('#e5e7eb').stroke(); y += h + 3
     }
-
     const taxTotal = Array.isArray(resumen.tributos) ? resumen.tributos.reduce((s, t) => s + Number(t?.valor || 0), 0) : 0
-    if (y > 570) { doc.addPage(); addPageHeader(doc, typeLabel); y = 110 }
-    y += 8
-    doc.roundedRect(330, y, 219, 100, 5).fillAndStroke('#f8fafc', '#d1d5db')
-    doc.fillColor('#f97316').font('Helvetica-Bold').fontSize(9).text('RESUMEN', 342, y + 10, { width: 195, align: 'right' })
+    if (y > 610) { doc.addPage(); header(doc, type); y = 94 }
+    y += 5
+    if (resumen.totalLetras) doc.fillColor('#4b5563').font('Helvetica').fontSize(6.7).text(`SON: ${resumen.totalLetras}`, 38, y + 7, { width: 285 })
+    doc.roundedRect(340, y, 217, 82, 4).fillAndStroke('#f8fafc', '#d1d5db')
+    doc.fillColor('#ea580c').font('Helvetica-Bold').fontSize(8).text('RESUMEN', 351, y + 8, { width: 194, align: 'right' })
     const totals = [['Ventas gravadas', money(resumen.totalGravada)], ['Ventas exentas', money(resumen.totalExenta)], ['Ventas no sujetas', money(resumen.totalNoSuj)], [isCcf ? 'IVA 13%' : 'IVA incluido', money(isCcf ? taxTotal : resumen.totalIva)]]
-    let ty = y + 28
-    for (const [label, value] of totals) { doc.fillColor('#374151').font('Helvetica').fontSize(8).text(label, 342, ty, { width: 105 }); doc.font('Helvetica-Bold').text(value, 450, ty, { width: 87, align: 'right' }); ty += 14 }
-    doc.moveTo(342, ty).lineTo(537, ty).strokeColor('#9ca3af').stroke(); ty += 7
-    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11).text('TOTAL A PAGAR', 342, ty, { width: 105 }); doc.fillColor('#f97316').text(money(resumen.totalPagar ?? resumen.montoTotalOperacion), 450, ty, { width: 87, align: 'right' })
-    if (resumen.totalLetras) doc.fillColor('#4b5563').font('Helvetica').fontSize(7.5).text(`SON: ${resumen.totalLetras}`, 46, y + 12, { width: 265 })
+    let ty = y + 23
+    for (const [l, v] of totals) { doc.fillColor('#374151').font('Helvetica').fontSize(6.8).text(l, 351, ty, { width: 105 }); doc.font('Helvetica-Bold').text(v, 460, ty, { width: 85, align: 'right' }); ty += 10 }
+    doc.moveTo(351, ty).lineTo(545, ty).strokeColor('#9ca3af').stroke(); ty += 5
+    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(9).text('TOTAL A PAGAR', 351, ty, { width: 110 }); doc.fillColor('#ea580c').text(money(resumen.totalPagar ?? resumen.montoTotalOperacion), 460, ty, { width: 85, align: 'right' })
 
-    y += 116
-    doc.roundedRect(46, y, 503, 82, 5).fillAndStroke('#fff7ed', '#fdba74')
-    doc.fillColor('#c2410c').font('Helvetica-Bold').fontSize(9).text('VALIDACIÓN MINISTERIO DE HACIENDA', 58, y + 10)
-    doc.fillColor('#374151').font('Helvetica').fontSize(7.5).text(`Estado: ${safe(mh.estado || document?.status)}   ·   Código: ${safe(mh.codigoMsg)}`, 58, y + 27, { width: 475 })
-    doc.text(`Mensaje: ${safe(mh.descripcionMsg || mh.mensaje)}`, 58, y + 41, { width: 475 })
-    doc.font('Helvetica-Bold').text('Sello de recepción', 58, y + 56); doc.font('Courier').fontSize(6.5).text(safe(seal), 150, y + 56, { width: 385 })
+    y += 92
+    doc.roundedRect(38, y, 519, 62, 4).fillAndStroke('#fff7ed', '#fdba74')
+    doc.fillColor('#c2410c').font('Helvetica-Bold').fontSize(7.5).text('VALIDACIÓN MINISTERIO DE HACIENDA', 49, y + 8)
+    doc.fillColor('#374151').font('Helvetica').fontSize(6.4).text(`Estado: ${safe(mh.estado || document?.status)}   ·   Código: ${safe(mh.codigoMsg)}   ·   Mensaje: ${safe(mh.descripcionMsg || mh.mensaje)}`, 49, y + 22, { width: 496, height: 17, ellipsis: true })
+    doc.font('Helvetica-Bold').text('Sello:', 49, y + 43); doc.font('Courier').fontSize(5.6).text(safe(seal), 78, y + 43, { width: 465, height: 11, ellipsis: true })
 
     const pages = doc.bufferedPageRange()
-    for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i)
-      doc.fillColor('#6b7280').font('Helvetica').fontSize(6.5).text('Representación gráfica del Documento Tributario Electrónico · IDEALO SV', 46, 808, { width: 400 })
-      doc.text(`Página ${i + 1} de ${pages.count}`, 450, 808, { width: 99, align: 'right' })
-    }
+    for (let i = 0; i < pages.count; i++) { doc.switchToPage(i); doc.fillColor('#6b7280').font('Helvetica').fontSize(6).text('Representación gráfica DTE · IDEALO SV', 38, 810, { width: 350 }); doc.text(`Página ${i + 1} de ${pages.count}`, 455, 810, { width: 102, align: 'right' }) }
     doc.end()
   })
 }
