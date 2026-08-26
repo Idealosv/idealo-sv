@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { dtePdfFilename, generateDtePdf } from './dte-pdf-service.js'
 
 const text = (value) => String(value ?? '').trim()
 const money = (value) => Number(value || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -19,7 +20,7 @@ function receiptSeal(response) {
 function gmailConfig(env) {
   return {
     user: text(env.GMAIL_SMTP_USER),
-    appPassword: text(env.GMAIL_APP_PASSWORD),
+    appPassword: text(env.GMAIL_APP_PASSWORD).replace(/\s+/g, ''),
     fromName: text(env.GMAIL_FROM_NAME || 'IDEALO SV - Facturación'),
   }
 }
@@ -43,7 +44,8 @@ export function buildInvoiceEmail(document, mhResponse = document?.mh_response) 
       <div style="background:#15181c;color:white;padding:20px 24px"><strong style="color:#ff6a00">IDEALO SV</strong><br><span>Facturación electrónica</span></div>
       <div style="padding:24px">
         <p>Estimado/a ${htmlEscape(recipientName)},</p>
-        <p>Adjuntamos la evidencia electrónica de su ${htmlEscape(typeLabel)}, aceptada por el Ministerio de Hacienda.</p>
+        <p>Adjuntamos su ${htmlEscape(typeLabel)} aceptada por el Ministerio de Hacienda.</p>
+        <p>Encontrará primero la <strong>representación gráfica en PDF</strong> para consultar, imprimir o archivar, junto con los archivos electrónicos del DTE.</p>
         <table style="width:100%;border-collapse:collapse;margin:18px 0">
           <tr><td style="padding:7px;border-bottom:1px solid #eee">Emisor</td><td style="padding:7px;border-bottom:1px solid #eee"><strong>${htmlEscape(emisor.nombre || emisor.nombreComercial || 'IDEALO SV')}</strong></td></tr>
           <tr><td style="padding:7px;border-bottom:1px solid #eee">Número de control</td><td style="padding:7px;border-bottom:1px solid #eee">${htmlEscape(document?.control_number)}</td></tr>
@@ -67,7 +69,19 @@ export function buildInvoiceEmail(document, mhResponse = document?.mh_response) 
   }
 }
 
-export async function sendProcessedInvoiceEmail({ supabase, document, env = process.env }) {
+export async function buildInvoiceEmailWithPdf(document, mhResponse = document?.mh_response) {
+  const message = buildInvoiceEmail(document, mhResponse)
+  const pdf = await generateDtePdf(document, mhResponse)
+  return {
+    ...message,
+    attachments: [
+      { filename: dtePdfFilename(document), content: pdf, contentType: 'application/pdf' },
+      ...message.attachments,
+    ],
+  }
+}
+
+export async function sendProcessedInvoiceEmail({ supabase, document, env = process.env, transporterFactory }) {
   if (document?.environment !== 'production' || document?.status !== 'PROCESSED') {
     return { attempted: false, status: 'skipped', reason: 'ONLY_PROCESSED_PRODUCTION' }
   }
@@ -104,9 +118,12 @@ export async function sendProcessedInvoiceEmail({ supabase, document, env = proc
     return { attempted: false, status: 'failed', reason: 'GMAIL_NOT_CONFIGURED' }
   }
 
-  const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: config.user, pass: config.appPassword } })
-  const message = buildInvoiceEmail(document)
+  const transporter = transporterFactory
+    ? transporterFactory(config)
+    : nodemailer.createTransport({ service: 'gmail', auth: { user: config.user, pass: config.appPassword } })
+
   try {
+    const message = await buildInvoiceEmailWithPdf(document)
     const sent = await transporter.sendMail({
       from: { name: config.fromName, address: config.user },
       to: recipient,
@@ -117,10 +134,12 @@ export async function sendProcessedInvoiceEmail({ supabase, document, env = proc
     })
     const now = new Date().toISOString()
     await supabase.from('invoice_email_deliveries').update({ status: 'sent', provider_message_id: text(sent.messageId) || null, sent_at: now, error_message: null, updated_at: now }).eq('id', deliveryId)
-    return { attempted: true, status: 'sent', recipient, messageId: text(sent.messageId) || null, sentAt: now }
+    return { attempted: true, status: 'sent', recipient, messageId: text(sent.messageId) || null, sentAt: now, pdfAttached: true }
   } catch (error) {
     const messageText = text(error?.message).slice(0, 1000) || 'No se pudo enviar el correo por Gmail.'
     await supabase.from('invoice_email_deliveries').update({ status: 'failed', error_message: messageText, updated_at: new Date().toISOString() }).eq('id', deliveryId)
     return { attempted: true, status: 'failed', recipient, error: messageText }
+  } finally {
+    if (!transporterFactory && typeof transporter.close === 'function') transporter.close()
   }
 }
