@@ -30,9 +30,9 @@ function queryResult(data) {
   return chain
 }
 
-test('verifica Gmail y envía solamente el PDF del DTE aceptado sin transmitir a MH', async () => {
+test('envía solamente el PDF del DTE aceptado con una sola conexión SMTP y sin transmitir a MH', async () => {
   let sentMail
-  let verified = false
+  let verifyCalled = false
   const supabase = {
     auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
     from: (table) => table === 'dte_documents' ? queryResult(document) : queryResult({ role: 'owner' }),
@@ -43,12 +43,12 @@ test('verifica Gmail y envía solamente el PDF del DTE aceptado sin transmitir a
     supabase,
     env: { GMAIL_SMTP_USER: 'idealo@example.com', GMAIL_APP_PASSWORD: 'abcdefghijklmnop', GMAIL_FROM_NAME: 'IDEALO SV - Facturación' },
     transporterFactory: () => ({
-      verify: async () => { verified = true },
+      verify: async () => { verifyCalled = true },
       sendMail: async (mail) => { sentMail = mail; return { messageId: 'preview-123' } },
     }),
   })
 
-  assert.equal(verified, true)
+  assert.equal(verifyCalled, false)
   assert.equal(result.ok, true)
   assert.equal(result.recipient, 'idealo@example.com')
   assert.equal(result.pdfAttached, true)
@@ -74,7 +74,7 @@ test('convierte un rechazo SMTP en un error útil para la interfaz', async () =>
       request,
       supabase,
       env: { GMAIL_SMTP_USER: 'idealo@example.com', GMAIL_APP_PASSWORD: 'abcdefghijklmnop' },
-      transporterFactory: () => ({ verify: async () => true, sendMail: async () => { const error = new Error('Authentication failed'); error.code = 'EAUTH'; throw error } }),
+      transporterFactory: () => ({ sendMail: async () => { const error = new Error('Authentication failed'); error.code = 'EAUTH'; throw error } }),
     }),
     (error) => error.statusCode === 502 && /Gmail rechazó la autenticación/.test(error.message),
   )
