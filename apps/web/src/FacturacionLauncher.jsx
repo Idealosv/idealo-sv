@@ -4,7 +4,8 @@ import FacturacionDte from './FacturacionDte.jsx'
 import SignerDiagnostic from './SignerDiagnostic.jsx'
 import ProductionPreflightPanel from './ProductionPreflightPanel.jsx'
 import MhAuthDiagnostic from './MhAuthDiagnostic.jsx'
-import ProcessedDtePanel from './ProcessedDtePanel.jsx'
+import ProcessedDtePanelBridge from './ProcessedDtePanelBridge.jsx'
+import InvoiceEmailPdfTestPanel from './InvoiceEmailPdfTestPanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
 import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
@@ -84,7 +85,7 @@ export default function FacturacionLauncher() {
         {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
         {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/>} 
         {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Completa cliente, productos o servicios y condición de pago. El sistema prepara DTE-01 o DTE-03 según corresponda.</small></div></div><FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/></section>}
-        {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanel supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/></section>}
+        {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></section>}
         {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
         {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, autenticación, transmisión y pruebas separadas de la facturación diaria.</small></div></div><ProductionPreflightPanel session={session} company={company}/><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
       </main></div>
