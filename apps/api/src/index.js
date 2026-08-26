@@ -46,8 +46,18 @@ app.get('/api/dte/mh-auth-diagnostic', async (request, response, next) => {
 app.get('/api/dte/signer-diagnostic', async (request, response, next) => {
   try { response.json(await diagnoseDteSigner({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
-app.post('/api/dte/gmail-test', async (request, response, next) => {
-  try { response.json(await sendGmailSelfTest({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+app.post('/api/dte/gmail-test', async (request, response) => {
+  try {
+    response.json(await sendGmailSelfTest({ request, supabase: getSupabaseAdmin() }))
+  } catch (error) {
+    console.error('GMAIL_TEST_FAILED', { code: error?.code, statusCode: error?.statusCode, message: error?.message })
+    const status = Number(error?.statusCode || 502)
+    response.status(status).json({
+      error: 'GMAIL_TEST_FAILED',
+      code: String(error?.code || 'GMAIL_ERROR'),
+      message: String(error?.message || 'No se pudo completar la prueba de Gmail.'),
+    })
+  }
 })
 app.post('/api/dte/drafts', async (request, response, next) => {
   try { response.status(201).json(await createTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
