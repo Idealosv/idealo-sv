@@ -6,6 +6,7 @@ const paymentSql=fs.readFileSync(new URL('../../../supabase/migrations/202608231
 const baseSql=fs.readFileSync(new URL('../../../supabase/migrations/20260822120500_deliveries_receivables_payments.sql',import.meta.url),'utf8')
 const guardSql=fs.readFileSync(new URL('../../../supabase/migrations/20260826210000_customer_payment_immutability.sql',import.meta.url),'utf8')
 const reconciliationSql=fs.readFileSync(new URL('../../../supabase/migrations/20260823181000_cash_reconciliation_flow.sql',import.meta.url),'utf8')
+const cashUi=fs.readFileSync(new URL('../../web/src/CashControlCenter.jsx',import.meta.url),'utf8')
 
 test('cobro usa llave idempotente y no duplica movimiento de caja',()=>{
   assert.match(paymentSql,/customer_payments_company_key_uidx/i)
@@ -32,4 +33,10 @@ test('cobro aplicado queda inmutable para evitar desincronizar Caja y CxC',()=>{
 test('conciliación calcula saldo hasta la fecha de corte',()=>{
   assert.match(reconciliationSql,/movement_date::date<=p_date/i)
   assert.match(reconciliationSql,/MATCHED.*DIFFERENCE/is)
+})
+
+test('tablero diario de caja usa fecha local y no UTC',()=>{
+  assert.doesNotMatch(cashUi,/toISOString\(\)\.slice\(0,10\)/)
+  assert.match(cashUi,/getFullYear\(\)/)
+  assert.match(cashUi,/day\(new Date\(x\.movement_date\)\)===t/)
 })
