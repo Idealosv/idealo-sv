@@ -56,8 +56,13 @@ app.post('/api/dte/gmail-test', async (request, response) => {
     response.status(status).json({ error: 'GMAIL_TEST_FAILED', code: String(error?.code || 'GMAIL_ERROR'), message: String(error?.message || 'No se pudo completar la prueba de Gmail.') })
   }
 })
-app.post('/api/dte/invoice-email-self-test', async (request, response, next) => {
-  try { response.json(await sendInvoicePdfSelfTest({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+app.post('/api/dte/invoice-email-self-test', async (request, response) => {
+  try { response.json(await sendInvoicePdfSelfTest({ request, supabase: getSupabaseAdmin() })) }
+  catch (error) {
+    console.error('INVOICE_PDF_SELF_TEST_FAILED', { code: error?.code, statusCode: error?.statusCode, message: error?.message })
+    const status = Number(error?.statusCode || 502)
+    response.status(status).json({ error: 'INVOICE_PDF_SELF_TEST_FAILED', code: String(error?.code || 'PDF_EMAIL_TEST_FAILED'), message: String(error?.message || 'No se pudo completar la prueba PDF por Gmail.') })
+  }
 })
 app.get('/api/dte/invoice-email-status', async (request, response, next) => {
   try { response.json(await getInvoiceEmailStatus({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
