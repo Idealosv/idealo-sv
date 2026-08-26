@@ -1,0 +1,18 @@
+import {useEffect,useMemo,useState} from 'react'
+const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0))
+export default function FinancialReportsCenter({company,supabase}){
+ const [cash,setCash]=useState([]),[ar,setAr]=useState(null),[ap,setAp]=useState(null),[rec,setRec]=useState(null),[msg,setMsg]=useState('')
+ useEffect(()=>{let live=true;(async()=>{const [c,r,p,x]=await Promise.all([
+  supabase.from('financial_cash_monthly').select('*').eq('company_id',company.id).order('period',{ascending:false}).limit(13),
+  supabase.from('financial_receivables_summary').select('*').eq('company_id',company.id).maybeSingle(),
+  supabase.from('financial_payables_summary').select('*').eq('company_id',company.id).maybeSingle(),
+  supabase.from('financial_reconciliation_summary').select('*').eq('company_id',company.id).maybeSingle(),
+ ]);if(!live)return;const e=c.error||r.error||p.error||x.error;if(e)setMsg(e.message);else{setCash(c.data||[]);setAr(r.data||{});setAp(p.data||{});setRec(x.data||{})}})();return()=>{live=false}},[company.id,supabase])
+ const current=cash[0]||{},previous=cash[1]||{}
+ const variation=useMemo(()=>Number(previous.net_cash)?((Number(current.net_cash||0)-Number(previous.net_cash))/Math.abs(Number(previous.net_cash))*100):null,[current.net_cash,previous.net_cash])
+ const exportCsv=()=>{const rows=[['Periodo','Entradas','Salidas','Flujo neto'],...cash.map(x=>[x.period,x.cash_in,x.cash_out,x.net_cash])];const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`flujo-efectivo-${company.name}.csv`;a.click();URL.revokeObjectURL(a.href)}
+ return <section className="clients-module"><div className="clients-titlebar"><div><p className="form-kicker">DIRECCIÓN FINANCIERA</p><h2>Reportes ejecutivos</h2><p>Flujo de efectivo, cartera, obligaciones y conciliación desde una sola fuente.</p></div><button type="button" onClick={exportCsv} disabled={!cash.length}>Exportar CSV</button></div>{msg&&<p className="feedback error">{msg}</p>}
+ <div className="cash-control-summary"><article><small>Flujo neto del mes</small><strong>{money(current.net_cash)}</strong><span>{variation===null?'Sin período comparable':`${variation>=0?'+':''}${variation.toFixed(1)}% vs. mes anterior`}</span></article><article><small>Cuentas por cobrar</small><strong>{money(ar?.outstanding)}</strong><span>{money(ar?.overdue)} vencido</span></article><article><small>Cuentas por pagar</small><strong>{money(ap?.outstanding)}</strong><span>{money(ap?.overdue)} vencido</span></article><article><small>Diferencias conciliación</small><strong>{money(rec?.absolute_difference)}</strong><span>{rec?.with_difference||0} conciliaciones con diferencia</span></article></div>
+ <div className="table-card"><div className="client-row client-head"><span>Período</span><span>Entradas</span><span>Salidas</span><span>Flujo neto</span></div>{cash.map(x=><div className="client-row" key={x.period}><strong>{x.period}</strong><span>{money(x.cash_in)}</span><span>{money(x.cash_out)}</span><strong>{money(x.net_cash)}</strong></div>)}</div>
+ <div className="dte-note"><strong>Control de integridad:</strong> las transferencias internas entre cajas/bancos no se cuentan como ingreso ni gasto empresarial; el reporte evita inflar el flujo de efectivo.</div></section>
+}
