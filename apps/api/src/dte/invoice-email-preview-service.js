@@ -35,78 +35,88 @@ function withTimeout(promise, label, timeoutMs = GMAIL_TIMEOUT_MS) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
-function normalizeSelfTestError(error) {
-  if (error?.statusCode) return error
+function stagedError(stage, error, fallback, statusCode = 500) {
+  const wrapped = error instanceof Error ? error : new Error(fallback)
+  if (!text(wrapped.message)) wrapped.message = fallback
+  wrapped.stage = stage
+  wrapped.statusCode = Number(wrapped.statusCode || statusCode)
+  return wrapped
+}
+
+function normalizeSelfTestError(error, stage = error?.stage || 'smtp') {
+  if (error?.statusCode && error?.stage) return error
   const code = text(error?.code || error?.responseCode)
   const detail = text(error?.response || error?.message)
   const message = code === 'EAUTH' || String(error?.responseCode) === '535'
     ? 'Gmail rechazó la autenticación. Revisá el usuario SMTP y la contraseña de aplicación en Render.'
     : `No se pudo enviar la prueba PDF${code ? ` (${code})` : ''}${detail ? `: ${detail}` : '.'}`
   const normalized = new Error(message)
-  normalized.statusCode = 502
+  normalized.statusCode = Number(error?.statusCode || 502)
   normalized.code = code || 'PDF_EMAIL_TEST_FAILED'
+  normalized.stage = stage
   return normalized
 }
 
 export async function sendInvoicePdfSelfTest({ request, supabase, env = process.env, transporterFactory }) {
   const token = bearerToken(request)
-  if (!token) {
-    const error = new Error('Debes iniciar sesión para enviar la prueba.')
-    error.statusCode = 401
-    throw error
-  }
+  if (!token) throw stagedError('session', null, 'Debes iniciar sesión para enviar la prueba.', 401)
 
-  const { data: userData, error: userError } = await supabase.auth.getUser(token)
-  if (userError || !userData?.user) {
-    const error = new Error('La sesión no es válida o ya venció.')
-    error.statusCode = 401
-    throw error
+  let userData
+  try {
+    const result = await supabase.auth.getUser(token)
+    userData = result.data
+    if (result.error || !userData?.user) throw result.error || new Error('Sesión inválida')
+  } catch (error) {
+    throw stagedError('session', error, 'La sesión no es válida o ya venció.', 401)
   }
 
   const documentId = text(request.body?.documentId)
-  if (!documentId) {
-    const error = new Error('Debes seleccionar un DTE.')
-    error.statusCode = 400
-    throw error
-  }
+  if (!documentId) throw stagedError('document', null, 'Debes seleccionar un DTE.', 400)
 
-  const { data: document, error: documentError } = await supabase
-    .from('dte_documents')
-    .select('id, company_id, dte_type, control_number, generation_code, environment, status, dte_payload, signed_document, mh_response')
-    .eq('id', documentId)
-    .maybeSingle()
-  if (documentError) throw documentError
-  if (!document) {
-    const error = new Error('No se encontró el DTE seleccionado.')
-    error.statusCode = 404
-    throw error
+  let document
+  try {
+    const result = await supabase
+      .from('dte_documents')
+      .select('id, company_id, dte_type, control_number, generation_code, environment, status, dte_payload, signed_document, mh_response')
+      .eq('id', documentId)
+      .maybeSingle()
+    if (result.error) throw result.error
+    document = result.data
+  } catch (error) {
+    throw stagedError('document', error, 'No se pudo leer el DTE seleccionado.', 500)
   }
+  if (!document) throw stagedError('document', null, 'No se encontró el DTE seleccionado.', 404)
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', document.company_id)
-    .eq('user_id', userData.user.id)
-    .maybeSingle()
-  if (membershipError) throw membershipError
-  if (!membership) {
-    const error = new Error('No tienes permiso para usar este DTE.')
-    error.statusCode = 403
-    throw error
+  let membership
+  try {
+    const result = await supabase
+      .from('company_members')
+      .select('role')
+      .eq('company_id', document.company_id)
+      .eq('user_id', userData.user.id)
+      .maybeSingle()
+    if (result.error) throw result.error
+    membership = result.data
+  } catch (error) {
+    throw stagedError('permissions', error, 'No se pudieron comprobar los permisos de la empresa.', 500)
   }
+  if (!membership) throw stagedError('permissions', null, 'No tienes permiso para usar este DTE.', 403)
 
   if (document.status !== 'PROCESSED' || !receiptSeal(document.mh_response)) {
-    const error = new Error('La prueba con PDF solo está disponible para un DTE aceptado por Hacienda y con sello de recepción.')
-    error.statusCode = 409
-    throw error
+    throw stagedError('document', null, 'La prueba con PDF solo está disponible para un DTE aceptado por Hacienda y con sello de recepción.', 409)
   }
 
   const config = gmailConfig(env)
-  if (!config.user || !config.appPassword) {
-    const error = new Error('Gmail no está configurado en el backend.')
-    error.statusCode = 503
-    throw error
+  if (!config.user || !config.appPassword) throw stagedError('gmail-config', null, 'Gmail no está configurado en el backend.', 503)
+
+  let message
+  try {
+    message = await buildInvoiceEmailWithPdf(document)
+  } catch (error) {
+    throw stagedError('pdf', error, 'No se pudo generar la representación gráfica PDF del DTE.', 500)
   }
+  const pdfAttachment = message.attachments.find((attachment) => attachment.contentType === 'application/pdf')
+  if (!pdfAttachment?.content) throw stagedError('pdf', null, 'No se pudo generar la representación gráfica PDF del DTE.', 500)
 
   const transporter = transporterFactory
     ? transporterFactory(config)
@@ -120,18 +130,6 @@ export async function sendInvoicePdfSelfTest({ request, supabase, env = process.
       })
 
   try {
-    // La prueba básica de Gmail ya verifica credenciales. Aquí evitamos abrir una
-    // segunda conexión SMTP con transporter.verify(), porque en algunos hosts
-    // esa doble conexión puede terminar cerrada por el proxy y el navegador
-    // solo recibe "Failed to fetch".
-    const message = await buildInvoiceEmailWithPdf(document)
-    const pdfAttachment = message.attachments.find((attachment) => attachment.contentType === 'application/pdf')
-    if (!pdfAttachment?.content) {
-      const error = new Error('No se pudo generar la representación gráfica PDF del DTE.')
-      error.statusCode = 500
-      throw error
-    }
-
     const sent = await withTimeout(transporter.sendMail({
       from: { name: config.fromName, address: config.user },
       to: config.user,
@@ -155,7 +153,7 @@ export async function sendInvoicePdfSelfTest({ request, supabase, env = process.
       sentAt: new Date().toISOString(),
     }
   } catch (error) {
-    throw normalizeSelfTestError(error)
+    throw normalizeSelfTestError(error, 'smtp')
   } finally {
     if (!transporterFactory && typeof transporter.close === 'function') transporter.close()
   }
