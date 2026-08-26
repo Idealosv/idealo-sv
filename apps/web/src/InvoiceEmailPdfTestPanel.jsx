@@ -16,8 +16,10 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
   const [selectedId, setSelectedId] = useState('')
   const [busy, setBusy] = useState(false)
   const [resendBusy, setResendBusy] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [testMessage, setTestMessage] = useState('')
+  const [testError, setTestError] = useState('')
+  const [deliveryMessage, setDeliveryMessage] = useState('')
+  const [deliveryError, setDeliveryError] = useState('')
   const [delivery, setDelivery] = useState(null)
   const [deliveryLoading, setDeliveryLoading] = useState(false)
 
@@ -33,7 +35,7 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
         .order('created_at', { ascending: false })
         .limit(100)
       if (!active) return
-      if (queryError) setError(queryError.message)
+      if (queryError) setTestError(queryError.message)
       const rows = (data || []).filter((row) => {
         const mh = row.mh_response?.body || row.mh_response || {}
         return Boolean(mh.selloRecibido || mh.selloRecepcion || mh.sello)
@@ -61,6 +63,7 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
   const loadDelivery = async () => {
     if (!selectedId || !session?.access_token) { setDelivery(null); return }
     setDeliveryLoading(true)
+    setDeliveryError('')
     try {
       const response = await fetch(`${apiUrl}/api/dte/invoice-email-status?documentId=${encodeURIComponent(selectedId)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -68,9 +71,10 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.message || `Estado de correo respondió HTTP ${response.status}.`)
       setDelivery(payload)
+      if (payload.trackingAvailable === false) setDeliveryError(payload.trackingError || 'El historial de entrega no está disponible temporalmente.')
     } catch (cause) {
       setDelivery(null)
-      setError(cause.message)
+      setDeliveryError(cause?.message || 'No se pudo consultar el estado del correo.')
     } finally {
       setDeliveryLoading(false)
     }
@@ -80,34 +84,50 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
 
   const sendTest = async () => {
     if (!selected || busy || !session?.access_token) return
-    setBusy(true); setError(''); setMessage('Generando PDF y enviando la prueba a tu Gmail…')
+    setBusy(true)
+    setTestError('')
+    setTestMessage('Generando PDF y enviando la prueba a tu Gmail…')
     try {
       const response = await fetch(`${apiUrl}/api/dte/invoice-email-self-test`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ documentId: selected.id }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ documentId: selected.id }),
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(apiErrorMessage(payload, response.status))
-      setMessage(`✓ Prueba enviada a ${payload.recipient} con PDF adjunto. No se generó, firmó ni transmitió ningún DTE nuevo a Hacienda.`)
+      setTestMessage(`✓ Prueba enviada a ${payload.recipient} con PDF adjunto. No se generó, firmó ni transmitió ningún DTE nuevo a Hacienda.`)
     } catch (cause) {
-      setMessage('')
-      setError(cause?.message === 'Failed to fetch' ? `No fue posible conectar con la API ${apiUrl}.` : cause.message)
-    } finally { setBusy(false) }
+      setTestMessage('')
+      setTestError(cause?.message === 'Failed to fetch' ? `No fue posible conectar con la API ${apiUrl}.` : (cause?.message || 'No se pudo enviar la prueba.'))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const resendClient = async () => {
     if (!selected || resendBusy || !delivery?.eligible || !session?.access_token) return
     const confirmed = window.confirm(`REENVIAR DTE POR CORREO\n\nDestinatario: ${delivery.recipient || receptor.correo || 'sin correo'}\nDocumento: ${selected.control_number}\n\nEsta acción NO genera, firma ni retransmite el DTE a Hacienda. ¿Continuar?`)
     if (!confirmed) return
-    setResendBusy(true); setError(''); setMessage('Reenviando el DTE al correo del cliente…')
+    setResendBusy(true)
+    setDeliveryError('')
+    setDeliveryMessage('Reenviando el DTE al correo del cliente…')
     try {
       const response = await fetch(`${apiUrl}/api/dte/invoice-email-resend`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ documentId: selected.id }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ documentId: selected.id }),
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.message || `El reenvío respondió HTTP ${response.status}.`)
-      setMessage(`✓ Correo reenviado a ${payload.recipient}. PDF y archivos electrónicos adjuntos. No hubo transmisión a Hacienda.`)
+      setDeliveryMessage(`✓ Correo reenviado a ${payload.recipient}. PDF y archivos electrónicos adjuntos. No hubo transmisión a Hacienda.`)
       await loadDelivery()
-    } catch (cause) { setMessage(''); setError(cause.message); await loadDelivery() } finally { setResendBusy(false) }
+    } catch (cause) {
+      setDeliveryMessage('')
+      setDeliveryError(cause?.message || 'No se pudo reenviar el correo al cliente.')
+      await loadDelivery()
+    } finally {
+      setResendBusy(false)
+    }
   }
 
   if (!documents.length) return null
@@ -126,7 +146,9 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
         <div className="billing-document-info"><span>Tipo de envío</span><strong>{latest ? (latest.delivery_kind === 'automatic' ? 'Automático' : 'Reenvío manual') : '—'}</strong></div>
         <div className="billing-document-info"><span>Ambiente fiscal</span><strong>{selected?.environment === 'production' ? 'PRODUCCIÓN' : 'TEST / PRUEBAS'}</strong></div>
       </div>
-      {latest?.error_message && <div className="billing-documents-alert error">Último error: {latest.error_message}</div>}
+      {deliveryMessage && <div className="billing-documents-alert success">{deliveryMessage}</div>}
+      {deliveryError && <div className="billing-documents-alert error">{deliveryError}</div>}
+      {latest?.error_message && !deliveryError && <div className="billing-documents-alert error">Último error: {latest.error_message}</div>}
       <div className="billing-document-actions">
         <button type="button" onClick={resendClient} disabled={resendBusy || deliveryLoading || !delivery?.eligible}>{resendBusy ? 'Reenviando…' : 'Reenviar correo al cliente'}</button>
         <button type="button" className="secondary-button" onClick={loadDelivery} disabled={deliveryLoading}>{deliveryLoading ? 'Actualizando…' : 'Actualizar estado'}</button>
@@ -146,8 +168,8 @@ export default function InvoiceEmailPdfTestPanel({ supabase, company, session })
         <div className="billing-document-info"><span>Correo original</span><strong>{receptor.correo || 'Sin correo'}</strong></div>
         <div className="billing-document-info"><span>Ambiente del DTE</span><strong>{selected?.environment === 'test' ? 'TEST 00' : String(selected?.environment || '—').toUpperCase()}</strong></div>
       </div>
-      {message && <div className="billing-documents-alert success">{message}</div>}
-      {error && <div className="billing-documents-alert error">{error}</div>}
+      {testMessage && <div className="billing-documents-alert success">{testMessage}</div>}
+      {testError && <div className="billing-documents-alert error">{testError}</div>}
       <div className="billing-document-actions"><button type="button" onClick={sendTest} disabled={busy}>{busy ? 'Enviando PDF…' : 'Enviar PDF de prueba a mi Gmail'}</button></div>
       <small className="billing-document-safety">Esta acción no llama a los endpoints de firma ni transmisión de Hacienda; únicamente genera el PDF desde el DTE almacenado y lo envía a la cuenta Gmail configurada.</small>
     </section>
