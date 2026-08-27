@@ -1,0 +1,46 @@
+import {useEffect,useMemo,useState} from 'react'
+
+const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(v||0))
+const CACHE_KEY=id=>`idealo-mobile-owner-hub-${id}`
+const empty={products:[],inventory:[],accounts:[],moves:[],cash:[],ar:{},ap:{},rec:{},dte:[]}
+
+export default function MobileOwnerHub({company,supabase,session,role,online,pending,busy,onSync,onSignOut,onNotifications}){
+ const [section,setSection]=useState('Resumen'),[data,setData]=useState(empty),[loading,setLoading]=useState(false),[error,setError]=useState(''),[cachedAt,setCachedAt]=useState(null)
+ const owner=['owner','admin'].includes(role)
+ const load=async()=>{
+  if(!company)return
+  if(!online){const saved=localStorage.getItem(CACHE_KEY(company.id));if(saved){try{const parsed=JSON.parse(saved);setData(parsed.data||empty);setCachedAt(parsed.at||null)}catch{}}return}
+  setLoading(true);setError('')
+  const [p,i,a,m,c,r,pa,re,d]=await Promise.all([
+   supabase.from('finished_products').select('id,name,category,unit,sale_price,active').eq('company_id',company.id).eq('active',true).order('name').limit(100),
+   supabase.from('inventory_items').select('id,name,current_stock,minimum_stock,unit,active').eq('company_id',company.id).eq('active',true).order('name').limit(100),
+   supabase.from('cash_account_balances').select('cash_account_id,name,account_type,active,current_balance,income_today,expense_today').eq('company_id',company.id),
+   supabase.from('cash_movements').select('id,movement_date,movement_type,amount,concept,cash_account_id').eq('company_id',company.id).order('movement_date',{ascending:false}).limit(100),
+   supabase.from('financial_cash_monthly').select('period,cash_in,cash_out,net_cash').eq('company_id',company.id).order('period',{ascending:false}).limit(6),
+   supabase.from('financial_receivables_summary').select('*').eq('company_id',company.id).maybeSingle(),
+   supabase.from('financial_payables_summary').select('*').eq('company_id',company.id).maybeSingle(),
+   supabase.from('financial_reconciliation_summary').select('*').eq('company_id',company.id).maybeSingle(),
+   supabase.from('dte_documents').select('id,dte_type,control_number,status,created_at').eq('company_id',company.id).in('dte_type',['01','03']).order('created_at',{ascending:false}).limit(15)
+  ])
+  const firstError=[p,i,a,m,c,r,pa,re,d].find(x=>x.error)?.error
+  if(firstError)setError(firstError.message)
+  const next={products:p.data||[],inventory:i.data||[],accounts:a.data||[],moves:m.data||[],cash:c.data||[],ar:r.data||{},ap:pa.data||{},rec:re.data||{},dte:d.data||[]}
+  setData(next);const at=new Date().toISOString();setCachedAt(at);localStorage.setItem(CACHE_KEY(company.id),JSON.stringify({at,data:next}));setLoading(false)
+ }
+ useEffect(()=>{load()},[company?.id,online])
+ const summary=useMemo(()=>{const low=data.inventory.filter(x=>Number(x.current_stock||0)<=Number(x.minimum_stock||0)),totalCash=data.accounts.filter(x=>x.active!==false).reduce((s,x)=>s+Number(x.current_balance||0),0),income=data.accounts.reduce((s,x)=>s+Number(x.income_today||0),0),expense=data.accounts.reduce((s,x)=>s+Number(x.expense_today||0),0),accepted=data.dte.filter(x=>x.status==='PROCESSED').length,rejected=data.dte.filter(x=>x.status==='REJECTED').length;return{low,totalCash,income,expense,accepted,rejected}},[data])
+ const openDte=()=>document.querySelector('.mobile-dte-fab')?.click()
+ const nav=['Resumen','Productos','Inventario','Caja','Reportes','Perfil']
+ if(!owner)return <section className="mobile-card mobile-full"><h2>Más</h2><div className="mobile-empty">Estos controles están disponibles para Propietario/Administrador.</div></section>
+ return <section className="mobile-owner-hub">
+  <div className="mobile-owner-head"><div><p>GESTIÓN MÓVIL</p><h2>Empresa completa</h2><small>{online?'Datos en línea':cachedAt?`Sin conexión · datos guardados ${new Date(cachedAt).toLocaleString('es-SV')}`:'Sin conexión · sin datos guardados'}</small></div><button type="button" onClick={load} disabled={!online||loading}>{loading?'…':'↻'}</button></div>
+  {error&&<div className="mobile-error">{error}</div>}
+  <div className="mobile-owner-tabs">{nav.map(x=><button type="button" key={x} className={section===x?'active':''} onClick={()=>setSection(x)}>{x}</button>)}</div>
+  {section==='Resumen'&&<><div className="mobile-owner-kpis"><article><small>Productos</small><strong>{data.products.length}</strong></article><article><small>Stock bajo</small><strong>{summary.low.length}</strong></article><article><small>Disponible</small><strong>{money(summary.totalCash)}</strong></article><article><small>Neto hoy</small><strong>{money(summary.income-summary.expense)}</strong></article></div><div className="mobile-owner-actions"><button type="button" className="primary" onClick={openDte}>Facturación / DTE</button><button type="button" onClick={()=>setSection('Caja')}>Caja y bancos</button><button type="button" onClick={()=>setSection('Reportes')}>Reportes</button></div><div className="mobile-card mobile-owner-inline"><h3>Facturación reciente</h3><div className="mobile-owner-statline"><span>Aceptados MH</span><strong>{summary.accepted}</strong></div><div className="mobile-owner-statline"><span>Rechazados / revisar</span><strong>{summary.rejected}</strong></div>{data.dte.slice(0,4).map(x=><div className="mobile-row" key={x.id}><div><strong>{x.dte_type==='03'?'CCF':'Factura'} · {x.control_number}</strong><small>{new Date(x.created_at).toLocaleString('es-SV')}</small></div><span>{x.status}</span></div>)}</div></>}
+  {section==='Productos'&&<div className="mobile-card mobile-full"><h2>Productos</h2><p className="mobile-muted">Catálogo de trabajos terminados que vendés al cliente.</p>{data.products.length?data.products.map(x=><div className="mobile-row" key={x.id}><div><strong>{x.name}</strong><small>{x.category||'Sin categoría'} · {x.unit||'unidad'}</small></div><strong>{money(x.sale_price)}</strong></div>):<div className="mobile-empty">No hay productos activos.</div>}</div>}
+  {section==='Inventario'&&<div className="mobile-card mobile-full"><h2>Inventario</h2><p className="mobile-muted">Existencias y mínimos de materiales.</p>{data.inventory.length?data.inventory.map(x=>{const low=Number(x.current_stock||0)<=Number(x.minimum_stock||0);return <div className={`mobile-row ${low?'mobile-owner-risk':''}`} key={x.id}><div><strong>{x.name}</strong><small>Mínimo {Number(x.minimum_stock||0)} {x.unit||''}</small></div><span>{Number(x.current_stock||0)} {x.unit||''}{low?' · BAJO':''}</span></div>}):<div className="mobile-empty">No hay inventario activo.</div>}</div>}
+  {section==='Caja'&&<div className="mobile-card mobile-full"><h2>Caja y bancos</h2><div className="mobile-owner-kpis compact"><article><small>Disponible</small><strong>{money(summary.totalCash)}</strong></article><article><small>Ingresos hoy</small><strong>{money(summary.income)}</strong></article><article><small>Salidas hoy</small><strong>{money(summary.expense)}</strong></article><article><small>Neto hoy</small><strong>{money(summary.income-summary.expense)}</strong></article></div><h3>Cuentas</h3>{data.accounts.map(x=><div className={`mobile-row ${Number(x.current_balance||0)<0?'mobile-owner-risk':''}`} key={x.cash_account_id}><div><strong>{x.name}</strong><small>{x.account_type}</small></div><strong>{money(x.current_balance)}</strong></div>)}<h3>Movimientos recientes</h3>{data.moves.slice(0,10).map(x=><div className="mobile-row" key={x.id}><div><strong>{x.concept||x.movement_type}</strong><small>{new Date(x.movement_date).toLocaleString('es-SV')}</small></div><span>{['INCOME','TRANSFER_IN'].includes(x.movement_type)?'+':'−'}{money(x.amount)}</span></div>)}</div>}
+  {section==='Reportes'&&<div className="mobile-card mobile-full"><h2>Reportes</h2><div className="mobile-owner-kpis compact"><article><small>Por cobrar</small><strong>{money(data.ar?.outstanding)}</strong></article><article><small>Vencido CxC</small><strong>{money(data.ar?.overdue)}</strong></article><article><small>Por pagar</small><strong>{money(data.ap?.outstanding)}</strong></article><article><small>Diferencias</small><strong>{money(data.rec?.absolute_difference)}</strong></article></div><h3>Flujo de efectivo</h3>{data.cash.length?data.cash.map(x=><div className="mobile-row" key={x.period}><div><strong>{x.period}</strong><small>Entradas {money(x.cash_in)} · Salidas {money(x.cash_out)}</small></div><strong>{money(x.net_cash)}</strong></div>):<div className="mobile-empty">Sin períodos financieros todavía.</div>}</div>}
+  {section==='Perfil'&&<div className="mobile-card mobile-full mobile-profile"><h2>Mi acceso</h2><div className="mobile-profile-line"><span>Usuario</span><strong>{session?.user?.email}</strong></div><div className="mobile-profile-line"><span>Rol</span><strong>{role}</strong></div><div className="mobile-profile-line"><span>Estado</span><strong>{online?'En línea':'Modo offline'}</strong></div><div className="mobile-profile-line"><span>Pendientes por sincronizar</span><strong>{pending}</strong></div>{pending>0&&<button disabled={!online||busy==='sync'} onClick={onSync}>Sincronizar ahora</button>}<button onClick={onNotifications}>Activar alertas móviles</button><button className="mobile-secondary" onClick={onSignOut}>Cerrar sesión</button></div>}
+ </section>
+}
