@@ -21,6 +21,7 @@ import ModuleRuntime from './ModuleRuntime.jsx'
 import MobileRuntimeGuard from './MobileRuntimeGuard.jsx'
 import MobileAppHost from './MobileAppHost.jsx'
 import MobileDteHost from './MobileDteHost.jsx'
+import MobileDteEnvironmentGuard from './MobileDteEnvironmentGuard.jsx'
 import MobileOwnerHubHost from './MobileOwnerHubHost.jsx'
 import MobileHealthGuard from './MobileHealthGuard.jsx'
 import ClientIntegrityCenter from './ClientIntegrityCenter.jsx'
@@ -44,6 +45,7 @@ import './mobile-field-tools.css'
 import './mobile-next-block.css'
 import './mobile-client-360.css'
 import './mobile-dte.css'
+import './mobile-dte-environment.css'
 import './mobile-health.css'
 import './mobile-owner-hub.css'
 import './client-360.css'
@@ -88,4 +90,4 @@ if('serviceWorker'in navigator&&import.meta.env.PROD){
   })
 }
 const Safe=({label,children,fatal=false})=><RuntimeBoundary label={label} fatal={fatal}>{children}</RuntimeBoundary>
-createRoot(document.getElementById('root')).render(<StrictMode><Safe label="ERP principal" fatal><App/></Safe><Safe label="Comercial"><CommercialLauncher/></Safe><Safe label="Compras y finanzas"><OperationsFinanceLauncher/></Safe><Safe label="Inventario"><InventoryCostLauncher/></Safe><Safe label="Reportes financieros"><FinancialDashboardLauncher/></Safe><Safe label="RRHH"><HrPayrollLauncher/></Safe><Safe label="Agenda de producción"><ProductionCalendarLauncher/></Safe><Safe label="Control de calidad"><QualityControlLauncher/></Safe><Safe label="Facturación"><FacturacionLauncher/></Safe><Safe label="Asistente IA"><AssistantLauncher/></Safe><Safe label="Seguridad"><SecurityLauncher/></Safe><Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge/></Safe><Safe label="Menú principal"><MainMenuController/></Safe><Safe label="Coordinación UX"><ErpUxCoordinator/></Safe><Safe label="Formularios"><FormAccordionManager/></Safe><Safe label="Simplificación de formularios"><FormSimplificationManager/></Safe><Safe label="Runtime móvil"><MobileRuntimeGuard/></Safe><Safe label="App móvil"><MobileAppHost/></Safe><Safe label="DTE móvil"><MobileDteHost/></Safe><Safe label="Centro móvil propietario"><MobileOwnerHubHost/></Safe><Safe label="Salud móvil"><MobileHealthGuard/></Safe><Safe label="Integridad clientes"><ClientIntegrityCenter/></Safe><Safe label="Runtime por módulo"><ModuleRuntime/></Safe></StrictMode>)
+createRoot(document.getElementById('root')).render(<StrictMode><Safe label="ERP principal" fatal><App/></Safe><Safe label="Comercial"><CommercialLauncher/></Safe><Safe label="Compras y finanzas"><OperationsFinanceLauncher/></Safe><Safe label="Inventario"><InventoryCostLauncher/></Safe><Safe label="Reportes financieros"><FinancialDashboardLauncher/></Safe><Safe label="RRHH"><HrPayrollLauncher/></Safe><Safe label="Agenda de producción"><ProductionCalendarLauncher/></Safe><Safe label="Control de calidad"><QualityControlLauncher/></Safe><Safe label="Facturación"><FacturacionLauncher/></Safe><Safe label="Asistente IA"><AssistantLauncher/></Safe><Safe label="Seguridad"><SecurityLauncher/></Safe><Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge/></Safe><Safe label="Menú principal"><MainMenuController/></Safe><Safe label="Coordinación UX"><ErpUxCoordinator/></Safe><Safe label="Formularios"><FormAccordionManager/></Safe><Safe label="Simplificación de formularios"><FormSimplificationManager/></Safe><Safe label="Runtime móvil"><MobileRuntimeGuard/></Safe><Safe label="App móvil"><MobileAppHost/></Safe><Safe label="DTE móvil"><MobileDteHost/></Safe><Safe label="Ambiente DTE móvil"><MobileDteEnvironmentGuard/></Safe><Safe label="Centro móvil propietario"><MobileOwnerHubHost/></Safe><Safe label="Salud móvil"><MobileHealthGuard/></Safe><Safe label="Integridad clientes"><ClientIntegrityCenter/></Safe><Safe label="Runtime por módulo"><ModuleRuntime/></Safe></StrictMode>)
