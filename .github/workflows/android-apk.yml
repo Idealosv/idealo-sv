@@ -1,0 +1,55 @@
+name: Generar APK Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/android-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar frontend
+        run: npm --workspace apps/web run build
+
+      - name: Crear proyecto Android
+        working-directory: apps/web
+        run: npx cap add android
+
+      - name: Sincronizar Capacitor
+        working-directory: apps/web
+        run: npx cap sync android
+
+      - name: Compilar APK debug
+        working-directory: apps/web/android
+        run: ./gradlew assembleDebug
+
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: idealo-sv-android-debug
+          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
