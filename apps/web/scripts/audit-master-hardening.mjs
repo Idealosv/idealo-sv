@@ -10,9 +10,11 @@ const forbidText=(text,token,label)=>{if(text.includes(token))throw new Error(`$
 
 const security=read('apps/web/src/SecurityLauncher.jsx')
 const usersAdmin=read('apps/web/src/UsersAdministrationCenter.jsx')
-requireText(security,"import UsersAdministrationCenter from './UsersAdministrationCenter.jsx'",'Seguridad ↔ Usuarios y Administración')
-requireText(usersAdmin,"select('company_id,user_id,role,created_at')",'Usuarios y Administración ↔ company_members')
-forbidText(usersAdmin,"select('id,user_id,role,active,created_at')",'Usuarios y Administración ↔ company_members')
+requireText(security,"UsersAdministrationCenter",'Seguridad ↔ Centro de Usuarios')
+requireText(usersAdmin,"/api/admin/users?company_id=",'Usuarios y Administración ↔ API segura')
+requireText(usersAdmin,"/api/admin/audit?company_id=",'Usuarios y Administración ↔ auditoría')
+requireText(usersAdmin,"/api/admin/users/invite",'Usuarios y Administración ↔ invitaciones')
+forbidText(usersAdmin,"from '@supabase/supabase-js'",'Usuarios y Administración cliente duplicado')
 
 const receivables=read('apps/web/src/BillingReceivablesPanel.jsx')
 forbidText(receivables,'source_type','CxC ↔ accounts_receivable')
@@ -23,6 +25,8 @@ requireText(receivables,'concept','CxC ↔ accounts_receivable')
 const api=read('apps/api/src/index.js')
 requireText(api,"process.env.NODE_ENV === 'production'",'CORS producción')
 requireText(api,'CORS_ORIGIN es obligatoria en producción','CORS producción')
+requireText(api,"/api/admin/users",'API administración de usuarios')
+requireText(api,"/api/admin/audit",'API auditoría administrativa')
 
 const sw=read('apps/web/public/sw.js')
 requireText(sw,"url.origin!==self.location.origin",'PWA same-origin')
@@ -77,4 +81,4 @@ const integrity=read('supabase/migrations/20260823210000_financial_integrity_gua
 requireText(integrity,'accounts_receivable_paid_not_over_total','Integridad CxC')
 requireText(integrity,'accounts_payable_paid_not_over_total','Integridad CxP')
 
-console.log(`OK auditoría maestra: esquema, permisos, integridad, CORS, PWA, singleton Supabase e imports relativos (${sourceFiles.length} archivos)`) 
+console.log(`OK auditoría maestra: esquema, permisos, integridad, CORS, PWA, administración segura, singleton Supabase e imports relativos (${sourceFiles.length} archivos)`)
