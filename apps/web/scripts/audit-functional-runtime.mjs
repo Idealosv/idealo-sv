@@ -34,11 +34,15 @@ requireText(qaReceivable,'QA saldo','Limpieza QA CxC')
 requireText(qaReceivable,'987650','Limpieza QA CxC')
 
 const sw=read('apps/web/public/sw.js')
-requireText(sw,"CACHE='idealo-mobile-v4'",'Versión PWA')
+requireText(sw,"CACHE='idealo-mobile-v5'",'Versión PWA')
 requireText(sw,"url.origin!==self.location.origin",'PWA same-origin')
+requireText(sw,'fetch(request).then','PWA network-first')
+forbidText(sw,'caches.match(request).then((cached)=>cached||fetch','PWA cache-first obsoleto')
 
 const main=read('apps/web/src/main.jsx')
 requireText(main,"navigator.serviceWorker.addEventListener('controllerchange'",'Actualización PWA')
+requireText(main,"updateViaCache:'none'",'Service worker sin caché obsoleta')
 requireText(main,'window.location.reload()','Recarga de bundle actualizado')
+requireText(main,'MobileRuntimeGuard','Runtime Android dedicado')
 
-console.log('OK auditoría funcional runtime: Clientes/CRM, móvil, PWA y fixtures QA protegidos')
+console.log('OK auditoría funcional runtime: Clientes/CRM, móvil Android, PWA y fixtures QA protegidos')
