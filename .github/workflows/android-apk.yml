@@ -64,7 +64,7 @@ jobs:
               android:viewportWidth="108"
               android:viewportHeight="108">
               <path android:fillColor="#F36C21" android:pathData="M0,0H108V108H0Z"/>
-              <path android:fillColor="#FFFFFF" android:pathData="M34,24H74V34H59V74H74V84H34V74H49V34H34Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M50,26C47.8,26 46,27.8 46,30V78C46,80.2 47.8,82 50,82H58C60.2,82 62,80.2 62,78V30C62,27.8 60.2,26 58,26Z"/>
           </vector>
           EOF
             cp "$dir/ic_launcher.xml" "$dir/ic_launcher_round.xml"
