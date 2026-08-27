@@ -6,16 +6,23 @@ on:
     paths:
       - 'apps/web/**'
       - '.github/workflows/android-apk.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/android-apk.yml'
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      VITE_ANDROID_BUILD_SHA: ${{ github.sha }}
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
@@ -74,10 +81,23 @@ jobs:
         working-directory: apps/web/android
         run: ./gradlew assembleDebug
 
-      - name: Publicar APK
+      - name: Publicar APK como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: idealo-sv-android-debug
           path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publicar actualización Android más reciente
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release delete android-latest --cleanup-tag -y || true
+          gh release create android-latest \
+            apps/web/android/app/build/outputs/apk/debug/app-debug.apk#IDEALO-SV-Android.apk \
+            --target "$GITHUB_SHA" \
+            --title "IDEALO SV Android ${GITHUB_SHA::7}" \
+            --notes "build_sha=${GITHUB_SHA}"
