@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
@@ -26,6 +30,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Validar configuración pública Android
+        shell: bash
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "Falta VITE_SUPABASE_URL en GitHub Actions"; exit 1; }
+          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "Falta VITE_SUPABASE_ANON_KEY en GitHub Actions"; exit 1; }
 
       - name: Instalar dependencias
         run: npm install
