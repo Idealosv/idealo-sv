@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
@@ -27,6 +31,12 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Validar configuración pública Android
+        shell: bash
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "Falta VITE_SUPABASE_URL en GitHub Actions"; exit 1; }
+          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "Falta VITE_SUPABASE_ANON_KEY en GitHub Actions"; exit 1; }
+
       - name: Instalar dependencias
         run: npm install
 
@@ -40,6 +50,25 @@ jobs:
       - name: Sincronizar Capacitor
         working-directory: apps/web
         run: npx cap sync android
+
+      - name: Aplicar icono nativo IDEALO SV
+        working-directory: apps/web
+        shell: bash
+        run: |
+          for dir in android/app/src/main/res/mipmap-anydpi android/app/src/main/res/mipmap-anydpi-v26; do
+            mkdir -p "$dir"
+            cat > "$dir/ic_launcher.xml" <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#F36C21" android:pathData="M0,0H108V108H0Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M34,24H74V34H59V74H74V84H34V74H49V34H34Z"/>
+          </vector>
+          EOF
+            cp "$dir/ic_launcher.xml" "$dir/ic_launcher_round.xml"
+          done
 
       - name: Compilar APK debug
         working-directory: apps/web/android

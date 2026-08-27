@@ -67,6 +67,7 @@ import './modal-structure.css'
 import './erp-corporate-master.css'
 import './module-action-hierarchy.css'
 import './form-simplification.css'
+import './mobile-android-polish.css'
 const nativeScrollIntoView=Element.prototype.scrollIntoView
 Element.prototype.scrollIntoView=function(options){if(this.classList?.contains('invoice-form'))return;return nativeScrollIntoView.call(this,options)}
 if('serviceWorker'in navigator&&import.meta.env.PROD){
