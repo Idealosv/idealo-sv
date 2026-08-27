@@ -1,0 +1,14 @@
+{
+  "appId": "sv.idealo.erp",
+  "appName": "IDEALO SV",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#101214",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
