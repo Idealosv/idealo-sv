@@ -51,6 +51,25 @@ jobs:
         working-directory: apps/web
         run: npx cap sync android
 
+      - name: Aplicar icono nativo IDEALO SV
+        working-directory: apps/web
+        shell: bash
+        run: |
+          for dir in android/app/src/main/res/mipmap-anydpi android/app/src/main/res/mipmap-anydpi-v26; do
+            mkdir -p "$dir"
+            cat > "$dir/ic_launcher.xml" <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#F36C21" android:pathData="M0,0H108V108H0Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M34,24H74V34H59V74H74V84H34V74H49V34H34Z"/>
+          </vector>
+          EOF
+            cp "$dir/ic_launcher.xml" "$dir/ic_launcher_round.xml"
+          done
+
       - name: Compilar APK debug
         working-directory: apps/web/android
         run: ./gradlew assembleDebug
