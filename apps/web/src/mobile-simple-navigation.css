@@ -42,4 +42,7 @@
 .mobile-more-screen .mobile-owner-glance>div{border-radius:14px!important;padding:12px!important}
 .mobile-brand-mark{font-size:0!important}
 .mobile-brand-mark::after{content:'';display:block;width:6px;height:21px;border-radius:999px;background:#fff}
+.mobile-dte-backdrop{background:#f3f5f7!important;align-items:stretch!important;justify-content:stretch!important}
+.mobile-dte-panel{width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;box-shadow:none!important}
+.mobile-dte-panel>main{max-height:calc(100dvh - 70px)!important;padding-bottom:calc(28px + env(safe-area-inset-bottom))!important}
 @media(max-width:370px){.mobile-home-stats{gap:5px}.mobile-home-stats div{padding:8px 6px}.mobile-simple-row{gap:7px}}
