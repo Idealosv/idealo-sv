@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
 const hub=fs.readFileSync(new URL('../../web/src/MobileOwnerHub.jsx',import.meta.url),'utf8')
-const host=fs.readFileSync(new URL('../../web/src/MobileOwnerHubHost.jsx',import.meta.url),'utf8')
+const app=fs.readFileSync(new URL('../../web/src/MobileAppHost.jsx',import.meta.url),'utf8')
 const main=fs.readFileSync(new URL('../../web/src/main.jsx',import.meta.url),'utf8')
 const css=fs.readFileSync(new URL('../../web/src/mobile-owner-hub.css',import.meta.url),'utf8')
 
@@ -13,15 +13,14 @@ test('centro Android usa fuentes reales del ERP para propietario',()=>{
 
 test('centro móvil expone productos inventario caja reportes y DTE sin abrir escritorio',()=>{
  for(const label of ['Productos','Inventario','Caja','Reportes','Facturación / DTE']) assert.match(hub,new RegExp(label))
- assert.match(hub,/mobile-dte-fab/)
  assert.doesNotMatch(hub,/window\.location.*workspace/i)
 })
 
-test('centro propietario está integrado al runtime móvil con interfaz Android',()=>{
- assert.match(main,/MobileOwnerHubHost/)
+test('centro propietario está embebido en Más y ya no usa host flotante',()=>{
+ assert.match(app,/MobileOwnerHub/)
+ assert.match(app,/tab==='Más'/)
+ assert.doesNotMatch(main,/MobileOwnerHubHost/)
  assert.match(main,/mobile-owner-hub\.css/)
- assert.match(host,/\['owner','admin'\]/)
- assert.match(css,/mobile-owner-panel/)
  assert.match(css,/safe-area-inset-bottom/)
 })
 
