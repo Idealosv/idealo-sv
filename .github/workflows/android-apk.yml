@@ -47,6 +47,9 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
+      - name: Regresión móvil automática
+        run: npm --workspace apps/web run mobile:regression
+
       - name: Compilar frontend
         run: npm --workspace apps/web run build
 
