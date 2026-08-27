@@ -74,7 +74,7 @@ expect('Evidencia usa cámara/galería del dispositivo', has(evidence, 'accept="
 expect('Evidencia solicita GPS', has(evidence, 'navigator.geolocation', 'getCurrentPosition'))
 expect('Evidencia soporta firma táctil', has(evidence, 'onPointerDown', 'onTouchStart', "toDataURL('image/png')"))
 expect('Evidencia se puede encolar offline', has(evidence, "if(!navigator.onLine)", "kind:'evidence'"))
-expect('Almacén offline usa IndexedDB', has(offline, 'indexedDB', 'openDB'))
+expect('Almacén offline usa IndexedDB', has(offline, 'indexedDB.open', 'openDb'))
 
 expect('DTE móvil soporta 01 y 03', has(dte, "dteType:'01'", "form.dteType==='03'"))
 expect('DTE móvil exige conexión', dte.includes("if(!navigator.onLine)return setError('La emisión DTE requiere conexión.')"))
