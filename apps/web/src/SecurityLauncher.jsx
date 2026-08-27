@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import {supabase} from './lib/supabase.js'
 import UsersAdministrationCenter from './UsersAdministrationCenter.jsx'
+import './users-administration.css'
 
 export default function SecurityLauncher(){
  const [open,setOpen]=useState(false),[session,setSession]=useState(null),[company,setCompany]=useState(null),[msg,setMsg]=useState('')
