@@ -1,0 +1,45 @@
+.mobile-dte-fab{display:none!important}
+.mobile-owner-fab{display:none!important}
+.mobile-content{padding:12px 12px 88px!important}
+.mobile-bottom-nav.simple-four{grid-template-columns:repeat(4,minmax(0,1fr))!important;min-height:66px!important;padding-top:5px!important}
+.mobile-bottom-nav.simple-four button{min-height:52px!important}
+.mobile-bottom-nav.simple-four button span{font-size:1rem!important}
+.mobile-bottom-nav.simple-four button small{font-size:.68rem!important;font-weight:800!important}
+.mobile-home-clean{background:#11151a;color:#fff;border-radius:18px;padding:18px;margin-bottom:12px}
+.mobile-home-clean p{margin:0 0 4px;color:#f36c21;font-size:.68rem;font-weight:900;letter-spacing:.08em}
+.mobile-home-clean h1{margin:0;font-size:1.38rem;line-height:1.15}
+.mobile-home-clean>div>small{display:block;color:#9ca6b2;margin-top:5px}
+.mobile-home-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:16px}
+.mobile-home-stats div{background:#1b2026;border-radius:12px;padding:10px 8px;min-width:0}
+.mobile-home-stats strong{display:block;font-size:1.2rem}
+.mobile-home-stats span{display:block;margin-top:2px;color:#aeb6c0;font-size:.62rem;line-height:1.2}
+.mobile-clean-section,.mobile-screen{background:#fff;border:1px solid #e2e5e9;border-radius:16px;padding:14px;margin-bottom:12px}
+.mobile-clean-section h3,.mobile-screen h2{margin:0 0 11px;font-size:1.05rem}
+.mobile-clean-alert{padding:10px 0;border-bottom:1px solid #edf0f2;font-size:.79rem}
+.mobile-clean-alert:last-child{border-bottom:0}
+.mobile-screen{min-height:calc(100dvh - 170px)}
+.mobile-segment{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#edf0f3;border-radius:12px;padding:4px;margin-bottom:16px}
+.mobile-segment button{border:0;background:transparent;color:#5d6670;border-radius:9px;min-height:40px;font-weight:900}
+.mobile-segment button.active{background:#fff;color:#171b20;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.mobile-simple-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #edf0f2}
+.mobile-simple-row:last-child{border-bottom:0}
+.mobile-simple-row>div:first-child{min-width:0;flex:1}
+.mobile-simple-row strong{display:block;font-size:.84rem;line-height:1.25;overflow-wrap:anywhere}
+.mobile-simple-row small{display:block;margin-top:4px;color:#77818c;font-size:.7rem;line-height:1.3}
+.mobile-simple-row>span,.mobile-simple-row .mobile-row-actions>span{font-size:.61rem;font-weight:900;color:#f36c21;background:#fff2e9;border-radius:999px;padding:5px 7px;white-space:nowrap}
+.mobile-simple-row .mobile-row-actions{display:grid;justify-items:end;gap:5px;flex:0 0 auto}
+.mobile-simple-row .mobile-row-actions button{border:0;background:#15191f;color:#fff;border-radius:8px;padding:7px 8px;font-size:.65rem;font-weight:800}
+.mobile-simple-row .mobile-row-actions .mobile-evidence-button{background:#f36c21!important}
+.mobile-more-screen{padding:0;border:0;background:transparent}
+.mobile-more-screen .mobile-owner-hub{gap:10px}
+.mobile-more-screen .mobile-owner-simple-head{background:#11151a;border-radius:16px;padding:15px}
+.mobile-more-screen .mobile-owner-glance{grid-template-columns:1fr 1fr;gap:8px}
+.mobile-more-screen .mobile-owner-menu{gap:0;background:#fff;border:1px solid #e2e5e9;border-radius:16px;overflow:hidden}
+.mobile-more-screen .mobile-owner-menu button{border:0!important;border-bottom:1px solid #edf0f2!important;border-radius:0!important;min-height:62px!important;padding:11px 14px!important;background:#fff!important}
+.mobile-more-screen .mobile-owner-menu button:last-child{border-bottom:0!important}
+.mobile-more-screen .mobile-owner-menu button span{font-size:.86rem!important}
+.mobile-more-screen .mobile-owner-menu button small{font-size:.68rem!important}
+.mobile-more-screen .mobile-owner-glance>div{border-radius:14px!important;padding:12px!important}
+.mobile-brand-mark{font-size:0!important}
+.mobile-brand-mark::after{content:'';display:block;width:6px;height:21px;border-radius:999px;background:#fff}
+@media(max-width:370px){.mobile-home-stats{gap:5px}.mobile-home-stats div{padding:8px 6px}.mobile-simple-row{gap:7px}}
