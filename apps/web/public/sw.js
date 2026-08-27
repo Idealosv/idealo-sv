@@ -1,4 +1,4 @@
-const CACHE='idealo-mobile-v4'
+const CACHE='idealo-mobile-v5'
 const CORE=['/','/mobile','/manifest.webmanifest']
 
 self.addEventListener('install',(event)=>{
@@ -15,21 +15,23 @@ self.addEventListener('fetch',(event)=>{
   const request=event.request
   if(request.method!=='GET')return
   const url=new URL(request.url)
-
   if(url.origin!==self.location.origin)return
 
   if(request.mode==='navigate'){
-    event.respondWith(fetch(request).catch(()=>caches.match('/mobile').then((cached)=>cached||caches.match('/'))))
+    event.respondWith(fetch(request).then((response)=>{
+      if(response.ok){const copy=response.clone();caches.open(CACHE).then((cache)=>cache.put(url.pathname==='/mobile'?'/mobile':'/',copy))}
+      return response
+    }).catch(()=>caches.match(url.pathname==='/mobile'?'/mobile':'/').then((cached)=>cached||caches.match('/mobile')||caches.match('/'))))
     return
   }
 
   const isStatic=['style','script','image','font','manifest'].includes(request.destination)
   if(!isStatic)return
 
-  event.respondWith(caches.match(request).then((cached)=>cached||fetch(request).then((response)=>{
+  event.respondWith(fetch(request).then((response)=>{
     if(response.ok){const copy=response.clone();caches.open(CACHE).then((cache)=>cache.put(request,copy))}
     return response
-  })))
+  }).catch(()=>caches.match(request)))
 })
 
 self.addEventListener('push',(event)=>{
