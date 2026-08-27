@@ -9,8 +9,10 @@ const requireText=(text,token,label)=>{if(!text.includes(token))throw new Error(
 const forbidText=(text,token,label)=>{if(text.includes(token))throw new Error(`${label}: no debe contener ${token}`)}
 
 const security=read('apps/web/src/SecurityLauncher.jsx')
-requireText(security,"select('company_id,user_id,role,created_at')",'Seguridad ↔ company_members')
-forbidText(security,"select('id,user_id,role,active,created_at')",'Seguridad ↔ company_members')
+const usersAdmin=read('apps/web/src/UsersAdministrationCenter.jsx')
+requireText(security,"import UsersAdministrationCenter from './UsersAdministrationCenter.jsx'",'Seguridad ↔ Usuarios y Administración')
+requireText(usersAdmin,"select('company_id,user_id,role,created_at')",'Usuarios y Administración ↔ company_members')
+forbidText(usersAdmin,"select('id,user_id,role,active,created_at')",'Usuarios y Administración ↔ company_members')
 
 const receivables=read('apps/web/src/BillingReceivablesPanel.jsx')
 forbidText(receivables,'source_type','CxC ↔ accounts_receivable')
@@ -37,6 +39,7 @@ for(const relative of [
   'apps/web/src/HrPayrollLauncher.jsx',
   'apps/web/src/ProductionCalendarLauncher.jsx',
   'apps/web/src/SecurityLauncher.jsx',
+  'apps/web/src/UsersAdministrationCenter.jsx',
   'apps/web/src/AssistantLauncher.jsx',
   'apps/web/src/QualityControlLauncher.jsx',
   'apps/web/src/MobileAppHost.jsx',
