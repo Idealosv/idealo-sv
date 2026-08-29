@@ -7,7 +7,7 @@ function buildPdf(objects){let body='%PDF-1.4\n',offsets=[0];for(let i=0;i<objec
 
 export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  const c=[]
- const ORANGE='1 0.36 0',ORANGE2='0.95 0.25 0',BLACK='0.035 0.035 0.035',CHARCOAL='0.10 0.10 0.10',DARK='0.16 0.16 0.16',MID='0.42 0.42 0.42',BORDER='0.82 0.82 0.82',LIGHT='0.955 0.955 0.955',WHITE='1 1 1'
+ const ORANGE='1 0.36 0',BLACK='0.035 0.035 0.035',CHARCOAL='0.10 0.10 0.10',DARK='0.16 0.16 0.16',MID='0.42 0.42 0.42',BORDER='0.82 0.82 0.82',LIGHT='0.955 0.955 0.955',WHITE='1 1 1'
  const text=(x,y,v,size=10,bold=false,color=BLACK)=>c.push(`${color} rg BT /F${bold?'2':'1'} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${pdfEscape(v)}) Tj ET`)
  const fill=(x,y,w,h,color)=>c.push(`${color} rg ${x} ${y} ${w} ${h} re f`)
  const stroke=(x,y,w,h,color=BORDER,width=.6)=>c.push(`${color} RG ${width} w ${x} ${y} ${w} ${h} re S`)
@@ -16,9 +16,8 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  const status=quote?.status==='DRAFT'?'BORRADOR':clean(quote?.status||'BORRADOR')
  const legalName=company?.name&&company.name!=='IDEALO SV'?company.name:''
  fill(0,0,595,842,WHITE)
- fill(0,0,13,842,ORANGE)
- fill(13,720,582,122,BLACK)
- fill(13,712,582,8,ORANGE)
+ fill(0,720,595,122,BLACK)
+ fill(0,712,595,8,ORANGE)
  circle(58,789,23,ORANGE);text(44,782,'ISV',13,true,WHITE)
  text(94,802,'IDEALO SV',26,true,WHITE)
  text(95,782,'COTIZACIONES PROFESIONALES',8,false,'0.76 0.76 0.76')
@@ -41,7 +40,6 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  if(quote?.title){text(42,y,'PROYECTO / SERVICIO',8,true,ORANGE);y-=18;text(42,y,quote.title,17,true,BLACK);y-=30}
 
  fill(36,y-2,523,30,BLACK)
- fill(36,y-2,8,30,ORANGE)
  text(55,y+7,'DESCRIPCION',8,true,WHITE);text(368,y+7,'CANT.',8,true,WHITE);text(420,y+7,'P. UNIT.',8,true,WHITE);text(499,y+7,'TOTAL',8,true,WHITE)
  y-=24
  items.forEach((item,index)=>{
@@ -64,17 +62,17 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  text(346,y-18,'Subtotal',8,false,MID);text(481,y-18,money(totals.subtotal),9,true,BLACK)
  text(346,y-42,'IVA',8,false,MID);text(481,y-42,money(totals.tax),9,true,BLACK)
  line(346,y-54,542,y-54,'0.70 0.70 0.70',.7)
- fill(329,y-111,230,42,BLACK);fill(329,y-111,8,42,ORANGE)
+ fill(329,y-111,230,42,BLACK)
  text(346,y-96,'TOTAL',11,true,WHITE);text(461,y-96,money(totals.total),14,true,ORANGE)
 
  let ny=y-140
  if(quote?.customer_notes){text(42,ny,'OBSERVACIONES',8,true,ORANGE);ny-=16;fill(36,ny-55,523,64,LIGHT);stroke(36,ny-55,523,64,BORDER,.5);let oy=ny-10;wrap(quote.customer_notes,88).slice(0,4).forEach(row=>{text(51,oy,row,8,false,DARK);oy-=11});ny-=72}
- fill(36,76,523,58,BLACK);fill(36,76,8,58,ORANGE)
+ fill(36,76,523,58,BLACK)
  text(54,113,'GRACIAS POR CONFIAR EN IDEALO SV',10,true,WHITE)
  text(54,96,'Esta cotizacion esta sujeta a disponibilidad, vigencia y confirmacion comercial.',7,false,'0.72 0.72 0.72')
  text(54,84,'Documento generado por IDEALO SV',7,false,'0.58 0.58 0.58')
  text(501,96,'USD',10,true,ORANGE)
- fill(13,0,582,39,CHARCOAL);text(42,18,'IDEALO SV',8,true,WHITE);text(476,18,'COTIZACION',7,true,ORANGE)
+ fill(0,0,595,39,CHARCOAL);text(42,18,'IDEALO SV',8,true,WHITE);text(476,18,'COTIZACION',7,true,ORANGE)
  const stream=c.join('\n')
  return buildPdf(['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>',`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'])
 }
