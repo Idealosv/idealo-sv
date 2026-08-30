@@ -345,7 +345,6 @@ function Dashboard({ company }) {
   )
 }
 
-
 const DTE_DEPARTMENTS = [
   { code: '00', name: 'Otro (extranjero)', municipalities: [{ code: '00', name: 'Otro' }] },
   { code: '01', name: 'Ahuachapán', municipalities: [{ code: '13', name: 'Ahuachapán Norte' }, { code: '14', name: 'Ahuachapán Centro' }, { code: '15', name: 'Ahuachapán Sur' }] },
@@ -395,7 +394,7 @@ function ClientsModule({ company, supabase }) {
   const emptyForm = {
     client_type: 'company',
     taxpayer_type: '2',
-    preferred_dte_type: '03',
+    preferred_dte_type: '01',
     document_type: '36',
     document_number: '',
     name: '',
@@ -519,9 +518,9 @@ function ClientsModule({ company, supabase }) {
     setSaving(true)
     setMessage('')
 
-    const readiness = getDteReadiness(form)
-    if (!readiness.ready) {
-      setMessage(`Completa los datos obligatorios para DTE: ${readiness.missing.join(', ')}.`)
+    const clientName = form.name.trim()
+    if (clientName.length < 2) {
+      setMessage('Escribe el nombre o razón social del cliente.')
       setSaving(false)
       return
     }
@@ -538,7 +537,7 @@ function ClientsModule({ company, supabase }) {
       preferred_dte_type: form.preferred_dte_type,
       document_type: form.document_type,
       document_number: form.document_number.trim() || null,
-      name: form.name.trim(),
+      name: clientName,
       trade_name: form.trade_name.trim() || null,
       tax_id: form.tax_id.trim() || null,
       nrc: form.nrc.trim() || null,
@@ -550,10 +549,10 @@ function ClientsModule({ company, supabase }) {
       whatsapp: form.whatsapp.trim() || null,
       contact_name: form.contact_name.trim() || null,
       contact_position: form.contact_position.trim() || null,
-      department_code: form.department_code,
+      department_code: form.department_code.trim() || null,
       department: department?.name || null,
-      municipality_code: form.municipality_code,
-      district_code: form.district_code,
+      municipality_code: form.municipality_code.trim() || null,
+      district_code: form.district_code.trim() || null,
       municipality: municipality?.name || null,
       address: form.address.trim() || null,
       payment_terms: form.payment_terms,
@@ -574,11 +573,15 @@ function ClientsModule({ company, supabase }) {
     const { error } = await operation
     if (error) {
       setMessage(error.message)
-    } else {
-      resetForm()
-      await loadClients()
+      setSaving(false)
+      return
     }
+
+    setForm(emptyForm)
+    setEditingId(null)
+    setShowForm(false)
     setSaving(false)
+    await loadClients()
   }
 
   const editClient = (client) => {
@@ -668,7 +671,7 @@ function ClientsModule({ company, supabase }) {
         <div>
           <p className="form-kicker">DIRECTORIO COMERCIAL</p>
           <h2>Gestión de clientes</h2>
-          <p>Administra datos comerciales, fiscales, contactos y condiciones de venta.</p>
+          <p>Registra primero al cliente. Los datos fiscales y DTE se pueden completar después.</p>
         </div>
         <button type="button" className="primary-action" onClick={startNewClient}>
           + Nuevo cliente
@@ -693,7 +696,8 @@ function ClientsModule({ company, supabase }) {
           <div className="client-form-header">
             <div>
               <p className="form-kicker">{editingId ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE'}</p>
-              <h3>{editingId ? 'Actualizar expediente' : 'Crear expediente comercial'}</h3>
+              <h3>{editingId ? 'Actualizar expediente' : 'Crear cliente'}</h3>
+              {!editingId && <p>Solo el nombre es obligatorio para registrarlo. Puedes completar DTE, dirección y datos comerciales después.</p>}
             </div>
             <button type="button" className="secondary-button" onClick={resetForm}>
               Cerrar
@@ -701,10 +705,10 @@ function ClientsModule({ company, supabase }) {
           </div>
 
           <fieldset className="form-section">
-            <legend>Identificación</legend>
+            <legend>Datos básicos</legend>
             <div className="form-grid three">
               <label className="field">
-                <span>Tipo de cliente *</span>
+                <span>Tipo de cliente</span>
                 <select name="client_type" value={form.client_type} onChange={updateField}>
                   <option value="company">Empresa</option>
                   <option value="person">Persona natural</option>
@@ -712,7 +716,7 @@ function ClientsModule({ company, supabase }) {
               </label>
               <label className="field form-span-2">
                 <span>{form.client_type === 'company' ? 'Razón social *' : 'Nombre completo *'}</span>
-                <input name="name" value={form.name} onChange={updateField} minLength={2} required />
+                <input name="name" value={form.name} onChange={updateField} minLength={2} required autoFocus />
               </label>
               <label className="field form-span-2">
                 <span>Nombre comercial</span>
@@ -728,70 +732,20 @@ function ClientsModule({ company, supabase }) {
             </div>
           </fieldset>
 
-          <fieldset className="form-section dte-section">
-            <legend>Facturación electrónica (DTE)</legend>
-            <div className="dte-note">
-              Estos datos alimentarán automáticamente el receptor del DTE.
-              Para Crédito Fiscal se exigirán NIT y NRC.
-            </div>
-            <div className="form-grid three">
-              <label className="field">
-                <span>Documento habitual *</span>
-                <select name="preferred_dte_type" value={form.preferred_dte_type} onChange={updateField}>
-                  <option value="01">01 - Factura electrónica</option>
-                  <option value="03">03 - Crédito Fiscal electrónico</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Tipo de persona (CAT-029) *</span>
-                <select name="taxpayer_type" value={form.taxpayer_type} onChange={updateField}>
-                  <option value="1">1 - Persona natural</option>
-                  <option value="2">2 - Persona jurídica</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Tipo de identificación (CAT-022) *</span>
-                <select name="document_type" value={form.document_type} onChange={updateField}>
-                  {DTE_DOCUMENT_TYPES.map((type) => (
-                    <option key={type.code} value={type.code}>{type.code} - {type.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Número de identificación *</span>
-                <input name="document_number" value={form.document_number} onChange={updateField} placeholder="DUI, NIT, pasaporte u otro" required />
-              </label>
-              <label className="field">
-                <span>NIT {form.preferred_dte_type === '03' ? '*' : ''}</span>
-                <input name="tax_id" value={form.tax_id} onChange={updateField} placeholder="0000-000000-000-0" required={form.preferred_dte_type === '03'} />
-              </label>
-              <label className="field">
-                <span>NRC {form.preferred_dte_type === '03' ? '*' : ''}</span>
-                <input name="nrc" value={form.nrc} onChange={updateField} required={form.preferred_dte_type === '03'} />
-              </label>
-              <label className="field">
-                <span>DUI</span>
-                <input name="dui" value={form.dui} onChange={updateField} placeholder="00000000-0" />
-              </label>
-              <CatalogCombobox className="form-span-3" label="Actividad económica / giro (CAT-019) *" name="activity_code" value={form.activity_code} options={DTE_ACTIVITIES} onValueChange={updateCatalog} placeholder="Buscar por código o nombre de actividad" required />
-              <input type="hidden" name="business_activity" value={form.business_activity} />
-            </div>
-          </fieldset>
-
           <fieldset className="form-section">
-            <legend>Contacto principal</legend>
+            <legend>Contacto</legend>
             <div className="form-grid three">
               <label className="field">
-                <span>Correo electrónico para entrega DTE *</span>
-                <input name="email" type="email" value={form.email} onChange={updateField} required />
-              </label>
-              <label className="field">
-                <span>Teléfono para DTE *</span>
-                <input name="phone" value={form.phone} onChange={updateField} required />
+                <span>Teléfono</span>
+                <input name="phone" value={form.phone} onChange={updateField} />
               </label>
               <label className="field">
                 <span>WhatsApp</span>
                 <input name="whatsapp" value={form.whatsapp} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>Correo electrónico</span>
+                <input name="email" type="email" value={form.email} onChange={updateField} />
               </label>
               <label className="field form-span-2">
                 <span>Persona de contacto</span>
@@ -804,12 +758,61 @@ function ClientsModule({ company, supabase }) {
             </div>
           </fieldset>
 
-          <fieldset className="form-section">
-            <legend>Domicilio fiscal del receptor</legend>
+          <fieldset className="form-section dte-section">
+            <legend>Facturación electrónica (opcional al crear)</legend>
+            <div className="dte-note">
+              Completa estos datos cuando el cliente vaya a facturarse. Si faltan, el cliente se guardará como DTE pendiente.
+            </div>
             <div className="form-grid three">
               <label className="field">
-                <span>Departamento (CAT-012) *</span>
-                <select name="department_code" value={form.department_code} onChange={updateField} required>
+                <span>Documento habitual</span>
+                <select name="preferred_dte_type" value={form.preferred_dte_type} onChange={updateField}>
+                  <option value="01">01 - Factura electrónica</option>
+                  <option value="03">03 - Crédito Fiscal electrónico</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Tipo de persona (CAT-029)</span>
+                <select name="taxpayer_type" value={form.taxpayer_type} onChange={updateField}>
+                  <option value="1">1 - Persona natural</option>
+                  <option value="2">2 - Persona jurídica</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Tipo de identificación (CAT-022)</span>
+                <select name="document_type" value={form.document_type} onChange={updateField}>
+                  {DTE_DOCUMENT_TYPES.map((type) => (
+                    <option key={type.code} value={type.code}>{type.code} - {type.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Número de identificación</span>
+                <input name="document_number" value={form.document_number} onChange={updateField} placeholder="DUI, NIT, pasaporte u otro" />
+              </label>
+              <label className="field">
+                <span>NIT</span>
+                <input name="tax_id" value={form.tax_id} onChange={updateField} placeholder="0000-000000-000-0" />
+              </label>
+              <label className="field">
+                <span>NRC</span>
+                <input name="nrc" value={form.nrc} onChange={updateField} />
+              </label>
+              <label className="field">
+                <span>DUI</span>
+                <input name="dui" value={form.dui} onChange={updateField} placeholder="00000000-0" />
+              </label>
+              <CatalogCombobox className="form-span-3" label="Actividad económica / giro (CAT-019)" name="activity_code" value={form.activity_code} options={DTE_ACTIVITIES} onValueChange={updateCatalog} placeholder="Buscar por código o nombre de actividad" />
+              <input type="hidden" name="business_activity" value={form.business_activity} />
+            </div>
+          </fieldset>
+
+          <fieldset className="form-section">
+            <legend>Dirección (opcional al crear)</legend>
+            <div className="form-grid three">
+              <label className="field">
+                <span>Departamento (CAT-012)</span>
+                <select name="department_code" value={form.department_code} onChange={updateField}>
                   <option value="">Seleccionar</option>
                   {DTE_DEPARTMENTS.map((department) => (
                     <option key={department.code} value={department.code}>
@@ -819,8 +822,8 @@ function ClientsModule({ company, supabase }) {
                 </select>
               </label>
               <label className="field">
-                <span>Municipio (CAT-013) *</span>
-                <select name="municipality_code" value={form.municipality_code} onChange={updateField} required disabled={!selectedDepartment}>
+                <span>Municipio (CAT-013)</span>
+                <select name="municipality_code" value={form.municipality_code} onChange={updateField} disabled={!selectedDepartment}>
                   <option value="">Seleccionar</option>
                   {(selectedDepartment?.municipalities || []).map((municipality) => (
                     <option key={municipality.code} value={municipality.code}>
@@ -830,8 +833,8 @@ function ClientsModule({ company, supabase }) {
                 </select>
               </label>
               <label className="field">
-                <span>Distrito (CAT-008) *</span>
-                <select name="district_code" value={form.district_code} onChange={updateField} required disabled={!form.municipality_code}>
+                <span>Distrito (CAT-008)</span>
+                <select name="district_code" value={form.district_code} onChange={updateField} disabled={!form.municipality_code}>
                   <option value="">Seleccionar</option>
                   {selectedDistricts.map((district) => (
                     <option key={district.code} value={district.code}>{district.code} - {district.name}</option>
@@ -839,8 +842,8 @@ function ClientsModule({ company, supabase }) {
                 </select>
               </label>
               <label className="field form-span-3">
-                <span>Complemento de dirección *</span>
-                <textarea name="address" rows="2" value={form.address} onChange={updateField} placeholder="Calle, avenida, colonia, número y referencias" required />
+                <span>Complemento de dirección</span>
+                <textarea name="address" rows="2" value={form.address} onChange={updateField} placeholder="Calle, avenida, colonia, número y referencias" />
               </label>
             </div>
           </fieldset>
@@ -874,7 +877,7 @@ function ClientsModule({ company, supabase }) {
           <div className="form-actions end">
             <button type="button" className="secondary-button" onClick={resetForm}>Cancelar</button>
             <button type="submit" disabled={saving}>
-              {saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Crear cliente'}
+              {saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Guardar cliente'}
             </button>
           </div>
         </form>
