@@ -5,6 +5,13 @@ function bearerToken(request) {
   return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
 }
 
+function forbidden(message, code = 'DTE_ADMIN_REQUIRED') {
+  const error = new Error(message)
+  error.statusCode = 403
+  error.code = code
+  return error
+}
+
 async function authorize({ request, supabase }) {
   const token = bearerToken(request)
   if (!token) { const error = new Error('Debes iniciar sesión.'); error.statusCode = 401; throw error }
@@ -15,7 +22,19 @@ async function authorize({ request, supabase }) {
   const { data: membership, error: membershipError } = await supabase.from('company_members').select('role').eq('company_id', companyId).eq('user_id', userData.user.id).maybeSingle()
   if (membershipError) throw membershipError
   if (!membership) { const error = new Error('No tienes permiso para administrar DTE de esta empresa.'); error.statusCode = 403; throw error }
-  return { companyId, userId: userData.user.id, role: membership.role }
+  return { companyId, userId: userData.user.id, role: String(membership.role || '').toLowerCase() }
+}
+
+function assertCanUpdateSettings(role) {
+  if (!['owner', 'admin'].includes(role)) {
+    throw forbidden('Solo propietarios y administradores pueden modificar la configuración DTE.')
+  }
+}
+
+function assertCanEnableProduction(role) {
+  if (role !== 'owner') {
+    throw forbidden('Solo el propietario de la empresa puede habilitar PRODUCCIÓN DTE.', 'DTE_OWNER_REQUIRED')
+  }
 }
 
 export async function getRuntimeSettings({ request, supabase, env = process.env }) {
@@ -41,22 +60,25 @@ export async function getRuntimeSettings({ request, supabase, env = process.env 
 }
 
 export async function updateRuntimeSettings({ request, supabase, env = process.env }) {
-  const { companyId, userId } = await authorize({ request, supabase })
+  const { companyId, userId, role } = await authorize({ request, supabase })
+  assertCanUpdateSettings(role)
   const { environment, productionEnabled, productionApproved, confirmation } = request.body || {}
   if (!['test', 'production'].includes(environment)) { const error = new Error('Ambiente inválido.'); error.statusCode = 400; throw error }
 
   if (environment === 'production') {
+    assertCanEnableProduction(role)
     if (confirmation !== 'ACTIVAR PRODUCCION DTE') { const error = new Error('Para seleccionar PRODUCCIÓN debes escribir exactamente: ACTIVAR PRODUCCION DTE'); error.statusCode = 409; throw error }
     if (productionEnabled !== true || productionApproved !== true) { const error = new Error('PRODUCCIÓN requiere habilitación y aprobación explícita.'); error.statusCode = 409; throw error }
   }
 
+  const isProduction = environment === 'production'
   const payload = {
     company_id: companyId,
     environment,
-    production_enabled: environment === 'production' ? true : Boolean(productionEnabled),
-    production_approved: environment === 'production' ? true : Boolean(productionApproved),
-    approved_at: environment === 'production' ? new Date().toISOString() : null,
-    approved_by: environment === 'production' ? userId : null,
+    production_enabled: isProduction,
+    production_approved: isProduction,
+    approved_at: isProduction ? new Date().toISOString() : null,
+    approved_by: isProduction ? userId : null,
     updated_at: new Date().toISOString(),
     updated_by: userId,
   }

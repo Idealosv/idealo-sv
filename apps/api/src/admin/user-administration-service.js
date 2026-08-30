@@ -29,7 +29,7 @@ export async function listCompanyUsers({request,supabase}){
  const {data:members,error}=await supabase.from('company_members').select('user_id,role,created_at').eq('company_id',companyId).order('created_at',{ascending:true});if(error)throw error
  const ids=(members||[]).map(x=>x.user_id);const {data:profiles,error:profilesError}=ids.length?await supabase.from('profiles').select('id,full_name,avatar_url').in('id',ids):{data:[],error:null};if(profilesError)throw profilesError
  const profileMap=new Map((profiles||[]).map(x=>[x.id,x]));const users=[]
- for(const membership of members||[]){const {data,error:userError}=await supabase.auth.admin.getUserById(membership.user_id);if(userError)throw userError;const auth=user?.user||null;users.push({user_id:membership.user_id,role:membership.role,created_at:membership.created_at,full_name:profileMap.get(membership.user_id)?.full_name||auth?.user_metadata?.full_name||'',email:auth?.email||'',last_sign_in_at:auth?.last_sign_in_at||null,invited_at:auth?.invited_at||null,email_confirmed_at:auth?.email_confirmed_at||null})}
+ for(const membership of members||[]){const {data,error:userError}=await supabase.auth.admin.getUserById(membership.user_id);if(userError)throw userError;const auth=data?.user||null;users.push({user_id:membership.user_id,role:membership.role,created_at:membership.created_at,full_name:profileMap.get(membership.user_id)?.full_name||auth?.user_metadata?.full_name||'',email:auth?.email||'',last_sign_in_at:auth?.last_sign_in_at||null,invited_at:auth?.invited_at||null,email_confirmed_at:auth?.email_confirmed_at||null})}
  return{actor_role:actor.role,users}
 }
 

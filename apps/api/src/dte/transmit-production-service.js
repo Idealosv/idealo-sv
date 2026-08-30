@@ -27,6 +27,7 @@ export async function transmitSignedProductionDte({ request, supabase, env = pro
   const { data: membership, error: membershipError } = await supabase.from('company_members').select('role').eq('company_id', document.company_id).eq('user_id', userData.user.id).maybeSingle()
   if (membershipError) throw membershipError
   if (!membership) { const error = new Error('No tienes permiso para transmitir DTE de esta empresa.'); error.statusCode = 403; throw error }
+  if (String(membership.role || '').toLowerCase() !== 'owner') { const error = new Error('Solo el propietario de la empresa puede transmitir DTE en PRODUCCIÓN.'); error.statusCode = 403; error.code = 'DTE_OWNER_REQUIRED'; throw error }
 
   const companyEnv = await buildCompanyDteEnv({ companyId: document.company_id, supabase, env })
   const preflight = getDteProductionPreflightStatus(companyEnv)
@@ -76,7 +77,6 @@ export async function transmitSignedProductionDte({ request, supabase, env = pro
           document: { ...document, status, mh_response: response },
         })
       } catch (emailError) {
-        // Un fallo de correo jamás debe transformar un DTE aceptado por Hacienda en rechazo fiscal.
         console.error('DTE aceptado, pero no se pudo procesar el correo automático:', emailError)
         emailDelivery = { attempted: true, status: 'failed', error: emailError.message }
       }
