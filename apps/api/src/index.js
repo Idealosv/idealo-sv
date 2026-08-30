@@ -16,6 +16,7 @@ import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit } from './admin/user-administration-service.js'
+import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -48,6 +49,18 @@ app.delete('/api/admin/users/:userId', async (request, response, next) => {
 })
 app.get('/api/admin/audit', async (request, response, next) => {
   try { response.json(await listCompanyAdminAudit({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.get('/api/admin/saas/dashboard', async (request, response, next) => {
+  try { response.json(await getSaasMasterDashboard({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/admin/saas/companies', async (request, response, next) => {
+  try { response.status(201).json(await createSaasCompany({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.patch('/api/admin/saas/companies/:companyId/subscription', async (request, response, next) => {
+  try { response.json(await updateSaasSubscription({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/admin/saas/companies/:companyId/payments', async (request, response, next) => {
+  try { response.status(201).json(await createSaasBillingEvent({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 
 app.get('/api/dte/status', (_request, response) => response.json(getDteConfigurationStatus()))
