@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-const files={host:'src/LegalAppHost.jsx',css:'src/legal-app.css',main:'src/main.jsx',migration:'../../supabase/migrations/0041_legal_vertical_core.sql'}
+const files={host:'../src/LegalAppHost.jsx',css:'../src/legal-app.css',main:'../src/main.jsx',migration:'../../../supabase/migrations/0041_legal_vertical_core.sql'}
 const text=Object.fromEntries(Object.entries(files).map(([k,p])=>[k,fs.readFileSync(new URL(p,import.meta.url),'utf8')]))
 const checks=[
  ['ruta /legal',text.host.includes("'/legal'")],
