@@ -37,23 +37,39 @@ function assertCanEnableProduction(role) {
   }
 }
 
+async function assertCompanyIsNotDemo({ companyId, supabase }) {
+  const { data, error } = await supabase.from('companies').select('demo_mode').eq('id', companyId).maybeSingle()
+  if (error) throw error
+  if (data?.demo_mode) {
+    const demoError = new Error('ENTORNO DEMO: PRODUCCIÓN DTE no puede habilitarse. El ambiente fiscal debe permanecer en TEST.')
+    demoError.statusCode = 409
+    demoError.code = 'DEMO_PRODUCTION_BLOCKED'
+    throw demoError
+  }
+}
+
 export async function getRuntimeSettings({ request, supabase, env = process.env }) {
   const { companyId } = await authorize({ request, supabase })
   const { data, error } = await supabase.from('dte_runtime_settings').select('*').eq('company_id', companyId).maybeSingle()
   if (error) throw error
   const row = data || { company_id: companyId, environment: 'test', production_enabled: false, production_approved: false }
+  const { data: company, error: companyError } = await supabase.from('companies').select('demo_mode').eq('id', companyId).maybeSingle()
+  if (companyError) throw companyError
+  const demoMode = Boolean(company?.demo_mode)
+  const effectiveRow = demoMode ? { ...row, environment: 'test', production_enabled: false, production_approved: false } : row
   const effectiveEnv = {
     ...env,
-    DTE_ENVIRONMENT: row.environment,
-    DTE_ENABLE_PRODUCTION: row.production_enabled ? 'true' : 'false',
-    DTE_PRODUCTION_APPROVAL: row.production_approved ? 'IDEALO_SV_PRODUCTION_APPROVED' : '',
+    DTE_ENVIRONMENT: effectiveRow.environment,
+    DTE_ENABLE_PRODUCTION: effectiveRow.production_enabled ? 'true' : 'false',
+    DTE_PRODUCTION_APPROVAL: effectiveRow.production_approved ? 'IDEALO_SV_PRODUCTION_APPROVED' : '',
   }
   return {
     companyId,
-    environment: row.environment,
-    productionEnabled: Boolean(row.production_enabled),
-    productionApproved: Boolean(row.production_approved),
-    approvedAt: row.approved_at || null,
+    environment: effectiveRow.environment,
+    productionEnabled: Boolean(effectiveRow.production_enabled),
+    productionApproved: Boolean(effectiveRow.production_approved),
+    demoMode,
+    approvedAt: demoMode ? null : row.approved_at || null,
     updatedAt: row.updated_at || null,
     preflight: getDteProductionPreflightStatus(effectiveEnv),
   }
@@ -66,6 +82,7 @@ export async function updateRuntimeSettings({ request, supabase, env = process.e
   if (!['test', 'production'].includes(environment)) { const error = new Error('Ambiente inválido.'); error.statusCode = 400; throw error }
 
   if (environment === 'production') {
+    await assertCompanyIsNotDemo({ companyId, supabase })
     assertCanEnableProduction(role)
     if (confirmation !== 'ACTIVAR PRODUCCION DTE') { const error = new Error('Para seleccionar PRODUCCIÓN debes escribir exactamente: ACTIVAR PRODUCCION DTE'); error.statusCode = 409; throw error }
     if (productionEnabled !== true || productionApproved !== true) { const error = new Error('PRODUCCIÓN requiere habilitación y aprobación explícita.'); error.statusCode = 409; throw error }
@@ -89,13 +106,18 @@ export async function updateRuntimeSettings({ request, supabase, env = process.e
 }
 
 export async function buildCompanyDteEnv({ companyId, supabase, env = process.env }) {
-  const { data, error } = await supabase.from('dte_runtime_settings').select('environment, production_enabled, production_approved').eq('company_id', companyId).maybeSingle()
+  const [{ data, error }, { data: company, error: companyError }] = await Promise.all([
+    supabase.from('dte_runtime_settings').select('environment, production_enabled, production_approved').eq('company_id', companyId).maybeSingle(),
+    supabase.from('companies').select('demo_mode').eq('id', companyId).maybeSingle(),
+  ])
   if (error) throw error
+  if (companyError) throw companyError
   const row = data || { environment: 'test', production_enabled: false, production_approved: false }
+  const demoMode = Boolean(company?.demo_mode)
   return {
     ...env,
-    DTE_ENVIRONMENT: row.environment,
-    DTE_ENABLE_PRODUCTION: row.production_enabled ? 'true' : 'false',
-    DTE_PRODUCTION_APPROVAL: row.production_approved ? 'IDEALO_SV_PRODUCTION_APPROVED' : '',
+    DTE_ENVIRONMENT: demoMode ? 'test' : row.environment,
+    DTE_ENABLE_PRODUCTION: !demoMode && row.production_enabled ? 'true' : 'false',
+    DTE_PRODUCTION_APPROVAL: !demoMode && row.production_approved ? 'IDEALO_SV_PRODUCTION_APPROVED' : '',
   }
 }
