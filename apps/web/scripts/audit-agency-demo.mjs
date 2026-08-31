@@ -17,7 +17,7 @@ const checks = [
   ['columnas demo', migration.includes('demo_mode boolean') && migration.includes('demo_expires_at timestamptz')],
   ['bloqueo DB producción', migration.includes('block_demo_company_production_dte') && migration.includes("new.environment <> 'production'")],
   ['bloqueo API producción', api.includes('DEMO_PRODUCTION_BLOCKED') && api.includes("select('demo_mode,demo_expires_at')")],
-  ['configuración fiscal demo queda TEST', runtime.includes('assertCompanyIsNotDemo') && runtime.includes("DTE_ENVIRONMENT: demoMode ? 'test'")],
+  ['configuración fiscal demo queda TEST', runtime.includes('assertCompanyIsNotDemo') && runtime.includes("demoMode ? { ...row, environment: 'test', production_enabled: false, production_approved: false } : row")],
   ['Panel Maestro crea demo', master.includes('Preparar como DEMO para agencia') && master.includes('demo_mode:true')],
   ['seed comercial ficticio', masterApi.includes('[DEMO] Café Central') && masterApi.includes('[DEMO] Banner lona 13 oz')],
   ['seed cotización y producción', masterApi.includes("from('quotes').insert") && masterApi.includes("from('work_orders').insert")],
