@@ -29,7 +29,7 @@ const checks=[
  ['facturación 360 está disponible',files.billing.includes('Facturación')||files.billing.includes('Billing')||files.billing.includes('DTE')],
  ['caja expone control operativo',files.cash.includes('Caja')||files.cash.includes('cash')],
  ['reportes financieros están disponibles',files.reports.includes('Report')||files.reports.includes('reporte')||files.reports.includes('Flujo')],
- ['workspace conserva navegación del ERP',files.workspace.includes('Cotizaciones')&&files.workspace.includes('Producción')&&files.workspace.includes('Facturación')],
+ ['workspace conserva empresa autenticada y selección de módulo',files.workspace.includes("rpc('get_my_companies')")&&files.workspace.includes("useState('Resumen')")],
  ['demo guía recorrido comercial completo', ['Clientes','Productos','Cotizaciones','Producción','Facturación'].every(x=>files.demo.includes(x))],
  ['demo mantiene DTE producción bloqueado',files.demo.includes('DTE PRODUCCIÓN BLOQUEADO')],
 ]
