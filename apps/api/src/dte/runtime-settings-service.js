@@ -106,18 +106,13 @@ export async function updateRuntimeSettings({ request, supabase, env = process.e
 }
 
 export async function buildCompanyDteEnv({ companyId, supabase, env = process.env }) {
-  const [{ data, error }, { data: company, error: companyError }] = await Promise.all([
-    supabase.from('dte_runtime_settings').select('environment, production_enabled, production_approved').eq('company_id', companyId).maybeSingle(),
-    supabase.from('companies').select('demo_mode').eq('id', companyId).maybeSingle(),
-  ])
+  const { data, error } = await supabase.from('dte_runtime_settings').select('environment, production_enabled, production_approved').eq('company_id', companyId).maybeSingle()
   if (error) throw error
-  if (companyError) throw companyError
   const row = data || { environment: 'test', production_enabled: false, production_approved: false }
-  const demoMode = Boolean(company?.demo_mode)
   return {
     ...env,
-    DTE_ENVIRONMENT: demoMode ? 'test' : row.environment,
-    DTE_ENABLE_PRODUCTION: !demoMode && row.production_enabled ? 'true' : 'false',
-    DTE_PRODUCTION_APPROVAL: !demoMode && row.production_approved ? 'IDEALO_SV_PRODUCTION_APPROVED' : '',
+    DTE_ENVIRONMENT: row.environment,
+    DTE_ENABLE_PRODUCTION: row.production_enabled ? 'true' : 'false',
+    DTE_PRODUCTION_APPROVAL: row.production_approved ? 'IDEALO_SV_PRODUCTION_APPROVED' : '',
   }
 }
