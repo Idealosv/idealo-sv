@@ -29,6 +29,10 @@ export async function transmitSignedProductionDte({ request, supabase, env = pro
   if (!membership) { const error = new Error('No tienes permiso para transmitir DTE de esta empresa.'); error.statusCode = 403; throw error }
   if (String(membership.role || '').toLowerCase() !== 'owner') { const error = new Error('Solo el propietario de la empresa puede transmitir DTE en PRODUCCIÓN.'); error.statusCode = 403; error.code = 'DTE_OWNER_REQUIRED'; throw error }
 
+  const { data: company, error: companyError } = await supabase.from('companies').select('demo_mode,demo_expires_at').eq('id', document.company_id).maybeSingle()
+  if (companyError) throw companyError
+  if (company?.demo_mode) { const error = new Error('ENTORNO DEMO: la transmisión DTE de PRODUCCIÓN está bloqueada. Utilizá ambiente TEST para la evaluación.'); error.statusCode = 409; error.code = 'DEMO_PRODUCTION_BLOCKED'; throw error }
+
   const companyEnv = await buildCompanyDteEnv({ companyId: document.company_id, supabase, env })
   const preflight = getDteProductionPreflightStatus(companyEnv)
   if (!preflight.configurationReady) { const error = new Error(`PRODUCCIÓN continúa bloqueada: ${(preflight.blockers || []).join(' ')}`); error.statusCode = 409; throw error }
