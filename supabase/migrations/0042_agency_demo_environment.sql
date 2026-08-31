@@ -30,3 +30,35 @@ using (
 
 grant select on public.saas_company_demo_profiles to authenticated;
 grant all privileges on public.saas_company_demo_profiles to service_role;
+
+-- Guardia fiscal: una empresa demo nunca puede preparar un documento para MH PRODUCCIÓN.
+create or replace function public.guard_demo_dte_production()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if lower(coalesce(new.environment, '')) = 'production'
+     and exists (
+       select 1
+       from public.saas_company_demo_profiles demo
+       where demo.company_id = new.company_id
+         and demo.is_demo = true
+         and demo.block_dte_production = true
+     ) then
+    raise exception using
+      errcode = 'P0001',
+      message = 'DEMO_DTE_PRODUCTION_BLOCKED: las empresas demo no pueden preparar ni transmitir DTE de PRODUCCIÓN.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_demo_dte_production_trigger on public.dte_documents;
+create trigger guard_demo_dte_production_trigger
+before insert or update of environment on public.dte_documents
+for each row execute function public.guard_demo_dte_production();
+
+revoke all on function public.guard_demo_dte_production() from public, anon, authenticated;
+grant execute on function public.guard_demo_dte_production() to service_role;
