@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-const files={panel:'../src/SaasMasterPanelHost.jsx',service:'../../api/src/admin/saas-master-service.js',migration:'../../../supabase/migrations/0042_agency_demo_environment.sql'}
+const files={panel:'../src/SaasMasterPanelHost.jsx',service:'../../api/src/admin/saas-master-service.js',migration:'../../../supabase/migrations/0043_agency_demo_environment.sql'}
 const text=Object.fromEntries(Object.entries(files).map(([key,path])=>[key,fs.readFileSync(new URL(path,import.meta.url),'utf8')]))
 const checks=[
  ['creación demo desde Panel Maestro',text.panel.includes('demo_mode')&&text.panel.includes('Crear acceso demo')],
