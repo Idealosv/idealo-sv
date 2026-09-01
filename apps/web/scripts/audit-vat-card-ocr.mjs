@@ -12,6 +12,7 @@ assert.match(parserSource, /NAME_LABEL/)
 assert.match(parserSource, /NRC_LABEL/)
 assert.match(parserSource, /function findName/)
 assert.match(parserSource, /function isContributorNameCandidate/)
+assert.match(parserSource, /function plausibleContributorNameShape/)
 assert.match(parserSource, /function findActivities/)
 assert.match(parserSource, /additional_activities/)
 assert.match(parserSource, /function cleanAddress/)
@@ -40,6 +41,9 @@ assert.match(combinedImage, /export async function splitCombinedVatImage/)
 assert.match(combinedImage, /chooseSplitOrientation/)
 assert.match(combinedImage, /findHorizontalGap/)
 assert.match(combinedImage, /findVerticalGap/)
+assert.match(combinedImage, /trimRectToCard/)
+assert.match(combinedImage, /autoTrimmed/)
+assert.match(combinedImage, /targetMinWidth = 1500/)
 assert.match(combinedImage, /cropToFile/)
 assert.match(combinedImage, /tarjeta-iva-frente\.jpg/)
 assert.match(combinedImage, /tarjeta-iva-reverso\.jpg/)
@@ -120,6 +124,20 @@ assert.notEqual(labelledContributor.name, labelledContributor.business_activity)
 assert.doesNotMatch(labelledContributor.name, /VENTA|REPARACION|ACCESORIOS/i)
 assert.equal(labelledContributor.nrc, '124439-1')
 assert.match(labelledContributor.business_activity, /reparación|reparacion/i)
+
+const garbageName = parseVatCardSides(`
+NOMBRE DEL CONTRIBUYENTE
+I poo ode
+NIT
+0101-230174-101-6
+NRC
+124439-1
+GIRO O ACTIVIDAD ECONOMICA
+REPARACION MECANICA DE VEHICULOS AUTOMOTORES
+`, noisyBack)
+assert.equal(garbageName.name, '')
+assert.ok(garbageName.missing.includes('razón social'))
+assert.equal(garbageName.ready_for_dte03, false)
 
 const legacy = parseVatCardSides(`
 MINISTERIO DE HACIENDA
@@ -205,4 +223,4 @@ const unsafe = parseVatCardSides(`NOMBRE DEL CONTRIBUYENTE\nGONZALEZ ARTERO, JAI
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: nombre del contribuyente priorizado, una imagen con ambas caras, tres giros y validación de ruido verificados')
+console.log('✓ OCR IVA: autoencuadre, nombre confiable, ambas caras, tres giros y validación de ruido verificados')
