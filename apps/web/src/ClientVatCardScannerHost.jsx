@@ -77,8 +77,8 @@ function VatCardScanner() {
       let backText = backOcr.data.text || ''
       let parsed = parseVatCardSides(frontText, backText)
 
-      if (!parsed.ready_for_dte03) {
-        setProgress('Mejorando lectura de tarjeta antigua…')
+      if (!parsed.ready_for_dte03 || (parsed.additional_activities?.length || 0) < 2) {
+        setProgress('Mejorando lectura de tarjeta antigua y giros…')
         const enhanced = await recoverLegacyCardText(front.file, back.file)
         frontText = `${frontText}\n${enhanced.frontText}`
         backText = `${backText}\n${enhanced.backText}`
@@ -116,6 +116,9 @@ function VatCardScanner() {
       setError('Se leyeron los datos, pero no se encontró el formulario Fiscal DTE visible.')
       return
     }
+    window.dispatchEvent(new CustomEvent('idealo-vat-additional-activities', {
+      detail: { activities: resolvedResult.additional_activities || [] },
+    }))
     setOpen(false)
   }
 
@@ -129,7 +132,7 @@ function VatCardScanner() {
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. El lector reconoce tarjetas IVA actuales y formatos antiguos. Si detecta texto contaminado o de baja confianza, lo marcará para revisión antes de llenar el formulario.</p>
+          <p className="vat-scan-help">Capture frente y reverso. El lector reconoce tarjetas IVA actuales y formatos antiguos, incluyendo hasta tres actividades económicas. Si detecta texto contaminado o de baja confianza, lo marcará para revisión antes de llenar el formulario.</p>
           <div className="vat-scan-grid">
             <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
             <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
@@ -163,16 +166,21 @@ function DetectedData({ data, original, manual, onManual }) {
     { key: 'name', label: 'Razón social', placeholder: 'Nombre o razón social' },
     { key: 'nit', label: 'NIT / DUI homologado', placeholder: '00000000-0 o 0000-000000-000-0' },
     { key: 'nrc', label: 'NRC', placeholder: '000000-0' },
-    { key: 'business_activity', label: 'Actividad / giro', placeholder: 'Actividad económica' },
+    { key: 'business_activity', label: 'Giro principal', placeholder: 'Actividad económica principal' },
     { key: 'address', label: 'Dirección casa matriz', placeholder: 'Dirección completa' },
   ]
   const reviewFields = new Set(data.review_fields || [])
+  const additional = data.additional_activities || []
   return <section className="vat-detected">
     <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : reviewFields.size ? 'Hay campos con baja confianza. Debe revisarlos y corregirlos antes de continuar.' : 'Revise y complete manualmente únicamente lo que el OCR no reconoció bien.'}</small></div>
-    <dl>{fields.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd style={reviewFields.has(key) ? { color: '#a84400', fontWeight: 800 } : undefined}>{data[key] || 'No reconocido'}{reviewFields.has(key) ? ' · REVISAR' : ''}</dd></div>)}</dl>
+    <dl>
+      {fields.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd style={reviewFields.has(key) ? { color: '#a84400', fontWeight: 800 } : undefined}>{data[key] || 'No reconocido'}{reviewFields.has(key) ? ' · REVISAR' : ''}</dd></div>)}
+      <div><dt>Giro 2</dt><dd>{additional[0]?.name || 'No detectado'}</dd></div>
+      <div><dt>Giro 3</dt><dd>{additional[1]?.name || 'No detectado'}</dd></div>
+    </dl>
     <div className="vat-manual-review" style={{ marginTop: 14 }}>
       <strong>Revisión / corrección manual</strong>
-      <small style={{ display: 'block', marginBottom: 8 }}>Los valores escritos aquí tienen prioridad sobre el OCR. Los campos marcados REVISAR deben confirmarse contra la tarjeta.</small>
+      <small style={{ display: 'block', marginBottom: 8 }}>Los valores escritos aquí tienen prioridad sobre el OCR. Los campos marcados REVISAR deben confirmarse contra la tarjeta. Los giros 2 y 3 se podrán ajustar en el formulario del cliente.</small>
       {fields.map(({ key, label, placeholder }) => {
         const needsReview = reviewFields.has(key)
         return <label key={key} style={{ display: 'block', marginTop: 8 }}>
@@ -287,6 +295,7 @@ function mergeRecoveredField(result, field, value, missingLabel) {
 function preferMoreComplete(first, second) {
   if (!first) return second
   if (!second) return first
+  const additional = mergeActivities(first.additional_activities, second.additional_activities)
   const merged = {
     ...first,
     name: second.name || first.name,
@@ -294,10 +303,21 @@ function preferMoreComplete(first, second) {
     nrc: second.nrc || first.nrc,
     business_activity: second.business_activity || first.business_activity,
     activity_code: second.activity_code || first.activity_code,
+    additional_activities: additional,
     address: second.address || first.address,
     review_fields: [...new Set([...(first.review_fields || []), ...(second.review_fields || [])])],
   }
   return finalizeResult(merged)
+}
+
+function mergeActivities(first = [], second = []) {
+  const merged = []
+  ;[...second, ...first].forEach((activity) => {
+    if (!activity?.name) return
+    const key = activity.code || activity.name.toLowerCase()
+    if (!merged.some((item) => (item.code || item.name.toLowerCase()) === key)) merged.push(activity)
+  })
+  return merged.slice(0, 2)
 }
 
 function applyManualCorrections(result, manual) {
@@ -340,7 +360,7 @@ function finalizeResult(result) {
   if (!result.business_activity) missing.push('giro / actividad')
   if (!result.address) missing.push('dirección de casa matriz')
   const review_fields = [...new Set(result.review_fields || [])].filter((field) => Boolean(result[field]))
-  return { ...result, missing, review_fields, ready_for_dte03: missing.length === 0 && review_fields.length === 0 }
+  return { ...result, missing, review_fields, additional_activities: result.additional_activities || [], ready_for_dte03: missing.length === 0 && review_fields.length === 0 }
 }
 
 function normalizeTaxId(value) {
