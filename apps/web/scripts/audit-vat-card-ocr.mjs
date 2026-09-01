@@ -21,6 +21,7 @@ assert.match(parserSource, /function suspiciousAddress/)
 assert.match(parserSource, /review_fields/)
 assert.match(parserSource, /export function extractVatNit/)
 assert.match(parserSource, /normalizeOcrDigits/)
+assert.match(parserSource, /appearsInsideAddress/)
 assert.match(scanner, /recoverLegacyCardText/)
 assert.match(scanner, /applyManualCorrections/)
 assert.match(scanner, /Revisión \/ corrección manual/)
@@ -216,6 +217,42 @@ assert.ok(contaminated.missing.includes('razón social'))
 assert.equal(contaminated.ready_for_dte03, false)
 assert.doesNotMatch(contaminated.address, /LE A AN R Q 03 I$/i)
 
+const splitName = parseVatCardSides(`
+NOMBRE DEL CONTRIBUYENTE
+COMERCIAL EJEMPLO
+SOCIEDAD ANONIMA DE CAPITAL VARIABLE
+NIT
+0614-010101-001-2
+NRC
+123456-7
+SERVICIOS DE PUBLICIDAD
+`, noisyBack)
+assert.match(splitName.name, /COMERCIAL EJEMPLO/i)
+assert.match(splitName.business_activity, /publicidad/i)
+
+const addressNumberNotNrc = parseVatCardSides(`
+MINISTERIO DE HACIENDA
+NOMBRE DEL CONTRIBUYENTE
+COMERCIAL EJEMPLO, S.A. DE C.V.
+NIT
+0614-010101-001-2
+SERVICIOS DE PUBLICIDAD
+12-1 CALLE ORIENTE, COLONIA CENTRO
+`, noisyBack)
+assert.equal(addressNumberNotNrc.nrc, '')
+assert.ok(addressNumberNotNrc.missing.includes('NRC'))
+
+const noisyLabelNit = parseVatCardSides(`
+NOMBRE DEL CONTRIBUYENTE
+COMERCIAL EJEMPLO, S.A. DE C.V.
+NIT
+O6I4-O1O1O1-OOI-Z
+NRC
+123456-7
+SERVICIOS DE PUBLICIDAD
+`, noisyBack)
+assert.equal(noisyLabelNit.nit, '0614-010101-001-2')
+
 assert.equal(extractVatNit('DUI O1234567 8'), '01234567-8')
 assert.equal(extractVatNit('NIT O142 78I234 1O1 I'), '0142-781234-101-1')
 
@@ -223,4 +260,4 @@ const unsafe = parseVatCardSides(`NOMBRE DEL CONTRIBUYENTE\nGONZALEZ ARTERO, JAI
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: autoencuadre, nombre confiable, ambas caras, tres giros y validación de ruido verificados')
+console.log('✓ OCR IVA: autoencuadre, nombre confiable, ambas caras, NRC seguro, NIT ruidoso, giros y validación de ruido verificados')
