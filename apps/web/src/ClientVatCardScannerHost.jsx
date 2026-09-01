@@ -31,6 +31,8 @@ export default function ClientVatCardScannerHost() {
   return mount ? createPortal(<VatCardScanner />, mount) : null
 }
 
+const EMPTY_MANUAL = { name: '', nit: '', nrc: '', business_activity: '', address: '' }
+
 function VatCardScanner() {
   const [open, setOpen] = useState(false)
   const [front, setFront] = useState(null)
@@ -38,7 +40,7 @@ function VatCardScanner() {
   const [reading, setReading] = useState(false)
   const [progress, setProgress] = useState('')
   const [result, setResult] = useState(null)
-  const [manualNit, setManualNit] = useState('')
+  const [manual, setManual] = useState(EMPTY_MANUAL)
   const [error, setError] = useState('')
 
   const capture = (side, file) => {
@@ -52,43 +54,50 @@ function VatCardScanner() {
       setBack(next)
     }
     setResult(null)
-    setManualNit('')
+    setManual(EMPTY_MANUAL)
     setError('')
   }
 
   const capturedCount = (front ? 1 : 0) + (back ? 1 : 0)
   const ready = capturedCount === 2
-  const resolvedResult = applyManualTaxId(result, manualNit)
+  const resolvedResult = applyManualCorrections(result, manual)
 
   const scan = async () => {
     if (!ready || reading) return
     setReading(true)
     setError('')
     setResult(null)
-    setManualNit('')
+    setManual(EMPTY_MANUAL)
     try {
       setProgress('Leyendo frente…')
       const frontOcr = await recognize(front.file, 'spa')
       setProgress('Leyendo reverso…')
       const backOcr = await recognize(back.file, 'spa')
-      let parsed = parseVatCardSides(frontOcr.data.text || '', backOcr.data.text || '')
+      let frontText = frontOcr.data.text || ''
+      let backText = backOcr.data.text || ''
+      let parsed = parseVatCardSides(frontText, backText)
+
+      if (!parsed.ready_for_dte03) {
+        setProgress('Mejorando lectura de tarjeta antigua…')
+        const enhanced = await recoverLegacyCardText(front.file, back.file)
+        frontText = `${frontText}\n${enhanced.frontText}`
+        backText = `${backText}\n${enhanced.backText}`
+        parsed = preferMoreComplete(parsed, parseVatCardSides(frontText, backText))
+      }
 
       if (!parsed.nit) {
         const recoveredNit = await recoverNitFromFront(front.file, setProgress)
-        if (recoveredNit) {
-          const missing = parsed.missing.filter((item) => item !== 'NIT')
-          parsed = { ...parsed, nit: recoveredNit, missing, ready_for_dte03: missing.length === 0 }
-        }
+        if (recoveredNit) parsed = mergeRecoveredField(parsed, 'nit', recoveredNit, 'NIT')
       }
 
       setResult(parsed)
       if (!parsed.ready_for_dte03) {
-        setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. Puede volver a capturar o completar manualmente el NIT/DUI homologado si es el único dato pendiente.`)
+        setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. Puede corregir abajo cualquier dato no reconocido sin volver a tomar la foto.`)
       }
       setProgress('Lectura terminada')
     } catch (scanError) {
       console.error(scanError)
-      setError('No se pudieron leer los datos. Intente con fotos más rectas, iluminadas y nítidas.')
+      setError('No se pudieron leer los datos. Intente con fotos más rectas, iluminadas y nítidas; también puede corregir manualmente los campos que el OCR alcance a detectar.')
       setProgress('')
     } finally {
       setReading(false)
@@ -97,7 +106,7 @@ function VatCardScanner() {
 
   const apply = () => {
     if (!resolvedResult?.ready_for_dte03) {
-      setError('No se puede llenar el formulario: NIT/DUI homologado, NRC, razón social, giro y dirección de casa matriz deben estar confirmados.')
+      setError('Confirme los cinco datos fiscales: NIT/DUI homologado, NRC, razón social, giro y dirección de casa matriz.')
       return
     }
     if (!applyToFiscalForm(resolvedResult)) {
@@ -117,7 +126,7 @@ function VatCardScanner() {
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. Para persona natural salvadoreña mayor de 18 años, el ERP acepta DUI homologado de 9 dígitos como NIT; también conserva compatibilidad con NIT tradicional de 14 dígitos cuando corresponda.</p>
+          <p className="vat-scan-help">Capture frente y reverso. El lector reconoce tarjetas IVA actuales y formatos antiguos. Si un dato tiene baja legibilidad, podrá corregirlo manualmente antes de llenar el formulario.</p>
           <div className="vat-scan-grid">
             <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
             <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
@@ -125,12 +134,12 @@ function VatCardScanner() {
           <div className="vat-scan-status"><strong>{capturedCount}/2 caras listas</strong><span>Las imágenes se usan temporalmente para OCR y no se guardan automáticamente.</span></div>
           {error && <p className="vat-scan-error">{error}</p>}
           {reading && <div className="vat-scan-reading"><span className="spinner" /><strong>{progress || 'Leyendo documento…'}</strong></div>}
-          {result && <DetectedData data={resolvedResult} original={result} manualNit={manualNit} onManualNit={setManualNit} />}
+          {result && <DetectedData data={resolvedResult} original={result} manual={manual} onManual={(field, value) => setManual((current) => ({ ...current, [field]: value }))} />}
           <footer>
             <button type="button" className="secondary-button" onClick={() => setOpen(false)}>Cerrar</button>
             {!result
               ? <button type="button" className="vat-scan-done" disabled={!ready || reading} onClick={scan}>{reading ? 'Leyendo…' : 'Leer datos'}</button>
-              : <button type="button" className="vat-scan-done brand-orange" disabled={!resolvedResult?.ready_for_dte03} onClick={apply}>{resolvedResult?.ready_for_dte03 ? 'Llenar formulario' : 'Datos incompletos'}</button>}
+              : <button type="button" className="vat-scan-done brand-orange" disabled={!resolvedResult?.ready_for_dte03} onClick={apply}>{resolvedResult?.ready_for_dte03 ? 'Llenar formulario' : 'Complete datos faltantes'}</button>}
           </footer>
         </section>
       </div>, document.body,
@@ -146,17 +155,72 @@ function SideCapture({ side, title, item, onFile }) {
   </article>
 }
 
-function DetectedData({ data, original, manualNit, onManualNit }) {
-  const items = [['Razón social', data.name], ['NIT / DUI homologado', data.nit], ['NRC', data.nrc], ['Actividad / giro', data.business_activity], ['Dirección casa matriz', data.address]]
-  const allowManualNit = original && !original.nit
+function DetectedData({ data, original, manual, onManual }) {
+  const fields = [
+    { key: 'name', label: 'Razón social', placeholder: 'Nombre o razón social' },
+    { key: 'nit', label: 'NIT / DUI homologado', placeholder: '00000000-0 o 0000-000000-000-0' },
+    { key: 'nrc', label: 'NRC', placeholder: '000000-0' },
+    { key: 'business_activity', label: 'Actividad / giro', placeholder: 'Actividad económica' },
+    { key: 'address', label: 'Dirección casa matriz', placeholder: 'Dirección completa' },
+  ]
   return <section className="vat-detected">
-    <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : 'OCR incompleto: vuelva a capturar la cara donde falten datos.'}</small></div>
-    <dl>{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'No reconocido'}</dd></div>)}</dl>
-    {allowManualNit && <div style={{ marginTop: 12 }}>
-      <label><strong>NIT / DUI homologado manual (respaldo)</strong><br /><small>Persona natural salvadoreña: DUI homologado de 9 dígitos. Otros casos: NIT tradicional de 14 dígitos.</small></label>
-      <input type="text" inputMode="numeric" placeholder="00000000-0 o 0000-000000-000-0" value={manualNit} onChange={(event) => onManualNit(event.target.value)} style={{ width: '100%', marginTop: 6 }} />
-    </div>}
+    <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : 'Revise y complete manualmente únicamente lo que el OCR no reconoció bien.'}</small></div>
+    <dl>{fields.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd>{data[key] || 'No reconocido'}</dd></div>)}</dl>
+    <div className="vat-manual-review" style={{ marginTop: 14 }}>
+      <strong>Revisión / corrección manual</strong>
+      <small style={{ display: 'block', marginBottom: 8 }}>Los valores escritos aquí tienen prioridad sobre el OCR. Revise contra la tarjeta antes de aplicar.</small>
+      {fields.map(({ key, label, placeholder }) => <label key={key} style={{ display: 'block', marginTop: 8 }}>
+        <span style={{ display: 'block', fontWeight: 700, marginBottom: 4 }}>{label}</span>
+        <input
+          type="text"
+          inputMode={key === 'nit' || key === 'nrc' ? 'numeric' : 'text'}
+          placeholder={original?.[key] || placeholder}
+          value={manual[key] || ''}
+          onChange={(event) => onManual(key, event.target.value)}
+          style={{ width: '100%' }}
+        />
+      </label>)}
+    </div>
   </section>
+}
+
+async function recoverLegacyCardText(frontFile, backFile) {
+  const frontCanvas = await prepareDocumentForOcr(frontFile, { threshold: 158, width: 2600 })
+  const backCanvas = await prepareDocumentForOcr(backFile, { threshold: 165, width: 2600 })
+  try {
+    const [frontOcr, backOcr] = await Promise.all([
+      recognize(frontCanvas, 'spa'),
+      recognize(backCanvas, 'spa'),
+    ])
+    return { frontText: frontOcr.data.text || '', backText: backOcr.data.text || '' }
+  } finally {
+    frontCanvas.width = 1
+    frontCanvas.height = 1
+    backCanvas.width = 1
+    backCanvas.height = 1
+  }
+}
+
+async function prepareDocumentForOcr(file, { threshold = 160, width = 2400 } = {}) {
+  const bitmap = await createImageBitmap(file)
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = Math.max(800, Math.round(width * bitmap.height / bitmap.width))
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, canvas.width, canvas.height)
+  bitmap.close?.()
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  for (let i = 0; i < image.data.length; i += 4) {
+    const gray = Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114)
+    const boosted = gray < threshold ? Math.max(0, gray - 55) : Math.min(255, gray + 42)
+    image.data[i] = boosted
+    image.data[i + 1] = boosted
+    image.data[i + 2] = boosted
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
 }
 
 async function recoverNitFromFront(file, setProgress) {
@@ -208,15 +272,67 @@ async function prepareNitFocus(file, variant = 0) {
   return canvas
 }
 
-function applyManualTaxId(result, value) {
+function mergeRecoveredField(result, field, value, missingLabel) {
+  const missing = result.missing.filter((item) => item !== missingLabel)
+  return { ...result, [field]: value, missing, ready_for_dte03: missing.length === 0 }
+}
+
+function preferMoreComplete(first, second) {
+  if (!first) return second
+  if (!second) return first
+  const merged = {
+    ...first,
+    name: second.name || first.name,
+    nit: second.nit || first.nit,
+    nrc: second.nrc || first.nrc,
+    business_activity: second.business_activity || first.business_activity,
+    activity_code: second.activity_code || first.activity_code,
+    address: second.address || first.address,
+  }
+  return finalizeResult(merged)
+}
+
+function applyManualCorrections(result, manual) {
   if (!result) return result
+  const next = { ...result }
+  const name = String(manual.name || '').trim()
+  const nrc = normalizeNrc(manual.nrc)
+  const businessActivity = String(manual.business_activity || '').trim()
+  const address = String(manual.address || '').trim()
+  const nit = normalizeTaxId(manual.nit)
+  if (name) next.name = name
+  if (nit) next.nit = nit
+  if (nrc) next.nrc = nrc
+  if (businessActivity) {
+    next.business_activity = businessActivity
+    next.activity_code = ''
+  }
+  if (address) next.address = address
+  return finalizeResult(next)
+}
+
+function finalizeResult(result) {
+  const missing = []
+  if (!result.nit) missing.push('NIT')
+  if (!result.nrc) missing.push('NRC')
+  if (!result.name) missing.push('razón social')
+  if (!result.business_activity) missing.push('giro / actividad')
+  if (!result.address) missing.push('dirección de casa matriz')
+  return { ...result, missing, ready_for_dte03: missing.length === 0 }
+}
+
+function normalizeTaxId(value) {
   const digits = String(value || '').replace(/\D/g, '')
-  if (result.nit || ![9, 14].includes(digits.length)) return result
-  const nit = digits.length === 9
+  if (![9, 14].includes(digits.length)) return ''
+  return digits.length === 9
     ? `${digits.slice(0, 8)}-${digits.slice(8)}`
     : `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
-  const missing = result.missing.filter((item) => item !== 'NIT')
-  return { ...result, nit, missing, ready_for_dte03: missing.length === 0 }
+}
+
+function normalizeNrc(value) {
+  const digits = String(value || '').replace(/\D/g, '')
+  if (digits.length < 3 || digits.length > 8) return ''
+  return `${digits.slice(0, -1)}-${digits.slice(-1)}`
 }
 
 function applyToFiscalForm(data) {
