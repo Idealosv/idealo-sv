@@ -124,17 +124,33 @@ function AdditionalActivities({ formElement }) {
 
   return <section className="client-extra-activities">
     <div className="client-extra-activities-head">
-      <div><strong>Actividades económicas adicionales</strong><small>El giro principal de arriba es el que usa el DTE. Aquí puede conservar hasta dos giros adicionales del cliente.</small></div>
+      <div><strong>Giros adicionales del cliente</strong><small>Puede escribir libremente o seleccionar una actividad del CAT-019. El giro principal de arriba sigue siendo el que usa el DTE.</small></div>
       <span>CAT-019</span>
     </div>
     <div className="client-extra-activities-grid">
       <label className="field">
-        <span>Giro 2</span>
-        <input list={listId} value={formatted(2)} onChange={(event) => setActivity(2, event.target.value)} placeholder="Buscar código o actividad" />
+        <span>Giro secundario</span>
+        <input
+          type="text"
+          name="business_activity_2"
+          list={listId}
+          value={formatted(2)}
+          onChange={(event) => setActivity(2, event.target.value)}
+          placeholder="Escribir o buscar código / actividad"
+          autoComplete="off"
+        />
       </label>
       <label className="field">
-        <span>Giro 3</span>
-        <input list={listId} value={formatted(3)} onChange={(event) => setActivity(3, event.target.value)} placeholder="Buscar código o actividad" />
+        <span>Giro terciario</span>
+        <input
+          type="text"
+          name="business_activity_3"
+          list={listId}
+          value={formatted(3)}
+          onChange={(event) => setActivity(3, event.target.value)}
+          placeholder="Escribir o buscar código / actividad"
+          autoComplete="off"
+        />
       </label>
     </div>
     <datalist id={listId}>{DTE_ACTIVITIES.map((item) => <option key={item.code} value={`${item.code} - ${item.name}`} />)}</datalist>
@@ -149,12 +165,14 @@ function parseActivity(raw = '') {
     const exact = DTE_ACTIVITIES.find((item) => item.code === code[1])
     return exact || { code: code[1], name: code[2].trim() }
   }
+
   const normalized = normalize(text)
   if (!normalized) return null
-  const exact = DTE_ACTIVITIES.find((item) => normalize(item.name) === normalized)
-  if (exact) return exact
-  const contains = DTE_ACTIVITIES.find((item) => normalize(item.name).includes(normalized) || normalized.includes(normalize(item.name)))
-  return contains || null
+
+  const exactCode = DTE_ACTIVITIES.find((item) => item.code === text)
+  if (exactCode) return exactCode
+
+  return DTE_ACTIVITIES.find((item) => normalize(item.name) === normalized) || null
 }
 
 function normalize(value = '') {
