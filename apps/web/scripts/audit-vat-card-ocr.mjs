@@ -8,18 +8,23 @@ assert.match(parserSource, /NAME_LABEL/)
 assert.match(parserSource, /NRC_LABEL/)
 assert.match(parserSource, /function findName/)
 assert.match(parserSource, /function cleanAddress/)
+assert.match(parserSource, /function suspiciousName/)
+assert.match(parserSource, /function suspiciousAddress/)
+assert.match(parserSource, /review_fields/)
 assert.match(parserSource, /export function extractVatNit/)
 assert.match(parserSource, /normalizeOcrDigits/)
 assert.match(scanner, /recoverLegacyCardText/)
 assert.match(scanner, /applyManualCorrections/)
 assert.match(scanner, /Revisión \/ corrección manual/)
+assert.match(scanner, /REVISAR/)
+assert.match(scanner, /review_fields/)
 assert.match(scanner, /\[9, 14\]\.includes\(digits\.length\)/)
 assert.match(scanner, /document_type: isHomologatedDui \? '13' : '36'/)
 assert.match(scanner, /disabled=\{!resolvedResult\?\.ready_for_dte03\}/)
 
 const executable = parserSource.replace(
   "import { DTE_ACTIVITIES } from './dteCatalogs'",
-  "const DTE_ACTIVITIES = [{ code: '731000', name: 'Servicios de publicidad' }, { code: '181100', name: 'Actividades de impresión' }]",
+  "const DTE_ACTIVITIES = [{ code: '731000', name: 'Servicios de publicidad' }, { code: '181100', name: 'Actividades de impresión' }, { code: '452000', name: 'Reparación mecánica de vehículos automotores' }]",
 )
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(executable).toString('base64')}`
 const { extractVatNit, parseVatCardSides } = await import(moduleUrl)
@@ -92,10 +97,28 @@ GIRO O ACTIVIDAD ECONOMICA
 PUBLICIDAD
 `, `
 DIRECCION DE CASA MATRIZ
-2A CALLE ORIENTE, COL. SANTA MARIA, #4, AHUACHAPAN LE A AN
+2A CALLE ORIENTE, COL. SANTA MARIA, #4, AHUACHAPAN LE A AN R Q 03 I
 CATEGORIA DE CONTRIBUYENTE: OTRO
 `)
-assert.doesNotMatch(addressNoise.address, /LE A AN$/i)
+assert.doesNotMatch(addressNoise.address, /LE A AN R Q 03 I$/i)
+
+const contaminated = parseVatCardSides(`
+MINISTERIO DE HACIENDA
+É DARIA: VENTA DE PARTES. PI A Y ACCESORIOS NUEVOS PARA VEHICULOS ____ 1 Y
+NIT
+0101-230174-101-6
+NRC
+44997-1
+GIRO O ACTIVIDAD ECONOMICA
+REPARACION MECANICA DE VEHICULOS AUTOMOTORES
+`, `
+DIRECCION DE CASA MATRIZ
+2A CALLE ORIENTE, COL. SANTA MARIA, 4 1, AHUACHAPAN, AHUACHAPAN LE A AN R Q 03 I
+CATEGORIA DE CONTRIBUYENTE: OTRO
+`)
+assert.ok(contaminated.review_fields.includes('name'))
+assert.equal(contaminated.ready_for_dte03, false)
+assert.doesNotMatch(contaminated.address, /LE A AN R Q 03 I$/i)
 
 assert.equal(extractVatNit('DUI O1234567 8'), '01234567-8')
 assert.equal(extractVatNit('NIT O142 78I234 1O1 I'), '0142-781234-101-1')
@@ -104,4 +127,4 @@ const unsafe = parseVatCardSides(`NOMBRE DEL CONTRIBUYENTE\nGONZALEZ ARTERO, JAI
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: formatos actuales/antiguos, limpieza de dirección y revisión manual protegidos')
+console.log('✓ OCR IVA: formatos antiguos, limpieza de ruido y bloqueo de campos dudosos verificados')
