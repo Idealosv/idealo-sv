@@ -3,7 +3,7 @@ export async function splitCombinedVatImage(file) {
   const bitmap = await createImageBitmap(file)
   try {
     const source = document.createElement('canvas')
-    const maxDimension = 2200
+    const maxDimension = 2600
     const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height))
     source.width = Math.max(1, Math.round(bitmap.width * scale))
     source.height = Math.max(1, Math.round(bitmap.height * scale))
@@ -15,16 +15,26 @@ export async function splitCombinedVatImage(file) {
       ? findHorizontalGap(ctx, source.width, source.height)
       : findVerticalGap(ctx, source.width, source.height)
 
-    const firstRect = orientation === 'horizontal'
+    const firstHalf = orientation === 'horizontal'
       ? { x: 0, y: 0, width: source.width, height: split }
       : { x: 0, y: 0, width: split, height: source.height }
-    const secondRect = orientation === 'horizontal'
+    const secondHalf = orientation === 'horizontal'
       ? { x: 0, y: split, width: source.width, height: source.height - split }
       : { x: split, y: 0, width: source.width - split, height: source.height }
 
+    const firstRect = tightenRectToCard(ctx, firstHalf)
+    const secondRect = tightenRectToCard(ctx, secondHalf)
+
     const frontFile = await cropToFile(source, firstRect, 'tarjeta-iva-frente.jpg')
     const backFile = await cropToFile(source, secondRect, 'tarjeta-iva-reverso.jpg')
-    return { frontFile, backFile, orientation, splitRatio: split / (orientation === 'horizontal' ? source.height : source.width) }
+    return {
+      frontFile,
+      backFile,
+      orientation,
+      splitRatio: split / (orientation === 'horizontal' ? source.height : source.width),
+      frontCropRatio: firstRect.width / Math.max(1, firstHalf.width),
+      backCropRatio: secondRect.width / Math.max(1, secondHalf.width),
+    }
   } finally {
     bitmap.close?.()
   }
@@ -121,16 +131,87 @@ function columnDarkness(ctx, width, height) {
   return values
 }
 
+function tightenRectToCard(ctx, rect) {
+  const x0 = Math.max(0, Math.round(rect.x))
+  const y0 = Math.max(0, Math.round(rect.y))
+  const width = Math.max(1, Math.round(rect.width))
+  const height = Math.max(1, Math.round(rect.height))
+  const image = ctx.getImageData(x0, y0, width, height).data
+  const stepX = Math.max(1, Math.floor(width / 500))
+  const stepY = Math.max(1, Math.floor(height / 500))
+  const rowFractions = []
+  const colFractions = []
+
+  for (let y = 0; y < height; y += stepY) {
+    let dark = 0
+    let total = 0
+    for (let x = 0; x < width; x += stepX) {
+      const i = (y * width + x) * 4
+      const gray = image[i] * 0.299 + image[i + 1] * 0.587 + image[i + 2] * 0.114
+      if (gray < 232) dark += 1
+      total += 1
+    }
+    rowFractions.push({ pos: y, value: dark / Math.max(1, total) })
+  }
+
+  for (let x = 0; x < width; x += stepX) {
+    let dark = 0
+    let total = 0
+    for (let y = 0; y < height; y += stepY) {
+      const i = (y * width + x) * 4
+      const gray = image[i] * 0.299 + image[i + 1] * 0.587 + image[i + 2] * 0.114
+      if (gray < 232) dark += 1
+      total += 1
+    }
+    colFractions.push({ pos: x, value: dark / Math.max(1, total) })
+  }
+
+  const yRange = activeRange(rowFractions, 0.12, height)
+  const xRange = activeRange(colFractions, 0.12, width)
+  if (!xRange || !yRange) return rect
+
+  const detectedWidth = xRange.end - xRange.start
+  const detectedHeight = yRange.end - yRange.start
+  if (detectedWidth < width * 0.22 || detectedHeight < height * 0.18) return rect
+
+  const padX = Math.round(detectedWidth * 0.045)
+  const padY = Math.round(detectedHeight * 0.06)
+  const left = Math.max(0, xRange.start - padX)
+  const top = Math.max(0, yRange.start - padY)
+  const right = Math.min(width, xRange.end + padX)
+  const bottom = Math.min(height, yRange.end + padY)
+
+  return {
+    x: x0 + left,
+    y: y0 + top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
+  }
+}
+
+function activeRange(samples, threshold, limit) {
+  const active = samples.filter((sample) => sample.value >= threshold)
+  if (!active.length) return null
+  const start = active[0].pos
+  const last = active[active.length - 1].pos
+  const step = samples.length > 1 ? Math.max(1, samples[1].pos - samples[0].pos) : 1
+  return { start, end: Math.min(limit, last + step) }
+}
+
 async function cropToFile(source, rect, name) {
+  const targetWidth = Math.min(2600, Math.max(1800, Math.round(rect.width)))
+  const targetHeight = Math.max(700, Math.round(targetWidth * rect.height / Math.max(1, rect.width)))
   const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(rect.width))
-  canvas.height = Math.max(1, Math.round(rect.height))
+  canvas.width = targetWidth
+  canvas.height = targetHeight
   const ctx = canvas.getContext('2d')
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(source, rect.x, rect.y, rect.width, rect.height, 0, 0, canvas.width, canvas.height)
   const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((value) => value ? resolve(value) : reject(new Error('COMBINED_IMAGE_CROP_FAILED')), 'image/jpeg', 0.94)
+    canvas.toBlob((value) => value ? resolve(value) : reject(new Error('COMBINED_IMAGE_CROP_FAILED')), 'image/jpeg', 0.96)
   })
   return new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() })
 }
