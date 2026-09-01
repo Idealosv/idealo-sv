@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ErpApp from './ErpApp.jsx'
-import Workspace from './Workspace.jsx'
+import SafeWorkspaceGate from './SafeWorkspaceGate.jsx'
 import { supabase } from './lib/supabase.js'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
@@ -84,7 +84,7 @@ export default function App() {
   }
 
   if (session && screen === 'account') {
-    return <Workspace session={session} supabase={supabase} />
+    return <SafeWorkspaceGate session={session} supabase={supabase} />
   }
 
   return (
