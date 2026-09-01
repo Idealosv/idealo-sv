@@ -58,10 +58,13 @@ if (!source.includes(newBlock)) {
 
 const billingFile = path.resolve(here, '../src/Billing360Dashboard.jsx')
 const billingSource = fs.readFileSync(billingFile, 'utf8')
+const structuredFeedback = `actionMessage.text&&<p className={\`feedback \${actionMessage.type==='neutral'?'':actionMessage.type}\`} role="status">{actionMessage.text}</p>`
 const oldFeedback = `{error&&<p className="feedback error">{error}</p>}{actionMessage&&<p className="feedback success" role="status">{actionMessage}</p>}`
 const newFeedback = `{error&&<p className="feedback error">{error}</p>}{actionMessage&&<p className={\`feedback \${actionMessage.startsWith('✓')?'success':/(detenida|No se firmó|REJECTED|rechaz)/i.test(actionMessage)?'error':''}\`} role="status">{actionMessage}</p>}`
-if (!billingSource.includes(newFeedback)) {
-  if (!billingSource.includes(oldFeedback)) throw new Error('No se encontró el bloque de feedback fiscal esperado; revisar Billing360Dashboard antes de modificar.')
+if (billingSource.includes(structuredFeedback)) {
+  console.log('Facturación: feedback fiscal estructurado ya separa éxito, rechazo y estado neutro.')
+} else if (!billingSource.includes(newFeedback)) {
+  if (!billingSource.includes(oldFeedback)) throw new Error('No se encontró un contrato de feedback fiscal conocido; revisar Billing360Dashboard antes de modificar.')
   fs.writeFileSync(billingFile, billingSource.replace(oldFeedback, newFeedback))
   console.log('Facturación: feedback fiscal separa éxito, rechazo y estado neutro.')
 } else {
