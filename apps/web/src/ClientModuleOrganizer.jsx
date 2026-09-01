@@ -38,17 +38,17 @@ function normalizeVisibleClientFields(form) {
   const clientType = form.querySelector('[name="client_type"]')?.value || 'company'
   const preferredDte = form.querySelector('[name="preferred_dte_type"]')?.value || '01'
   const documentType = form.querySelector('[name="document_type"]')?.value || (clientType === 'person' ? '13' : '36')
-  const isPerson = clientType === 'person'
   const isCreditFiscal = preferredDte === '03'
-  const isHomologatedDui = isPerson && documentType === '13'
+  const isNit = documentType === '36'
+  const isDui = documentType === '13'
 
   const taxpayer = form.querySelector('[name="taxpayer_type"]')
-  if (taxpayer) nativeSet(taxpayer, isPerson ? '1' : '2')
+  if (taxpayer) nativeSet(taxpayer, clientType === 'person' ? '1' : '2')
 
   const contactName = labelOf(form, 'contact_name')
   const contactPosition = labelOf(form, 'contact_position')
-  if (contactName) contactName.hidden = isPerson
-  if (contactPosition) contactPosition.hidden = isPerson
+  if (contactName) contactName.hidden = clientType === 'person'
+  if (contactPosition) contactPosition.hidden = clientType === 'person'
 
   const documentNumber = form.querySelector('[name="document_number"]')
   const taxId = form.querySelector('[name="tax_id"]')
@@ -59,13 +59,12 @@ function normalizeVisibleClientFields(form) {
 
   if (taxpayerLabel) taxpayerLabel.hidden = true
 
-  if (!isPerson) {
-    nativeSet(form.querySelector('[name="document_type"]'), '36')
+  if (isNit) {
     if (documentNumberLabel) documentNumberLabel.hidden = true
     if (duiLabel) duiLabel.hidden = true
     if (taxIdLabel) taxIdLabel.hidden = false
     if (taxId?.value) nativeSet(documentNumber, taxId.value)
-  } else if (isHomologatedDui) {
+  } else if (isDui) {
     if (documentNumberLabel) {
       documentNumberLabel.hidden = false
       const title = documentNumberLabel.querySelector('span')
@@ -91,11 +90,9 @@ function normalizeVisibleClientFields(form) {
 function installClientFieldSync(form) {
   const sync = () => window.setTimeout(() => normalizeVisibleClientFields(form), 0)
   normalizeVisibleClientFields(form)
-  form.addEventListener('input', sync, true)
   form.addEventListener('change', sync, true)
 
   return () => {
-    form.removeEventListener('input', sync, true)
     form.removeEventListener('change', sync, true)
   }
 }
