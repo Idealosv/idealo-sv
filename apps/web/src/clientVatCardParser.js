@@ -18,6 +18,7 @@ const NRC_LABEL = /(?:NRC|N[°ºO.]?\s*(?:DE\s*)?REGISTRO(?:\s*\(?NRC\)?)?|REGIS
 const NAME_LABEL = /(?:NOMBRE\s+(?:DEL\s+)?CONTRIBUYENTE|NOMBRE\s*\/\s*RAZ[ÓO]N\s+SOCIAL|NOMBRE\s+O\s+RAZ[ÓO]N\s+SOCIAL|RAZ[ÓO]N\s+SOCIAL|DENOMINACI[ÓO]N)/i
 const ACTIVITY_LABEL = /(?:GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA|GIRO\s*\/\s*ACTIVIDAD|GIRO|ACTIVIDAD\s+ECON[ÓO]MICA)/i
 const STOP_ADDRESS = /CATEGOR[IÍ]A|FIRMA|FUNCIONARIO|ESTA\s+TARJETA|C[ÓO]DIGO\s+[ÚU]NICO|REGISTRO\s+DE\s+CONTRIBUYENTES/i
+const ACTIVITY_STOP = /CATEGOR[IÍ]A|CONTRIBUYENTE|FIRMA|FUNCIONARIO|FECHA|EXPEDICI[ÓO]N|C[ÓO]DIGO\s+[ÚU]NICO|DIRECCI[ÓO]N\s+(?:DE\s+)?CASA\s+MATRIZ/i
 const COMMERCIAL_NAME_NOISE = /\b(VENTA|REPARACI[ÓO]N|SERVICIOS?|ACCESORIOS?|VEH[IÍ]CULOS?|AUTOMOTORES?|ACTIVIDAD|GIRO|REPUESTOS?|PARTES?)\b/i
 
 export function parseVatCardSides(frontText = '', backText = '') {
@@ -29,9 +30,10 @@ export function parseVatCardSides(frontText = '', backText = '') {
   const nit = findNit(front, compact)
   const nrc = findNrc(front, compact, nit)
   const name = findName(front)
-  const activityRaw = findActivity(front)
+  const activities = findActivities(front)
+  const primaryActivity = activities[0] || null
+  const activityRaw = primaryActivity?.raw || ''
   const address = findAddress(back)
-  const activity = matchActivity(activityRaw)
 
   const missing = []
   if (!nit) missing.push('NIT')
@@ -44,12 +46,18 @@ export function parseVatCardSides(frontText = '', backText = '') {
   if (name && suspiciousName(name)) review_fields.push('name')
   if (address && suspiciousAddress(address)) review_fields.push('address')
 
+  const additional_activities = activities.slice(1, 3).map(({ raw, matched }) => ({
+    code: matched?.code || '',
+    name: matched?.name || raw,
+  }))
+
   return {
     name,
     nit,
     nrc,
-    business_activity: activity?.name || activityRaw,
-    activity_code: activity?.code || '',
+    business_activity: primaryActivity?.matched?.name || activityRaw,
+    activity_code: primaryActivity?.matched?.code || '',
+    additional_activities,
     address,
     missing,
     review_fields,
@@ -158,18 +166,54 @@ function nameScore(value = '') {
   return words.length * 10 + (value.includes(',') ? 18 : 0) + Math.min(value.length, 50) / 10 - suspiciousPenalty - commercialPenalty
 }
 
-function findActivity(lines) {
-  const direct = findField(lines, ACTIVITY_LABEL, { maxNext: 4, reject: (value) => isInstitutional(value) || /^\d[\d\s.-]*$/.test(value), allowActivityValue: true })
-  if (direct) return cleanActivity(direct)
-  const hintIndex = lines.findIndex((line) => /GIRO|ACTIVIDAD|ECON[ÓO]MIC/i.test(line))
-  if (hintIndex >= 0) {
-    for (let offset = 1; offset <= 5; offset += 1) {
-      const candidate = clean(lines[hintIndex + offset] || '')
-      if (!candidate || isInstitutional(candidate) || isHardLabel(candidate) || NRC_LABEL.test(candidate) || NIT_LABEL.test(candidate) || /^\d[\d\s.-]*$/.test(candidate)) continue
-      if (candidate.length >= 5) return cleanActivity(candidate)
-    }
+function findActivities(lines) {
+  const candidates = []
+  const labelIndexes = lines.map((line, index) => (ACTIVITY_LABEL.test(line) ? index : -1)).filter((index) => index >= 0)
+
+  const pushCandidate = (value) => {
+    const raw = cleanActivity(value)
+    if (!looksLikeActivity(raw)) return
+    const matched = matchActivity(raw)
+    const key = matched?.code || normalize(raw)
+    if (!key || candidates.some((item) => (item.matched?.code || normalize(item.raw)) === key)) return
+    candidates.push({ raw, matched })
   }
-  return ''
+
+  for (const index of labelIndexes) {
+    const inline = clean(lines[index].replace(ACTIVITY_LABEL, '').replace(/^\s*[:.\-–()]+\s*/, ''))
+    pushCandidate(inline)
+
+    for (let offset = 1; offset <= 8 && index + offset < lines.length; offset += 1) {
+      const line = lines[index + offset]
+      if (!line) continue
+      if (ACTIVITY_LABEL.test(line)) {
+        const repeatedInline = clean(line.replace(ACTIVITY_LABEL, '').replace(/^\s*[:.\-–()]+\s*/, ''))
+        pushCandidate(repeatedInline)
+        continue
+      }
+      if (ACTIVITY_STOP.test(line) || NIT_LABEL.test(line) || NRC_LABEL.test(line) || NAME_LABEL.test(line)) break
+      pushCandidate(line)
+      if (candidates.length >= 3) break
+    }
+    if (candidates.length >= 3) break
+  }
+
+  if (!candidates.length) {
+    const direct = findField(lines, ACTIVITY_LABEL, { maxNext: 4, reject: (value) => isInstitutional(value) || /^\d[\d\s.-]*$/.test(value), allowActivityValue: true })
+    pushCandidate(direct)
+  }
+
+  return candidates.slice(0, 3)
+}
+
+function looksLikeActivity(value = '') {
+  const text = cleanActivity(value)
+  if (text.length < 4 || text.length > 160) return false
+  if (isInstitutional(text) || isHardLabel(text) || ADDRESS_HINT.test(text)) return false
+  if (NIT_LABEL.test(text) || NRC_LABEL.test(text) || NAME_LABEL.test(text) || ACTIVITY_STOP.test(text)) return false
+  if (/^\d[\d\s.,\-_/]*$/.test(text)) return false
+  const words = text.match(/[A-ZÁÉÍÓÚÑ]{3,}/gi) || []
+  return words.length >= 1
 }
 
 function findField(lines, label, { maxNext = 2, reject = () => false, allowActivityValue = false } = {}) {
