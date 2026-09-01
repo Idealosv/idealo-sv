@@ -11,6 +11,7 @@ const migration = fs.readFileSync(new URL('../../../supabase/migrations/20260901
 assert.match(parserSource, /NAME_LABEL/)
 assert.match(parserSource, /NRC_LABEL/)
 assert.match(parserSource, /function findName/)
+assert.match(parserSource, /function isContributorNameCandidate/)
 assert.match(parserSource, /function findActivities/)
 assert.match(parserSource, /additional_activities/)
 assert.match(parserSource, /function cleanAddress/)
@@ -77,6 +78,7 @@ NRC
 GIRO O ACTIVIDAD ECONOMICA
 PUBLICIDAD
 `, noisyBack)
+assert.equal(traditional.name, 'GONZALEZ ARTERO, JAIME OMAR')
 assert.equal(traditional.nit, '0142-781234-101-1')
 assert.equal(traditional.ready_for_dte03, true)
 
@@ -94,6 +96,30 @@ assert.equal(homologated.nit, '01234567-8')
 assert.equal(homologated.nrc, '216060-8')
 assert.equal(homologated.ready_for_dte03, true)
 assert.match(homologated.business_activity, /publicidad/i)
+
+const labelledContributor = parseVatCardSides(`
+MINISTERIO DE HACIENDA
+DIRECCION GENERAL DE IMPUESTOS INTERNOS
+NOMBRE DEL CONTRIBUYENTE
+CALDERON GONZALEZ, CARLOS ALFREDO
+No. DE IDENTIFICACION TRIBUTARIA (NIT)
+0101-230174-101-6
+N° DE REGISTRO (NRC)
+124439-1
+GIRO O ACTIVIDAD ECONOMICA
+PRIMARIA: REPARACION MECANICA DE VEHICULOS AUTOMOTORES
+SECUNDARIA: VENTA DE PARTES, PIEZAS Y ACCESORIOS NUEVOS PARA VEHICULOS AUTOMOTORES
+TERCIARIA:
+`, `
+DIRECCION DE CASA MATRIZ
+2A CALLE ORIENTE, COL. SANTA MARIA, #1, AHUACHAPAN, AHUACHAPAN
+CATEGORIA DE CONTRIBUYENTE: OTRO
+`)
+assert.equal(labelledContributor.name, 'CALDERON GONZALEZ, CARLOS ALFREDO')
+assert.notEqual(labelledContributor.name, labelledContributor.business_activity)
+assert.doesNotMatch(labelledContributor.name, /VENTA|REPARACION|ACCESORIOS/i)
+assert.equal(labelledContributor.nrc, '124439-1')
+assert.match(labelledContributor.business_activity, /reparación|reparacion/i)
 
 const legacy = parseVatCardSides(`
 MINISTERIO DE HACIENDA
@@ -167,7 +193,8 @@ DIRECCION DE CASA MATRIZ
 2A CALLE ORIENTE, COL. SANTA MARIA, 4 1, AHUACHAPAN, AHUACHAPAN LE A AN R Q 03 I
 CATEGORIA DE CONTRIBUYENTE: OTRO
 `)
-assert.ok(contaminated.review_fields.includes('name'))
+assert.equal(contaminated.name, '')
+assert.ok(contaminated.missing.includes('razón social'))
 assert.equal(contaminated.ready_for_dte03, false)
 assert.doesNotMatch(contaminated.address, /LE A AN R Q 03 I$/i)
 
@@ -178,4 +205,4 @@ const unsafe = parseVatCardSides(`NOMBRE DEL CONTRIBUYENTE\nGONZALEZ ARTERO, JAI
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: una imagen con ambas caras, tres giros, formatos antiguos y validación de ruido verificados')
+console.log('✓ OCR IVA: nombre del contribuyente priorizado, una imagen con ambas caras, tres giros y validación de ruido verificados')
