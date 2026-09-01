@@ -3,10 +3,15 @@ import fs from 'node:fs'
 
 const parserSource = fs.readFileSync(new URL('../src/clientVatCardParser.js', import.meta.url), 'utf8')
 const scanner = fs.readFileSync(new URL('../src/ClientVatCardScannerHost.jsx', import.meta.url), 'utf8')
+const extraActivitiesHost = fs.readFileSync(new URL('../src/ClientAdditionalActivitiesHost.jsx', import.meta.url), 'utf8')
+const mainSource = fs.readFileSync(new URL('../src/main.jsx', import.meta.url), 'utf8')
+const migration = fs.readFileSync(new URL('../../../supabase/migrations/20260901053000_client_three_business_activities.sql', import.meta.url), 'utf8')
 
 assert.match(parserSource, /NAME_LABEL/)
 assert.match(parserSource, /NRC_LABEL/)
 assert.match(parserSource, /function findName/)
+assert.match(parserSource, /function findActivities/)
+assert.match(parserSource, /additional_activities/)
 assert.match(parserSource, /function cleanAddress/)
 assert.match(parserSource, /function suspiciousName/)
 assert.match(parserSource, /function suspiciousAddress/)
@@ -16,11 +21,24 @@ assert.match(parserSource, /normalizeOcrDigits/)
 assert.match(scanner, /recoverLegacyCardText/)
 assert.match(scanner, /applyManualCorrections/)
 assert.match(scanner, /Revisión \/ corrección manual/)
+assert.match(scanner, /Giro 2/)
+assert.match(scanner, /Giro 3/)
+assert.match(scanner, /idealo-vat-additional-activities/)
 assert.match(scanner, /REVISAR/)
 assert.match(scanner, /review_fields/)
 assert.match(scanner, /\[9, 14\]\.includes\(digits\.length\)/)
 assert.match(scanner, /document_type: isHomologatedDui \? '13' : '36'/)
 assert.match(scanner, /disabled=\{!resolvedResult\?\.ready_for_dte03\}/)
+assert.match(extraActivitiesHost, /Giro 2/)
+assert.match(extraActivitiesHost, /Giro 3/)
+assert.match(extraActivitiesHost, /activity_code_2/)
+assert.match(extraActivitiesHost, /activity_code_3/)
+assert.match(extraActivitiesHost, /DTE_ACTIVITIES/)
+assert.match(mainSource, /ClientAdditionalActivitiesHost/)
+assert.match(migration, /add column if not exists activity_code_2 text/)
+assert.match(migration, /add column if not exists business_activity_2 text/)
+assert.match(migration, /add column if not exists activity_code_3 text/)
+assert.match(migration, /add column if not exists business_activity_3 text/)
 
 const executable = parserSource.replace(
   "import { DTE_ACTIVITIES } from './dteCatalogs'",
@@ -86,6 +104,26 @@ assert.match(legacy.business_activity, /publicidad/i)
 assert.match(legacy.address, /CALLE ORIENTE/i)
 assert.equal(legacy.ready_for_dte03, true)
 
+const threeActivities = parseVatCardSides(`
+NOMBRE DEL CONTRIBUYENTE
+COMERCIAL EJEMPLO, S.A. DE C.V.
+NIT
+0614-010101-001-2
+NRC
+123456-7
+GIRO O ACTIVIDAD ECONOMICA
+SERVICIOS DE PUBLICIDAD
+ACTIVIDADES DE IMPRESION
+REPARACION MECANICA DE VEHICULOS AUTOMOTORES
+CATEGORIA DE CONTRIBUYENTE: OTRO
+`, noisyBack)
+assert.equal(threeActivities.activity_code, '731000')
+assert.equal(threeActivities.additional_activities.length, 2)
+assert.equal(threeActivities.additional_activities[0].code, '181100')
+assert.equal(threeActivities.additional_activities[1].code, '452000')
+assert.match(threeActivities.additional_activities[0].name, /impresi/i)
+assert.match(threeActivities.additional_activities[1].name, /reparación|reparacion/i)
+
 const addressNoise = parseVatCardSides(`
 NOMBRE DEL CONTRIBUYENTE
 COMERCIAL EJEMPLO, S.A. DE C.V.
@@ -127,4 +165,4 @@ const unsafe = parseVatCardSides(`NOMBRE DEL CONTRIBUYENTE\nGONZALEZ ARTERO, JAI
 assert.equal(unsafe.address, '')
 assert.equal(unsafe.ready_for_dte03, false)
 
-console.log('✓ OCR IVA: formatos antiguos, limpieza de ruido y bloqueo de campos dudosos verificados')
+console.log('✓ OCR IVA: giro principal + dos giros adicionales, formatos antiguos y validación de ruido verificados')
