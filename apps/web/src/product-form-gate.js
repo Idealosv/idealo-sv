@@ -16,8 +16,21 @@ function initializeModule(module) {
   setEditorVisible(module, editing)
 }
 
+function closeAfterSuccessfulSave(module) {
+  if (!module) return
+  const feedback = module.querySelector('.feedback.success')
+  const text = feedback?.textContent?.trim() || ''
+  const saved = text.startsWith('Producto creado correctamente') || text.startsWith('Producto actualizado correctamente')
+  if (!saved || module.dataset.lastProductSaveMessage === text) return
+  module.dataset.lastProductSaveMessage = text
+  setEditorVisible(module, false)
+}
+
 function scan() {
-  document.querySelectorAll(PRODUCT_MODULE).forEach(initializeModule)
+  document.querySelectorAll(PRODUCT_MODULE).forEach(module => {
+    initializeModule(module)
+    closeAfterSuccessfulSave(module)
+  })
 }
 
 document.addEventListener('click', event => {
@@ -25,14 +38,16 @@ document.addEventListener('click', event => {
   if (!module) return
 
   if (event.target.closest('.products360-hero-actions button')) {
+    module.dataset.lastProductSaveMessage = ''
     requestAnimationFrame(() => setEditorVisible(module, true))
     return
   }
 
   if (event.target.closest('.product360-row')) {
+    module.dataset.lastProductSaveMessage = ''
     requestAnimationFrame(() => setEditorVisible(module, true))
   }
 })
 
-new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true })
+new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true, characterData: true })
 scan()
