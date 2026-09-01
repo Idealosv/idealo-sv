@@ -84,17 +84,18 @@ function isInstitutional(value = '') { return INSTITUTIONAL.some((pattern) => pa
 function findNit(lines, compact) {
   const labelIndex = lines.findIndex((line) => NIT_LABEL.test(line))
   const preferred = []
-  if (labelIndex >= 0) preferred.push(lines.slice(Math.max(0, labelIndex - 1), labelIndex + 4).join(' '))
-  preferred.push(compact)
+  if (labelIndex >= 0) preferred.push({ source: lines.slice(Math.max(0, labelIndex - 1), labelIndex + 4).join(' '), relaxed: true })
+  preferred.push({ source: compact, relaxed: false })
 
-  for (const source of preferred) {
-    const traditional = String(source || '').match(/(?:[0-9OQDILSB]{3,4}[\s.\-_/]*){3,5}[0-9OQDILSB]{1,4}/gi) || []
+  for (const { source, relaxed } of preferred) {
+    const alphabet = relaxed ? '0-9OQDILSBZTG' : '0-9OQDILSB'
+    const traditional = String(source || '').match(new RegExp(`(?:[${alphabet}]{3,4}[\\s.\\-_/]*){3,5}[${alphabet}]{1,4}`, 'gi')) || []
     for (const candidate of traditional) {
       const digits = normalizeOcrDigits(candidate)
       if (digits.length === 14) return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
     }
 
-    const duiCandidates = String(source || '').match(/[0-9OQDILSB]{8}[\s.\-_/]*[0-9OQDILSB]/gi) || []
+    const duiCandidates = String(source || '').match(new RegExp(`[${alphabet}]{8}[\\s.\\-_/]*[${alphabet}]`, 'gi')) || []
     for (const candidate of duiCandidates) {
       const digits = normalizeOcrDigits(candidate)
       if (digits.length === 9) return `${digits.slice(0, 8)}-${digits.slice(8)}`
@@ -104,27 +105,48 @@ function findNit(lines, compact) {
 }
 
 function normalizeOcrDigits(value = '') {
-  return String(value).toUpperCase().replace(/O|Q|D/g, '0').replace(/I|L/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/\D/g, '')
+  return String(value)
+    .toUpperCase()
+    .replace(/O|Q|D/g, '0')
+    .replace(/I|L/g, '1')
+    .replace(/Z/g, '2')
+    .replace(/S/g, '5')
+    .replace(/G/g, '6')
+    .replace(/T/g, '7')
+    .replace(/B/g, '8')
+    .replace(/\D/g, '')
 }
 
 function findNrc(lines, compact, nit) {
-  const labelIndex = lines.findIndex((line) => NRC_LABEL.test(line))
+  const labelIndexes = lines.map((line, index) => (NRC_LABEL.test(line) ? index : -1)).filter((index) => index >= 0)
   const sources = []
-  if (labelIndex >= 0) sources.push(lines.slice(Math.max(0, labelIndex - 1), labelIndex + 3).join(' '))
-  sources.push(findField(lines, NRC_LABEL, { maxNext: 2 }))
-  sources.push(compact)
+  labelIndexes.forEach((index) => {
+    sources.push({ source: lines.slice(index, index + 3).join(' '), labelled: true })
+    if (index > 0) sources.push({ source: lines.slice(index - 1, index + 2).join(' '), labelled: true })
+  })
+  const direct = findField(lines, NRC_LABEL, { maxNext: 2 })
+  if (direct) sources.push({ source: direct, labelled: true })
+  if (!sources.length) sources.push({ source: compact, labelled: false })
 
-  for (const source of sources) {
+  for (const { source, labelled } of sources) {
     const matches = String(source || '').match(/\b[0-9OQDILSB]{2,7}[\s.\-_/]+[0-9OQDILSB]\b/gi) || []
     for (const match of matches) {
       const digits = normalizeOcrDigits(match)
       if (digits.length < 3 || digits.length > 8) continue
+      if (!labelled && digits.length < 5) continue
       const normalized = `${digits.slice(0, -1)}-${digits.slice(-1)}`
       if (nit && normalizeOcrDigits(nit).includes(digits)) continue
+      if (!labelled && appearsInsideAddress(lines, match)) continue
       return normalized
     }
   }
   return ''
+}
+
+function appearsInsideAddress(lines, candidate) {
+  const digits = normalizeOcrDigits(candidate)
+  if (!digits) return false
+  return lines.some((line) => ADDRESS_HINT.test(line) && normalizeOcrDigits(line).includes(digits))
 }
 
 function findName(lines) {
@@ -136,19 +158,25 @@ function findName(lines) {
     const inline = cleanName(lines[index].replace(NAME_LABEL, '').replace(/^\s*[:.\-–()]+\s*/, ''))
     if (isContributorNameCandidate(inline)) return inline
 
+    const nearby = []
     for (let offset = 1; offset <= 4 && index + offset < lines.length; offset += 1) {
       const raw = lines[index + offset]
       if (!raw) continue
       if (NIT_LABEL.test(raw) || NRC_LABEL.test(raw) || ACTIVITY_LABEL.test(raw) || ADDRESS_HINT.test(raw)) break
+      nearby.push(raw)
       const candidate = cleanName(raw)
       if (isContributorNameCandidate(candidate)) return candidate
+      const joined = cleanName(nearby.join(' '))
+      if (isContributorNameCandidate(joined)) return joined
     }
   }
 
   const taxIndex = lines.findIndex((line) => NIT_LABEL.test(line) || NRC_LABEL.test(line))
   const end = taxIndex >= 0 ? taxIndex : Math.min(lines.length, 12)
   const start = Math.max(0, end - 7)
-  const candidates = lines.slice(start, end)
+  const window = lines.slice(start, end)
+  const candidates = window
+    .flatMap((line, index) => [line, `${line} ${window[index + 1] || ''}`])
     .map(cleanName)
     .filter((value) => isContributorNameCandidate(value))
 
@@ -244,6 +272,17 @@ function findActivities(lines) {
   if (!candidates.length) {
     const direct = findField(lines, ACTIVITY_LABEL, { maxNext: 4, reject: (value) => isInstitutional(value) || /^\d[\d\s.-]*$/.test(value), allowActivityValue: true })
     pushCandidate(direct)
+  }
+
+  if (!candidates.length) {
+    const taxIndex = lines.findIndex((line) => NIT_LABEL.test(line) || NRC_LABEL.test(line))
+    const start = taxIndex >= 0 ? Math.max(0, taxIndex) : 0
+    lines.slice(start, Math.min(lines.length, start + 14)).forEach((line, index, window) => {
+      if (isInstitutional(line) || NAME_LABEL.test(line) || ADDRESS_HINT.test(line) || /^\d[\d\s.,\-_/]*$/.test(line)) return
+      const joined = `${line} ${window[index + 1] || ''}`.trim()
+      const match = matchActivity(joined)
+      if (match) pushCandidate(match.name)
+    })
   }
 
   return candidates.slice(0, 3)
