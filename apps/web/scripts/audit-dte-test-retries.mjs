@@ -20,7 +20,16 @@ requireText(transmit, "const documentRejected = error.mhPhase === 'recepcion' &&
 requireText(transmit, "status: documentRejected ? 'REJECTED' : 'SIGNED'", 'Separación rechazo fiscal vs fallo técnico')
 requireText(tests, 'permite reintentos técnicos hasta el tercer intento', 'Cobertura reintentos')
 requireText(tests, 'bloquea un reenvío mientras existe un intento en curso', 'Cobertura concurrencia')
-requireText(dashboard, "actionMessage.startsWith('✓')?'success'", 'Feedback verde solo para éxito')
-requireText(dashboard, "/(detenida|No se firmó|REJECTED|rechaz)/i.test(actionMessage)?'error'", 'Feedback rojo para rechazo o fallo')
+
+const structuredFeedback =
+  dashboard.includes("setActionMessage({type:'success'") &&
+  dashboard.includes("setActionMessage({type:'error'") &&
+  dashboard.includes("type:'neutral'") &&
+  dashboard.includes("actionMessage.type==='neutral'?'':actionMessage.type")
+
+if (!structuredFeedback) {
+  requireText(dashboard, "actionMessage.startsWith('✓')?'success'", 'Feedback verde solo para éxito')
+  requireText(dashboard, "/(detenida|No se firmó|REJECTED|rechaz)/i.test(actionMessage)?'error'", 'Feedback rojo para rechazo o fallo')
+}
 
 console.log('OK DTE TEST: reintentos seguros, rechazo fiscal persistido y feedback visual coherente')
