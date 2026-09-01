@@ -18,6 +18,7 @@ const NRC_LABEL = /(?:NRC|N[°ºO.]?\s*(?:DE\s*)?REGISTRO(?:\s*\(?NRC\)?)?|REGIS
 const NAME_LABEL = /(?:NOMBRE\s+(?:DEL\s+)?CONTRIBUYENTE|NOMBRE\s*\/\s*RAZ[ÓO]N\s+SOCIAL|NOMBRE\s+O\s+RAZ[ÓO]N\s+SOCIAL|RAZ[ÓO]N\s+SOCIAL|DENOMINACI[ÓO]N)/i
 const ACTIVITY_LABEL = /(?:GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA|GIRO\s*\/\s*ACTIVIDAD|GIRO|ACTIVIDAD\s+ECON[ÓO]MICA)/i
 const STOP_ADDRESS = /CATEGOR[IÍ]A|FIRMA|FUNCIONARIO|ESTA\s+TARJETA|C[ÓO]DIGO\s+[ÚU]NICO|REGISTRO\s+DE\s+CONTRIBUYENTES/i
+const COMMERCIAL_NAME_NOISE = /\b(VENTA|REPARACI[ÓO]N|SERVICIOS?|ACCESORIOS?|VEH[IÍ]CULOS?|AUTOMOTORES?|ACTIVIDAD|GIRO|REPUESTOS?|PARTES?)\b/i
 
 export function parseVatCardSides(frontText = '', backText = '') {
   const front = linesOf(frontText)
@@ -39,7 +40,21 @@ export function parseVatCardSides(frontText = '', backText = '') {
   if (!activityRaw) missing.push('giro / actividad')
   if (!address) missing.push('dirección de casa matriz')
 
-  return { name, nit, nrc, business_activity: activity?.name || activityRaw, activity_code: activity?.code || '', address, missing, ready_for_dte03: missing.length === 0 }
+  const review_fields = []
+  if (name && suspiciousName(name)) review_fields.push('name')
+  if (address && suspiciousAddress(address)) review_fields.push('address')
+
+  return {
+    name,
+    nit,
+    nrc,
+    business_activity: activity?.name || activityRaw,
+    activity_code: activity?.code || '',
+    address,
+    missing,
+    review_fields,
+    ready_for_dte03: missing.length === 0 && review_fields.length === 0,
+  }
 }
 
 export function extractVatNit(text = '') {
@@ -106,7 +121,7 @@ function findNrc(lines, compact, nit) {
 
 function findName(lines) {
   const direct = cleanName(findField(lines, NAME_LABEL, { maxNext: 3, reject: (value) => isInstitutional(value) || !looksLikeName(value) }))
-  if (direct && looksLikeName(direct)) return direct
+  if (direct && looksLikeName(direct) && !suspiciousName(direct)) return direct
 
   const taxIndex = lines.findIndex((line) => NIT_LABEL.test(line) || NRC_LABEL.test(line))
   const end = taxIndex >= 0 ? taxIndex : Math.min(lines.length, 12)
@@ -115,20 +130,32 @@ function findName(lines) {
     .map(cleanName)
     .filter((value) => looksLikeName(value) && !isInstitutional(value) && !isLabel(value) && !ADDRESS_HINT.test(value))
 
-  return candidates.sort((a, b) => nameScore(b) - nameScore(a))[0] || ''
+  return candidates.sort((a, b) => nameScore(b) - nameScore(a))[0] || direct || ''
 }
 
 function looksLikeName(value = '') {
   const text = cleanName(value)
-  if (text.length < 7 || text.length > 90) return false
+  if (text.length < 7 || text.length > 110) return false
   if (/\d{3,}/.test(text) || ACTIVITY_LABEL.test(text) || NIT_LABEL.test(text) || NRC_LABEL.test(text)) return false
   const words = text.match(/[A-ZÁÉÍÓÚÑ]{2,}/gi) || []
   return words.length >= 2
 }
 
+function suspiciousName(value = '') {
+  const text = cleanName(value)
+  const words = text.split(/\s+/).filter(Boolean)
+  if (/[_—]{2,}/.test(text)) return true
+  if (/:/.test(text) && COMMERCIAL_NAME_NOISE.test(text)) return true
+  if (words.length >= 8 && COMMERCIAL_NAME_NOISE.test(text)) return true
+  if (/(?:\s+[A-ZÁÉÍÓÚÑ0-9]{1,2}){3,}\s*$/i.test(text)) return true
+  return false
+}
+
 function nameScore(value = '') {
   const words = value.match(/[A-ZÁÉÍÓÚÑ]{2,}/gi) || []
-  return words.length * 10 + (value.includes(',') ? 8 : 0) + Math.min(value.length, 50) / 10
+  const suspiciousPenalty = suspiciousName(value) ? 45 : 0
+  const commercialPenalty = COMMERCIAL_NAME_NOISE.test(value) && words.length >= 6 ? 30 : 0
+  return words.length * 10 + (value.includes(',') ? 18 : 0) + Math.min(value.length, 50) / 10 - suspiciousPenalty - commercialPenalty
 }
 
 function findActivity(lines) {
@@ -190,12 +217,38 @@ function findAddress(backLines) {
   return ''
 }
 
+function stripShortOcrTail(value = '') {
+  const tokens = String(value).trim().split(/\s+/)
+  let cut = tokens.length
+  let shortRun = 0
+  for (let i = tokens.length - 1; i >= 0; i -= 1) {
+    const token = tokens[i].replace(/[^A-ZÁÉÍÓÚÑ0-9]/gi, '')
+    if (!token) { cut = i; continue }
+    if (token.length <= 2) {
+      shortRun += 1
+      cut = i
+      continue
+    }
+    break
+  }
+  return shortRun >= 3 ? tokens.slice(0, cut).join(' ') : value
+}
+
 function cleanAddress(value = '') {
-  return clean(value)
+  const base = clean(value)
     .split(STOP_ADDRESS)[0]
     .replace(/\s+(?:LE|LA|EL)\s+[A-Z]{1,2}\s+[A-Z]{1,3}$/i, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
+  return stripShortOcrTail(base).replace(/[|_—-]+\s*$/g, '').trim()
+}
+
+function suspiciousAddress(value = '') {
+  const text = clean(value)
+  if (/[_—]{2,}/.test(text)) return true
+  if (/(?:\s+[A-ZÁÉÍÓÚÑ0-9]{1,2}){3,}\s*$/i.test(text)) return true
+  if (/\b(?:LE|AN|RQ|QO|OI)\b/i.test(text) && text.split(/\s+/).length > 8) return true
+  return false
 }
 
 function validAddress(value = '') { return value.length >= 8 && ADDRESS_HINT.test(value) && !isInstitutional(value) }
