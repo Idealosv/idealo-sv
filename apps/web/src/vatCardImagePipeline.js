@@ -1,32 +1,29 @@
 const TARGET_WIDTH = 1800
-const TARGET_HEIGHT = 1280
-const SAMPLE_MAX_SIDE = 900
-const CARD_DISTANCE_THRESHOLD = 25
-const SPLIT_DISTANCE_THRESHOLD = 18
-const NORMALIZED_FILE_MARKER = 'normalizada-v2'
+const TARGET_HEIGHT = 1200
+const NORMALIZED_FILE_MARKER = 'normalizada-v3'
 
-// Las regiones se aplican únicamente DESPUÉS de normalizar el rectángulo real de la tarjeta.
-// Coordenadas relativas a una tarjeta 1800x1280, no a la fotografía original.
+// Regiones internas de la tarjeta tradicional ya normalizada a relación 3:2.
+// Se evita deliberadamente incluir encabezados/etiquetas para que el OCR vea solo el dato.
 export const VAT_FIELD_REGIONS = Object.freeze({
   name: [
-    { x: 0.02, y: 0.14, w: 0.96, h: 0.20 },
-    { x: 0.02, y: 0.11, w: 0.96, h: 0.27 },
+    { x: 0.035, y: 0.255, w: 0.925, h: 0.115 },
+    { x: 0.025, y: 0.225, w: 0.945, h: 0.155 },
   ],
   nit: [
-    { x: 0.02, y: 0.33, w: 0.59, h: 0.15 },
-    { x: 0.01, y: 0.29, w: 0.64, h: 0.22 },
+    { x: 0.040, y: 0.445, w: 0.555, h: 0.120 },
+    { x: 0.025, y: 0.420, w: 0.585, h: 0.155 },
   ],
   nrc: [
-    { x: 0.57, y: 0.33, w: 0.41, h: 0.15 },
-    { x: 0.53, y: 0.29, w: 0.46, h: 0.22 },
+    { x: 0.640, y: 0.435, w: 0.325, h: 0.120 },
+    { x: 0.610, y: 0.410, w: 0.365, h: 0.155 },
   ],
   activity: [
-    { x: 0.02, y: 0.46, w: 0.96, h: 0.23 },
-    { x: 0.01, y: 0.42, w: 0.98, h: 0.32 },
+    { x: 0.025, y: 0.625, w: 0.945, h: 0.205 },
+    { x: 0.018, y: 0.595, w: 0.960, h: 0.255 },
   ],
   address: [
-    { x: 0.02, y: 0.03, w: 0.96, h: 0.24 },
-    { x: 0.01, y: 0.01, w: 0.98, h: 0.31 },
+    { x: 0.035, y: 0.105, w: 0.920, h: 0.165 },
+    { x: 0.025, y: 0.080, w: 0.940, h: 0.205 },
   ],
 })
 
@@ -35,22 +32,20 @@ export async function splitCombinedVatImageV2(file) {
   const bitmap = await createImageBitmap(file)
   try {
     const orientation = chooseOrientation(bitmap)
-    const split = findBackgroundSeparator(bitmap, orientation)
-    const firstRect = orientation === 'horizontal'
+    const split = findSeparator(bitmap, orientation)
+    const first = orientation === 'horizontal'
       ? { x: 0, y: 0, w: bitmap.width, h: split }
       : { x: 0, y: 0, w: split, h: bitmap.height }
-    const secondRect = orientation === 'horizontal'
+    const second = orientation === 'horizontal'
       ? { x: 0, y: split, w: bitmap.width, h: bitmap.height - split }
       : { x: split, y: 0, w: bitmap.width - split, h: bitmap.height }
 
-    const frontRect = detectCardRect(bitmap, firstRect)
-    const backRect = detectCardRect(bitmap, secondRect)
-    const frontCanvas = normalizeRect(bitmap, frontRect)
-    const backCanvas = normalizeRect(bitmap, backRect)
-    const frontFile = await canvasToFile(frontCanvas, `tarjeta-iva-frente-${NORMALIZED_FILE_MARKER}.jpg`)
-    const backFile = await canvasToFile(backCanvas, `tarjeta-iva-reverso-${NORMALIZED_FILE_MARKER}.jpg`)
-    releaseCanvas(frontCanvas)
-    releaseCanvas(backCanvas)
+    const front = normalizeRect(bitmap, detectCardRect(bitmap, first))
+    const back = normalizeRect(bitmap, detectCardRect(bitmap, second))
+    const frontFile = await canvasToFile(front, `tarjeta-iva-frente-${NORMALIZED_FILE_MARKER}.jpg`)
+    const backFile = await canvasToFile(back, `tarjeta-iva-reverso-${NORMALIZED_FILE_MARKER}.jpg`)
+    releaseCanvas(front)
+    releaseCanvas(back)
     return { frontFile, backFile, orientation, normalized: true }
   } finally {
     bitmap.close?.()
@@ -58,12 +53,11 @@ export async function splitCombinedVatImageV2(file) {
 }
 
 export async function normalizeVatSide(file) {
+  if (!file) throw new Error('VAT_SIDE_REQUIRED')
   const bitmap = await createImageBitmap(file)
   try {
     const full = { x: 0, y: 0, w: bitmap.width, h: bitmap.height }
-    // Los archivos generados por splitCombinedVatImageV2 ya son exactamente 1800x1280.
-    // Volver a detectar sus bordes recortaría texto interno y desplazaría la plantilla.
-    if (String(file?.name || '').includes(NORMALIZED_FILE_MARKER)) return normalizeRect(bitmap, full)
+    if (String(file.name || '').includes(NORMALIZED_FILE_MARKER)) return normalizeRect(bitmap, full)
     return normalizeRect(bitmap, detectCardRect(bitmap, full))
   } finally {
     bitmap.close?.()
@@ -75,11 +69,11 @@ export async function createVatFieldVariants(frontFile, backFile) {
   const back = await normalizeVatSide(backFile)
   try {
     return {
-      name: VAT_FIELD_REGIONS.name.map((region) => cropRegion(front, region)),
-      nit: VAT_FIELD_REGIONS.nit.map((region) => cropRegion(front, region)),
-      nrc: VAT_FIELD_REGIONS.nrc.map((region) => cropRegion(front, region)),
-      activity: VAT_FIELD_REGIONS.activity.map((region) => cropRegion(front, region)),
-      address: VAT_FIELD_REGIONS.address.map((region) => cropRegion(back, region)),
+      name: VAT_FIELD_REGIONS.name.map((r) => cropRegion(front, r)),
+      nit: VAT_FIELD_REGIONS.nit.map((r) => cropRegion(front, r)),
+      nrc: VAT_FIELD_REGIONS.nrc.map((r) => cropRegion(front, r)),
+      activity: VAT_FIELD_REGIONS.activity.map((r) => cropRegion(front, r)),
+      address: VAT_FIELD_REGIONS.address.map((r) => cropRegion(back, r)),
     }
   } finally {
     releaseCanvas(front)
@@ -87,17 +81,33 @@ export async function createVatFieldVariants(frontFile, backFile) {
   }
 }
 
-export function preprocessVatField(canvas, mode = 'text') {
+// Conserva trazos finos. El preprocesamiento anterior forzaba umbrales y destruía números.
+export function preprocessVatField(source, mode = 'text') {
+  const scale = mode === 'digits' ? 1.8 : 1.45
   const output = document.createElement('canvas')
-  output.width = canvas.width
-  output.height = canvas.height
+  output.width = Math.max(1, Math.round(source.width * scale))
+  output.height = Math.max(1, Math.round(source.height * scale))
   const ctx = output.getContext('2d', { willReadFrequently: true })
-  ctx.drawImage(canvas, 0, 0)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(source, 0, 0, output.width, output.height)
+
   const image = ctx.getImageData(0, 0, output.width, output.height)
-  const threshold = mode === 'digits' ? 174 : 164
+  const lum = []
+  for (let i = 0; i < image.data.length; i += 16) {
+    lum.push(Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114))
+  }
+  lum.sort((a, b) => a - b)
+  const low = lum[Math.floor(lum.length * 0.06)] ?? 25
+  const high = lum[Math.floor(lum.length * 0.94)] ?? 235
+  const span = Math.max(35, high - low)
+
   for (let i = 0; i < image.data.length; i += 4) {
     const gray = Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114)
-    const value = gray < threshold ? Math.max(0, gray - 58) : Math.min(255, gray + 42)
+    const stretched = Math.max(0, Math.min(255, Math.round((gray - low) * 255 / span)))
+    const value = mode === 'digits'
+      ? Math.max(0, Math.min(255, Math.round((stretched - 128) * 1.10 + 128)))
+      : stretched
     image.data[i] = value
     image.data[i + 1] = value
     image.data[i + 2] = value
@@ -111,15 +121,13 @@ export function releaseVatFieldVariants(variants = {}) {
 }
 
 function chooseOrientation(bitmap) {
-  if (bitmap.height >= bitmap.width * 1.18) return 'horizontal'
-  if (bitmap.width >= bitmap.height * 1.18) return 'vertical'
+  if (bitmap.height >= bitmap.width * 1.12) return 'horizontal'
+  if (bitmap.width >= bitmap.height * 1.12) return 'vertical'
   return bitmap.height >= bitmap.width ? 'horizontal' : 'vertical'
 }
 
-// Busca el espacio real entre ambas tarjetas comparando cada píxel con el color del fondo.
-// No depende de que el fondo sea blanco: funciona con fondos blancos, grises o crema.
-function findBackgroundSeparator(bitmap, orientation) {
-  const sample = drawSample(bitmap, { x: 0, y: 0, w: bitmap.width, h: bitmap.height }, 800)
+function findSeparator(bitmap, orientation) {
+  const sample = drawSample(bitmap, { x: 0, y: 0, w: bitmap.width, h: bitmap.height }, 700)
   try {
     const ctx = sample.getContext('2d', { willReadFrequently: true })
     const image = ctx.getImageData(0, 0, sample.width, sample.height)
@@ -127,43 +135,39 @@ function findBackgroundSeparator(bitmap, orientation) {
     const horizontal = orientation === 'horizontal'
     const length = horizontal ? sample.height : sample.width
     const cross = horizontal ? sample.width : sample.height
-    const profile = new Array(length).fill(0)
-
-    for (let p = 0; p < length; p += 1) {
-      let foreground = 0
-      let count = 0
-      for (let c = 0; c < cross; c += 3) {
-        const x = horizontal ? c : p
-        const y = horizontal ? p : c
-        const i = (y * sample.width + x) * 4
-        if (colorDistance(image.data, i, bg) > SPLIT_DISTANCE_THRESHOLD) foreground += 1
-        count += 1
-      }
-      profile[p] = count ? foreground / count : 1
-    }
-
-    const smoothed = movingAverage(profile, 17)
     const start = Math.round(length * 0.30)
     const end = Math.round(length * 0.70)
     let best = Math.round(length / 2)
     let bestScore = Infinity
-    for (let p = start; p <= end; p += 1) {
-      const centerPenalty = Math.abs(p - length / 2) / length * 0.025
-      const score = smoothed[p] + centerPenalty
-      if (score < bestScore) { bestScore = score; best = p }
-    }
 
-    const originalLength = horizontal ? bitmap.height : bitmap.width
-    return clamp(Math.round(best / length * originalLength), Math.round(originalLength * 0.25), Math.round(originalLength * 0.75))
+    for (let p = start; p <= end; p += 1) {
+      let foreground = 0
+      let count = 0
+      for (let c = 0; c < cross; c += 4) {
+        const x = horizontal ? c : p
+        const y = horizontal ? p : c
+        const i = (y * sample.width + x) * 4
+        if (colorDistance(image.data, i, bg) > 22) foreground += 1
+        count += 1
+      }
+      const ratio = foreground / Math.max(1, count)
+      const centerPenalty = Math.abs(p - length / 2) / length * 0.03
+      if (ratio + centerPenalty < bestScore) {
+        bestScore = ratio + centerPenalty
+        best = p
+      }
+    }
+    const original = horizontal ? bitmap.height : bitmap.width
+    return clamp(Math.round(best / length * original), Math.round(original * 0.28), Math.round(original * 0.72))
   } finally {
     releaseCanvas(sample)
   }
 }
 
-// Encuentra el rectángulo físico de la tarjeta dentro de una foto/mitad.
-// El fondo se estima desde las esquinas y se detecta la gran región cuyo color difiere de ese fondo.
+// Detecta el cuerpo físico de la tarjeta por diferencia respecto del fondo.
+// Se exige una relación cercana a 3:2 para impedir que el texto interno se convierta en el borde.
 function detectCardRect(bitmap, rect) {
-  const sample = drawSample(bitmap, rect, SAMPLE_MAX_SIDE)
+  const sample = drawSample(bitmap, rect, 900)
   try {
     const ctx = sample.getContext('2d', { willReadFrequently: true })
     const image = ctx.getImageData(0, 0, sample.width, sample.height)
@@ -172,45 +176,45 @@ function detectCardRect(bitmap, rect) {
     const col = new Array(sample.width).fill(0)
 
     for (let y = 0; y < sample.height; y += 2) {
-      let rowHits = 0
       for (let x = 0; x < sample.width; x += 2) {
         const i = (y * sample.width + x) * 4
-        if (colorDistance(image.data, i, bg) > CARD_DISTANCE_THRESHOLD) {
-          rowHits += 1
+        if (colorDistance(image.data, i, bg) > 26) {
+          row[y] += 1
           col[x] += 1
         }
       }
-      row[y] = rowHits / Math.max(1, Math.ceil(sample.width / 2))
-    }
-
-    for (let x = 0; x < sample.width; x += 2) {
-      const value = col[x] / Math.max(1, Math.ceil(sample.height / 2))
-      col[x] = value
-      if (x + 1 < sample.width) col[x + 1] = value
     }
     for (let y = 0; y < sample.height; y += 2) {
-      if (y + 1 < sample.height) row[y + 1] = row[y]
+      row[y] /= Math.max(1, Math.ceil(sample.width / 2))
+      if (y + 1 < row.length) row[y + 1] = row[y]
+    }
+    for (let x = 0; x < sample.width; x += 2) {
+      col[x] /= Math.max(1, Math.ceil(sample.height / 2))
+      if (x + 1 < col.length) col[x + 1] = col[x]
     }
 
-    const rows = movingAverage(row, 9)
-    const cols = movingAverage(col, 9)
-    const yBand = activeBand(rows, 0.10)
-    const xBand = activeBand(cols, 0.10)
+    const yBand = activeBand(smooth(row, 11), 0.08)
+    const xBand = activeBand(smooth(col, 11), 0.08)
     if (!xBand || !yBand) return rect
 
-    const detectedWidth = xBand[1] - xBand[0]
-    const detectedHeight = yBand[1] - yBand[0]
-    if (detectedWidth < sample.width * 0.35 || detectedHeight < sample.height * 0.30) return rect
+    let left = xBand[0]
+    let right = xBand[1]
+    let top = yBand[0]
+    let bottom = yBand[1]
+    const detectedW = right - left
+    const detectedH = bottom - top
+    const ratio = detectedW / Math.max(1, detectedH)
+    if (detectedW < sample.width * 0.42 || detectedH < sample.height * 0.34 || ratio < 1.20 || ratio > 1.85) return rect
+
+    const mx = Math.round(detectedW * 0.018)
+    const my = Math.round(detectedH * 0.025)
+    left = clamp(left - mx, 0, sample.width - 2)
+    right = clamp(right + mx, left + 2, sample.width)
+    top = clamp(top - my, 0, sample.height - 2)
+    bottom = clamp(bottom + my, top + 2, sample.height)
 
     const sx = rect.w / sample.width
     const sy = rect.h / sample.height
-    const marginX = Math.round(sample.width * 0.012)
-    const marginY = Math.round(sample.height * 0.012)
-    const left = clamp(xBand[0] - marginX, 0, sample.width - 1)
-    const top = clamp(yBand[0] - marginY, 0, sample.height - 1)
-    const right = clamp(xBand[1] + marginX, left + 1, sample.width)
-    const bottom = clamp(yBand[1] + marginY, top + 1, sample.height)
-
     return {
       x: rect.x + left * sx,
       y: rect.y + top * sy,
@@ -224,21 +228,17 @@ function detectCardRect(bitmap, rect) {
 
 function estimateBackground(image) {
   const { width, height, data } = image
-  const patchW = Math.max(8, Math.round(width * 0.08))
-  const patchH = Math.max(8, Math.round(height * 0.08))
-  const patches = [
-    [0, 0], [width - patchW, 0], [0, height - patchH], [width - patchW, height - patchH],
-  ]
-  let r = 0; let g = 0; let b = 0; let count = 0
-  patches.forEach(([sx, sy]) => {
-    for (let y = sy; y < sy + patchH; y += 3) {
-      for (let x = sx; x < sx + patchW; x += 3) {
-        const i = (y * width + x) * 4
-        r += data[i]; g += data[i + 1]; b += data[i + 2]; count += 1
-      }
+  const pw = Math.max(8, Math.round(width * 0.07))
+  const ph = Math.max(8, Math.round(height * 0.07))
+  const starts = [[0, 0], [width - pw, 0], [0, height - ph], [width - pw, height - ph]]
+  let r = 0; let g = 0; let b = 0; let n = 0
+  starts.forEach(([sx, sy]) => {
+    for (let y = sy; y < sy + ph; y += 3) for (let x = sx; x < sx + pw; x += 3) {
+      const i = (y * width + x) * 4
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; n += 1
     }
   })
-  return [r / Math.max(1, count), g / Math.max(1, count), b / Math.max(1, count)]
+  return [r / n, g / n, b / n]
 }
 
 function colorDistance(data, i, bg) {
@@ -260,29 +260,24 @@ function activeBand(profile, threshold) {
   return first >= 0 && last > first ? [first, last + 1] : null
 }
 
-function movingAverage(values, windowSize) {
-  const result = new Array(values.length).fill(0)
-  const radius = Math.floor(windowSize / 2)
-  let sum = 0
-  let left = 0
-  let right = -1
+function smooth(values, width) {
+  const out = new Array(values.length).fill(0)
+  const r = Math.floor(width / 2)
   for (let i = 0; i < values.length; i += 1) {
-    const wantedLeft = Math.max(0, i - radius)
-    const wantedRight = Math.min(values.length - 1, i + radius)
-    while (right < wantedRight) { right += 1; sum += values[right] }
-    while (left < wantedLeft) { sum -= values[left]; left += 1 }
-    result[i] = sum / Math.max(1, right - left + 1)
+    let total = 0
+    let n = 0
+    for (let j = Math.max(0, i - r); j <= Math.min(values.length - 1, i + r); j += 1) { total += values[j]; n += 1 }
+    out[i] = total / Math.max(1, n)
   }
-  return result
+  return out
 }
 
 function drawSample(bitmap, rect, maxSide) {
-  const ratio = Math.min(1, maxSide / Math.max(rect.w, rect.h))
+  const scale = Math.min(1, maxSide / Math.max(rect.w, rect.h))
   const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(rect.w * ratio))
-  canvas.height = Math.max(1, Math.round(rect.h * ratio))
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  ctx.drawImage(bitmap, rect.x, rect.y, rect.w, rect.h, 0, 0, canvas.width, canvas.height)
+  canvas.width = Math.max(1, Math.round(rect.w * scale))
+  canvas.height = Math.max(1, Math.round(rect.h * scale))
+  canvas.getContext('2d', { willReadFrequently: true }).drawImage(bitmap, rect.x, rect.y, rect.w, rect.h, 0, 0, canvas.width, canvas.height)
   return canvas
 }
 
@@ -298,14 +293,13 @@ function normalizeRect(bitmap, rect) {
 }
 
 function cropRegion(source, region) {
-  const sx = Math.max(0, Math.round(source.width * region.x))
-  const sy = Math.max(0, Math.round(source.height * region.y))
-  const sw = Math.max(1, Math.min(source.width - sx, Math.round(source.width * region.w)))
-  const sh = Math.max(1, Math.min(source.height - sy, Math.round(source.height * region.h)))
+  const sx = Math.round(source.width * region.x)
+  const sy = Math.round(source.height * region.y)
+  const sw = Math.max(1, Math.round(source.width * region.w))
+  const sh = Math.max(1, Math.round(source.height * region.h))
   const canvas = document.createElement('canvas')
-  const width = Math.max(1100, sw * 2)
-  canvas.width = width
-  canvas.height = Math.max(260, Math.round(width * sh / sw))
+  canvas.width = Math.max(1000, sw * 2)
+  canvas.height = Math.max(220, Math.round(canvas.width * sh / sw))
   const ctx = canvas.getContext('2d')
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
@@ -315,9 +309,9 @@ function cropRegion(source, region) {
 
 function canvasToFile(canvas, name) {
   return new Promise((resolve, reject) => canvas.toBlob((blob) => {
-    if (!blob) return reject(new Error('No se pudo generar el recorte de la tarjeta IVA.'))
+    if (!blob) return reject(new Error('No se pudo generar el recorte de Tarjeta IVA.'))
     resolve(new File([blob], name, { type: 'image/jpeg' }))
-  }, 'image/jpeg', 0.95))
+  }, 'image/jpeg', 0.97))
 }
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)) }
