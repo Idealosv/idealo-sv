@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { recognize } from 'tesseract.js'
 import { extractVatNit, parseVatCardSides } from './clientVatCardParser'
+import { splitCombinedVatImage } from './vatCombinedImage'
 
 export default function ClientVatCardScannerHost() {
   const [mount, setMount] = useState(null)
@@ -35,27 +36,63 @@ const EMPTY_MANUAL = { name: '', nit: '', nrc: '', business_activity: '', addres
 
 function VatCardScanner() {
   const [open, setOpen] = useState(false)
+  const [captureMode, setCaptureMode] = useState('separate')
   const [front, setFront] = useState(null)
   const [back, setBack] = useState(null)
+  const [combined, setCombined] = useState(null)
+  const [preparingCombined, setPreparingCombined] = useState(false)
   const [reading, setReading] = useState(false)
   const [progress, setProgress] = useState('')
   const [result, setResult] = useState(null)
   const [manual, setManual] = useState(EMPTY_MANUAL)
   const [error, setError] = useState('')
 
-  const capture = (side, file) => {
-    if (!file) return
-    const next = { file, url: URL.createObjectURL(file) }
-    if (side === 'front') {
-      if (front?.url) URL.revokeObjectURL(front.url)
-      setFront(next)
-    } else {
-      if (back?.url) URL.revokeObjectURL(back.url)
-      setBack(next)
-    }
+  const clearResult = () => {
     setResult(null)
     setManual(EMPTY_MANUAL)
     setError('')
+  }
+
+  const replaceSide = (side, item) => {
+    if (side === 'front') {
+      if (front?.url) URL.revokeObjectURL(front.url)
+      setFront(item)
+    } else {
+      if (back?.url) URL.revokeObjectURL(back.url)
+      setBack(item)
+    }
+  }
+
+  const capture = (side, file) => {
+    if (!file) return
+    setCaptureMode('separate')
+    if (combined?.url) URL.revokeObjectURL(combined.url)
+    setCombined(null)
+    replaceSide(side, { file, url: URL.createObjectURL(file) })
+    clearResult()
+  }
+
+  const captureCombined = async (file) => {
+    if (!file || preparingCombined || reading) return
+    setCaptureMode('combined')
+    setPreparingCombined(true)
+    clearResult()
+    setProgress('Separando frente y reverso de la imagen…')
+    try {
+      const split = await splitCombinedVatImage(file)
+      if (combined?.url) URL.revokeObjectURL(combined.url)
+      const combinedItem = { file, url: URL.createObjectURL(file), orientation: split.orientation, splitRatio: split.splitRatio }
+      setCombined(combinedItem)
+      replaceSide('front', { file: split.frontFile, url: URL.createObjectURL(split.frontFile) })
+      replaceSide('back', { file: split.backFile, url: URL.createObjectURL(split.backFile) })
+      setProgress('Imagen separada. Revise las dos vistas antes de leer.')
+    } catch (splitError) {
+      console.error(splitError)
+      setError('No se pudo separar automáticamente la imagen. Puede intentar otra foto o usar la opción de frente y reverso por separado.')
+      setProgress('')
+    } finally {
+      setPreparingCombined(false)
+    }
   }
 
   const capturedCount = (front ? 1 : 0) + (back ? 1 : 0)
@@ -63,7 +100,7 @@ function VatCardScanner() {
   const resolvedResult = applyManualCorrections(result, manual)
 
   const scan = async () => {
-    if (!ready || reading) return
+    if (!ready || reading || preparingCombined) return
     setReading(true)
     setError('')
     setResult(null)
@@ -124,7 +161,7 @@ function VatCardScanner() {
 
   return <>
     <div className="vat-scan-toolbar">
-      <div><strong>Tarjeta IVA</strong><small>{resolvedResult?.ready_for_dte03 ? 'Datos fiscales completos y listos para aplicar' : ready ? 'Frente y reverso capturados' : 'Capture las dos caras y el ERP leerá los datos'}</small></div>
+      <div><strong>Tarjeta IVA</strong><small>{resolvedResult?.ready_for_dte03 ? 'Datos fiscales completos y listos para aplicar' : ready ? captureMode === 'combined' ? 'Una imagen separada en frente y reverso' : 'Frente y reverso capturados' : 'Capture las dos caras o cargue una sola imagen con ambas'}</small></div>
       <button type="button" className="vat-scan-trigger" onClick={() => setOpen(true)}>{resolvedResult?.ready_for_dte03 ? '✓ Datos IVA verificados' : '▣ Escanear datos tarjeta IVA'}</button>
     </div>
 
@@ -132,19 +169,33 @@ function VatCardScanner() {
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. El lector reconoce tarjetas IVA actuales y formatos antiguos, incluyendo hasta tres actividades económicas. Si detecta texto contaminado o de baja confianza, lo marcará para revisión antes de llenar el formulario.</p>
-          <div className="vat-scan-grid">
-            <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
-            <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
+          <p className="vat-scan-help">Puede capturar frente y reverso por separado o cargar una sola foto/archivo donde aparezcan las dos caras. El ERP separa automáticamente imágenes apiladas verticalmente o colocadas lado a lado.</p>
+
+          <div style={{ display: 'flex', gap: 8, margin: '12px 0', flexWrap: 'wrap' }}>
+            <button type="button" className={captureMode === 'separate' ? 'vat-scan-done brand-orange' : 'secondary-button'} onClick={() => setCaptureMode('separate')}>Dos imágenes separadas</button>
+            <button type="button" className={captureMode === 'combined' ? 'vat-scan-done brand-orange' : 'secondary-button'} onClick={() => setCaptureMode('combined')}>Una imagen con ambas caras</button>
           </div>
-          <div className="vat-scan-status"><strong>{capturedCount}/2 caras listas</strong><span>Las imágenes se usan temporalmente para OCR y no se guardan automáticamente.</span></div>
+
+          {captureMode === 'combined' && <section style={{ border: '1px solid #aab4be', borderRadius: 8, padding: 12, marginBottom: 14, background: '#f7f9fa' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div><strong>Archivo combinado</strong><small style={{ display: 'block', marginTop: 3 }}>Ejemplo: frente arriba y reverso abajo en la misma fotografía.</small></div>
+              <label className="vat-side-button" style={{ cursor: 'pointer' }}>{preparingCombined ? 'Separando…' : combined ? 'Cambiar imagen' : 'Seleccionar una imagen'}<input type="file" accept="image/*" capture="environment" disabled={preparingCombined || reading} onChange={(event) => captureCombined(event.target.files?.[0])} /></label>
+            </div>
+            {combined?.url && <div style={{ marginTop: 10, textAlign: 'center' }}><img src={combined.url} alt="Frente y reverso de tarjeta IVA en una sola imagen" style={{ maxWidth: '100%', maxHeight: 280, objectFit: 'contain', borderRadius: 6 }} /><small style={{ display: 'block', marginTop: 6 }}>Separación automática: {combined.orientation === 'horizontal' ? 'arriba / abajo' : 'izquierda / derecha'}.</small></div>}
+          </section>}
+
+          <div className="vat-scan-grid">
+            <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} readOnly={captureMode === 'combined'} />
+            <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} readOnly={captureMode === 'combined'} />
+          </div>
+          <div className="vat-scan-status"><strong>{capturedCount}/2 caras listas</strong><span>{captureMode === 'combined' ? 'El archivo original se divide temporalmente para OCR; no se guarda automáticamente.' : 'Las imágenes se usan temporalmente para OCR y no se guardan automáticamente.'}</span></div>
           {error && <p className="vat-scan-error">{error}</p>}
-          {reading && <div className="vat-scan-reading"><span className="spinner" /><strong>{progress || 'Leyendo documento…'}</strong></div>}
+          {(reading || preparingCombined) && <div className="vat-scan-reading"><span className="spinner" /><strong>{progress || 'Procesando documento…'}</strong></div>}
           {result && <DetectedData data={resolvedResult} original={result} manual={manual} onManual={(field, value) => setManual((current) => ({ ...current, [field]: value }))} />}
           <footer>
             <button type="button" className="secondary-button" onClick={() => setOpen(false)}>Cerrar</button>
             {!result
-              ? <button type="button" className="vat-scan-done" disabled={!ready || reading} onClick={scan}>{reading ? 'Leyendo…' : 'Leer datos'}</button>
+              ? <button type="button" className="vat-scan-done" disabled={!ready || reading || preparingCombined} onClick={scan}>{reading ? 'Leyendo…' : 'Leer datos'}</button>
               : <button type="button" className="vat-scan-done brand-orange" disabled={!resolvedResult?.ready_for_dte03} onClick={apply}>{resolvedResult?.ready_for_dte03 ? 'Llenar formulario' : resolvedResult?.review_fields?.length ? 'Revise campos dudosos' : 'Complete datos faltantes'}</button>}
           </footer>
         </section>
@@ -153,11 +204,13 @@ function VatCardScanner() {
   </>
 }
 
-function SideCapture({ side, title, item, onFile }) {
+function SideCapture({ side, title, item, onFile, readOnly = false }) {
   return <article className={item ? 'vat-side-card ready' : 'vat-side-card'}>
-    <div className="vat-side-head"><strong>{title}</strong><span>{item ? 'Capturada' : 'Pendiente'}</span></div>
+    <div className="vat-side-head"><strong>{title}</strong><span>{item ? 'Lista' : 'Pendiente'}</span></div>
     {item ? <img src={item.url} alt={`${title} de tarjeta IVA`} /> : <div className="vat-side-placeholder">Tarjeta IVA · {side === 'front' ? 'frente' : 'reverso'}</div>}
-    <label className="vat-side-button">{item ? 'Volver a capturar' : 'Tomar foto / seleccionar'}<input type="file" accept="image/*" capture="environment" onChange={(event) => onFile(event.target.files?.[0])} /></label>
+    {readOnly
+      ? <div className="vat-side-button" style={{ opacity: 0.75 }}>Separada automáticamente</div>
+      : <label className="vat-side-button">{item ? 'Volver a capturar' : 'Tomar foto / seleccionar'}<input type="file" accept="image/*" capture="environment" onChange={(event) => onFile(event.target.files?.[0])} /></label>}
   </article>
 }
 
@@ -185,14 +238,7 @@ function DetectedData({ data, original, manual, onManual }) {
         const needsReview = reviewFields.has(key)
         return <label key={key} style={{ display: 'block', marginTop: 8 }}>
           <span style={{ display: 'block', fontWeight: 700, marginBottom: 4 }}>{label}{needsReview ? ' · REVISAR' : ''}</span>
-          <input
-            type="text"
-            inputMode={key === 'nit' || key === 'nrc' ? 'numeric' : 'text'}
-            placeholder={original?.[key] || placeholder}
-            value={manual[key] || ''}
-            onChange={(event) => onManual(key, event.target.value)}
-            style={{ width: '100%', borderColor: needsReview ? '#f97316' : undefined, boxShadow: needsReview ? '0 0 0 1px #f97316 inset' : undefined }}
-          />
+          <input type="text" inputMode={key === 'nit' || key === 'nrc' ? 'numeric' : 'text'} placeholder={original?.[key] || placeholder} value={manual[key] || ''} onChange={(event) => onManual(key, event.target.value)} style={{ width: '100%', borderColor: needsReview ? '#f97316' : undefined, boxShadow: needsReview ? '0 0 0 1px #f97316 inset' : undefined }} />
         </label>
       })}
     </div>
@@ -203,10 +249,7 @@ async function recoverLegacyCardText(frontFile, backFile) {
   const frontCanvas = await prepareDocumentForOcr(frontFile, { threshold: 158, width: 2600 })
   const backCanvas = await prepareDocumentForOcr(backFile, { threshold: 165, width: 2600 })
   try {
-    const [frontOcr, backOcr] = await Promise.all([
-      recognize(frontCanvas, 'spa'),
-      recognize(backCanvas, 'spa'),
-    ])
+    const [frontOcr, backOcr] = await Promise.all([recognize(frontCanvas, 'spa'), recognize(backCanvas, 'spa')])
     return { frontText: frontOcr.data.text || '', backText: backOcr.data.text || '' }
   } finally {
     frontCanvas.width = 1
@@ -274,7 +317,6 @@ async function prepareNitFocus(file, variant = 0) {
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(bitmap, sourceX, sourceY, sourceW, sourceH, 0, 0, canvas.width, canvas.height)
   bitmap.close?.()
-
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
   for (let i = 0; i < image.data.length; i += 4) {
     const gray = Math.round(image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114)
@@ -296,7 +338,7 @@ function preferMoreComplete(first, second) {
   if (!first) return second
   if (!second) return first
   const additional = mergeActivities(first.additional_activities, second.additional_activities)
-  const merged = {
+  return finalizeResult({
     ...first,
     name: second.name || first.name,
     nit: second.nit || first.nit,
@@ -306,8 +348,7 @@ function preferMoreComplete(first, second) {
     additional_activities: additional,
     address: second.address || first.address,
     review_fields: [...new Set([...(first.review_fields || []), ...(second.review_fields || [])])],
-  }
-  return finalizeResult(merged)
+  })
 }
 
 function mergeActivities(first = [], second = []) {
@@ -328,27 +369,11 @@ function applyManualCorrections(result, manual) {
   const businessActivity = String(manual.business_activity || '').trim()
   const address = String(manual.address || '').trim()
   const nit = normalizeTaxId(manual.nit)
-  if (name) {
-    next.name = name
-    next.review_fields = next.review_fields.filter((field) => field !== 'name')
-  }
-  if (nit) {
-    next.nit = nit
-    next.review_fields = next.review_fields.filter((field) => field !== 'nit')
-  }
-  if (nrc) {
-    next.nrc = nrc
-    next.review_fields = next.review_fields.filter((field) => field !== 'nrc')
-  }
-  if (businessActivity) {
-    next.business_activity = businessActivity
-    next.activity_code = ''
-    next.review_fields = next.review_fields.filter((field) => field !== 'business_activity')
-  }
-  if (address) {
-    next.address = address
-    next.review_fields = next.review_fields.filter((field) => field !== 'address')
-  }
+  if (name) { next.name = name; next.review_fields = next.review_fields.filter((field) => field !== 'name') }
+  if (nit) { next.nit = nit; next.review_fields = next.review_fields.filter((field) => field !== 'nit') }
+  if (nrc) { next.nrc = nrc; next.review_fields = next.review_fields.filter((field) => field !== 'nrc') }
+  if (businessActivity) { next.business_activity = businessActivity; next.activity_code = ''; next.review_fields = next.review_fields.filter((field) => field !== 'business_activity') }
+  if (address) { next.address = address; next.review_fields = next.review_fields.filter((field) => field !== 'address') }
   return finalizeResult(next)
 }
 
@@ -366,9 +391,7 @@ function finalizeResult(result) {
 function normalizeTaxId(value) {
   const digits = String(value || '').replace(/\D/g, '')
   if (![9, 14].includes(digits.length)) return ''
-  return digits.length === 9
-    ? `${digits.slice(0, 8)}-${digits.slice(8)}`
-    : `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+  return digits.length === 9 ? `${digits.slice(0, 8)}-${digits.slice(8)}` : `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
 }
 
 function normalizeNrc(value) {
@@ -384,8 +407,7 @@ function applyToFiscalForm(data) {
   const isHomologatedDui = digits.length === 9
   const values = {
     preferred_dte_type: '03', taxpayer_type: '2', document_type: isHomologatedDui ? '13' : '36', document_number: data.nit,
-    nit: data.nit, nrc: data.nrc, name: data.name, business_activity: data.business_activity,
-    activity_code: data.activity_code, address: data.address,
+    nit: data.nit, nrc: data.nrc, name: data.name, business_activity: data.business_activity, activity_code: data.activity_code, address: data.address,
   }
   Object.entries(values).forEach(([name, value]) => {
     if (!value) return
