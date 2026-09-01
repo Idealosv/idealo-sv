@@ -158,10 +158,29 @@ function findName(lines) {
 function isContributorNameCandidate(value = '') {
   const text = cleanName(value)
   if (!looksLikeName(text)) return false
+  if (!plausibleContributorNameShape(text)) return false
   if (isInstitutional(text) || isLabel(text) || ADDRESS_HINT.test(text)) return false
   if (COMMERCIAL_NAME_NOISE.test(text)) return false
   if (/\b(PRIMARIA|SECUNDARIA|TERCIARIA)\b/i.test(text)) return false
   return true
+}
+
+function plausibleContributorNameShape(value = '') {
+  const text = cleanName(value)
+  const tokens = text
+    .replace(/[.,;:()]/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.replace(/[^A-ZÁÉÍÓÚÑa-záéíóúñ&]/g, ''))
+    .filter(Boolean)
+  if (tokens.length < 2) return false
+  if (tokens.some((token) => token.length === 1) && !text.includes(',')) return false
+  const substantial = tokens.filter((token) => token.length >= 4).length
+  const medium = tokens.filter((token) => token.length >= 3).length
+  const legalEntity = /\b(S\.?A\.?|C\.?V\.?|LTDA|LIMITADA|SOCIEDAD|ASOCIACI[ÓO]N|FUNDACI[ÓO]N)\b/i.test(text)
+  const personLike = text.includes(',') || substantial >= 2 || (tokens.length >= 3 && medium >= 3)
+  if (!personLike && !legalEntity) return false
+  const letters = (text.match(/[A-ZÁÉÍÓÚÑa-záéíóúñ]/g) || []).length
+  return letters / Math.max(1, text.length) >= 0.62
 }
 
 function looksLikeName(value = '') {
@@ -175,6 +194,7 @@ function looksLikeName(value = '') {
 function suspiciousName(value = '') {
   const text = cleanName(value)
   const words = text.split(/\s+/).filter(Boolean)
+  if (!plausibleContributorNameShape(text)) return true
   if (/[_—]{2,}/.test(text)) return true
   if (/:/.test(text) && COMMERCIAL_NAME_NOISE.test(text)) return true
   if (words.length >= 8 && COMMERCIAL_NAME_NOISE.test(text)) return true
