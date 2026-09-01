@@ -128,17 +128,40 @@ function findNrc(lines, compact, nit) {
 }
 
 function findName(lines) {
-  const direct = cleanName(findField(lines, NAME_LABEL, { maxNext: 3, reject: (value) => isInstitutional(value) || !looksLikeName(value) }))
-  if (direct && looksLikeName(direct) && !suspiciousName(direct)) return direct
+  const labelIndexes = lines
+    .map((line, index) => (NAME_LABEL.test(line) ? index : -1))
+    .filter((index) => index >= 0)
+
+  for (const index of labelIndexes) {
+    const inline = cleanName(lines[index].replace(NAME_LABEL, '').replace(/^\s*[:.\-–()]+\s*/, ''))
+    if (isContributorNameCandidate(inline)) return inline
+
+    for (let offset = 1; offset <= 4 && index + offset < lines.length; offset += 1) {
+      const raw = lines[index + offset]
+      if (!raw) continue
+      if (NIT_LABEL.test(raw) || NRC_LABEL.test(raw) || ACTIVITY_LABEL.test(raw) || ADDRESS_HINT.test(raw)) break
+      const candidate = cleanName(raw)
+      if (isContributorNameCandidate(candidate)) return candidate
+    }
+  }
 
   const taxIndex = lines.findIndex((line) => NIT_LABEL.test(line) || NRC_LABEL.test(line))
   const end = taxIndex >= 0 ? taxIndex : Math.min(lines.length, 12)
   const start = Math.max(0, end - 7)
   const candidates = lines.slice(start, end)
     .map(cleanName)
-    .filter((value) => looksLikeName(value) && !isInstitutional(value) && !isLabel(value) && !ADDRESS_HINT.test(value))
+    .filter((value) => isContributorNameCandidate(value))
 
-  return candidates.sort((a, b) => nameScore(b) - nameScore(a))[0] || direct || ''
+  return candidates.sort((a, b) => nameScore(b) - nameScore(a))[0] || ''
+}
+
+function isContributorNameCandidate(value = '') {
+  const text = cleanName(value)
+  if (!looksLikeName(text)) return false
+  if (isInstitutional(text) || isLabel(text) || ADDRESS_HINT.test(text)) return false
+  if (COMMERCIAL_NAME_NOISE.test(text)) return false
+  if (/\b(PRIMARIA|SECUNDARIA|TERCIARIA)\b/i.test(text)) return false
+  return true
 }
 
 function looksLikeName(value = '') {
