@@ -91,7 +91,9 @@ function VatCardScanner() {
       }
 
       setResult(parsed)
-      if (!parsed.ready_for_dte03) {
+      if (parsed.review_fields?.length) {
+        setError('El OCR encontró texto dudoso en uno o más campos. Revise los campos marcados en naranja y corríjalos antes de llenar el formulario.')
+      } else if (!parsed.ready_for_dte03) {
         setError(`Lectura incompleta: falta confirmar ${parsed.missing.join(', ')}. Puede corregir abajo cualquier dato no reconocido sin volver a tomar la foto.`)
       }
       setProgress('Lectura terminada')
@@ -106,7 +108,8 @@ function VatCardScanner() {
 
   const apply = () => {
     if (!resolvedResult?.ready_for_dte03) {
-      setError('Confirme los cinco datos fiscales: NIT/DUI homologado, NRC, razón social, giro y dirección de casa matriz.')
+      const reviewText = resolvedResult?.review_fields?.length ? ' Revise también los campos marcados como dudosos.' : ''
+      setError(`Confirme los cinco datos fiscales: NIT/DUI homologado, NRC, razón social, giro y dirección de casa matriz.${reviewText}`)
       return
     }
     if (!applyToFiscalForm(resolvedResult)) {
@@ -126,7 +129,7 @@ function VatCardScanner() {
       <div className="vat-scan-backdrop" role="dialog" aria-modal="true" aria-label="Escanear datos de tarjeta IVA">
         <section className="vat-scan-dialog">
           <header><div><small>CLIENTES · FISCAL DTE</small><h3>Escanear datos de tarjeta IVA</h3></div><button type="button" className="vat-scan-close" onClick={() => setOpen(false)}>×</button></header>
-          <p className="vat-scan-help">Capture frente y reverso. El lector reconoce tarjetas IVA actuales y formatos antiguos. Si un dato tiene baja legibilidad, podrá corregirlo manualmente antes de llenar el formulario.</p>
+          <p className="vat-scan-help">Capture frente y reverso. El lector reconoce tarjetas IVA actuales y formatos antiguos. Si detecta texto contaminado o de baja confianza, lo marcará para revisión antes de llenar el formulario.</p>
           <div className="vat-scan-grid">
             <SideCapture side="front" title="1. Frente" item={front} onFile={(file) => capture('front', file)} />
             <SideCapture side="back" title="2. Reverso" item={back} onFile={(file) => capture('back', file)} />
@@ -139,7 +142,7 @@ function VatCardScanner() {
             <button type="button" className="secondary-button" onClick={() => setOpen(false)}>Cerrar</button>
             {!result
               ? <button type="button" className="vat-scan-done" disabled={!ready || reading} onClick={scan}>{reading ? 'Leyendo…' : 'Leer datos'}</button>
-              : <button type="button" className="vat-scan-done brand-orange" disabled={!resolvedResult?.ready_for_dte03} onClick={apply}>{resolvedResult?.ready_for_dte03 ? 'Llenar formulario' : 'Complete datos faltantes'}</button>}
+              : <button type="button" className="vat-scan-done brand-orange" disabled={!resolvedResult?.ready_for_dte03} onClick={apply}>{resolvedResult?.ready_for_dte03 ? 'Llenar formulario' : resolvedResult?.review_fields?.length ? 'Revise campos dudosos' : 'Complete datos faltantes'}</button>}
           </footer>
         </section>
       </div>, document.body,
@@ -163,23 +166,27 @@ function DetectedData({ data, original, manual, onManual }) {
     { key: 'business_activity', label: 'Actividad / giro', placeholder: 'Actividad económica' },
     { key: 'address', label: 'Dirección casa matriz', placeholder: 'Dirección completa' },
   ]
+  const reviewFields = new Set(data.review_fields || [])
   return <section className="vat-detected">
-    <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : 'Revise y complete manualmente únicamente lo que el OCR no reconoció bien.'}</small></div>
-    <dl>{fields.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd>{data[key] || 'No reconocido'}</dd></div>)}</dl>
+    <div><strong>Datos detectados</strong><small>{data.ready_for_dte03 ? 'Datos mínimos DTE-03 completos. Revise antes de aplicar.' : reviewFields.size ? 'Hay campos con baja confianza. Debe revisarlos y corregirlos antes de continuar.' : 'Revise y complete manualmente únicamente lo que el OCR no reconoció bien.'}</small></div>
+    <dl>{fields.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd style={reviewFields.has(key) ? { color: '#a84400', fontWeight: 800 } : undefined}>{data[key] || 'No reconocido'}{reviewFields.has(key) ? ' · REVISAR' : ''}</dd></div>)}</dl>
     <div className="vat-manual-review" style={{ marginTop: 14 }}>
       <strong>Revisión / corrección manual</strong>
-      <small style={{ display: 'block', marginBottom: 8 }}>Los valores escritos aquí tienen prioridad sobre el OCR. Revise contra la tarjeta antes de aplicar.</small>
-      {fields.map(({ key, label, placeholder }) => <label key={key} style={{ display: 'block', marginTop: 8 }}>
-        <span style={{ display: 'block', fontWeight: 700, marginBottom: 4 }}>{label}</span>
-        <input
-          type="text"
-          inputMode={key === 'nit' || key === 'nrc' ? 'numeric' : 'text'}
-          placeholder={original?.[key] || placeholder}
-          value={manual[key] || ''}
-          onChange={(event) => onManual(key, event.target.value)}
-          style={{ width: '100%' }}
-        />
-      </label>)}
+      <small style={{ display: 'block', marginBottom: 8 }}>Los valores escritos aquí tienen prioridad sobre el OCR. Los campos marcados REVISAR deben confirmarse contra la tarjeta.</small>
+      {fields.map(({ key, label, placeholder }) => {
+        const needsReview = reviewFields.has(key)
+        return <label key={key} style={{ display: 'block', marginTop: 8 }}>
+          <span style={{ display: 'block', fontWeight: 700, marginBottom: 4 }}>{label}{needsReview ? ' · REVISAR' : ''}</span>
+          <input
+            type="text"
+            inputMode={key === 'nit' || key === 'nrc' ? 'numeric' : 'text'}
+            placeholder={original?.[key] || placeholder}
+            value={manual[key] || ''}
+            onChange={(event) => onManual(key, event.target.value)}
+            style={{ width: '100%', borderColor: needsReview ? '#f97316' : undefined, boxShadow: needsReview ? '0 0 0 1px #f97316 inset' : undefined }}
+          />
+        </label>
+      })}
     </div>
   </section>
 }
@@ -274,7 +281,7 @@ async function prepareNitFocus(file, variant = 0) {
 
 function mergeRecoveredField(result, field, value, missingLabel) {
   const missing = result.missing.filter((item) => item !== missingLabel)
-  return { ...result, [field]: value, missing, ready_for_dte03: missing.length === 0 }
+  return finalizeResult({ ...result, [field]: value, missing })
 }
 
 function preferMoreComplete(first, second) {
@@ -288,26 +295,40 @@ function preferMoreComplete(first, second) {
     business_activity: second.business_activity || first.business_activity,
     activity_code: second.activity_code || first.activity_code,
     address: second.address || first.address,
+    review_fields: [...new Set([...(first.review_fields || []), ...(second.review_fields || [])])],
   }
   return finalizeResult(merged)
 }
 
 function applyManualCorrections(result, manual) {
   if (!result) return result
-  const next = { ...result }
+  const next = { ...result, review_fields: [...(result.review_fields || [])] }
   const name = String(manual.name || '').trim()
   const nrc = normalizeNrc(manual.nrc)
   const businessActivity = String(manual.business_activity || '').trim()
   const address = String(manual.address || '').trim()
   const nit = normalizeTaxId(manual.nit)
-  if (name) next.name = name
-  if (nit) next.nit = nit
-  if (nrc) next.nrc = nrc
+  if (name) {
+    next.name = name
+    next.review_fields = next.review_fields.filter((field) => field !== 'name')
+  }
+  if (nit) {
+    next.nit = nit
+    next.review_fields = next.review_fields.filter((field) => field !== 'nit')
+  }
+  if (nrc) {
+    next.nrc = nrc
+    next.review_fields = next.review_fields.filter((field) => field !== 'nrc')
+  }
   if (businessActivity) {
     next.business_activity = businessActivity
     next.activity_code = ''
+    next.review_fields = next.review_fields.filter((field) => field !== 'business_activity')
   }
-  if (address) next.address = address
+  if (address) {
+    next.address = address
+    next.review_fields = next.review_fields.filter((field) => field !== 'address')
+  }
   return finalizeResult(next)
 }
 
@@ -318,7 +339,8 @@ function finalizeResult(result) {
   if (!result.name) missing.push('razón social')
   if (!result.business_activity) missing.push('giro / actividad')
   if (!result.address) missing.push('dirección de casa matriz')
-  return { ...result, missing, ready_for_dte03: missing.length === 0 }
+  const review_fields = [...new Set(result.review_fields || [])].filter((field) => Boolean(result[field]))
+  return { ...result, missing, review_fields, ready_for_dte03: missing.length === 0 && review_fields.length === 0 }
 }
 
 function normalizeTaxId(value) {
