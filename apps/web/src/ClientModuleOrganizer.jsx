@@ -52,7 +52,6 @@ function normalizeVisibleClientFields(form) {
 
   const documentNumber = form.querySelector('[name="document_number"]')
   const taxId = form.querySelector('[name="tax_id"]')
-  const dui = form.querySelector('[name="dui"]')
   const documentNumberLabel = labelOf(form, 'document_number')
   const taxIdLabel = labelOf(form, 'tax_id')
   const duiLabel = labelOf(form, 'dui')
@@ -74,10 +73,6 @@ function normalizeVisibleClientFields(form) {
     }
     if (taxIdLabel) taxIdLabel.hidden = true
     if (duiLabel) duiLabel.hidden = true
-    if (documentNumber?.value) {
-      nativeSet(dui, documentNumber.value)
-      if (isCreditFiscal) nativeSet(taxId, documentNumber.value)
-    }
   } else {
     if (documentNumberLabel) {
       documentNumberLabel.hidden = false
@@ -99,24 +94,9 @@ function installClientFieldSync(form) {
   form.addEventListener('input', sync, true)
   form.addEventListener('change', sync, true)
 
-  const fiscal = form.querySelector('[name="tax_id"]')
-  const document = form.querySelector('[name="document_number"]')
-  const syncIdentity = (event) => {
-    const clientType = form.querySelector('[name="client_type"]')?.value || 'company'
-    const preferredDte = form.querySelector('[name="preferred_dte_type"]')?.value || '01'
-    const documentType = form.querySelector('[name="document_type"]')?.value || ''
-    if (clientType === 'company' && event.target === fiscal) nativeSet(document, fiscal.value)
-    if (clientType === 'person' && documentType === '13' && event.target === document) {
-      nativeSet(form.querySelector('[name="dui"]'), document.value)
-      if (preferredDte === '03') nativeSet(fiscal, document.value)
-    }
-  }
-  form.addEventListener('input', syncIdentity, true)
-
   return () => {
     form.removeEventListener('input', sync, true)
     form.removeEventListener('change', sync, true)
-    form.removeEventListener('input', syncIdentity, true)
   }
 }
 
