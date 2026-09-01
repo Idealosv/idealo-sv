@@ -34,7 +34,6 @@ export default function SafeWorkspaceGate({ session, supabase }) {
         .from('company_members')
         .select('company_id, role, companies(id, name, slug)')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: true })
         .limit(10)
 
       if (!error) {
