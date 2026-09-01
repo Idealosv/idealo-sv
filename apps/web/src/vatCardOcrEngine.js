@@ -21,11 +21,11 @@ export function buildVatCardResult(readings = {}) {
     missing: [],
     review_fields: [],
     confidence: {
-      name: confidenceFor('name', readings.name, name),
-      nit: confidenceFor('nit', readings.nit, nit),
-      nrc: confidenceFor('nrc', readings.nrc, nrc),
-      business_activity: confidenceFor('activity', readings.activity, primary?.name || ''),
-      address: confidenceFor('address', readings.address, address),
+      name: name ? 0.95 : 0,
+      nit: nit ? 0.98 : 0,
+      nrc: nrc ? 0.98 : 0,
+      business_activity: primary?.code ? 0.96 : primary?.name ? 0.72 : 0,
+      address: address ? 0.92 : 0,
     },
   }
 
@@ -34,49 +34,50 @@ export function buildVatCardResult(readings = {}) {
   if (!nrc) result.missing.push('NRC')
   if (!result.business_activity) result.missing.push('giro / actividad')
   if (!address) result.missing.push('dirección de casa matriz')
-
-  Object.entries(result.confidence).forEach(([field, score]) => {
-    if (score > 0 && score < 0.72) result.review_fields.push(field)
-  })
+  if (primary?.name && !primary.code) result.review_fields.push('business_activity')
 
   result.ready_for_dte03 = result.missing.length === 0 && result.review_fields.length === 0
   return result
 }
 
 export function normalizeTaxId(value = '') {
-  for (const candidate of numericCandidates(value)) {
-    if (candidate.length === 14) return `${candidate.slice(0, 4)}-${candidate.slice(4, 10)}-${candidate.slice(10, 13)}-${candidate.slice(13)}`
-    if (candidate.length === 9) return `${candidate.slice(0, 8)}-${candidate.slice(8)}`
+  const raw = String(value || '').toUpperCase()
+  const formatted = raw.match(/([0-9OQDILSZGBT]{4})\D{0,4}([0-9OQDILSZGBT]{6})\D{0,4}([0-9OQDILSZGBT]{3,4})\D{0,4}([0-9OQDILSZGBT])/)
+  if (formatted) {
+    const a = normalizeDigits(formatted[1])
+    const b = normalizeDigits(formatted[2])
+    const c = normalizeDigits(formatted[3]).slice(0, 3)
+    const d = normalizeDigits(formatted[4])
+    if (a.length === 4 && b.length === 6 && c.length === 3 && d.length === 1) return `${a}-${b}-${c}-${d}`
+  }
+
+  for (const digits of numericCandidates(raw)) {
+    if (digits.length === 14) return `${digits.slice(0, 4)}-${digits.slice(4, 10)}-${digits.slice(10, 13)}-${digits.slice(13)}`
+    if (digits.length === 9) return `${digits.slice(0, 8)}-${digits.slice(8)}`
   }
   return ''
 }
 
 export function normalizeNrc(value = '') {
-  const text = String(value || '').toUpperCase()
-  const candidates = text.match(/[0-9OQDILSZGBT]{3,7}\s*[-–_/]\s*[0-9OQDILSZGBT]/g) || []
+  const raw = String(value || '').toUpperCase()
+  const candidates = raw.match(/[0-9OQDILSZGBT]{4,7}\s*[-–_/]?\s*[0-9OQDILSZGBT]/g) || []
   for (const candidate of candidates) {
     const digits = normalizeDigits(candidate)
-    if (digits.length >= 4 && digits.length <= 8) return `${digits.slice(0, -1)}-${digits.slice(-1)}`
+    if (digits.length >= 5 && digits.length <= 8) return `${digits.slice(0, -1)}-${digits.slice(-1)}`
   }
   return ''
 }
 
 export function normalizeContributorName(value = '') {
   const lines = textLines(value)
-    .map((line) => line
-      .replace(/NOMBRE\s+(?:DEL\s+)?CONTRIBUYENTE/gi, '')
-      .replace(/RAZ[ÓO]N\s+SOCIAL/gi, '')
-      .replace(/^[:.\-–\s]+/, '')
-      .trim())
+    .map((line) => cleanHumanText(line.replace(/NOMBRE\s+(?:DEL\s+)?CONTRIBUYENTE/gi, '').replace(/RAZ[ÓO]N\s+SOCIAL/gi, '')))
     .filter(Boolean)
 
   const candidates = []
   for (let i = 0; i < lines.length; i += 1) {
-    const one = cleanHumanText(lines[i])
-    if (isContributorName(one)) candidates.push(one)
-    if (i + 1 < lines.length) {
-      const two = cleanHumanText(`${lines[i]} ${lines[i + 1]}`)
-      if (isContributorName(two)) candidates.push(two)
+    for (const candidate of [lines[i], i + 1 < lines.length ? `${lines[i]} ${lines[i + 1]}` : '']) {
+      const clean = cleanHumanText(candidate)
+      if (isContributorName(clean)) candidates.push(clean)
     }
   }
   return candidates.sort((a, b) => scoreName(b) - scoreName(a))[0] || ''
@@ -84,18 +85,17 @@ export function normalizeContributorName(value = '') {
 
 export function parseActivities(value = '') {
   const lines = textLines(value)
-    .map((line) => line
+    .map((line) => cleanHumanText(line
       .replace(/GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA/gi, '')
-      .replace(/^(PRIMARIA|SECUNDARIA|TERCIARIA)\s*[:.\-–]?\s*/i, '')
-      .trim())
+      .replace(/^(PRIMARIA|SECUNDARIA|TERCIARIA)\s*[:.\-–]?\s*/i, '')))
     .filter(Boolean)
 
   const found = []
   for (const line of lines) {
-    const clean = cleanHumanText(line)
-    if (!clean || clean.length < 5 || isFiscalLabel(clean) || looksLikeAddress(clean) || /^\d[\d\s.,\-_/]*$/.test(clean)) continue
-    const matched = matchActivity(clean)
-    const item = { code: matched?.code || '', name: matched?.name || clean }
+    if (!plausibleText(line, 5) || isFiscalLabel(line) || looksLikeAddress(line) || /^\d[\d\s.,\-_/]*$/.test(line)) continue
+    const matched = matchActivity(line)
+    if (!matched && noiseRatio(line) > 0.05) continue
+    const item = matched ? { code: matched.code, name: matched.name } : { code: '', name: line }
     const key = item.code || normalizeWords(item.name)
     if (!found.some((existing) => (existing.code || normalizeWords(existing.name)) === key)) found.push(item)
     if (found.length === 3) break
@@ -105,77 +105,52 @@ export function parseActivities(value = '') {
 
 export function normalizeAddress(value = '') {
   const lines = textLines(value)
-    .map((line) => line
-      .replace(/DIRECCI[ÓO]N\s+(?:DE\s+)?CASA\s+MATRIZ/gi, '')
-      .replace(/CATEGOR[IÍ]A\s+DE\s+CONTRIBUYENTE.*$/gi, '')
-      .trim())
+    .map((line) => cleanHumanText(line.replace(/DIRECCI[ÓO]N\s+(?:DE\s+)?CASA\s+MATRIZ/gi, '').replace(/CATEGOR[IÍ]A\s+DE\s+CONTRIBUYENTE.*$/gi, '')))
     .filter(Boolean)
 
-  const addressLines = []
+  const selected = []
   for (const line of lines) {
     if (/CATEGOR[IÍ]A|FIRMA|FUNCIONARIO|C[ÓO]DIGO\s+[ÚU]NICO|ESTA\s+TARJETA/i.test(line)) break
-    if (looksLikeAddress(line) || addressLines.length) addressLines.push(line)
-    if (addressLines.length >= 3) break
+    if (looksLikeAddress(line) || selected.length) selected.push(line)
+    if (selected.length >= 3) break
   }
-
-  let address = cleanHumanText(addressLines.join(' '))
-  address = address.replace(/(?:\s+[A-Z0-9]{1,2}){3,}\s*$/i, '').replace(/\s{2,}/g, ' ').trim()
-  return looksLikeAddress(address) ? address : ''
+  const address = cleanHumanText(selected.join(' ')).replace(/\s{2,}/g, ' ').trim()
+  if (!looksLikeAddress(address) || !plausibleText(address, 12) || noiseRatio(address) > 0.08) return ''
+  return address
 }
 
 export function mergeVatReadings(first = {}, second = {}) {
   const merged = {}
-  for (const field of FIELD_NAMES) {
-    const a = String(first[field] || '').trim()
-    const b = String(second[field] || '').trim()
-    merged[field] = chooseBetterReading(field, a, b)
-  }
+  for (const field of FIELD_NAMES) merged[field] = chooseBetterReading(field, first[field], second[field])
   return merged
 }
 
-function chooseBetterReading(field, a, b) {
-  if (!a) return b
-  if (!b) return a
-  return readingScore(field, b) > readingScore(field, a) ? b : a
+function chooseBetterReading(field, a = '', b = '') {
+  const left = String(a || '').trim()
+  const right = String(b || '').trim()
+  if (!left) return right
+  if (!right) return left
+  return readingScore(field, right) > readingScore(field, left) ? right : left
 }
 
 function readingScore(field, value) {
-  if (field === 'nit') return normalizeTaxId(value) ? 100 : Math.min(value.length, 20)
-  if (field === 'nrc') return normalizeNrc(value) ? 100 : Math.min(value.length, 20)
-  if (field === 'name') {
-    const name = normalizeContributorName(value)
-    return name ? 100 + scoreName(name) : Math.min(value.length, 30)
-  }
-  if (field === 'activity') return parseActivities(value).length * 100 + Math.min(value.length, 90)
-  if (field === 'address') return normalizeAddress(value) ? 100 + Math.min(value.length, 100) : Math.min(value.length, 40)
-  return value.length
-}
-
-function confidenceFor(field, raw, normalized) {
-  if (!normalized) return 0
-  if (field === 'nit' || field === 'nrc') return 0.98
-  if (field === 'name') return scoreName(normalized) >= 45 ? 0.94 : 0.75
-  if (field === 'activity') return matchActivity(normalized) ? 0.95 : 0.76
-  if (field === 'address') return normalized.length >= 20 && looksLikeAddress(normalized) ? 0.9 : 0.7
-  return 0.8
+  if (field === 'nit') return normalizeTaxId(value) ? 1000 : plausibleText(value, 5) ? 5 : 0
+  if (field === 'nrc') return normalizeNrc(value) ? 1000 : plausibleText(value, 4) ? 5 : 0
+  if (field === 'name') return normalizeContributorName(value) ? 1000 + scoreName(normalizeContributorName(value)) : 0
+  if (field === 'activity') return parseActivities(value).filter((item) => item.code).length * 1000 + parseActivities(value).length * 100
+  if (field === 'address') return normalizeAddress(value) ? 1000 + normalizeAddress(value).length : 0
+  return 0
 }
 
 function numericCandidates(value) {
-  const text = String(value || '').toUpperCase()
-  const groups = text.match(/[0-9OQDILSZGBT][0-9OQDILSZGBT\s.\-_/]{6,24}[0-9OQDILSZGBT]/g) || []
+  const groups = String(value || '').toUpperCase().match(/[0-9OQDILSZGBT][0-9OQDILSZGBT\s.\-_/]{6,24}[0-9OQDILSZGBT]/g) || []
   return groups.map(normalizeDigits).filter((digits) => digits.length === 9 || digits.length === 14)
 }
 
 function normalizeDigits(value = '') {
   return String(value).toUpperCase()
-    .replace(/[OQD]/g, '0')
-    .replace(/[IL]/g, '1')
-    .replace(/Z/g, '2')
-    .replace(/S/g, '5')
-    .replace(/G/g, '6')
-    .replace(/T/g, '7')
-    .replace(/B/g, '8')
-    .replace(/\D/g, '')
+    .replace(/[OQD]/g, '0').replace(/[IL]/g, '1').replace(/Z/g, '2').replace(/S/g, '5')
+    .replace(/G/g, '6').replace(/T/g, '7').replace(/B/g, '8').replace(/\D/g, '')
 }
 
 function textLines(value = '') {
@@ -186,21 +161,34 @@ function cleanHumanText(value = '') {
   return String(value || '').replace(/^[^A-ZÁÉÍÓÚÑ0-9]+/i, '').replace(/[|]/g, 'I').replace(/[_—]{2,}/g, ' ').replace(/\s{2,}/g, ' ').trim()
 }
 
+function plausibleText(value, minLength) {
+  const text = String(value || '').trim()
+  if (text.length < minLength) return false
+  const letters = (text.match(/[A-ZÁÉÍÓÚÑ]/gi) || []).length
+  return letters / Math.max(1, text.length) >= 0.58 && noiseRatio(text) <= 0.12
+}
+
+function noiseRatio(value = '') {
+  const text = String(value || '')
+  const noise = (text.match(/[^A-ZÁÉÍÓÚÑ0-9 ,.#°º/'()\-]/gi) || []).length
+  return noise / Math.max(1, text.length)
+}
+
 function isContributorName(value = '') {
   const text = cleanHumanText(value)
-  if (text.length < 8 || text.length > 100) return false
+  if (!plausibleText(text, 8) || text.length > 100) return false
   if (/\d{3,}/.test(text) || isFiscalLabel(text) || looksLikeAddress(text)) return false
-  if (/\b(VENTA|REPARACI[ÓO]N|SERVICIOS?|ACCESORIOS?|VEH[IÍ]CULOS?|AUTOMOTORES?|PARTES?|GIRO|ACTIVIDAD|MINISTERIO|HACIENDA|REGISTRO)\b/i.test(text)) return false
+  if (/\b(VENTA|REPARACI[ÓO]N|SERVICIOS?|ACCESORIOS?|VEH[IÍ]CULOS?|AUTOMOTORES?|PARTES?|GIRO|ACTIVIDAD|MINISTERIO|HACIENDA|REGISTRO|CONTRIBUYENTES?)\b/i.test(text)) return false
   const words = text.match(/[A-ZÁÉÍÓÚÑ]{2,}/gi) || []
   if (words.length < 2) return false
   const substantial = words.filter((word) => word.length >= 4).length
   const legal = /\b(S\.?A\.?|C\.?V\.?|LTDA|LIMITADA|SOCIEDAD|ASOCIACI[ÓO]N|FUNDACI[ÓO]N)\b/i.test(text)
-  return legal || text.includes(',') || substantial >= 2
+  return legal || text.includes(',') || substantial >= 3
 }
 
 function scoreName(value = '') {
   const words = value.match(/[A-ZÁÉÍÓÚÑ]{2,}/gi) || []
-  return words.length * 10 + (value.includes(',') ? 20 : 0) + Math.min(value.length, 50) / 5
+  return words.length * 10 + (value.includes(',') ? 25 : 0) + Math.min(value.length, 60) / 4
 }
 
 function isFiscalLabel(value = '') {
@@ -218,14 +206,14 @@ function normalizeWords(value = '') {
 function matchActivity(raw = '') {
   const target = normalizeWords(raw)
   if (!target || target.length < 4) return null
-  const targetWords = new Set(target.split(' ').filter((word) => word.length > 3))
+  const words = new Set(target.split(' ').filter((word) => word.length > 3))
   let best = null
   let bestScore = 0
   for (const item of DTE_ACTIVITIES) {
     const candidate = normalizeWords(item.name)
     if (candidate.includes(target) || target.includes(candidate)) return item
-    const score = candidate.split(' ').filter((word) => word.length > 3 && targetWords.has(word)).length
+    const score = candidate.split(' ').filter((word) => word.length > 3 && words.has(word)).length
     if (score > bestScore) { bestScore = score; best = item }
   }
-  return bestScore >= 2 ? best : null
+  return bestScore >= 3 ? best : null
 }
