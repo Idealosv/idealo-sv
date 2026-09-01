@@ -115,7 +115,7 @@ export function normalizeAddress(value = '') {
     if (selected.length >= 3) break
   }
   const address = cleanHumanText(selected.join(' ')).replace(/\s{2,}/g, ' ').trim()
-  if (!looksLikeAddress(address) || !plausibleText(address, 12) || noiseRatio(address) > 0.08) return ''
+  if (!looksLikeAddress(address) || !plausibleText(address, 12) || noiseRatio(address) > 0.08 || !addressStructureQuality(address)) return ''
   return address
 }
 
@@ -172,6 +172,25 @@ function noiseRatio(value = '') {
   const text = String(value || '')
   const noise = (text.match(/[^A-ZÁÉÍÓÚÑ0-9 ,.#°º/'()\-]/gi) || []).length
   return noise / Math.max(1, text.length)
+}
+
+function addressStructureQuality(value = '') {
+  const text = String(value || '').toUpperCase()
+  const signals = [
+    /\bCALLE\b/, /\bAV(?:ENIDA)?\b/, /\bCOL(?:ONIA)?\b/, /\bBARRIO\b/, /\bURB(?:ANIZACI[ÓO]N)?\b/,
+    /\bPAS(?:AJE)?\b/, /\bCARRETERA\b/, /\bLOTE\b/, /\bDISTRITO\b/, /\bMUNICIPIO\b/, /\bDEPARTAMENTO\b/,
+    /\bAHUACHAP[AÁ]N\b/, /\bSAN\s+SALVADOR\b/, /\bSANTA\s+ANA\b/, /\bSONSONATE\b/, /\bLA\s+LIBERTAD\b/,
+  ]
+  const signalCount = signals.filter((pattern) => pattern.test(text)).length
+  if (signalCount < 2) return false
+
+  const words = text.match(/[A-ZÁÉÍÓÚÑ]{1,}/g) || []
+  if (words.length < 4) return false
+  const short = words.filter((word) => word.length <= 2 && !['DE', 'LA', 'EL', 'AL'].includes(word)).length
+  if (short / words.length > 0.22) return false
+
+  const substantial = words.filter((word) => word.length >= 3).length
+  return substantial / words.length >= 0.68
 }
 
 function isContributorName(value = '') {
