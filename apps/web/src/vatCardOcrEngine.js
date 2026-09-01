@@ -1,6 +1,9 @@
 import { DTE_ACTIVITIES } from './dteCatalogs'
 
 const FIELD_NAMES = ['name', 'nit', 'nrc', 'activity', 'address']
+const STOP_AFTER_NAME = /IDENTIFICACI[ÓO]N\s+TRIBUTARIA|\bNIT\b|\bNRC\b|N[°º]?\s*DE\s*REGISTRO|GIRO\s+O\s+ACTIVIDAD/i
+const STOP_AFTER_ACTIVITY = /FECHA\s+DE\s+EXPEDICI[ÓO]N|C[ÓO]DIGO\s+[ÚU]NICO|\bRF\d|N[°º]\s*\d/i
+const STOP_AFTER_ADDRESS = /CATEGOR[IÍ]A\s+DE\s+CONTRIBUYENTE|FIRMA|FUNCIONARIO|C[ÓO]DIGO\s+[ÚU]NICO|ESTA\s+TARJETA/i
 
 export function buildVatCardResult(readings = {}) {
   const name = normalizeContributorName(readings.name)
@@ -21,11 +24,11 @@ export function buildVatCardResult(readings = {}) {
     missing: [],
     review_fields: [],
     confidence: {
-      name: name ? 0.95 : 0,
-      nit: nit ? 0.98 : 0,
-      nrc: nrc ? 0.98 : 0,
-      business_activity: primary?.code ? 0.96 : primary?.name ? 0.72 : 0,
-      address: address ? 0.92 : 0,
+      name: name ? 0.97 : 0,
+      nit: nit ? 0.99 : 0,
+      nrc: nrc ? 0.99 : 0,
+      business_activity: primary?.code ? 0.97 : 0,
+      address: address ? 0.95 : 0,
     },
   }
 
@@ -34,15 +37,14 @@ export function buildVatCardResult(readings = {}) {
   if (!nrc) result.missing.push('NRC')
   if (!result.business_activity) result.missing.push('giro / actividad')
   if (!address) result.missing.push('dirección de casa matriz')
-  if (primary?.name && !primary.code) result.review_fields.push('business_activity')
 
-  result.ready_for_dte03 = result.missing.length === 0 && result.review_fields.length === 0
+  result.ready_for_dte03 = result.missing.length === 0
   return result
 }
 
 export function normalizeTaxId(value = '') {
   const raw = String(value || '').toUpperCase()
-  const formatted = raw.match(/([0-9OQDILSZGBT]{4})\D{0,4}([0-9OQDILSZGBT]{6})\D{0,4}([0-9OQDILSZGBT]{3,4})\D{0,4}([0-9OQDILSZGBT])/)
+  const formatted = raw.match(/([0-9OQDILSZGBT]{4})\D{0,5}([0-9OQDILSZGBT]{6})\D{0,5}([0-9OQDILSZGBT]{3,4})\D{0,5}([0-9OQDILSZGBT])/)
   if (formatted) {
     const a = normalizeDigits(formatted[1])
     const b = normalizeDigits(formatted[2])
@@ -60,6 +62,8 @@ export function normalizeTaxId(value = '') {
 
 export function normalizeNrc(value = '') {
   const raw = String(value || '').toUpperCase()
+  const digitsOnly = normalizeDigits(raw)
+  if (/^\d{5,8}$/.test(digitsOnly)) return `${digitsOnly.slice(0, -1)}-${digitsOnly.slice(-1)}`
   const candidates = raw.match(/[0-9OQDILSZGBT]{4,7}\s*[-–_/]?\s*[0-9OQDILSZGBT]/g) || []
   for (const candidate of candidates) {
     const digits = normalizeDigits(candidate)
@@ -70,53 +74,127 @@ export function normalizeNrc(value = '') {
 
 export function normalizeContributorName(value = '') {
   const lines = textLines(value)
-    .map((line) => cleanHumanText(line.replace(/NOMBRE\s+(?:DEL\s+)?CONTRIBUYENTE/gi, '').replace(/RAZ[ÓO]N\s+SOCIAL/gi, '')))
-    .filter(Boolean)
+  const anchored = extractNameAfterLabel(lines)
+  if (anchored) return anchored
 
+  // Sin una etiqueta reconocible, solo se acepta una señal fuerte. Esto evita convertir
+  // una frase OCR aleatoria como “Eros couza...” en nombre del contribuyente.
   const candidates = []
-  for (let i = 0; i < lines.length; i += 1) {
-    for (const candidate of [lines[i], i + 1 < lines.length ? `${lines[i]} ${lines[i + 1]}` : '']) {
-      const clean = cleanHumanText(candidate)
-      if (isContributorName(clean)) candidates.push(clean)
-    }
+  for (const line of lines) {
+    const clean = cleanupName(line)
+    if (!isContributorName(clean, { strictFallback: true })) continue
+    candidates.push(clean)
   }
   return candidates.sort((a, b) => scoreName(b) - scoreName(a))[0] || ''
 }
 
+function extractNameAfterLabel(lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    const label = line.match(/NOMBRE\s+(?:DEL\s+)?CONTRIBUYENTE|RAZ[ÓO]N\s+SOCIAL/i)
+    if (!label) continue
+    const tail = cleanupName(line.slice((label.index || 0) + label[0].length))
+    if (isContributorName(tail, { anchored: true })) return tail
+
+    const collected = []
+    for (let j = i + 1; j < Math.min(lines.length, i + 4); j += 1) {
+      if (STOP_AFTER_NAME.test(lines[j])) break
+      const candidate = cleanupName(lines[j])
+      if (!candidate) continue
+      collected.push(candidate)
+      const joined = cleanupName(collected.join(' '))
+      if (isContributorName(joined, { anchored: true })) return joined
+    }
+  }
+  return ''
+}
+
 export function parseActivities(value = '') {
   const lines = textLines(value)
-    .map((line) => cleanHumanText(line
-      .replace(/GIRO\s+O\s+ACTIVIDAD\s+ECON[ÓO]MICA/gi, '')
-      .replace(/^(PRIMARIA|SECUNDARIA|TERCIARIA)\s*[:.\-–]?\s*/i, '')))
-    .filter(Boolean)
-
+  const sections = extractActivitySections(lines)
   const found = []
-  for (const line of lines) {
-    if (!plausibleText(line, 5) || isFiscalLabel(line) || looksLikeAddress(line) || /^\d[\d\s.,\-_/]*$/.test(line)) continue
-    const matched = matchActivity(line)
-    if (!matched && noiseRatio(line) > 0.05) continue
-    const item = matched ? { code: matched.code, name: matched.name } : { code: '', name: line }
-    const key = item.code || normalizeWords(item.name)
-    if (!found.some((existing) => (existing.code || normalizeWords(existing.name)) === key)) found.push(item)
-    if (found.length === 3) break
+
+  for (const text of sections) addMatchedActivity(found, text)
+
+  // Respaldo: en tarjetas desgastadas la palabra PRIMARIA/SECUNDARIA puede perderse,
+  // pero la descripción de CAT-019 suele seguir legible. Solo se acepta si hay match de catálogo.
+  if (found.length < 2) {
+    for (const line of lines) {
+      if (STOP_AFTER_ACTIVITY.test(line)) break
+      if (isFiscalLabel(line) || looksLikeAddress(line)) continue
+      addMatchedActivity(found, line)
+      if (found.length === 3) break
+    }
   }
-  return found
+
+  return found.slice(0, 3)
+}
+
+function extractActivitySections(lines) {
+  const sections = []
+  let current = ''
+  let active = false
+  for (const rawLine of lines) {
+    if (STOP_AFTER_ACTIVITY.test(rawLine)) break
+    const line = cleanHumanText(rawLine.replace(/GIRO\s+[O0]\s+ACTIVIDAD\s+ECON[ÓO]MICA/gi, ''))
+    const marker = line.match(/(?:^|\s)(P?RIMARIA|S?ECUNDARIA|T?ERCIARIA)\s*[:.\-–]?\s*/i)
+    if (marker) {
+      if (current) sections.push(current)
+      active = true
+      current = cleanHumanText(line.slice((marker.index || 0) + marker[0].length))
+      continue
+    }
+    if (active && line && !isFiscalLabel(line)) current = cleanHumanText(`${current} ${line}`)
+  }
+  if (current) sections.push(current)
+  return sections.filter(Boolean)
+}
+
+function addMatchedActivity(found, raw) {
+  const clean = cleanActivityText(raw)
+  if (!clean || !plausibleText(clean, 8) || looksLikeAddress(clean)) return
+  const matched = matchActivity(clean)
+  if (!matched) return
+  if (!found.some((item) => item.code === matched.code)) found.push({ code: matched.code, name: matched.name })
 }
 
 export function normalizeAddress(value = '') {
   const lines = textLines(value)
-    .map((line) => cleanHumanText(line.replace(/DIRECCI[ÓO]N\s+(?:DE\s+)?CASA\s+MATRIZ/gi, '').replace(/CATEGOR[IÍ]A\s+DE\s+CONTRIBUYENTE.*$/gi, '')))
-    .filter(Boolean)
+  const anchored = extractAddressAfterLabel(lines)
+  if (anchored) return anchored
 
-  const selected = []
-  for (const line of lines) {
-    if (/CATEGOR[IÍ]A|FIRMA|FUNCIONARIO|C[ÓO]DIGO\s+[ÚU]NICO|ESTA\s+TARJETA/i.test(line)) break
-    if (looksLikeAddress(line) || selected.length) selected.push(line)
-    if (selected.length >= 3) break
+  const candidates = []
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!looksLikeAddress(lines[i])) continue
+    candidates.push(lines[i])
+    if (i + 1 < lines.length && !STOP_AFTER_ADDRESS.test(lines[i + 1])) candidates.push(lines[i + 1])
+    break
   }
-  const address = cleanHumanText(selected.join(' ')).replace(/\s{2,}/g, ' ').trim()
-  if (!looksLikeAddress(address) || !plausibleText(address, 12) || noiseRatio(address) > 0.08 || !addressStructureQuality(address)) return ''
-  return address
+  return validateAddress(cleanHumanText(candidates.join(' ')))
+}
+
+function extractAddressAfterLabel(lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    const label = line.match(/DIRECCI[ÓO]N\s+(?:DE\s+)?CASA\s+MATRIZ/i)
+    if (!label) continue
+    const selected = []
+    const tail = cleanHumanText(line.slice((label.index || 0) + label[0].length))
+    if (tail) selected.push(tail)
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j += 1) {
+      if (STOP_AFTER_ADDRESS.test(lines[j])) break
+      selected.push(cleanHumanText(lines[j]))
+    }
+    const address = validateAddress(cleanHumanText(selected.filter(Boolean).join(' ')))
+    if (address) return address
+  }
+  return ''
+}
+
+function validateAddress(address) {
+  if (!address || !looksLikeAddress(address) || !plausibleText(address, 12)) return ''
+  if (noiseRatio(address) > 0.07 || !addressStructureQuality(address)) return ''
+  return stripTrailingNoise(address)
 }
 
 export function mergeVatReadings(first = {}, second = {}) {
@@ -134,43 +212,90 @@ function chooseBetterReading(field, a = '', b = '') {
 }
 
 function readingScore(field, value) {
-  if (field === 'nit') return normalizeTaxId(value) ? 1000 : plausibleText(value, 5) ? 5 : 0
-  if (field === 'nrc') return normalizeNrc(value) ? 1000 : plausibleText(value, 4) ? 5 : 0
-  if (field === 'name') return normalizeContributorName(value) ? 1000 + scoreName(normalizeContributorName(value)) : 0
-  if (field === 'activity') return parseActivities(value).filter((item) => item.code).length * 1000 + parseActivities(value).length * 100
-  if (field === 'address') return normalizeAddress(value) ? 1000 + normalizeAddress(value).length : 0
+  if (field === 'nit') return normalizeTaxId(value) ? 10000 : 0
+  if (field === 'nrc') return normalizeNrc(value) ? 10000 : 0
+  if (field === 'name') {
+    const name = normalizeContributorName(value)
+    return name ? 10000 + scoreName(name) : 0
+  }
+  if (field === 'activity') return parseActivities(value).length * 10000
+  if (field === 'address') {
+    const address = normalizeAddress(value)
+    return address ? 10000 + address.length : 0
+  }
   return 0
 }
 
 function numericCandidates(value) {
-  const groups = String(value || '').toUpperCase().match(/[0-9OQDILSZGBT][0-9OQDILSZGBT\s.\-_/]{6,24}[0-9OQDILSZGBT]/g) || []
-  return groups.map(normalizeDigits).filter((digits) => digits.length === 9 || digits.length === 14)
+  const text = String(value || '').toUpperCase()
+  const groups = text.match(/[0-9OQDILSZGBT][0-9OQDILSZGBT\s.\-_/]{6,24}[0-9OQDILSZGBT]/g) || []
+  const direct = normalizeDigits(text)
+  const all = groups.map(normalizeDigits)
+  if (direct.length === 9 || direct.length === 14) all.push(direct)
+  return [...new Set(all)].filter((digits) => digits.length === 9 || digits.length === 14)
 }
 
 function normalizeDigits(value = '') {
   return String(value).toUpperCase()
-    .replace(/[OQD]/g, '0').replace(/[IL]/g, '1').replace(/Z/g, '2').replace(/S/g, '5')
-    .replace(/G/g, '6').replace(/T/g, '7').replace(/B/g, '8').replace(/\D/g, '')
+    .replace(/[OQD]/g, '0')
+    .replace(/[IL]/g, '1')
+    .replace(/Z/g, '2')
+    .replace(/S/g, '5')
+    .replace(/G/g, '6')
+    .replace(/T/g, '7')
+    .replace(/B/g, '8')
+    .replace(/\D/g, '')
 }
 
 function textLines(value = '') {
-  return String(value || '').replace(/\r/g, '\n').split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  return String(value || '')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+}
+
+function cleanupName(value = '') {
+  let text = cleanHumanText(value)
+  text = text.replace(/\s+[,.;:\-]?\s*[A-ZÁÉÍÓÚÑ]{1,2}\s*$/i, (tail) => {
+    const token = tail.replace(/[^A-ZÁÉÍÓÚÑ]/gi, '')
+    return token.length <= 1 ? '' : tail
+  }).trim()
+  return text
+}
+
+function cleanActivityText(value = '') {
+  return cleanHumanText(String(value || '')
+    .replace(/GIRO\s+[O0]\s+ACTIVIDAD\s+ECON[ÓO]MICA/gi, '')
+    .replace(/(?:^|\s)(P?RIMARIA|S?ECUNDARIA|T?ERCIARIA)\s*[:.\-–]?\s*/gi, ' '))
 }
 
 function cleanHumanText(value = '') {
-  return String(value || '').replace(/^[^A-ZÁÉÍÓÚÑ0-9]+/i, '').replace(/[|]/g, 'I').replace(/[_—]{2,}/g, ' ').replace(/\s{2,}/g, ' ').trim()
+  return String(value || '')
+    .replace(/[|]/g, ' ')
+    .replace(/[_—]{2,}/g, ' ')
+    .replace(/^[^A-ZÁÉÍÓÚÑ0-9]+/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function stripTrailingNoise(value = '') {
+  const words = cleanHumanText(value).split(/\s+/)
+  while (words.length > 4 && /^[A-Z0-9]{1,2}$/i.test(words[words.length - 1])) words.pop()
+  return words.join(' ').replace(/\s{2,}/g, ' ').trim()
 }
 
 function plausibleText(value, minLength) {
   const text = String(value || '').trim()
   if (text.length < minLength) return false
   const letters = (text.match(/[A-ZÁÉÍÓÚÑ]/gi) || []).length
-  return letters / Math.max(1, text.length) >= 0.58 && noiseRatio(text) <= 0.12
+  const allowed = (text.match(/[A-ZÁÉÍÓÚÑ0-9 ,.#°º/'():\-]/gi) || []).length
+  return letters / Math.max(1, text.length) >= 0.58 && allowed / Math.max(1, text.length) >= 0.94
 }
 
 function noiseRatio(value = '') {
   const text = String(value || '')
-  const noise = (text.match(/[^A-ZÁÉÍÓÚÑ0-9 ,.#°º/'()\-]/gi) || []).length
+  const noise = (text.match(/[^A-ZÁÉÍÓÚÑ0-9 ,.#°º/'():\-]/gi) || []).length
   return noise / Math.max(1, text.length)
 }
 
@@ -183,31 +308,39 @@ function addressStructureQuality(value = '') {
   ]
   const signalCount = signals.filter((pattern) => pattern.test(text)).length
   if (signalCount < 2) return false
-
   const words = text.match(/[A-ZÁÉÍÓÚÑ]{1,}/g) || []
   if (words.length < 4) return false
   const short = words.filter((word) => word.length <= 2 && !['DE', 'LA', 'EL', 'AL'].includes(word)).length
   if (short / words.length > 0.22) return false
-
   const substantial = words.filter((word) => word.length >= 3).length
   return substantial / words.length >= 0.68
 }
 
-function isContributorName(value = '') {
-  const text = cleanHumanText(value)
-  if (!plausibleText(text, 8) || text.length > 100) return false
+function isContributorName(value = '', options = {}) {
+  const text = cleanupName(value)
+  if (!plausibleText(text, 8) || text.length > 120) return false
   if (/\d{3,}/.test(text) || isFiscalLabel(text) || looksLikeAddress(text)) return false
-  if (/\b(VENTA|REPARACI[ÓO]N|SERVICIOS?|ACCESORIOS?|VEH[IÍ]CULOS?|AUTOMOTORES?|PARTES?|GIRO|ACTIVIDAD|MINISTERIO|HACIENDA|REGISTRO|CONTRIBUYENTES?)\b/i.test(text)) return false
+  if (/\b(VENTA|REPARACI[ÓO]N|SERVICIOS?|ACCESORIOS?|VEH[IÍ]CULOS?|AUTOMOTORES?|PARTES?|GIRO|ACTIVIDAD|MINISTERIO|HACIENDA|REGISTRO|CONTRIBUYENTES?|IMPUESTOS?|INTERNOS?)\b/i.test(text)) return false
   const words = text.match(/[A-ZÁÉÍÓÚÑ]{2,}/gi) || []
   if (words.length < 2) return false
-  const substantial = words.filter((word) => word.length >= 4).length
+  const substantial = words.filter((word) => word.length >= 3).length
+  if (substantial < 2) return false
+
   const legal = /\b(S\.?A\.?|C\.?V\.?|LTDA|LIMITADA|SOCIEDAD|ASOCIACI[ÓO]N|FUNDACI[ÓO]N)\b/i.test(text)
-  return legal || text.includes(',') || substantial >= 3
+  if (options.anchored) return true
+  if (legal || text.includes(',')) return true
+
+  if (options.strictFallback) {
+    const letters = text.match(/[A-Za-zÁÉÍÓÚÑáéíóúñ]/g) || []
+    const upper = text.match(/[A-ZÁÉÍÓÚÑ]/g) || []
+    return letters.length > 0 && upper.length / letters.length >= 0.88 && substantial >= 3
+  }
+  return false
 }
 
 function scoreName(value = '') {
   const words = value.match(/[A-ZÁÉÍÓÚÑ]{2,}/gi) || []
-  return words.length * 10 + (value.includes(',') ? 25 : 0) + Math.min(value.length, 60) / 4
+  return words.length * 10 + (value.includes(',') ? 30 : 0) + Math.min(value.length, 70) / 4
 }
 
 function isFiscalLabel(value = '') {
@@ -219,20 +352,33 @@ function looksLikeAddress(value = '') {
 }
 
 function normalizeWords(value = '') {
-  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function matchActivity(raw = '') {
   const target = normalizeWords(raw)
   if (!target || target.length < 4) return null
-  const words = new Set(target.split(' ').filter((word) => word.length > 3))
+  const targetWords = new Set(target.split(' ').filter((word) => word.length > 3))
   let best = null
   let bestScore = 0
+  let bestCoverage = 0
   for (const item of DTE_ACTIVITIES) {
     const candidate = normalizeWords(item.name)
     if (candidate.includes(target) || target.includes(candidate)) return item
-    const score = candidate.split(' ').filter((word) => word.length > 3 && words.has(word)).length
-    if (score > bestScore) { bestScore = score; best = item }
+    const candidateWords = candidate.split(' ').filter((word) => word.length > 3)
+    const overlap = candidateWords.filter((word) => targetWords.has(word)).length
+    const coverage = overlap / Math.max(1, Math.min(candidateWords.length, targetWords.size))
+    if (overlap > bestScore || (overlap === bestScore && coverage > bestCoverage)) {
+      bestScore = overlap
+      bestCoverage = coverage
+      best = item
+    }
   }
-  return bestScore >= 3 ? best : null
+  return bestScore >= 3 && bestCoverage >= 0.45 ? best : null
 }
