@@ -3,6 +3,7 @@ const TARGET_HEIGHT = 1280
 const SAMPLE_MAX_SIDE = 900
 const CARD_DISTANCE_THRESHOLD = 25
 const SPLIT_DISTANCE_THRESHOLD = 18
+const NORMALIZED_FILE_MARKER = 'normalizada-v2'
 
 // Las regiones se aplican únicamente DESPUÉS de normalizar el rectángulo real de la tarjeta.
 // Coordenadas relativas a una tarjeta 1800x1280, no a la fotografía original.
@@ -46,8 +47,8 @@ export async function splitCombinedVatImageV2(file) {
     const backRect = detectCardRect(bitmap, secondRect)
     const frontCanvas = normalizeRect(bitmap, frontRect)
     const backCanvas = normalizeRect(bitmap, backRect)
-    const frontFile = await canvasToFile(frontCanvas, 'tarjeta-iva-frente-v2.jpg')
-    const backFile = await canvasToFile(backCanvas, 'tarjeta-iva-reverso-v2.jpg')
+    const frontFile = await canvasToFile(frontCanvas, `tarjeta-iva-frente-${NORMALIZED_FILE_MARKER}.jpg`)
+    const backFile = await canvasToFile(backCanvas, `tarjeta-iva-reverso-${NORMALIZED_FILE_MARKER}.jpg`)
     releaseCanvas(frontCanvas)
     releaseCanvas(backCanvas)
     return { frontFile, backFile, orientation, normalized: true }
@@ -60,6 +61,9 @@ export async function normalizeVatSide(file) {
   const bitmap = await createImageBitmap(file)
   try {
     const full = { x: 0, y: 0, w: bitmap.width, h: bitmap.height }
+    // Los archivos generados por splitCombinedVatImageV2 ya son exactamente 1800x1280.
+    // Volver a detectar sus bordes recortaría texto interno y desplazaría la plantilla.
+    if (String(file?.name || '').includes(NORMALIZED_FILE_MARKER)) return normalizeRect(bitmap, full)
     return normalizeRect(bitmap, detectCardRect(bitmap, full))
   } finally {
     bitmap.close?.()
@@ -179,7 +183,6 @@ function detectCardRect(bitmap, rect) {
       row[y] = rowHits / Math.max(1, Math.ceil(sample.width / 2))
     }
 
-    // Completar columnas no muestreadas y convertir a proporción.
     for (let x = 0; x < sample.width; x += 2) {
       const value = col[x] / Math.max(1, Math.ceil(sample.height / 2))
       col[x] = value
