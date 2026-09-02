@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const migrationsDir = path.resolve(here, '../../../supabase/migrations')
 
 const allowedLegacyDuplicates = new Set([
-  '0002','0022','0024','0027','0030','0031','0033',
+  '0002','0022','0024','0025','0027','0030','0031','0033',
   '20260822191500','20260823175500','20260826223000',
 ])
 
