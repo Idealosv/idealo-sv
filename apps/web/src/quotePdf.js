@@ -18,7 +18,7 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  fill(0,0,595,842,WHITE)
  fill(0,720,595,122,BLACK)
  fill(0,712,595,8,ORANGE)
- circle(58,789,23,ORANGE);text(44,782,'ISV',13,true,WHITE)
+ circle(58,789,23,ORANGE);text(48.5,782,'ISV',13,true,WHITE)
  text(94,802,'IDEALO SV',26,true,WHITE)
  text(95,782,'COTIZACIONES PROFESIONALES',8,false,'0.76 0.76 0.76')
  if(legalName)text(95,764,legalName,8,false,'0.62 0.62 0.62')
@@ -48,7 +48,7 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
    text(55,y,`${String(index+1).padStart(2,'0')}.`,8,true,ORANGE)
    text(82,y,rows[0],9,true,BLACK)
    text(374,y,String(qty),9,false,DARK);text(420,y,money(unit),9,false,DARK);text(499,y,money(qty*unit),9,true,BLACK)
-   let yy=y-12;rows.slice(1,3).forEach(row=>{text(82,yy,row,8,false,MID);yy-=10})
+   let yy=y-12;rows.slice(1).forEach(row=>{text(82,yy,row,8,false,MID);yy-=10})
    y-=h;line(36,y+8,559,y+8,'0.90 0.90 0.90',.4)
  })
 
