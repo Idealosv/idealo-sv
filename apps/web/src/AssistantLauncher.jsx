@@ -1,24 +1,174 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
+import './assistant-ai.css'
 
-const today=()=>new Date().toISOString().slice(0,10)
-const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(v||0))
+const API_URL = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const money = (value) => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(value || 0))
+const QUICK = [
+  '¿Qué requiere mi atención hoy?',
+  '¿Cómo está mi caja y qué riesgos ves?',
+  '¿Qué clientes o cuentas debo cobrar primero?',
+  '¿Qué materiales debo reponer?',
+  '¿Qué órdenes están atrasadas?',
+  'Analiza mis cotizaciones y oportunidades comerciales.'
+]
 
-export default function AssistantLauncher(){
- const [open,setOpen]=useState(false),[session,setSession]=useState(null),[company,setCompany]=useState(null),[data,setData]=useState({orders:[],ar:[],ap:[],inventory:[],agenda:[],cash:[]}),[loading,setLoading]=useState(false),[message,setMessage]=useState('')
- useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>setSession(data.session||null));const {data:l}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>l.subscription.unsubscribe()},[])
- useEffect(()=>{const fn=e=>{if((e.detail||{}).target==='assistant')setOpen(true)};window.addEventListener('idealo-open-module',fn);return()=>window.removeEventListener('idealo-open-module',fn)},[])
- useEffect(()=>{if(!session||!supabase)return;supabase.rpc('get_my_companies').then(({data})=>setCompany(data?.[0]||null))},[session])
- useEffect(()=>{if(!open||!company)return;let live=true;(async()=>{setLoading(true);setMessage('');const r=await Promise.all([
-  supabase.from('work_orders').select('id,number,title,status,due_at,total').eq('company_id',company.id),
-  supabase.from('accounts_receivable').select('id,amount_total,amount_paid,status,due_date').eq('company_id',company.id),
-  supabase.from('accounts_payable').select('id,amount_total,amount_paid,status,due_date').eq('company_id',company.id),
-  supabase.from('inventory_items').select('id,name,current_stock,minimum_stock,active').eq('company_id',company.id).eq('active',true),
-  supabase.from('production_schedule_events').select('id,title,status,priority,scheduled_start').eq('company_id',company.id).gte('scheduled_start',`${today()}T00:00:00`).order('scheduled_start').limit(50),
-  supabase.from('cash_account_balances').select('cash_account_id,name,current_balance,active').eq('company_id',company.id)
- ]);if(!live)return;const err=r.find(x=>x.error)?.error;if(err)setMessage(err.message);else setData({orders:r[0].data||[],ar:r[1].data||[],ap:r[2].data||[],inventory:r[3].data||[],agenda:r[4].data||[],cash:r[5].data||[]});setLoading(false)})();return()=>{live=false}},[open,company?.id])
- const insights=useMemo(()=>{const now=today(),openStatus=x=>!['PAID','CANCELLED'].includes(x.status),late=data.orders.filter(x=>x.due_at&&x.due_at.slice(0,10)<now&&!['DELIVERED','COMPLETED','CANCELLED'].includes(x.status)),ar=data.ar.filter(x=>openStatus(x)&&x.due_date&&x.due_date<now),ap=data.ap.filter(x=>openStatus(x)&&x.due_date&&x.due_date<now),low=data.inventory.filter(x=>Number(x.current_stock||0)<=Number(x.minimum_stock||0)),urgent=data.agenda.filter(x=>x.priority==='URGENT'&&x.status!=='COMPLETED'),cash=data.cash.filter(x=>x.active!==false).reduce((s,x)=>s+Number(x.current_balance||0),0),arValue=ar.reduce((s,x)=>s+Math.max(0,Number(x.amount_total||0)-Number(x.amount_paid||0)),0),apValue=ap.reduce((s,x)=>s+Math.max(0,Number(x.amount_total||0)-Number(x.amount_paid||0)),0);const list=[];if(late.length)list.push({level:'critical',title:`${late.length} órdenes atrasadas`,detail:'Priorizar producción y reprogramar entregas.',target:'planning'});if(ar.length)list.push({level:'critical',title:`CxC vencida ${money(arValue)}`,detail:'Cobrar primero los saldos vencidos para proteger caja.',target:'financial'});if(ap.length)list.push({level:'important',title:`CxP vencida ${money(apValue)}`,detail:'Revisar pagos y proveedores antes de generar recargos.',target:'procurement'});if(low.length)list.push({level:'important',title:`${low.length} materiales en mínimo`,detail:'Generar reposición antes de bloquear producción.',target:'inventory'});if(urgent.length)list.push({level:'important',title:`${urgent.length} actividades urgentes`,detail:'Revisar agenda y responsables del día.',target:'planning'});if(cash<0)list.unshift({level:'critical',title:`Caja negativa ${money(cash)}`,detail:'Revisar movimientos, cobros y pagos inmediatamente.',target:'financial'});return{list,cash,late,ar,ap,low,urgent}},[data])
- const go=target=>{setOpen(false);window.dispatchEvent(new CustomEvent('idealo-open-module',{detail:{target}}))}
- if(!open)return null
- return <div className="erp-modal-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}><section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente IA" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>Asistente IA</strong><small>Prioridades inteligentes basadas en datos reales del ERP</small></div><button type="button" className="erp-modal-close" onClick={()=>setOpen(false)}>×</button></header><div className="erp-modal-body"><section className="panel"><div className="clients-titlebar"><div><p className="form-kicker">ASISTENTE OPERATIVO</p><h2>Qué requiere atención ahora</h2><p>Analiza caja, cobranza, pagos, inventario, producción y agenda. No simula respuestas de un modelo externo.</p></div><span className={insights.list.some(x=>x.level==='critical')?'status dte-pending':'status dte-ready'}>{insights.list.length} prioridades</span></div>{message&&<p className="feedback error">{message}</p>}{loading?<div className="empty-state"><strong>Analizando ERP…</strong></div>:<><div className="metric-grid"><article className="metric-card"><small>Caja disponible</small><strong>{money(insights.cash)}</strong></article><article className="metric-card"><small>OT atrasadas</small><strong>{insights.late.length}</strong></article><article className="metric-card"><small>CxC vencidas</small><strong>{insights.ar.length}</strong></article><article className="metric-card"><small>Stock crítico</small><strong>{insights.low.length}</strong></article></div><div className="schedule-list">{insights.list.map((x,i)=><article className="schedule-card" key={`${x.title}-${i}`}><div><strong>{x.title}</strong><small>{x.detail}</small></div><button type="button" className={x.level==='critical'?'':'secondary-button'} onClick={()=>go(x.target)}>Abrir módulo</button></article>)}{!insights.list.length&&<div className="empty-state"><strong>Sin alertas críticas</strong><p>Los principales indicadores operativos están bajo control.</p></div>}</div></>}</section><section className="panel"><p className="form-kicker">SIGUIENTE ETAPA</p><h3>IA generativa</h3><p>La estructura ya queda preparada para conectar un modelo real posteriormente. Hasta entonces, este asistente solo muestra recomendaciones calculadas con datos verificables del ERP.</p></section></div></section></div>
+async function api(path, { token, method = 'GET', body } = {}) {
+  if (!API_URL) throw new Error('VITE_API_URL no está configurada.')
+  const response = await fetch(`${API_URL}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(payload?.message || payload?.error || 'No se pudo completar la solicitud.')
+  return payload
+}
+
+export default function AssistantLauncher() {
+  const [open, setOpen] = useState(false)
+  const [session, setSession] = useState(null)
+  const [company, setCompany] = useState(null)
+  const [status, setStatus] = useState({ configured: false, model: '', mode: 'read_only' })
+  const [snapshot, setSnapshot] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [question, setQuestion] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => setSession(data.session || null))
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession))
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    const fn = (event) => { if ((event.detail || {}).target === 'assistant') setOpen(true) }
+    window.addEventListener('idealo-open-module', fn)
+    return () => window.removeEventListener('idealo-open-module', fn)
+  }, [])
+
+  useEffect(() => {
+    if (!session || !supabase) return
+    supabase.rpc('get_my_companies').then(({ data }) => setCompany(data?.[0] || null))
+  }, [session])
+
+  useEffect(() => {
+    if (!open || !company?.id || !session?.access_token) return
+    let live = true
+    ;(async () => {
+      setLoading(true)
+      setMessage('')
+      try {
+        const [nextStatus, nextSnapshot] = await Promise.all([
+          api('/api/ai/status'),
+          api(`/api/ai/snapshot?company_id=${encodeURIComponent(company.id)}`, { token: session.access_token })
+        ])
+        if (!live) return
+        setStatus(nextStatus)
+        setSnapshot(nextSnapshot)
+      } catch (error) {
+        if (live) setMessage(error.message)
+      } finally {
+        if (live) setLoading(false)
+      }
+    })()
+    return () => { live = false }
+  }, [open, company?.id, session?.access_token])
+
+  const metrics = snapshot?.metrics || {}
+  const priorities = useMemo(() => {
+    const list = []
+    if (Number(metrics.late_orders) > 0) list.push({ title: `${metrics.late_orders} órdenes atrasadas`, target: 'planning' })
+    if (Number(metrics.overdue_receivables) > 0) list.push({ title: `CxC vencida ${money(metrics.overdue_receivables_value)}`, target: 'financial' })
+    if (Number(metrics.overdue_payables) > 0) list.push({ title: `CxP vencida ${money(metrics.overdue_payables_value)}`, target: 'procurement' })
+    if (Number(metrics.low_stock_items) > 0) list.push({ title: `${metrics.low_stock_items} materiales en mínimo`, target: 'inventory' })
+    if (Number(metrics.urgent_agenda) > 0) list.push({ title: `${metrics.urgent_agenda} actividades urgentes`, target: 'planning' })
+    if (Number(metrics.cash_total) < 0) list.unshift({ title: `Caja negativa ${money(metrics.cash_total)}`, target: 'financial' })
+    return list
+  }, [metrics])
+
+  const send = async (preset) => {
+    const text = String(preset || question).trim()
+    if (!text || sending || !company?.id || !session?.access_token) return
+    const userMessage = { role: 'user', content: text }
+    const history = messages.slice(-10)
+    setMessages((current) => [...current, userMessage])
+    setQuestion('')
+    setSending(true)
+    setMessage('')
+    try {
+      const result = await api('/api/ai/ask', {
+        token: session.access_token,
+        method: 'POST',
+        body: { company_id: company.id, question: text, history }
+      })
+      setMessages((current) => [...current, { role: 'assistant', content: result.answer }])
+      if (result.metrics) setSnapshot((current) => current ? { ...current, metrics: result.metrics } : current)
+    } catch (error) {
+      setMessages((current) => [...current, { role: 'assistant', content: `No pude completar el análisis: ${error.message}` }])
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const go = (target) => {
+    setOpen(false)
+    window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target } }))
+  }
+
+  if (!open) return null
+  return <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
+    <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente IA" onMouseDown={(event) => event.stopPropagation()}>
+      <header className="erp-modal-head">
+        <div><strong>IDEALO IA</strong><small>Asistente ejecutivo conectado a los datos reales de tu empresa</small></div>
+        <button type="button" className="erp-modal-close" onClick={() => setOpen(false)}>×</button>
+      </header>
+      <div className="erp-modal-body">
+        {message && <p className="feedback error">{message}</p>}
+        {loading ? <div className="empty-state"><strong>Preparando inteligencia empresarial…</strong><p>Consultando datos actuales del ERP.</p></div> : <div className="ai-shell">
+          <section className="panel ai-chat">
+            <div className="ai-status-line">
+              <div><p className="form-kicker">ASISTENTE EJECUTIVO</p><h2>Preguntale a tu ERP</h2></div>
+              <span className={status.configured ? 'status dte-ready' : 'status dte-pending'}>{status.configured ? 'IA conectada' : 'Falta configurar IA'}</span>
+            </div>
+            <div className="ai-quick">{QUICK.map((text) => <button type="button" key={text} disabled={sending || !status.configured} onClick={() => send(text)}>{text}</button>)}</div>
+            <div className="ai-chat-stream" aria-live="polite">
+              {!messages.length && <div className="ai-empty-chat"><strong>Ya puedo analizar tu empresa.</strong><p>Preguntame por caja, cobros, pagos, cotizaciones, inventario, producción, atrasos o prioridades del día.</p></div>}
+              {messages.map((item, index) => <article key={`${item.role}-${index}`} className={`ai-message ${item.role}`}><small>{item.role === 'user' ? 'Vos' : 'IDEALO IA'}</small>{item.content}</article>)}
+              {sending && <article className="ai-message assistant"><small>IDEALO IA</small>Analizando datos actuales del ERP…</article>}
+            </div>
+            <div className="ai-composer">
+              <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() } }} placeholder="Ejemplo: ¿Qué debo cobrar primero y por qué?" disabled={sending || !status.configured} />
+              <button type="button" onClick={() => send()} disabled={sending || !question.trim() || !status.configured}>{sending ? 'Analizando…' : 'Preguntar'}</button>
+            </div>
+          </section>
+
+          <aside className="ai-side">
+            <section className="panel">
+              <p className="form-kicker">RADAR EMPRESARIAL</p><h3>Situación actual</h3>
+              <div className="ai-metric-list">
+                <article><small>Caja</small><strong>{money(metrics.cash_total)}</strong></article>
+                <article><small>Clientes</small><strong>{metrics.clients ?? 0}</strong></article>
+                <article><small>Cotizaciones</small><strong>{metrics.quotes ?? 0}</strong></article>
+                <article><small>OT atrasadas</small><strong>{metrics.late_orders ?? 0}</strong></article>
+                <article><small>CxC vencida</small><strong>{money(metrics.overdue_receivables_value)}</strong></article>
+                <article><small>Stock crítico</small><strong>{metrics.low_stock_items ?? 0}</strong></article>
+              </div>
+            </section>
+            <section className="panel">
+              <p className="form-kicker">PRIORIDADES</p><h3>Qué requiere atención</h3>
+              <div className="schedule-list">{priorities.map((item) => <article className="schedule-card" key={item.title}><div><strong>{item.title}</strong></div><button type="button" className="secondary-button" onClick={() => go(item.target)}>Abrir</button></article>)}{!priorities.length && <div className="empty-state"><strong>Sin alertas críticas</strong></div>}</div>
+            </section>
+            <section className="panel">
+              <div className="ai-readonly"><strong>Modo seguro: solo lectura.</strong><br />La IA analiza y recomienda, pero no emite DTE, no paga, no cobra y no modifica inventario sin una acción explícita del usuario.</div>
+              <p><small>Modelo: {status.model || 'pendiente'} · Contexto actualizado al abrir el asistente.</small></p>
+            </section>
+          </aside>
+        </div>}
+      </div>
+    </section>
+  </div>
 }

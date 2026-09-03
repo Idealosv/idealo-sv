@@ -17,6 +17,7 @@ import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit } from './admin/user-administration-service.js'
 import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
+import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -33,6 +34,16 @@ app.get('/health', (_request, response) => response.json({ status: 'ok', service
 
 app.get('/api/system/status', async (_request, response, next) => {
   try { const supabase = getSupabaseAdmin(); const { error } = await supabase.from('companies').select('id').limit(1); if (error) throw error; response.json({ api: 'ok', database: 'ok', dte: getDteConfigurationStatus() }) } catch (error) { next(error) }
+})
+
+app.get('/api/ai/status', async (_request, response, next) => {
+  try { response.json(await getAiStatus()) } catch (error) { next(error) }
+})
+app.get('/api/ai/snapshot', async (request, response, next) => {
+  try { response.json(await getAiSnapshot({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/ai/ask', async (request, response, next) => {
+  try { response.json(await askAiAssistant({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 
 app.get('/api/admin/users', async (request, response, next) => {
