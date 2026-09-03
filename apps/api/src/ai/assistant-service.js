@@ -253,16 +253,15 @@ function answerQuotes(context) {
   const m = context.metrics
   const recent = context.samples.recent_quotes.slice(0, 8)
   const expiring = context.samples.expiring_quotes.slice(0, 6)
+  const detailRows = expiring.length ? expiring.map((row, index) => `${index + 1}. ${quoteLabel(row)} · ${money(row.total)} · vence ${row.valid_until}.`) : recent.slice(0, 4).map((row, index) => `${index + 1}. ${quoteLabel(row)} · ${row.status || 'sin estado'} · ${money(row.total)}.`)
   return lines([
     `Hay ${m.quotes} cotizaciones registradas por ${money(m.quote_total)}.`,
     `Últimos 30 días: ${m.quotes_30d} cotizaciones por ${money(m.quote_total_30d)}.`,
     m.quote_growth_pct === null ? 'No hay base suficiente del período anterior para calcular crecimiento.' : `Variación frente a los 30 días anteriores: ${m.quote_growth_pct >= 0 ? '+' : ''}${percent(m.quote_growth_pct)}.`,
     m.weighted_pipeline > 0 ? `Pipeline ponderado según probabilidad de cierre registrada: ${money(m.weighted_pipeline)}.` : '',
-    expiring.length ? `Atención: ${m.expiring_quotes_7d} cotizaciones vencen en los próximos 7 días.` : '',
-    ...expiring.map((row, index) => `${index + 1}. ${quoteLabel(row)} · ${money(row.total)} · vence ${row.valid_until}.`),
-    !expiring.length ? ...recent.map(() => '') : '',
-    recent.length && !expiring.length ? `Cotización reciente: ${quoteLabel(recent[0])} · ${money(recent[0].total)}.` : '',
-    'Recomendación: dar seguimiento primero a las de mayor valor, mayor probabilidad de cierre y vencimiento más cercano.'
+    expiring.length ? `Atención: ${m.expiring_quotes_7d} cotizaciones vencen en los próximos 7 días.` : recent.length ? 'Cotizaciones recientes:' : '',
+    ...detailRows,
+    recent.length ? 'Recomendación: dar seguimiento primero a las de mayor valor, mayor probabilidad de cierre y vencimiento más cercano.' : 'No hay cotizaciones recientes para analizar.'
   ])
 }
 
