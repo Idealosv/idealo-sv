@@ -29,7 +29,7 @@ export default function AssistantLauncher() {
   const [open, setOpen] = useState(false)
   const [session, setSession] = useState(null)
   const [company, setCompany] = useState(null)
-  const [status, setStatus] = useState({ configured: false, model: '', mode: 'read_only' })
+  const [status, setStatus] = useState({ configured: true, model: 'Motor inteligente IDEALO SV', mode: 'internal_read_only' })
   const [snapshot, setSnapshot] = useState(null)
   const [messages, setMessages] = useState([])
   const [question, setQuestion] = useState('')
@@ -121,9 +121,9 @@ export default function AssistantLauncher() {
 
   if (!open) return null
   return <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
-    <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente IA" onMouseDown={(event) => event.stopPropagation()}>
+    <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente Inteligente" onMouseDown={(event) => event.stopPropagation()}>
       <header className="erp-modal-head">
-        <div><strong>IDEALO IA</strong><small>Asistente ejecutivo conectado a los datos reales de tu empresa</small></div>
+        <div><strong>IDEALO INTELIGENTE</strong><small>Asistente empresarial interno conectado a los datos reales de tu empresa</small></div>
         <button type="button" className="erp-modal-close" onClick={() => setOpen(false)}>×</button>
       </header>
       <div className="erp-modal-body">
@@ -131,18 +131,18 @@ export default function AssistantLauncher() {
         {loading ? <div className="empty-state"><strong>Preparando inteligencia empresarial…</strong><p>Consultando datos actuales del ERP.</p></div> : <div className="ai-shell">
           <section className="panel ai-chat">
             <div className="ai-status-line">
-              <div><p className="form-kicker">ASISTENTE EJECUTIVO</p><h2>Preguntale a tu ERP</h2></div>
-              <span className={status.configured ? 'status dte-ready' : 'status dte-pending'}>{status.configured ? 'IA conectada' : 'Falta configurar IA'}</span>
+              <div><p className="form-kicker">ASISTENTE EMPRESARIAL</p><h2>Preguntale a tu ERP</h2></div>
+              <span className="status dte-ready">Motor interno activo</span>
             </div>
-            <div className="ai-quick">{QUICK.map((text) => <button type="button" key={text} disabled={sending || !status.configured} onClick={() => send(text)}>{text}</button>)}</div>
+            <div className="ai-quick">{QUICK.map((text) => <button type="button" key={text} disabled={sending} onClick={() => send(text)}>{text}</button>)}</div>
             <div className="ai-chat-stream" aria-live="polite">
-              {!messages.length && <div className="ai-empty-chat"><strong>Ya puedo analizar tu empresa.</strong><p>Preguntame por caja, cobros, pagos, cotizaciones, inventario, producción, atrasos o prioridades del día.</p></div>}
-              {messages.map((item, index) => <article key={`${item.role}-${index}`} className={`ai-message ${item.role}`}><small>{item.role === 'user' ? 'Vos' : 'IDEALO IA'}</small>{item.content}</article>)}
-              {sending && <article className="ai-message assistant"><small>IDEALO IA</small>Analizando datos actuales del ERP…</article>}
+              {!messages.length && <div className="ai-empty-chat"><strong>Ya puedo analizar tu empresa.</strong><p>Preguntame por caja, cobros, pagos, cotizaciones, inventario, producción, atrasos, clientes o prioridades del día.</p></div>}
+              {messages.map((item, index) => <article key={`${item.role}-${index}`} className={`ai-message ${item.role}`}><small>{item.role === 'user' ? 'Vos' : 'IDEALO'}</small>{item.content}</article>)}
+              {sending && <article className="ai-message assistant"><small>IDEALO</small>Analizando datos actuales del ERP…</article>}
             </div>
             <div className="ai-composer">
-              <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() } }} placeholder="Ejemplo: ¿Qué debo cobrar primero y por qué?" disabled={sending || !status.configured} />
-              <button type="button" onClick={() => send()} disabled={sending || !question.trim() || !status.configured}>{sending ? 'Analizando…' : 'Preguntar'}</button>
+              <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() } }} placeholder="Ejemplo: ¿Qué debo cobrar primero y por qué?" disabled={sending} />
+              <button type="button" onClick={() => send()} disabled={sending || !question.trim()}>{sending ? 'Analizando…' : 'Preguntar'}</button>
             </div>
           </section>
 
@@ -163,8 +163,8 @@ export default function AssistantLauncher() {
               <div className="schedule-list">{priorities.map((item) => <article className="schedule-card" key={item.title}><div><strong>{item.title}</strong></div><button type="button" className="secondary-button" onClick={() => go(item.target)}>Abrir</button></article>)}{!priorities.length && <div className="empty-state"><strong>Sin alertas críticas</strong></div>}</div>
             </section>
             <section className="panel">
-              <div className="ai-readonly"><strong>Modo seguro: solo lectura.</strong><br />La IA analiza y recomienda, pero no emite DTE, no paga, no cobra y no modifica inventario sin una acción explícita del usuario.</div>
-              <p><small>Modelo: {status.model || 'pendiente'} · Contexto actualizado al abrir el asistente.</small></p>
+              <div className="ai-readonly"><strong>Motor interno y modo seguro.</strong><br />El análisis funciona con datos de IDEALO SV, sin cuenta de OpenAI ni cobro por consulta. Solo recomienda: no emite DTE, no paga, no cobra y no modifica inventario automáticamente.</div>
+              <p><small>{status.model || 'Motor inteligente IDEALO SV'} · Contexto actualizado al abrir el asistente.</small></p>
             </section>
           </aside>
         </div>}
