@@ -6,11 +6,14 @@ const API_URL = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const money = (value) => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(value || 0))
 const QUICK = [
   '¿Qué requiere mi atención hoy?',
+  'Dame un diagnóstico completo de la empresa.',
   '¿Cómo está mi caja y qué riesgos ves?',
-  '¿Qué clientes o cuentas debo cobrar primero?',
+  '¿Qué cuentas debo cobrar primero?',
   '¿Qué materiales debo reponer?',
   '¿Qué órdenes están atrasadas?',
-  'Analiza mis cotizaciones y oportunidades comerciales.'
+  'Compara mis cotizaciones de los últimos 30 días con el período anterior.',
+  '¿Qué cotizaciones están próximas a vencer?',
+  '¿Qué puedes decirme de mis márgenes y rentabilidad?'
 ]
 
 async function api(path, { token, method = 'GET', body } = {}) {
@@ -29,7 +32,7 @@ export default function AssistantLauncher() {
   const [open, setOpen] = useState(false)
   const [session, setSession] = useState(null)
   const [company, setCompany] = useState(null)
-  const [status, setStatus] = useState({ configured: true, model: 'Motor inteligente IDEALO SV', mode: 'internal_read_only' })
+  const [status, setStatus] = useState({ configured: true, model: 'Motor Inteligente IDEALO SV v2', mode: 'internal_read_only' })
   const [snapshot, setSnapshot] = useState(null)
   const [messages, setMessages] = useState([])
   const [question, setQuestion] = useState('')
@@ -81,12 +84,13 @@ export default function AssistantLauncher() {
   const metrics = snapshot?.metrics || {}
   const priorities = useMemo(() => {
     const list = []
-    if (Number(metrics.late_orders) > 0) list.push({ title: `${metrics.late_orders} órdenes atrasadas`, target: 'planning' })
+    if (Number(metrics.cash_total) < 0) list.push({ title: `Caja negativa ${money(metrics.cash_total)}`, target: 'financial' })
     if (Number(metrics.overdue_receivables) > 0) list.push({ title: `CxC vencida ${money(metrics.overdue_receivables_value)}`, target: 'financial' })
+    if (Number(metrics.late_orders) > 0) list.push({ title: `${metrics.late_orders} órdenes atrasadas`, target: 'planning' })
     if (Number(metrics.overdue_payables) > 0) list.push({ title: `CxP vencida ${money(metrics.overdue_payables_value)}`, target: 'procurement' })
     if (Number(metrics.low_stock_items) > 0) list.push({ title: `${metrics.low_stock_items} materiales en mínimo`, target: 'inventory' })
     if (Number(metrics.urgent_agenda) > 0) list.push({ title: `${metrics.urgent_agenda} actividades urgentes`, target: 'planning' })
-    if (Number(metrics.cash_total) < 0) list.unshift({ title: `Caja negativa ${money(metrics.cash_total)}`, target: 'financial' })
+    if (Number(metrics.expiring_quotes_7d) > 0) list.push({ title: `${metrics.expiring_quotes_7d} cotizaciones próximas a vencer`, target: 'quotes' })
     return list
   }, [metrics])
 
@@ -123,25 +127,25 @@ export default function AssistantLauncher() {
   return <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
     <section className="erp-modal-panel" role="dialog" aria-modal="true" aria-label="Asistente Inteligente" onMouseDown={(event) => event.stopPropagation()}>
       <header className="erp-modal-head">
-        <div><strong>IDEALO INTELIGENTE</strong><small>Asistente empresarial interno conectado a los datos reales de tu empresa</small></div>
+        <div><strong>IDEALO INTELIGENTE V2</strong><small>Diagnóstico empresarial interno conectado a los datos reales de tu empresa</small></div>
         <button type="button" className="erp-modal-close" onClick={() => setOpen(false)}>×</button>
       </header>
       <div className="erp-modal-body">
         {message && <p className="feedback error">{message}</p>}
-        {loading ? <div className="empty-state"><strong>Preparando inteligencia empresarial…</strong><p>Consultando datos actuales del ERP.</p></div> : <div className="ai-shell">
+        {loading ? <div className="empty-state"><strong>Preparando inteligencia empresarial…</strong><p>Consultando y comparando datos actuales del ERP.</p></div> : <div className="ai-shell">
           <section className="panel ai-chat">
             <div className="ai-status-line">
-              <div><p className="form-kicker">ASISTENTE EMPRESARIAL</p><h2>Preguntale a tu ERP</h2></div>
+              <div><p className="form-kicker">ASISTENTE EMPRESARIAL V2</p><h2>Preguntale a tu ERP</h2></div>
               <span className="status dte-ready">Motor interno activo</span>
             </div>
             <div className="ai-quick">{QUICK.map((text) => <button type="button" key={text} disabled={sending} onClick={() => send(text)}>{text}</button>)}</div>
             <div className="ai-chat-stream" aria-live="polite">
-              {!messages.length && <div className="ai-empty-chat"><strong>Ya puedo analizar tu empresa.</strong><p>Preguntame por caja, cobros, pagos, cotizaciones, inventario, producción, atrasos, clientes o prioridades del día.</p></div>}
+              {!messages.length && <div className="ai-empty-chat"><strong>Ahora puedo analizar más áreas de tu empresa.</strong><p>Preguntame por diagnóstico, caja, cobros, pagos, cotizaciones, tendencias, márgenes, inventario, producción, clientes o prioridades.</p></div>}
               {messages.map((item, index) => <article key={`${item.role}-${index}`} className={`ai-message ${item.role}`}><small>{item.role === 'user' ? 'Vos' : 'IDEALO'}</small>{item.content}</article>)}
-              {sending && <article className="ai-message assistant"><small>IDEALO</small>Analizando datos actuales del ERP…</article>}
+              {sending && <article className="ai-message assistant"><small>IDEALO</small>Analizando y comparando datos actuales del ERP…</article>}
             </div>
             <div className="ai-composer">
-              <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() } }} placeholder="Ejemplo: ¿Qué debo cobrar primero y por qué?" disabled={sending} />
+              <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() } }} placeholder="Ejemplo: comparame las cotizaciones de este mes y decime qué debo atender" disabled={sending} />
               <button type="button" onClick={() => send()} disabled={sending || !question.trim()}>{sending ? 'Analizando…' : 'Preguntar'}</button>
             </div>
           </section>
@@ -150,12 +154,14 @@ export default function AssistantLauncher() {
             <section className="panel">
               <p className="form-kicker">RADAR EMPRESARIAL</p><h3>Situación actual</h3>
               <div className="ai-metric-list">
+                <article><small>Salud empresarial</small><strong>{metrics.health_score ?? 100}/100</strong></article>
                 <article><small>Caja</small><strong>{money(metrics.cash_total)}</strong></article>
-                <article><small>Clientes</small><strong>{metrics.clients ?? 0}</strong></article>
-                <article><small>Cotizaciones</small><strong>{metrics.quotes ?? 0}</strong></article>
+                <article><small>Cotizado 30 días</small><strong>{money(metrics.quote_total_30d)}</strong></article>
+                <article><small>Clientes nuevos 30d</small><strong>{metrics.new_clients_30d ?? 0}</strong></article>
                 <article><small>OT atrasadas</small><strong>{metrics.late_orders ?? 0}</strong></article>
                 <article><small>CxC vencida</small><strong>{money(metrics.overdue_receivables_value)}</strong></article>
                 <article><small>Stock crítico</small><strong>{metrics.low_stock_items ?? 0}</strong></article>
+                <article><small>Cotizaciones por vencer</small><strong>{metrics.expiring_quotes_7d ?? 0}</strong></article>
               </div>
             </section>
             <section className="panel">
@@ -163,8 +169,8 @@ export default function AssistantLauncher() {
               <div className="schedule-list">{priorities.map((item) => <article className="schedule-card" key={item.title}><div><strong>{item.title}</strong></div><button type="button" className="secondary-button" onClick={() => go(item.target)}>Abrir</button></article>)}{!priorities.length && <div className="empty-state"><strong>Sin alertas críticas</strong></div>}</div>
             </section>
             <section className="panel">
-              <div className="ai-readonly"><strong>Motor interno y modo seguro.</strong><br />El análisis funciona con datos de IDEALO SV, sin cuenta de OpenAI ni cobro por consulta. Solo recomienda: no emite DTE, no paga, no cobra y no modifica inventario automáticamente.</div>
-              <p><small>{status.model || 'Motor inteligente IDEALO SV'} · Contexto actualizado al abrir el asistente.</small></p>
+              <div className="ai-readonly"><strong>Motor interno y modo seguro.</strong><br />Analiza datos de IDEALO SV sin cuenta de OpenAI ni cobro por consulta. No inventa rentabilidad si faltan costos y no modifica registros automáticamente.</div>
+              <p><small>{status.model || 'Motor Inteligente IDEALO SV v2'} · Contexto actualizado al abrir el asistente.</small></p>
             </section>
           </aside>
         </div>}
