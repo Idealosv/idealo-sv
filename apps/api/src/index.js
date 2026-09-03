@@ -42,8 +42,17 @@ app.get('/api/ai/status', async (_request, response, next) => {
 app.get('/api/ai/snapshot', async (request, response, next) => {
   try { response.json(await getAiSnapshot({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
-app.post('/api/ai/ask', async (request, response, next) => {
-  try { response.json(await askAiAssistant({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+app.post('/api/ai/ask', async (request, response) => {
+  try { response.json(await askAiAssistant({ request, supabase: getSupabaseAdmin() })) }
+  catch (error) {
+    console.error('AI_ASSISTANT_FAILED', { code: error?.code, statusCode: error?.statusCode, message: error?.message })
+    const status = Number(error?.statusCode || 500)
+    response.status(status).json({
+      error: String(error?.code || 'AI_ASSISTANT_ERROR'),
+      code: String(error?.code || 'AI_ASSISTANT_ERROR'),
+      message: String(error?.message || 'No se pudo completar el análisis interno.')
+    })
+  }
 })
 
 app.get('/api/admin/users', async (request, response, next) => {
