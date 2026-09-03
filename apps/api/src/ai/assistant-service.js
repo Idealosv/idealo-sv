@@ -1,5 +1,3 @@
-const OPENAI_ENDPOINT = 'https://api.openai.com/v1/responses'
-
 function httpError(message, statusCode = 400, code = 'AI_REQUEST_ERROR') {
   const error = new Error(message)
   error.statusCode = statusCode
@@ -31,6 +29,7 @@ async function getActor({ request, supabase, companyId }) {
 const safeNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : 0
 const today = () => new Date().toISOString().slice(0, 10)
 const remaining = (row) => Math.max(0, safeNumber(row.amount_total) - safeNumber(row.amount_paid))
+const money = (value) => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(safeNumber(value))
 
 async function query(supabase, builder, label) {
   const { data, error } = await builder
@@ -93,65 +92,112 @@ async function loadCompanyContext(supabase, companyId) {
   }
 }
 
-function responseText(payload) {
-  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) return payload.output_text.trim()
-  const parts = []
-  for (const item of payload?.output || []) {
-    if (item?.type !== 'message') continue
-    for (const content of item.content || []) if (content?.type === 'output_text' && content.text) parts.push(content.text)
-  }
-  return parts.join('\n').trim()
+function normalize(text) {
+  return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
-async function askOpenAI({ question, history, context }) {
-  const apiKey = String(process.env.OPENAI_API_KEY || '').trim()
-  if (!apiKey) throw httpError('La IA todavía no tiene configurada OPENAI_API_KEY en el servidor.', 503, 'AI_NOT_CONFIGURED')
-  const model = String(process.env.OPENAI_MODEL || 'gpt-5.6-sol').trim()
-  const compactHistory = (Array.isArray(history) ? history : []).slice(-10).map((item) => ({
-    role: item?.role === 'assistant' ? 'assistant' : 'user',
-    content: String(item?.content || '').slice(0, 4000)
-  }))
-  const instructions = [
-    'Sos el Asistente Ejecutivo de IDEALO SV, un ERP empresarial de El Salvador.',
-    'Respondé en español claro y profesional, usando únicamente el contexto ERP suministrado.',
-    'No inventés datos. Si falta información, decilo expresamente.',
-    'Priorizá caja, cobros, pagos, ventas, cotizaciones, inventario, producción y vencimientos.',
-    'Podés recomendar acciones, pero este canal es de solo lectura: nunca afirmés que modificaste datos, emitiste DTE, hiciste pagos o cambiaste inventario.',
-    'Cuando haya riesgo o prioridad, explicá el motivo y proponé el siguiente paso concreto.',
-    'Usá montos en USD y fechas de forma comprensible para El Salvador.',
-    'Sé conciso salvo que el usuario pida detalle.'
-  ].join(' ')
-  const input = [
-    ...compactHistory,
-    { role: 'user', content: `CONTEXTO ERP ACTUAL:\n${JSON.stringify(context)}\n\nPREGUNTA DEL USUARIO:\n${question}` }
-  ]
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), Number(process.env.OPENAI_TIMEOUT_MS || 30000))
-  try {
-    const response = await fetch(OPENAI_ENDPOINT, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, instructions, input, max_output_tokens: 1200, store: false }),
-      signal: controller.signal
-    })
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) throw httpError(payload?.error?.message || 'El proveedor de IA rechazó la solicitud.', 502, 'AI_PROVIDER_ERROR')
-    const answer = responseText(payload)
-    if (!answer) throw httpError('El proveedor de IA respondió sin texto.', 502, 'AI_EMPTY_RESPONSE')
-    return { answer, model, response_id: payload.id || null }
-  } catch (error) {
-    if (error?.name === 'AbortError') throw httpError('La consulta de IA excedió el tiempo permitido.', 504, 'AI_TIMEOUT')
-    throw error
-  } finally {
-    clearTimeout(timeout)
+function lines(items) {
+  return items.filter(Boolean).join('\n')
+}
+
+function internalAnswer(question, context) {
+  const q = normalize(question)
+  const m = context.metrics
+  const s = context.samples
+  const all = (...words) => words.some((word) => q.includes(word))
+
+  if (all('cobrar', 'cobro', 'cuentas por cobrar', 'cxc', 'clientes deben')) {
+    const rows = s.overdue_receivables.slice(0, 5)
+    return lines([
+      `Tenés ${m.overdue_receivables} cuentas por cobrar vencidas por ${money(m.overdue_receivables_value)}.`,
+      rows.length ? 'Prioridad sugerida: empezar por los saldos vencidos más altos y antiguos.' : 'No hay cuentas vencidas registradas.',
+      ...rows.map((row, index) => `${index + 1}. Saldo pendiente ${money(remaining(row))}${row.due_date ? ` · venció ${row.due_date}` : ''}.`),
+      rows.length ? 'Siguiente paso: abrir Cuentas por Cobrar y contactar primero los casos de mayor saldo.' : ''
+    ])
   }
+
+  if (all('pagar', 'pago', 'cuentas por pagar', 'cxp', 'proveedores')) {
+    const rows = s.overdue_payables.slice(0, 5)
+    return lines([
+      `Tenés ${m.overdue_payables} cuentas por pagar vencidas por ${money(m.overdue_payables_value)}.`,
+      m.cash_total < m.overdue_payables_value ? `La caja registrada es ${money(m.cash_total)}, por debajo del total vencido. Conviene priorizar pagos críticos y cuidar liquidez.` : `La caja registrada es ${money(m.cash_total)}.`,
+      ...rows.map((row, index) => `${index + 1}. Saldo pendiente ${money(remaining(row))}${row.due_date ? ` · venció ${row.due_date}` : ''}.`)
+    ])
+  }
+
+  if (all('caja', 'efectivo', 'liquidez', 'dinero')) {
+    const balance = m.cash_total
+    const risk = balance < 0 ? 'RIESGO ALTO: la caja está negativa.' : balance < m.overdue_payables_value ? 'Atención: la caja no cubre todo lo vencido por pagar.' : 'La caja cubre actualmente el total vencido por pagar.'
+    return lines([
+      `Caja total registrada: ${money(balance)}.`,
+      `CxC vencida: ${money(m.overdue_receivables_value)}. CxP vencida: ${money(m.overdue_payables_value)}.`,
+      risk,
+      m.overdue_receivables_value > 0 ? 'Recomendación: acelerar cobros vencidos antes de comprometer nuevos pagos no urgentes.' : 'No hay cobros vencidos registrados que presionen la liquidez.'
+    ])
+  }
+
+  if (all('inventario', 'stock', 'material', 'reponer', 'existencia')) {
+    const rows = s.low_stock.slice(0, 8)
+    return lines([
+      `Hay ${m.low_stock_items} artículos en nivel mínimo o crítico.`,
+      ...rows.map((row, index) => `${index + 1}. ${row.name || 'Artículo'}: existencia ${safeNumber(row.current_stock)} · mínimo ${safeNumber(row.minimum_stock)}.`),
+      rows.length ? 'Recomendación: revisar compras y reponer primero materiales ligados a órdenes activas o próximas entregas.' : 'Inventario sin alertas de mínimo registradas.'
+    ])
+  }
+
+  if (all('orden', 'atras', 'produccion', 'trabajo', 'entrega')) {
+    const rows = s.late_orders.slice(0, 8)
+    return lines([
+      `Hay ${m.late_orders} órdenes de trabajo atrasadas.`,
+      ...rows.map((row, index) => `${index + 1}. ${row.number || row.id || 'OT'}${row.title ? ` · ${row.title}` : ''}${row.due_at ? ` · venció ${row.due_at.slice(0, 10)}` : ''}.`),
+      m.urgent_agenda > 0 ? `Además hay ${m.urgent_agenda} actividades urgentes en la agenda de producción.` : '',
+      rows.length ? 'Recomendación: revisar primero las órdenes vencidas y confirmar materiales, responsable y nueva fecha de entrega.' : 'No hay órdenes atrasadas registradas.'
+    ])
+  }
+
+  if (all('cotizacion', 'cotizaciones', 'venta', 'ventas', 'oportunidad', 'comercial')) {
+    const recent = s.recent_quotes.slice(0, 6)
+    return lines([
+      `Hay ${m.quotes} cotizaciones registradas por un valor acumulado de ${money(m.quote_total)}.`,
+      ...recent.map((row, index) => `${index + 1}. ${row.code || 'Cotización'} · ${row.status || 'sin estado'} · ${money(row.total)}${row.valid_until ? ` · válida hasta ${row.valid_until}` : ''}.`),
+      recent.length ? 'Recomendación: dar seguimiento primero a cotizaciones vigentes de mayor valor y a las que estén próximas a vencer.' : 'No hay cotizaciones recientes para analizar.'
+    ])
+  }
+
+  if (all('cliente', 'clientes')) {
+    return lines([
+      `Tenés ${m.clients} clientes registrados.`,
+      `Cotizaciones activas/registradas: ${m.quotes}.`,
+      `Cuentas por cobrar vencidas: ${m.overdue_receivables} por ${money(m.overdue_receivables_value)}.`,
+      'Para gestión comercial, conviene combinar seguimiento de cotizaciones con recuperación de saldos vencidos.'
+    ])
+  }
+
+  const priorities = []
+  if (m.cash_total < 0) priorities.push(`Caja negativa: ${money(m.cash_total)}.`)
+  if (m.overdue_receivables > 0) priorities.push(`Cobrar ${m.overdue_receivables} cuentas vencidas por ${money(m.overdue_receivables_value)}.`)
+  if (m.late_orders > 0) priorities.push(`Resolver ${m.late_orders} órdenes atrasadas.`)
+  if (m.low_stock_items > 0) priorities.push(`Reponer ${m.low_stock_items} artículos en mínimo.`)
+  if (m.overdue_payables > 0) priorities.push(`Revisar ${m.overdue_payables} cuentas por pagar vencidas por ${money(m.overdue_payables_value)}.`)
+  if (m.urgent_agenda > 0) priorities.push(`Atender ${m.urgent_agenda} actividades urgentes de producción.`)
+
+  return lines([
+    `Resumen ejecutivo de ${context.company?.name || 'la empresa'}:`,
+    `Caja ${money(m.cash_total)} · CxC vencida ${money(m.overdue_receivables_value)} · CxP vencida ${money(m.overdue_payables_value)}.`,
+    `Clientes ${m.clients} · Cotizaciones ${m.quotes} · OT atrasadas ${m.late_orders} · Stock crítico ${m.low_stock_items}.`,
+    priorities.length ? 'Prioridades recomendadas:' : 'No aparecen alertas críticas con los datos actuales.',
+    ...priorities.map((item, index) => `${index + 1}. ${item}`),
+    'Podés preguntarme por caja, cobros, pagos, cotizaciones, inventario, producción, clientes o prioridades.'
+  ])
 }
 
 export async function getAiStatus() {
   return {
-    configured: Boolean(String(process.env.OPENAI_API_KEY || '').trim()),
-    model: String(process.env.OPENAI_MODEL || 'gpt-5.6-sol'),
-    mode: 'read_only'
+    configured: true,
+    model: 'Motor inteligente IDEALO SV',
+    mode: 'internal_read_only',
+    provider: 'internal',
+    external_account_required: false
   }
 }
 
@@ -171,6 +217,14 @@ export async function askAiAssistant({ request, supabase }) {
   if (question.length > 4000) throw httpError('La pregunta es demasiado larga.', 413, 'QUESTION_TOO_LONG')
   const actor = await getActor({ request, supabase, companyId })
   const context = await loadCompanyContext(supabase, companyId)
-  const result = await askOpenAI({ question, history: request.body?.history, context })
-  return { ...result, mode: 'read_only', generated_at: new Date().toISOString(), actor_role: actor.role, metrics: context.metrics }
+  const answer = internalAnswer(question, context)
+  return {
+    answer,
+    model: 'Motor inteligente IDEALO SV',
+    provider: 'internal',
+    mode: 'internal_read_only',
+    generated_at: new Date().toISOString(),
+    actor_role: actor.role,
+    metrics: context.metrics
+  }
 }
