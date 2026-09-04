@@ -26,7 +26,7 @@ export async function createInvoiceDraft({ request, supabase }) {
     companyId, clientId = null, dteType = '01', items, condicionOperacion = 1, totalLetras, observaciones = null,
     payment = null, numPagoElectronico = null, documentoRelacionado = null, ventaTercero = null,
     apendice = null, ivaRete = 0, ivaPerci = 0, reteRenta = 0, saldoFavor = 0, totalNoGravado = 0,
-    reissuedFromId = null,
+    reissuedFromId = null, sourceQuoteId = null, sourceWorkOrderId = null,
   } = request.body || {}
   const type = String(dteType)
   if (!['01', '03'].includes(type)) { const error = new Error('Tipo DTE no soportado. Usa 01 o 03.'); error.statusCode = 400; throw error }
@@ -44,7 +44,7 @@ export async function createInvoiceDraft({ request, supabase }) {
   let rejectedSource = null
   if (reissuedFromId) {
     const { data, error } = await supabase.from('dte_documents')
-      .select('id, company_id, client_id, dte_type, status, control_number')
+      .select('id, company_id, client_id, dte_type, status, control_number, source_quote_id, source_work_order_id')
       .eq('id', reissuedFromId)
       .eq('company_id', companyId)
       .single()
@@ -77,8 +77,23 @@ export async function createInvoiceDraft({ request, supabase }) {
     client = data
   }
 
-  // El correlativo se reserva de forma atómica en PostgreSQL. Así dos facturas simultáneas
-  // no pueden recibir el mismo número y un DTE rechazado conserva su correlativo consumido.
+  let sourceQuote = null
+  let sourceWorkOrder = null
+  const effectiveQuoteId = sourceQuoteId || rejectedSource?.source_quote_id || null
+  const effectiveWorkOrderId = sourceWorkOrderId || rejectedSource?.source_work_order_id || null
+  if (effectiveQuoteId) {
+    const { data, error } = await supabase.from('quotes').select('id, company_id, client_id').eq('id', effectiveQuoteId).eq('company_id', companyId).single()
+    if (error) throw error
+    if (clientId && data.client_id !== clientId) { const e = new Error('La cotización no pertenece al cliente seleccionado.'); e.statusCode = 409; throw e }
+    sourceQuote = data
+  }
+  if (effectiveWorkOrderId) {
+    const { data, error } = await supabase.from('work_orders').select('id, company_id, quote_id').eq('id', effectiveWorkOrderId).eq('company_id', companyId).single()
+    if (error) throw error
+    if (sourceQuote && data.quote_id !== sourceQuote.id) { const e = new Error('La orden de trabajo no corresponde a la cotización seleccionada.'); e.statusCode = 409; throw e }
+    sourceWorkOrder = data
+  }
+
   const { data: controlNumber, error: controlError } = await supabase.rpc('next_dte_control_number', {
     p_company_id: companyId,
     p_dte_type: type,
@@ -107,8 +122,8 @@ export async function createInvoiceDraft({ request, supabase }) {
   const { data: document, error: insertError } = await supabase.from('dte_documents').insert({
     company_id: companyId, client_id: client?.id || null, dte_type: type, generation_code: dte.identificacion.codigoGeneracion,
     control_number: dte.identificacion.numeroControl, environment: 'test', status: 'DRAFT', dte_payload: dte, created_by: userData.user.id,
-    reissued_from_id: rejectedSource?.id || null,
-  }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload, reissued_from_id').single()
+    reissued_from_id: rejectedSource?.id || null, source_quote_id: sourceQuote?.id || null, source_work_order_id: sourceWorkOrder?.id || null,
+  }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload, reissued_from_id, source_quote_id, source_work_order_id').single()
   if (insertError) throw insertError
   return { ...document, transmissionAllowed: false, signingPrepared: true, reissuePrepared: Boolean(rejectedSource) }
 }
