@@ -24,6 +24,22 @@ export const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? 
 export const round2 = (value) => Math.round((number(value) + Number.EPSILON) * 100) / 100
 export const normalizeText = (value) => String(value ?? '').trim()
 
+export function netPriceFromTaxIncluded(value, taxRate = 13) {
+  const gross = Math.max(0, number(value))
+  const rate = Math.max(0, number(taxRate, 13))
+  return rate > 0 ? gross / (1 + rate / 100) : gross
+}
+
+export function itemForTaxMode(item, taxMode = 'ADDED') {
+  if (taxMode !== 'INCLUDED' || item?.taxable === false) return item
+  const rate = Math.max(0, number(item?.tax_rate, 13))
+  return {
+    ...item,
+    unit_price: netPriceFromTaxIncluded(item?.unit_price, rate),
+    price_per_m2: number(item?.price_per_m2) > 0 ? netPriceFromTaxIncluded(item?.price_per_m2, rate) : item?.price_per_m2,
+  }
+}
+
 export function areaM2(item) {
   const width = number(item.width), height = number(item.height)
   if (width <= 0 || height <= 0) return 0
@@ -83,11 +99,7 @@ export function calculateQuote(items = [], options = {}) {
   const taxableSubtotal = round2(Math.max(0, subtotalBeforeGlobal - globalDiscount + globalSurcharge))
   const taxBeforeGlobal = round2(calculated.reduce((s,x)=>s+x.tax,0))
   const taxRatio = subtotalBeforeGlobal > 0 ? taxBeforeGlobal / subtotalBeforeGlobal : 0
-  // En la cotización rápida, include_tax=false significa que el precio digitado está SIN IVA.
-  // Se conserva ese precio como base y se suma el 13% al total (ej. $50 + $6.50 = $56.50).
-  const tax = options.include_tax === false
-    ? round2(taxableSubtotal * 0.13)
-    : round2(taxableSubtotal * taxRatio)
+  const tax = round2(taxableSubtotal * taxRatio)
   const total = round2(taxableSubtotal + tax)
   const cost = round2(calculated.reduce((s,x)=>s+x.totalCost,0))
   const profit = round2(taxableSubtotal - cost)
