@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const ELIGIBLE = ['APPROVED','PARTIALLY_CONVERTED','CONVERTED']
-const ACTIVE_DTE = ['DRAFT','SIGNED','PROCESSED']
+const BILLED_DTE = ['PROCESSED']
 const round = (value) => Number(Number(value || 0).toFixed(2))
 
 function dteTotal(row){
@@ -19,28 +19,26 @@ function paymentCode(value){
   return'99'
 }
 
-function fiscalLine(line,factor,taxMode){
+function fiscalLine(line,factor){
   const unit=String(line.unit||'').toLowerCase()
-  let price=round(Number(line.unit_price||0)*factor)
-  let discount=round(Number(line.discount||0)*factor)
-  if(line.taxable!==false && taxMode==='INCLUDED'){
-    price=round(price/1.13)
-    discount=round(discount/1.13)
-  }
+  const quantity=Math.max(Number(line.quantity||1),0.000001)
+  const grossPartial=round(Number(line.line_total||0)*factor)
+  const taxable=line.taxable!==false
+  const basePartial=taxable?round(grossPartial/1.13):grossPartial
   return {
     tipoItem:unit.includes('serv')?'2':'1',
     codigo:line.sku||'',
     descripcion:line.description||'Avance parcial del proyecto',
-    cantidad:String(line.quantity||1),
+    cantidad:String(quantity),
     uniMedida:unit.includes('serv')?'36':unit.includes('unidad')?'59':'99',
-    precioUni:price.toFixed(2),
-    montoDescu:discount.toFixed(2),
-    tipoVenta:line.taxable===false?'exenta':'gravada',
+    precioUni:round(basePartial/quantity).toFixed(2),
+    montoDescu:'0.00',
+    tipoVenta:taxable?'gravada':'exenta',
   }
 }
 
-function fiscalPreview(lines,factor,taxMode){
-  const items=lines.map(line=>fiscalLine(line,factor,taxMode))
+function fiscalPreview(lines,factor){
+  const items=lines.map(line=>fiscalLine(line,factor))
   let base=0,iva=0,exenta=0
   items.forEach(item=>{
     const amount=round(Math.max(0,Number(item.cantidad||0)*Number(item.precioUni||0)-Number(item.montoDescu||0)))
@@ -65,7 +63,7 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
   const [percentage,setPercentage]=useState('50')
   const [mode,setMode]=useState('percentage')
   const [manualAmount,setManualAmount]=useState('')
-  const [billing,setBilling]=useState({billed:0,remaining:0,documents:0})
+  const [billing,setBilling]=useState({billed:0,remaining:0,documents:0,advance:0,advanceAvailable:0})
   const [lines,setLines]=useState([])
   const [workOrder,setWorkOrder]=useState(null)
   const [busy,setBusy]=useState(false)
@@ -85,22 +83,26 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
   },[quote,mode,manualAmount,percentage,projectTotal,billing.remaining])
   const factor=projectTotal>0?requested/projectTotal:0
   const pendingAfter=round(Math.max(0,(billing.remaining||projectTotal)-requested))
-  const preview=useMemo(()=>fiscalPreview(lines,factor,quote?.tax_mode),[lines,factor,quote?.tax_mode])
+  const preview=useMemo(()=>fiscalPreview(lines,factor),[lines,factor])
+  const advanceToApply=round(Math.min(billing.advanceAvailable,requested))
 
   const chooseQuote=async(id)=>{
     setQuoteId(id);setMessage('');setLines([]);setWorkOrder(null);setMode('percentage');setPercentage('50');setManualAmount('')
-    if(!id){setBilling({billed:0,remaining:0,documents:0});return}
+    if(!id){setBilling({billed:0,remaining:0,documents:0,advance:0,advanceAvailable:0});return}
     const selected=quotes.find(row=>row.id===id)
-    const [{data:itemRows,error:itemError},{data:dtes,error:dteError},{data:orders}]=await Promise.all([
-      supabase.from('quote_items').select('description,quantity,unit,unit_price,discount,sku,taxable').eq('quote_id',id).order('sort_order'),
+    const [{data:itemRows,error:itemError},{data:dtes,error:dteError},{data:orders},{data:advances,error:advanceError}]=await Promise.all([
+      supabase.from('quote_items').select('description,quantity,unit,unit_price,discount,line_total,sku,taxable,tax_rate,tax_amount').eq('quote_id',id).order('sort_order'),
       supabase.from('dte_documents').select('id,status,dte_payload,source_quote_id,quote_id').eq('company_id',company.id).or(`source_quote_id.eq.${id},quote_id.eq.${id}`),
       supabase.from('work_orders').select('id,number,status').eq('company_id',company.id).eq('quote_id',id).order('number',{ascending:false}).limit(1),
+      supabase.from('customer_advances').select('id,amount,applied_amount,status,quote_id,work_order_id').eq('company_id',company.id).eq('quote_id',id).in('status',['OPEN','PARTIAL','APPLIED']),
     ])
-    if(itemError||dteError){setMessage(itemError?.message||dteError?.message);return}
-    const active=(dtes||[]).filter(row=>ACTIVE_DTE.includes(String(row.status||'').toUpperCase()))
-    const billed=round(active.reduce((sum,row)=>sum+dteTotal(row),0))
+    if(itemError||dteError||advanceError){setMessage(itemError?.message||dteError?.message||advanceError?.message);return}
+    const billedDocs=(dtes||[]).filter(row=>BILLED_DTE.includes(String(row.status||'').toUpperCase()))
+    const billed=round(billedDocs.reduce((sum,row)=>sum+dteTotal(row),0))
+    const advance=round((advances||[]).reduce((sum,row)=>sum+Number(row.amount||0),0))
+    const advanceAvailable=round((advances||[]).reduce((sum,row)=>sum+Math.max(0,Number(row.amount||0)-Number(row.applied_amount||0)),0))
     setLines(itemRows||[]);setWorkOrder(orders?.[0]||null)
-    setBilling({billed,remaining:round(Math.max(0,Number(selected?.total||0)-billed)),documents:active.length})
+    setBilling({billed,remaining:round(Math.max(0,Number(selected?.total||0)-billed)),documents:billedDocs.length,advance,advanceAvailable})
   }
 
   const issuePartial=async()=>{
@@ -109,13 +111,13 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
     if(Math.abs(preview.total-requested)>0.03){setMessage(`El desglose fiscal ($${preview.total.toFixed(2)}) no coincide con el total ($${requested.toFixed(2)}).`);return}
     setBusy(true);setMessage('')
     try{
-      const items=lines.map(line=>fiscalLine(line,factor,quote.tax_mode))
+      const items=lines.map(line=>fiscalLine(line,factor))
       const percentLabel=projectTotal>0?round((requested/projectTotal)*100):0
       const ref=[`Cotización ${(quote.prefix||'COT')}-${quote.number}`,workOrder?`OT-${workOrder.number}`:null,`Facturación parcial ${percentLabel}%`].filter(Boolean).join(' / ')
       const payload=await apiRequest('/api/dte/invoices',session,{
         companyId:company.id,clientId:quote.client_id,dteType:'03',items,condicionOperacion:1,
         totalLetras:`${requested.toFixed(2)} DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA`,
-        observaciones:`${ref} · Total proyecto $${projectTotal.toFixed(2)} · Parcial $${requested.toFixed(2)} · Base gravada $${preview.base.toFixed(2)} · IVA $${preview.iva.toFixed(2)} · Pendiente $${pendingAfter.toFixed(2)}`,
+        observaciones:`${ref} · Total proyecto $${projectTotal.toFixed(2)} · Parcial $${requested.toFixed(2)} · Base gravada $${preview.base.toFixed(2)} · IVA $${preview.iva.toFixed(2)} · Anticipo disponible $${billing.advanceAvailable.toFixed(2)} · Pendiente $${pendingAfter.toFixed(2)}`,
         payment:{codigo:paymentCode(quote.payment_method),montoPago:requested,referencia:ref,periodo:null,plazo:null},
         sourceQuoteId:quote.id,sourceWorkOrderId:workOrder?.id||null,billingKind:'PARTIAL',billingPercentage:percentLabel,projectTotal,
       })
@@ -131,10 +133,11 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
     <div className="form-grid three">
       <label className="field form-span-3"><span>Proyecto</span><select value={quoteId} onChange={e=>chooseQuote(e.target.value)}><option value="">Seleccionar cotización</option>{quotes.map(row=><option key={row.id} value={row.id}>{`${row.prefix||'COT'}-${row.number} · ${row.project_name||'Proyecto'} · $${Number(row.total||0).toFixed(2)}`}</option>)}</select></label>
       {quote&&<>
-        <div className="billing-context-banner form-span-3" style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-          <span>Total <strong>${projectTotal.toFixed(2)}</strong></span>
-          <span>Facturado <strong>${billing.billed.toFixed(2)}</strong></span>
-          <span>Pendiente <strong>${billing.remaining.toFixed(2)}</strong></span>
+        <div className="billing-context-banner form-span-3" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:12}}>
+          <span>Total proyecto<br/><strong>${projectTotal.toFixed(2)}</strong></span>
+          <span>Anticipo recibido<br/><strong>${billing.advance.toFixed(2)}</strong></span>
+          <span>Facturado MH<br/><strong>${billing.billed.toFixed(2)}</strong></span>
+          <span>Por facturar<br/><strong>${billing.remaining.toFixed(2)}</strong></span>
         </div>
 
         <div className="form-span-3" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
@@ -147,7 +150,8 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
         <div className="billing-context-banner form-span-3" style={{fontSize:'1rem',lineHeight:1.65}}>
           <strong>CCF A EMITIR: ${requested.toFixed(2)}</strong><br/>
           Base sin IVA: ${preview.base.toFixed(2)} · IVA 13%: ${preview.iva.toFixed(2)}{preview.exenta>0?` · Exento: $${preview.exenta.toFixed(2)}`:''}<br/>
-          <strong>Después quedará pendiente: ${pendingAfter.toFixed(2)}</strong>
+          {billing.advanceAvailable>0&&<>Anticipo que se aplicará al aceptarse: <strong>${advanceToApply.toFixed(2)}</strong><br/></>}
+          <strong>Después quedará por facturar: ${pendingAfter.toFixed(2)}</strong>
         </div>
 
         {Math.abs(preview.total-requested)>0.03&&<div className="feedback error form-span-3">El cálculo fiscal no coincide. No se puede emitir todavía.</div>}
@@ -155,6 +159,6 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
       </>}
     </div>
     {message&&<p className={message.includes('creado')?'feedback success':'feedback error'} role="status">{message}</p>}
-    <small className="billing-auto-note">El total mostrado ya incluye IVA. Si existe un anticipo en Caja para esta cotización/orden, se aplica sin duplicar el ingreso.</small>
+    <small className="billing-auto-note">Un borrador no cuenta como facturado. Solo los DTE aceptados/procesados por Hacienda descuentan el saldo por facturar. Los anticipos se muestran aparte y se aplican sin duplicar Caja.</small>
   </section>
 }
