@@ -26,6 +26,7 @@ export default function FacturacionLauncher() {
   const [activeSection, setActiveSection] = useState('resumen')
   const [contextClient, setContextClient] = useState({ id: '', name: '' })
   const [receivablesVersion, setReceivablesVersion] = useState(0)
+  const [issueMode, setIssueMode] = useState('project')
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -53,21 +54,21 @@ export default function FacturacionLauncher() {
 
   const notifyBillingActive = () => window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
   const openSection = (id) => { if (sections.some((section) => section.id === id)) setActiveSection(id) }
-  const openNewInvoice = () => { setContextClient({ id: '', name: '' }); setActiveSection('emitir') }
-  const prepareMhTestCase = () => { setContextClient({ id: '', name: '' }); setActiveSection('emitir'); notifyBillingActive() }
+  const openNewInvoice = () => { setContextClient({ id: '', name: '' }); setIssueMode('project'); setActiveSection('emitir') }
+  const prepareMhTestCase = () => { setContextClient({ id: '', name: '' }); setIssueMode('manual'); setActiveSection('emitir'); notifyBillingActive() }
   const openCash = () => { setOpen(false); window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target: 'procurement', tab: 'Caja' } })) }
 
   useEffect(() => {
     const openModule = (event) => {
       const detail = event.detail || {}; if (detail.target !== 'billing') return
-      setContextClient({ id: '', name: '' }); setActiveSection(sections.some((section) => section.id === detail.tab) ? detail.tab : 'resumen'); setOpen(true); notifyBillingActive()
+      setContextClient({ id: '', name: '' }); setIssueMode('project'); setActiveSection(sections.some((section) => section.id === detail.tab) ? detail.tab : 'resumen'); setOpen(true); notifyBillingActive()
     }
     window.addEventListener('idealo-open-module', openModule); return () => window.removeEventListener('idealo-open-module', openModule)
   }, [])
   useEffect(() => {
     const openClientContext = (event) => {
       const detail = event.detail || {}; if (detail.target !== 'billing') return
-      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' }); setActiveSection('emitir'); setOpen(true); notifyBillingActive()
+      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' }); setIssueMode('manual'); setActiveSection('emitir'); setOpen(true); notifyBillingActive()
     }
     window.addEventListener('idealo-open-client-context', openClientContext); return () => window.removeEventListener('idealo-open-client-context', openClientContext)
   }, [])
@@ -77,7 +78,7 @@ export default function FacturacionLauncher() {
   const groups = [...new Set(sections.map((section) => section.group))]
 
   return <>
-    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setActiveSection('resumen'); setOpen(true); notifyBillingActive() }} className="sidebar-module-access billing" aria-label="Abrir facturación"><span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span></button>
+    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); setIssueMode('project'); setActiveSection('resumen'); setOpen(true); notifyBillingActive() }} className="sidebar-module-access billing" aria-label="Abrir facturación"><span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span></button>
     {open && <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}><section className="erp-modal-panel billing-modal" role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
       <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Emisión · documentos · cobranza · Hacienda</small></div><button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button></header>
       <div className="billing-workspace billing-workspace-organized"><nav className="billing-nav" aria-label="Secciones de facturación"><div className="billing-nav-title">Facturación</div>{groups.map((group) => <div className="billing-nav-group" key={group}><span className="billing-nav-group-label">{group}</span>{sections.filter((section) => section.group === group).map((section) => <button key={section.id} type="button" data-billing-section={section.id} className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => openSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span><small>{section.helper}</small></button>)}</div>)}</nav>
@@ -85,7 +86,17 @@ export default function FacturacionLauncher() {
         <div className="billing-section-head"><div><span className="billing-section-kicker">{active.group} · {active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
         {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
         {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/>} 
-        {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice"><div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Podés emitir el documento completo o facturar solo un porcentaje/monto del proyecto.</small></div></div><PartialInvoiceFromQuote session={session} supabase={supabase} company={company}/><FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/></section>}
+        {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice">
+          <div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Elegí una sola forma de facturar. Si viene de una cotización/proyecto, usá el flujo de proyecto; para una venta nueva sin cotización, usá factura manual.</small></div></div>
+          <div className="billing-document-picker" role="group" aria-label="Origen de la factura" style={{marginBottom:16}}>
+            <button type="button" className={issueMode==='project'?'active':''} onClick={()=>{setIssueMode('project');setContextClient({id:'',name:''})}}><strong>Desde cotización / proyecto</strong><small>Completa o parcial · 25%, 50%, 75%, 100% o monto</small></button>
+            <button type="button" className={issueMode==='manual'?'active':''} onClick={()=>setIssueMode('manual')}><strong>Factura manual</strong><small>Venta nueva sin cotización ni orden de trabajo</small></button>
+          </div>
+          {issueMode==='project'
+            ? <PartialInvoiceFromQuote session={session} supabase={supabase} company={company}/>
+            : <FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/>
+          }
+        </section>}
         {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></section>}
         {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
         {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, autenticación, transmisión y pruebas separadas de la facturación diaria.</small></div></div><ProductionPreflightPanel session={session} company={company}/><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
