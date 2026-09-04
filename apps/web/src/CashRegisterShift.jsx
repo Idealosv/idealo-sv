@@ -4,6 +4,11 @@ const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).
 const today=()=>new Date().toISOString().slice(0,10)
 const fmtDate=v=>v?new Date(`${v}T12:00:00`).toLocaleDateString('es-SV'):'—'
 const fmtTime=v=>v?new Date(v).toLocaleTimeString('es-SV',{hour:'2-digit',minute:'2-digit'}):'—'
+const summarizeRows=rows=>{
+  const income=rows.filter(r=>['INCOME','TRANSFER_IN'].includes(r.movement_type)).reduce((s,r)=>s+Number(r.amount||0),0)
+  const expense=rows.filter(r=>['EXPENSE','TRANSFER_OUT'].includes(r.movement_type)).reduce((s,r)=>s+Number(r.amount||0),0)
+  return {income,expense,count:rows.length}
+}
 
 export default function CashRegisterShift({company,supabase,accounts=[],onChanged}){
   const cashAccounts=useMemo(()=>accounts.filter(a=>a.active!==false&&a.account_type!=='BANK'),[accounts])
@@ -12,6 +17,7 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
   const [session,setSession]=useState(null)
   const [lastCut,setLastCut]=useState(null)
   const [history,setHistory]=useState([])
+  const [historyStats,setHistoryStats]=useState({})
   const [cutsBySession,setCutsBySession]=useState({})
   const [summary,setSummary]=useState({income:0,expense:0,expected:0,count:0})
   const [busy,setBusy]=useState(false)
@@ -26,17 +32,16 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
 
   const calculate=async current=>{
     if(!current)return {income:0,expense:0,expected:0,count:0}
-    const {data,error}=await supabase.from('cash_movements')
+    const query=supabase.from('cash_movements')
       .select('movement_type,amount,movement_date')
       .eq('company_id',company.id)
       .eq('cash_account_id',current.cash_account_id)
       .gte('movement_date',current.opened_at)
-      .lte('movement_date',current.closed_at||new Date().toISOString())
+    if(current.closed_at)query.lte('movement_date',current.closed_at)
+    const {data,error}=await query
     if(error)throw error
-    const rows=data||[]
-    const income=rows.filter(r=>['INCOME','TRANSFER_IN'].includes(r.movement_type)).reduce((s,r)=>s+Number(r.amount||0),0)
-    const expense=rows.filter(r=>['EXPENSE','TRANSFER_OUT'].includes(r.movement_type)).reduce((s,r)=>s+Number(r.amount||0),0)
-    return {income,expense,expected:Number(current.opening_balance||0)+income-expense,count:rows.length}
+    const totals=summarizeRows(data||[])
+    return {...totals,expected:Number(current.opening_balance||0)+totals.income-totals.expense}
   }
 
   const load=async()=>{
@@ -46,15 +51,33 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
       supabase.from('cash_register_sessions').select('*').eq('company_id',company.id).order('opened_at',{ascending:false}).limit(30)
     ])
     if(openError||historyError){setMessage((openError||historyError).message);return}
+    const rows=historyData||[]
     setSession(openData||null)
-    setHistory(historyData||[])
-    if((historyData||[]).length){
-      const ids=(historyData||[]).map(x=>x.id)
-      const {data:cuts}=await supabase.from('cash_register_cuts').select('session_id,cut_at,expected_balance,income_total,expense_total,movement_count').in('session_id',ids).order('cut_at',{ascending:false})
+    setHistory(rows)
+
+    if(rows.length){
+      const ids=rows.map(x=>x.id)
+      const oldest=rows.reduce((min,x)=>!min||x.opened_at<min?x.opened_at:min,'')
+      const [{data:cuts},{data:movements,error:movementError}]=await Promise.all([
+        supabase.from('cash_register_cuts').select('session_id,cut_at,expected_balance,income_total,expense_total,movement_count').in('session_id',ids).order('cut_at',{ascending:false}),
+        supabase.from('cash_movements').select('cash_account_id,movement_type,amount,movement_date').eq('company_id',company.id).gte('movement_date',oldest).order('movement_date',{ascending:true})
+      ])
+      if(movementError){setMessage(movementError.message);return}
       const grouped={}
       ;(cuts||[]).forEach(c=>{(grouped[c.session_id]||(grouped[c.session_id]=[])).push(c)})
       setCutsBySession(grouped)
-    }else setCutsBySession({})
+      const stats={}
+      rows.forEach(h=>{
+        const start=new Date(h.opened_at).getTime(),end=h.closed_at?new Date(h.closed_at).getTime():Date.now()
+        const related=(movements||[]).filter(m=>m.cash_account_id===h.cash_account_id&&new Date(m.movement_date).getTime()>=start&&new Date(m.movement_date).getTime()<=end)
+        stats[h.id]=summarizeRows(related)
+      })
+      setHistoryStats(stats)
+    }else{
+      setCutsBySession({})
+      setHistoryStats({})
+    }
+
     if(openData){
       setAccountId(openData.cash_account_id)
       try{setSummary(await calculate(openData))}catch(e){setMessage(e.message)}
@@ -139,9 +162,9 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
     {history.length>0&&<details className="cash-shift-history">
       <summary><span><strong>Historial de turnos</strong><small>{history.length} turno{history.length===1?'':'s'} registrado{history.length===1?'':'s'}</small></span><b>Ver historial</b></summary>
       <div className="cash-history-list">
-        {history.map(h=>{const account=accounts.find(a=>a.cash_account_id===h.cash_account_id);const cuts=cutsBySession[h.id]||[];const diff=Number(h.difference||0);return <article key={h.id}>
+        {history.map(h=>{const account=accounts.find(a=>a.cash_account_id===h.cash_account_id);const cuts=cutsBySession[h.id]||[];const stats=historyStats[h.id]||{income:0,expense:0};const diff=Number(h.difference||0);const expected=h.status==='OPEN'?Number(h.opening_balance||0)+stats.income-stats.expense:Number(h.closing_expected||0);return <article key={h.id}>
           <div className="cash-history-main"><div><strong>{fmtDate(h.business_date)} · {account?.name||'Caja'}</strong><small>{h.status==='OPEN'?`Abierta ${fmtTime(h.opened_at)}`:`Cerrada ${fmtTime(h.closed_at)}`}{cuts.length?` · ${cuts.length} corte${cuts.length===1?'':'s'}`:''}</small></div><span className={`cash-history-status ${h.status==='OPEN'?'open':'closed'}`}>{h.status==='OPEN'?'ABIERTA':'CERRADA'}</span></div>
-          <div className="cash-history-values"><span><small>Apertura</small><b>{money(h.opening_balance)}</b></span><span><small>Entradas</small><b>{h.status==='OPEN'?'En curso':money((h.closing_expected??0)-Number(h.opening_balance||0)+(h.expense_total||0))}</b></span><span><small>Salidas</small><b>{h.status==='OPEN'?'En curso':cuts[0]?money(cuts[0].expense_total):'—'}</b></span><span><small>Esperado</small><b>{h.status==='OPEN'?'En curso':money(h.closing_expected)}</b></span><span><small>Contado</small><b>{h.status==='OPEN'?'—':money(h.closing_counted)}</b></span><span className={Math.abs(diff)<.005?'ok':diff>0?'plus':'minus'}><small>Diferencia</small><b>{h.status==='OPEN'?'—':money(diff)}</b></span></div>
+          <div className="cash-history-values"><span><small>Apertura</small><b>{money(h.opening_balance)}</b></span><span><small>Entradas</small><b>{money(stats.income)}</b></span><span><small>Salidas</small><b>{money(stats.expense)}</b></span><span><small>Esperado</small><b>{money(expected)}</b></span><span><small>Contado</small><b>{h.status==='OPEN'?'—':money(h.closing_counted)}</b></span><span className={h.status==='OPEN'?'':Math.abs(diff)<.005?'ok':diff>0?'plus':'minus'}><small>Diferencia</small><b>{h.status==='OPEN'?'—':money(diff)}</b></span></div>
           {cuts.length>0&&<details className="cash-history-cuts"><summary>Ver cortes ({cuts.length})</summary><div>{cuts.map((c,i)=><p key={`${h.id}-${c.cut_at}-${i}`}><span>{fmtTime(c.cut_at)}</span><span>Entradas {money(c.income_total)}</span><span>Salidas {money(c.expense_total)}</span><strong>Esperado {money(c.expected_balance)}</strong></p>)}</div></details>}
         </article>})}
       </div>
