@@ -83,7 +83,11 @@ export function calculateQuote(items = [], options = {}) {
   const taxableSubtotal = round2(Math.max(0, subtotalBeforeGlobal - globalDiscount + globalSurcharge))
   const taxBeforeGlobal = round2(calculated.reduce((s,x)=>s+x.tax,0))
   const taxRatio = subtotalBeforeGlobal > 0 ? taxBeforeGlobal / subtotalBeforeGlobal : 0
-  const tax = round2(taxableSubtotal * taxRatio)
+  // En la cotización rápida, include_tax=false significa que el precio digitado está SIN IVA.
+  // Se conserva ese precio como base y se suma el 13% al total (ej. $50 + $6.50 = $56.50).
+  const tax = options.include_tax === false
+    ? round2(taxableSubtotal * 0.13)
+    : round2(taxableSubtotal * taxRatio)
   const total = round2(taxableSubtotal + tax)
   const cost = round2(calculated.reduce((s,x)=>s+x.totalCost,0))
   const profit = round2(taxableSubtotal - cost)

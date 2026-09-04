@@ -58,6 +58,15 @@ test('calculateQuote aggregates items and global discount', () => {
   assert.equal(result.profit,50)
 })
 
+test('precio sin IVA mantiene la base y suma el 13 por ciento', () => {
+  const result=calculateQuote([
+    {quantity:1,unit_price:50,taxable:false,tax_rate:13}
+  ],{include_tax:false})
+  assert.equal(result.subtotal,50)
+  assert.equal(result.tax,6.5)
+  assert.equal(result.total,56.5)
+})
+
 test('workflow only allows declared quote transitions', () => {
   assert.equal(canTransition('DRAFT','SENT'),true)
   assert.equal(canTransition('SENT','APPROVED'),true)
