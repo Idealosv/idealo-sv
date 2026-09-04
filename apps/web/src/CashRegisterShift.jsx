@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
+import CashShiftReport from './CashShiftReport.jsx'
 
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0))
 const today=()=>new Date().toISOString().slice(0,10)
@@ -23,6 +24,7 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('')
   const [closeDialog,setCloseDialog]=useState({open:false,expected:0,counted:'',notes:''})
+  const [reportSession,setReportSession]=useState(null)
 
   useEffect(()=>{
     if(!accountId&&cashAccounts.length){
@@ -33,13 +35,10 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
 
   const calculate=async current=>{
     if(!current)return {income:0,expense:0,expected:0,count:0}
-    const query=supabase.from('cash_movements')
+    const {data,error}=await supabase.from('cash_movements')
       .select('movement_type,amount,movement_date')
       .eq('company_id',company.id)
-      .eq('cash_account_id',current.cash_account_id)
-      .gte('movement_date',current.opened_at)
-    if(current.closed_at)query.lte('movement_date',current.closed_at)
-    const {data,error}=await query
+      .eq('cash_register_session_id',current.id)
     if(error)throw error
     const totals=summarizeRows(data||[])
     return {...totals,expected:Number(current.opening_balance||0)+totals.income-totals.expense}
@@ -58,21 +57,16 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
 
     if(rows.length){
       const ids=rows.map(x=>x.id)
-      const oldest=rows.reduce((min,x)=>!min||x.opened_at<min?x.opened_at:min,'')
       const [{data:cuts},{data:movements,error:movementError}]=await Promise.all([
         supabase.from('cash_register_cuts').select('session_id,cut_at,expected_balance,income_total,expense_total,movement_count').in('session_id',ids).order('cut_at',{ascending:false}),
-        supabase.from('cash_movements').select('cash_account_id,movement_type,amount,movement_date').eq('company_id',company.id).gte('movement_date',oldest).order('movement_date',{ascending:true})
+        supabase.from('cash_movements').select('cash_register_session_id,movement_type,amount,movement_date').eq('company_id',company.id).in('cash_register_session_id',ids)
       ])
       if(movementError){setMessage(movementError.message);return}
       const grouped={}
       ;(cuts||[]).forEach(c=>{(grouped[c.session_id]||(grouped[c.session_id]=[])).push(c)})
       setCutsBySession(grouped)
       const stats={}
-      rows.forEach(h=>{
-        const start=new Date(h.opened_at).getTime(),end=h.closed_at?new Date(h.closed_at).getTime():Date.now()
-        const related=(movements||[]).filter(m=>m.cash_account_id===h.cash_account_id&&new Date(m.movement_date).getTime()>=start&&new Date(m.movement_date).getTime()<=end)
-        stats[h.id]=summarizeRows(related)
-      })
+      rows.forEach(h=>{stats[h.id]=summarizeRows((movements||[]).filter(m=>m.cash_register_session_id===h.id))})
       setHistoryStats(stats)
     }else{
       setCutsBySession({})
@@ -132,14 +126,7 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
     const difference=Number((counted-Number(closeDialog.expected||0)).toFixed(2))
     setBusy(true);setMessage('')
     try{
-      const {error}=await supabase.from('cash_register_sessions').update({
-        status:'CLOSED',
-        closing_expected:Number(closeDialog.expected||0),
-        closing_counted:counted,
-        difference,
-        notes:closeDialog.notes.trim()||null,
-        closed_at:new Date().toISOString()
-      }).eq('id',session.id).eq('company_id',company.id)
+      const {error}=await supabase.from('cash_register_sessions').update({status:'CLOSED',closing_expected:Number(closeDialog.expected||0),closing_counted:counted,difference,notes:closeDialog.notes.trim()||null,closed_at:new Date().toISOString()}).eq('id',session.id).eq('company_id',company.id)
       if(error)throw error
       const label=Math.abs(difference)<.005?'sin diferencia':difference>0?`sobrante ${money(difference)}`:`faltante ${money(Math.abs(difference))}`
       setCloseDialog({open:false,expected:0,counted:'',notes:''})
@@ -158,50 +145,25 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
 
   return <>
     <section className="cash-shift-card">
-      <div className="cash-shift-head">
-        <div><p className="form-kicker">TURNO DE CAJA</p><h3>{session?'Caja abierta':'Apertura · corte · cierre'}</h3></div>
-        <span className={`cash-shift-status ${session?'open':'closed'}`}>{session?'ABIERTA':'SIN APERTURA'}</span>
-      </div>
-      {!session?<div className="cash-shift-open">
-        <label>Caja<select value={accountId} onChange={e=>{setAccountId(e.target.value);const a=cashAccounts.find(x=>x.cash_account_id===e.target.value);setOpening(String(Number(a?.current_balance||0).toFixed(2)))}}>{cashAccounts.map(a=><option key={a.cash_account_id} value={a.cash_account_id}>{a.name}</option>)}</select></label>
-        <label>Efectivo inicial<input type="number" min="0" step="0.01" value={opening} onChange={e=>setOpening(e.target.value)}/></label>
-        <button type="button" disabled={busy||!cashAccounts.length} onClick={openRegister}>Abrir caja</button>
-      </div>:<>
-        <div className="cash-shift-summary">
-          <article><small>Apertura</small><strong>{money(session.opening_balance)}</strong></article>
-          <article><small>Entradas</small><strong>+ {money(summary.income)}</strong></article>
-          <article><small>Salidas</small><strong>- {money(summary.expense)}</strong></article>
-          <article className="expected"><small>Efectivo esperado</small><strong>{money(summary.expected)}</strong></article>
-        </div>
+      <div className="cash-shift-head"><div><p className="form-kicker">TURNO DE CAJA</p><h3>{session?'Caja abierta':'Apertura · corte · cierre'}</h3></div><span className={`cash-shift-status ${session?'open':'closed'}`}>{session?'ABIERTA':'SIN APERTURA'}</span></div>
+      {!session?<div className="cash-shift-open"><label>Caja<select value={accountId} onChange={e=>{setAccountId(e.target.value);const a=cashAccounts.find(x=>x.cash_account_id===e.target.value);setOpening(String(Number(a?.current_balance||0).toFixed(2)))}}>{cashAccounts.map(a=><option key={a.cash_account_id} value={a.cash_account_id}>{a.name}</option>)}</select></label><label>Efectivo inicial<input type="number" min="0" step="0.01" value={opening} onChange={e=>setOpening(e.target.value)}/></label><button type="button" disabled={busy||!cashAccounts.length} onClick={openRegister}>Abrir caja</button></div>:<>
+        <div className="cash-shift-summary"><article><small>Apertura</small><strong>{money(session.opening_balance)}</strong></article><article><small>Entradas</small><strong>+ {money(summary.income)}</strong></article><article><small>Salidas</small><strong>- {money(summary.expense)}</strong></article><article className="expected"><small>Efectivo esperado</small><strong>{money(summary.expected)}</strong></article></div>
         <div className="cash-shift-actions"><span>{activeAccount?.name||'Caja'} · abierta {fmtTime(session.opened_at)}{lastCut?` · último corte ${fmtTime(lastCut.cut_at)}`:''}</span><div><button type="button" className="secondary" disabled={busy} onClick={makeCut}>Hacer corte</button><button type="button" className="close" disabled={busy} onClick={openCloseDialog}>Cerrar caja</button></div></div>
       </>}
       {message&&<p className="cash-shift-message">{message}</p>}
     </section>
 
-    {history.length>0&&<details className="cash-shift-history">
-      <summary><span><strong>Historial de turnos</strong><small>{history.length} turno{history.length===1?'':'s'} registrado{history.length===1?'':'s'}</small></span><b>Ver historial</b></summary>
-      <div className="cash-history-list">
-        {history.map(h=>{const account=accounts.find(a=>a.cash_account_id===h.cash_account_id);const cuts=cutsBySession[h.id]||[];const stats=historyStats[h.id]||{income:0,expense:0};const diff=Number(h.difference||0);const expected=h.status==='OPEN'?Number(h.opening_balance||0)+stats.income-stats.expense:Number(h.closing_expected||0);return <article key={h.id}>
-          <div className="cash-history-main"><div><strong>{fmtDate(h.business_date)} · {account?.name||'Caja'}</strong><small>{h.status==='OPEN'?`Abierta ${fmtTime(h.opened_at)}`:`Cerrada ${fmtTime(h.closed_at)}`}{cuts.length?` · ${cuts.length} corte${cuts.length===1?'':'s'}`:''}</small></div><span className={`cash-history-status ${h.status==='OPEN'?'open':'closed'}`}>{h.status==='OPEN'?'ABIERTA':'CERRADA'}</span></div>
-          <div className="cash-history-values"><span><small>Apertura</small><b>{money(h.opening_balance)}</b></span><span><small>Entradas</small><b>{money(stats.income)}</b></span><span><small>Salidas</small><b>{money(stats.expense)}</b></span><span><small>Esperado</small><b>{money(expected)}</b></span><span><small>Contado</small><b>{h.status==='OPEN'?'—':money(h.closing_counted)}</b></span><span className={h.status==='OPEN'?'':Math.abs(diff)<.005?'ok':diff>0?'plus':'minus'}><small>Diferencia</small><b>{h.status==='OPEN'?'—':money(diff)}</b></span></div>
-          {h.notes&&<p className="cash-history-note">Observación: {h.notes}</p>}
-          {cuts.length>0&&<details className="cash-history-cuts"><summary>Ver cortes ({cuts.length})</summary><div>{cuts.map((c,i)=><p key={`${h.id}-${c.cut_at}-${i}`}><span>{fmtTime(c.cut_at)}</span><span>Entradas {money(c.income_total)}</span><span>Salidas {money(c.expense_total)}</span><strong>Esperado {money(c.expected_balance)}</strong></p>)}</div></details>}
-        </article>})}
-      </div>
-    </details>}
+    {history.length>0&&<details className="cash-shift-history"><summary><span><strong>Historial de turnos</strong><small>{history.length} turno{history.length===1?'':'s'} registrado{history.length===1?'':'s'}</small></span><b>Ver historial</b></summary><div className="cash-history-list">
+      {history.map(h=>{const account=accounts.find(a=>a.cash_account_id===h.cash_account_id);const cuts=cutsBySession[h.id]||[];const stats=historyStats[h.id]||{income:0,expense:0};const diff=Number(h.difference||0);const expected=h.status==='OPEN'?Number(h.opening_balance||0)+stats.income-stats.expense:Number(h.closing_expected||0);return <article key={h.id}>
+        <div className="cash-history-main"><div><strong>{fmtDate(h.business_date)} · {account?.name||'Caja'}</strong><small>{h.status==='OPEN'?`Abierta ${fmtTime(h.opened_at)}`:`Cerrada ${fmtTime(h.closed_at)}`}{cuts.length?` · ${cuts.length} corte${cuts.length===1?'':'s'}`:''}</small></div><div className="cash-history-head-actions"><span className={`cash-history-status ${h.status==='OPEN'?'open':'closed'}`}>{h.status==='OPEN'?'ABIERTA':'CERRADA'}</span><button type="button" onClick={()=>setReportSession(h)}>Ver reporte</button></div></div>
+        <div className="cash-history-values"><span><small>Apertura</small><b>{money(h.opening_balance)}</b></span><span><small>Entradas</small><b>{money(stats.income)}</b></span><span><small>Salidas</small><b>{money(stats.expense)}</b></span><span><small>Esperado</small><b>{money(expected)}</b></span><span><small>Contado</small><b>{h.status==='OPEN'?'—':money(h.closing_counted)}</b></span><span className={h.status==='OPEN'?'':Math.abs(diff)<.005?'ok':diff>0?'plus':'minus'}><small>Diferencia</small><b>{h.status==='OPEN'?'—':money(diff)}</b></span></div>
+        {h.notes&&<p className="cash-history-note">Observación: {h.notes}</p>}
+        {cuts.length>0&&<details className="cash-history-cuts"><summary>Ver cortes ({cuts.length})</summary><div>{cuts.map((c,i)=><p key={`${h.id}-${c.cut_at}-${i}`}><span>{fmtTime(c.cut_at)}</span><span>Entradas {money(c.income_total)}</span><span>Salidas {money(c.expense_total)}</span><strong>Esperado {money(c.expected_balance)}</strong></p>)}</div></details>}
+      </article>})}
+    </div></details>}
 
-    {closeDialog.open&&<div className="cash-close-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setCloseDialog({open:false,expected:0,counted:'',notes:''})}}>
-      <section className="cash-close-modal" role="dialog" aria-modal="true" aria-labelledby="cash-close-title">
-        <div className="cash-close-head"><div><p className="form-kicker">CIERRE DE CAJA</p><h3 id="cash-close-title">Confirmar cierre</h3><small>{activeAccount?.name||'Caja principal'}</small></div><button type="button" className="cash-close-x" disabled={busy} onClick={()=>setCloseDialog({open:false,expected:0,counted:'',notes:''})}>×</button></div>
-        <div className="cash-close-summary">
-          <article><small>Efectivo esperado</small><strong>{money(closeDialog.expected)}</strong></article>
-          <article><small>Efectivo contado</small><strong>{money(closeDialog.counted)}</strong></article>
-          <article className={Math.abs(closeDifference)<.005?'ok':closeDifference>0?'plus':'minus'}><small>Diferencia</small><strong>{money(closeDifference)}</strong><em>{closeDifferenceLabel}</em></article>
-        </div>
-        <label className="cash-close-field">Efectivo contado físicamente<input autoFocus type="number" min="0" step="0.01" value={closeDialog.counted} onChange={e=>setCloseDialog(v=>({...v,counted:e.target.value}))}/></label>
-        <label className="cash-close-field">Observación <span>(opcional)</span><textarea rows="3" maxLength="300" value={closeDialog.notes} onChange={e=>setCloseDialog(v=>({...v,notes:e.target.value}))} placeholder="Ej. cambio dejado para mañana, diferencia revisada, etc."/></label>
-        <div className="cash-close-actions"><button type="button" className="secondary" disabled={busy} onClick={()=>setCloseDialog({open:false,expected:0,counted:'',notes:''})}>Cancelar</button><button type="button" className="confirm" disabled={busy||!Number.isFinite(Number(closeDialog.counted))||Number(closeDialog.counted)<0} onClick={confirmClose}>{busy?'Cerrando…':'Confirmar cierre'}</button></div>
-      </section>
-    </div>}
+    {closeDialog.open&&<div className="cash-close-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setCloseDialog({open:false,expected:0,counted:'',notes:''})}}><section className="cash-close-modal" role="dialog" aria-modal="true" aria-labelledby="cash-close-title"><div className="cash-close-head"><div><p className="form-kicker">CIERRE DE CAJA</p><h3 id="cash-close-title">Confirmar cierre</h3><small>{activeAccount?.name||'Caja principal'}</small></div><button type="button" className="cash-close-x" disabled={busy} onClick={()=>setCloseDialog({open:false,expected:0,counted:'',notes:''})}>×</button></div><div className="cash-close-summary"><article><small>Efectivo esperado</small><strong>{money(closeDialog.expected)}</strong></article><article><small>Efectivo contado</small><strong>{money(closeDialog.counted)}</strong></article><article className={Math.abs(closeDifference)<.005?'ok':closeDifference>0?'plus':'minus'}><small>Diferencia</small><strong>{money(closeDifference)}</strong><em>{closeDifferenceLabel}</em></article></div><label className="cash-close-field">Efectivo contado físicamente<input autoFocus type="number" min="0" step="0.01" value={closeDialog.counted} onChange={e=>setCloseDialog(v=>({...v,counted:e.target.value}))}/></label><label className="cash-close-field">Observación <span>(opcional)</span><textarea rows="3" maxLength="300" value={closeDialog.notes} onChange={e=>setCloseDialog(v=>({...v,notes:e.target.value}))} placeholder="Ej. cambio dejado para mañana, diferencia revisada, etc."/></label><div className="cash-close-actions"><button type="button" className="secondary" disabled={busy} onClick={()=>setCloseDialog({open:false,expected:0,counted:'',notes:''})}>Cancelar</button><button type="button" className="confirm" disabled={busy||!Number.isFinite(Number(closeDialog.counted))||Number(closeDialog.counted)<0} onClick={confirmClose}>{busy?'Cerrando…':'Confirmar cierre'}</button></div></section></div>}
+
+    {reportSession&&<CashShiftReport session={reportSession} company={company} supabase={supabase} account={accounts.find(a=>a.cash_account_id===reportSession.cash_account_id)} onClose={()=>setReportSession(null)}/>} 
   </>
 }
