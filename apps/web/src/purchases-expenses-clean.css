@@ -1,0 +1,113 @@
+/* Compras y gastos: presentación compacta y ordenada.
+   Mantiene la lógica actual; solo reorganiza la jerarquía visual. */
+
+.clients-module > .metrics-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.clients-module > .metrics-grid .metric-card {
+  min-height: 78px;
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+
+.clients-module > .metrics-grid .metric-card strong {
+  margin: 7px 0 0;
+  font-size: 1.45rem;
+}
+
+.clients-module > .module-grid.two-column {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.clients-module > .module-grid.two-column > form.panel {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.clients-module > .module-grid.two-column > form.panel .panel-heading {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, .10);
+}
+
+.clients-module > .module-grid.two-column > form.panel .panel-heading h3 {
+  margin-top: 2px;
+  font-size: 1.16rem;
+}
+
+.clients-module > .module-grid.two-column > form.panel .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px 12px;
+}
+
+.clients-module > .module-grid.two-column > form.panel .field {
+  gap: 5px;
+  min-width: 0;
+}
+
+.clients-module > .module-grid.two-column > form.panel .field > span {
+  font-size: .79rem;
+  line-height: 1.2;
+}
+
+.clients-module > .module-grid.two-column > form.panel input,
+.clients-module > .module-grid.two-column > form.panel select,
+.clients-module > .module-grid.two-column > form.panel textarea {
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.clients-module > .module-grid.two-column > form.panel .form-span-2 {
+  grid-column: 1 / -1;
+}
+
+.clients-module > .module-grid.two-column > form.panel .form-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 23, 42, .10);
+}
+
+.clients-module > .module-grid.two-column > form.panel .form-actions button {
+  min-width: 150px;
+  padding: 10px 15px;
+}
+
+.clients-module > .module-grid.two-column + .panel {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.clients-module > .module-grid.two-column + .panel .panel-heading {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 1180px) {
+  .clients-module > .module-grid.two-column {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .clients-module > .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clients-module > .module-grid.two-column > form.panel .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clients-module > .module-grid.two-column > form.panel .form-span-2 {
+    grid-column: auto;
+  }
+}
