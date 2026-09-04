@@ -8,9 +8,9 @@ alter table public.customer_payments add column if not exists source_advance_id 
 create unique index if not exists customer_payments_source_advance_dte_uidx on public.customer_payments(source_advance_id,receivable_id) where source_advance_id is not null;
 
 -- Normaliza instalaciones que alcanzaron la primera versión del módulo.
+alter table public.customer_advances drop constraint if exists customer_advances_status_check;
 update public.customer_advances set status=case status when 'PENDING' then 'OPEN' when 'PARTIALLY_APPLIED' then 'PARTIAL' when 'VOID' then 'CANCELLED' else status end
 where status in ('PENDING','PARTIALLY_APPLIED','VOID');
-alter table public.customer_advances drop constraint if exists customer_advances_status_check;
 alter table public.customer_advances add constraint customer_advances_status_check check (status in ('OPEN','PARTIAL','APPLIED','CANCELLED'));
 alter table public.customer_advances alter column status set default 'OPEN';
 
