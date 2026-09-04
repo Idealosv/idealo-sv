@@ -109,6 +109,9 @@ export default function PurchasesExpensesCashModule({company,supabase}){
       </form>
     </div>
 
-    <section className="panel"><div className="panel-heading"><div><p className="form-kicker">HISTORIAL</p><h3>Compras recientes</h3></div></div>{purchases.length?<div className="client-list">{purchases.slice(0,20).map(r=><div className="client-row" key={r.id}><div><strong>COM-{String(r.number).padStart(5,'0')} · {r.suppliers?.name||'Proveedor ocasional'}</strong><small>{r.purchase_date} · {r.concept}</small></div><div><strong>{money(r.total)}</strong><small>{r.payment_status}</small></div></div>)}</div>:<div className="empty-state"><strong>Sin compras</strong></div>}</section>
+    <div className="module-grid two-column">
+      <section className="panel"><div className="panel-heading"><div><p className="form-kicker">HISTORIAL</p><h3>Compras recientes</h3></div></div>{purchases.length?<div className="client-list">{purchases.slice(0,20).map(r=><div className="client-row" key={r.id}><div><strong>COM-{String(r.number).padStart(5,'0')} · {r.suppliers?.name||'Proveedor ocasional'}</strong><small>{r.purchase_date} · {r.concept}</small></div><div><strong>{money(r.total)}</strong><small>{r.payment_status}</small></div></div>)}</div>:<div className="empty-state"><strong>Sin compras</strong></div>}</section>
+      <section className="panel"><div className="panel-heading"><div><p className="form-kicker">HISTORIAL</p><h3>Gastos recientes</h3></div></div>{expenses.length?<div className="client-list">{expenses.slice(0,20).map(r=><div className="client-row" key={r.id}><div><strong>{r.suppliers?.name||'Gasto operativo'}</strong><small>{r.expense_date} · {r.concept} · {r.payment_method}</small></div><div><strong>{money(r.amount)}</strong><small>{r.category}</small></div></div>)}</div>:<div className="empty-state"><strong>Sin gastos</strong></div>}</section>
+    </div>
   </section>
 }
