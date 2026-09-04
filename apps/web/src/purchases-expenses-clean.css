@@ -92,6 +92,70 @@
   margin-bottom: 10px;
 }
 
+/* Historial de compras/gastos: acciones secundarias más limpias y elegantes. */
+.clients-module > .module-grid.two-column > section.panel .client-row > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.clients-module > .module-grid.two-column > section.panel .client-row > div:last-child small {
+  width: 100%;
+  text-align: right;
+  margin-bottom: 2px;
+}
+
+.clients-module > .module-grid.two-column > section.panel .client-row button[type="button"] {
+  appearance: none;
+  border: 1px solid rgba(185, 28, 28, .28);
+  background: rgba(254, 242, 242, .95);
+  color: #991b1b;
+  min-width: 84px;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.clients-module > .module-grid.two-column > section.panel .client-row button[type="button"]::before {
+  content: "×";
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: rgba(185, 28, 28, .10);
+  font-size: .9rem;
+  font-weight: 900;
+  vertical-align: -1px;
+}
+
+.clients-module > .module-grid.two-column > section.panel .client-row button[type="button"]:hover {
+  background: #fff;
+  border-color: rgba(185, 28, 28, .55);
+  box-shadow: 0 5px 14px rgba(127, 29, 29, .12);
+  transform: translateY(-1px);
+}
+
+.clients-module > .module-grid.two-column > section.panel .client-row button[type="button"]:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+}
+
+.clients-module > .module-grid.two-column > section.panel .client-row button[type="button"]:focus-visible {
+  outline: 3px solid rgba(249, 115, 22, .22);
+  outline-offset: 2px;
+}
+
 @media (max-width: 1180px) {
   .clients-module > .module-grid.two-column {
     grid-template-columns: 1fr !important;
@@ -109,5 +173,11 @@
 
   .clients-module > .module-grid.two-column > form.panel .form-span-2 {
     grid-column: auto;
+  }
+
+  .clients-module > .module-grid.two-column > section.panel .client-row button[type="button"] {
+    min-width: 76px;
+    min-height: 32px;
+    padding: 6px 12px;
   }
 }
