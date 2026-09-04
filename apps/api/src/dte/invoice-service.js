@@ -77,10 +77,16 @@ export async function createInvoiceDraft({ request, supabase }) {
     client = data
   }
 
-  const { data: lastDocument, error: lastError } = await supabase.from('dte_documents').select('control_number').eq('company_id', companyId).eq('dte_type', type).order('created_at', { ascending: false }).limit(1).maybeSingle()
-  if (lastError) throw lastError
+  // El correlativo se reserva de forma atómica en PostgreSQL. Así dos facturas simultáneas
+  // no pueden recibir el mismo número y un DTE rechazado conserva su correlativo consumido.
+  const { data: controlNumber, error: controlError } = await supabase.rpc('next_dte_control_number', {
+    p_company_id: companyId,
+    p_dte_type: type,
+    p_environment: 'test',
+  })
+  if (controlError) throw controlError
+  if (!controlNumber) { const error = new Error('No se pudo reservar un número de control DTE único.'); error.statusCode = 500; throw error }
 
-  const controlNumber = nextControlNumber(lastDocument?.control_number, type)
   const testCompany = { ...company, establishment_code: TEST_ESTABLISHMENT_CODE, point_of_sale_code: TEST_POINT_OF_SALE_CODE }
   const normalizedItems = items.map((item) => ({
     descripcion: String(item.descripcion || '').trim(), cantidad: Number(item.cantidad), precioUni: Number(item.precioUni), montoDescu: Number(item.montoDescu || 0),
