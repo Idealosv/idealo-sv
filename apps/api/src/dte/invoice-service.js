@@ -77,8 +77,42 @@ export async function createInvoiceDraft({ request, supabase }) {
     client = data
   }
 
-  const resolvedQuoteId = quoteId || rejectedSource?.quote_id || null
-  const resolvedWorkOrderId = workOrderId || rejectedSource?.work_order_id || null
+  let resolvedQuoteId = quoteId || rejectedSource?.quote_id || null
+  let resolvedWorkOrderId = workOrderId || rejectedSource?.work_order_id || null
+  const paymentReferenceText = String(payment?.referencia || '')
+
+  // Compatibilidad con la pantalla actual: cuando la factura se cargó desde una cotización,
+  // la referencia ya contiene "Cotización COT-123 / OT-45". Se conserva ese vínculo en el DTE.
+  if (!resolvedQuoteId && clientId) {
+    const quoteMatch = paymentReferenceText.match(/Cotizaci[oó]n\s+([A-Za-z0-9]+)-(\d+)/i)
+    if (quoteMatch) {
+      const quoteNumber = Number(quoteMatch[2])
+      const { data: sourceQuotes, error: sourceQuoteLookupError } = await supabase.from('quotes')
+        .select('id, prefix, number, company_id, client_id')
+        .eq('company_id', companyId)
+        .eq('client_id', clientId)
+        .eq('number', quoteNumber)
+        .limit(20)
+      if (sourceQuoteLookupError) throw sourceQuoteLookupError
+      const wantedPrefix = quoteMatch[1].toUpperCase()
+      const sourceQuote = (sourceQuotes || []).find(row => String(row.prefix || 'COT').toUpperCase() === wantedPrefix)
+      if (sourceQuote) resolvedQuoteId = sourceQuote.id
+    }
+  }
+
+  if (!resolvedWorkOrderId && resolvedQuoteId) {
+    const orderMatch = paymentReferenceText.match(/OT-(\d+)/i)
+    if (orderMatch) {
+      const { data: sourceOrder, error: sourceOrderLookupError } = await supabase.from('work_orders')
+        .select('id, quote_id, number')
+        .eq('company_id', companyId)
+        .eq('quote_id', resolvedQuoteId)
+        .eq('number', Number(orderMatch[1]))
+        .maybeSingle()
+      if (sourceOrderLookupError) throw sourceOrderLookupError
+      if (sourceOrder) resolvedWorkOrderId = sourceOrder.id
+    }
+  }
 
   if (resolvedQuoteId) {
     const { data: sourceQuote, error: sourceQuoteError } = await supabase.from('quotes')
@@ -108,8 +142,6 @@ export async function createInvoiceDraft({ request, supabase }) {
     }
   }
 
-  // El correlativo se reserva de forma atómica en PostgreSQL. Así dos facturas simultáneas
-  // no pueden recibir el mismo número y un DTE rechazado conserva su correlativo consumido.
   const { data: controlNumber, error: controlError } = await supabase.rpc('next_dte_control_number', {
     p_company_id: companyId,
     p_dte_type: type,
