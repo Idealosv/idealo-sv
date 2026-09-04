@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase.js'
-import { CashModule, PurchasesExpensesModule } from './OperationsFinanceModules.jsx'
+import { CashModule } from './OperationsFinanceModules.jsx'
+import PurchasesExpensesModule from './PurchasesExpensesCashModule.jsx'
 import SuppliersDirectoryModule from './SuppliersDirectoryModule.jsx'
 import SupplierPayablesModule from './SupplierPayablesModule.jsx'
 import ReplenishmentModule from './ReplenishmentModule.jsx'
