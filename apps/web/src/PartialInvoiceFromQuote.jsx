@@ -63,7 +63,6 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
   const [quotes,setQuotes]=useState([])
   const [quoteId,setQuoteId]=useState('')
   const [percentage,setPercentage]=useState('50')
-  const [percentageBase,setPercentageBase]=useState('project')
   const [mode,setMode]=useState('percentage')
   const [manualAmount,setManualAmount]=useState('')
   const [billing,setBilling]=useState({billed:0,remaining:0,documents:0})
@@ -80,20 +79,16 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
   const projectTotal=round(quote?.total||0)
   const requested=useMemo(()=>{
     if(!quote)return 0
-    let raw=Number(manualAmount||0)
-    if(mode==='percentage'){
-      const base=percentageBase==='remaining'?billing.remaining:projectTotal
-      raw=base*(Math.max(0,Number(percentage||0))/100)
-      if(percentage==='100'&&percentageBase==='project')raw=billing.remaining
-    }
-    return round(Math.min(Math.max(0,raw),billing.remaining||projectTotal))
-  },[quote,mode,percentage,percentageBase,manualAmount,projectTotal,billing.remaining])
+    if(mode==='amount') return round(Math.min(Math.max(0,Number(manualAmount||0)),billing.remaining||projectTotal))
+    if(percentage==='saldo') return round(billing.remaining||projectTotal)
+    return round(Math.min(projectTotal*(Math.max(0,Number(percentage||0))/100),billing.remaining||projectTotal))
+  },[quote,mode,manualAmount,percentage,projectTotal,billing.remaining])
   const factor=projectTotal>0?requested/projectTotal:0
   const pendingAfter=round(Math.max(0,(billing.remaining||projectTotal)-requested))
   const preview=useMemo(()=>fiscalPreview(lines,factor,quote?.tax_mode),[lines,factor,quote?.tax_mode])
 
   const chooseQuote=async(id)=>{
-    setQuoteId(id);setMessage('');setLines([]);setWorkOrder(null)
+    setQuoteId(id);setMessage('');setLines([]);setWorkOrder(null);setMode('percentage');setPercentage('50');setManualAmount('')
     if(!id){setBilling({billed:0,remaining:0,documents:0});return}
     const selected=quotes.find(row=>row.id===id)
     const [{data:itemRows,error:itemError},{data:dtes,error:dteError},{data:orders}]=await Promise.all([
@@ -111,50 +106,55 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
   const issuePartial=async()=>{
     if(!quote||!lines.length||requested<=0)return
     if(requested>billing.remaining+0.01){setMessage('El monto supera el saldo pendiente de facturar.');return}
+    if(Math.abs(preview.total-requested)>0.03){setMessage(`El desglose fiscal ($${preview.total.toFixed(2)}) no coincide con el total ($${requested.toFixed(2)}).`);return}
     setBusy(true);setMessage('')
     try{
       const items=lines.map(line=>fiscalLine(line,factor,quote.tax_mode))
       const percentLabel=projectTotal>0?round((requested/projectTotal)*100):0
       const ref=[`Cotización ${(quote.prefix||'COT')}-${quote.number}`,workOrder?`OT-${workOrder.number}`:null,`Facturación parcial ${percentLabel}%`].filter(Boolean).join(' / ')
       const payload=await apiRequest('/api/dte/invoices',session,{
-        companyId:company.id,
-        clientId:quote.client_id,
-        dteType:'03',
-        items,
-        condicionOperacion:1,
+        companyId:company.id,clientId:quote.client_id,dteType:'03',items,condicionOperacion:1,
         totalLetras:`${requested.toFixed(2)} DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA`,
         observaciones:`${ref} · Total proyecto $${projectTotal.toFixed(2)} · Parcial $${requested.toFixed(2)} · Base gravada $${preview.base.toFixed(2)} · IVA $${preview.iva.toFixed(2)} · Pendiente $${pendingAfter.toFixed(2)}`,
         payment:{codigo:paymentCode(quote.payment_method),montoPago:requested,referencia:ref,periodo:null,plazo:null},
-        sourceQuoteId:quote.id,
-        sourceWorkOrderId:workOrder?.id||null,
-        billingKind:'PARTIAL',
-        billingPercentage:percentLabel,
-        projectTotal,
+        sourceQuoteId:quote.id,sourceWorkOrderId:workOrder?.id||null,billingKind:'PARTIAL',billingPercentage:percentLabel,projectTotal,
       })
       setMessage(`Crédito Fiscal parcial ${payload.control_number} creado por $${requested.toFixed(2)}. Ahora debe firmarse y enviarse a Hacienda.`)
       await chooseQuote(quote.id)
     }catch(error){setMessage(error.message)}finally{setBusy(false)}
   }
 
+  const choosePercentage=(value)=>{setMode('percentage');setPercentage(value);setManualAmount('')}
+
   return <section className="panel" style={{marginBottom:16}}>
-    <div className="billing-section-intro"><div><strong>Facturación parcial del proyecto</strong><small>El monto mostrado es el TOTAL del CCF, con su IVA desglosado antes de crearlo.</small></div></div>
+    <div className="billing-section-intro"><div><strong>Facturar parte del proyecto</strong><small>Seleccioná la cotización y cuánto querés facturar. El IVA se calcula solo.</small></div></div>
     <div className="form-grid three">
-      <label className="field form-span-3"><span>Cotización / proyecto</span><select value={quoteId} onChange={e=>chooseQuote(e.target.value)}><option value="">Seleccionar cotización</option>{quotes.map(row=><option key={row.id} value={row.id}>{`${row.prefix||'COT'}-${row.number} · ${row.project_name||'Proyecto'} · $${Number(row.total||0).toFixed(2)}`}</option>)}</select></label>
+      <label className="field form-span-3"><span>Proyecto</span><select value={quoteId} onChange={e=>chooseQuote(e.target.value)}><option value="">Seleccionar cotización</option>{quotes.map(row=><option key={row.id} value={row.id}>{`${row.prefix||'COT'}-${row.number} · ${row.project_name||'Proyecto'} · $${Number(row.total||0).toFixed(2)}`}</option>)}</select></label>
       {quote&&<>
-        <div className="billing-context-banner form-span-3"><strong>Total proyecto: ${projectTotal.toFixed(2)}</strong> · Ya facturado: <strong>${billing.billed.toFixed(2)}</strong> · Saldo pendiente: <strong>${billing.remaining.toFixed(2)}</strong>{billing.documents>0?` · ${billing.documents} DTE previo(s)`:''}</div>
-        <label className="field"><span>Cómo facturar</span><select value={mode} onChange={e=>setMode(e.target.value)}><option value="percentage">Por porcentaje</option><option value="amount">Por monto exacto</option></select></label>
-        {mode==='percentage'&&<label className="field"><span>Calcular porcentaje sobre</span><select value={percentageBase} onChange={e=>setPercentageBase(e.target.value)}><option value="project">Proyecto original (${projectTotal.toFixed(2)})</option><option value="remaining">Saldo pendiente (${billing.remaining.toFixed(2)})</option></select></label>}
-        {mode==='percentage'?<label className="field"><span>Porcentaje</span><select value={percentage} onChange={e=>setPercentage(e.target.value)}><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></select></label>:<label className="field"><span>Total del CCF a emitir</span><input type="number" min="0.01" step="0.01" value={manualAmount} onChange={e=>setManualAmount(e.target.value)}/></label>}
-        <div className="billing-context-banner form-span-3" style={{fontSize:'1rem',lineHeight:1.7}}>
-          <strong>DESGLOSE DEL CCF ANTES DE CREARLO</strong><br/>
-          Venta gravada sin IVA: <strong>${preview.base.toFixed(2)}</strong> · IVA 13%: <strong>${preview.iva.toFixed(2)}</strong>{preview.exenta>0?<> · Exento: <strong>${preview.exenta.toFixed(2)}</strong></>:null}<br/>
-          TOTAL CCF: <strong>${requested.toFixed(2)}</strong> · Saldo del proyecto después de este CCF: <strong>${pendingAfter.toFixed(2)}</strong>
+        <div className="billing-context-banner form-span-3" style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <span>Total <strong>${projectTotal.toFixed(2)}</strong></span>
+          <span>Facturado <strong>${billing.billed.toFixed(2)}</strong></span>
+          <span>Pendiente <strong>${billing.remaining.toFixed(2)}</strong></span>
         </div>
-        {Math.abs(preview.total-requested)>0.03&&<div className="feedback error form-span-3">Revisá el cálculo fiscal: el desglose calculado (${preview.total.toFixed(2)}) no coincide con el total parcial (${requested.toFixed(2)}). No emitas hasta corregirlo.</div>}
-        <div className="form-span-3"><button type="button" onClick={issuePartial} disabled={busy||requested<=0||billing.remaining<=0||Math.abs(preview.total-requested)>0.03}>{busy?'Creando…':`Crear CCF parcial · TOTAL $${requested.toFixed(2)}`}</button></div>
+
+        <div className="form-span-3" style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {[['25','25%'],['50','50%'],['75','75%'],['saldo','Facturar saldo']].map(([value,label])=><button key={value} type="button" className={mode==='percentage'&&percentage===value?'':'secondary-button'} onClick={()=>choosePercentage(value)}>{label}</button>)}
+          <button type="button" className={mode==='amount'?'':'secondary-button'} onClick={()=>setMode('amount')}>Otro monto</button>
+        </div>
+
+        {mode==='amount'&&<label className="field form-span-3"><span>Monto total del CCF</span><input type="number" min="0.01" step="0.01" max={billing.remaining} value={manualAmount} onChange={e=>setManualAmount(e.target.value)} placeholder={`Máximo $${billing.remaining.toFixed(2)}`}/></label>}
+
+        <div className="billing-context-banner form-span-3" style={{fontSize:'1rem',lineHeight:1.65}}>
+          <strong>CCF A EMITIR: ${requested.toFixed(2)}</strong><br/>
+          Base sin IVA: ${preview.base.toFixed(2)} · IVA 13%: ${preview.iva.toFixed(2)}{preview.exenta>0?` · Exento: $${preview.exenta.toFixed(2)}`:''}<br/>
+          <strong>Después quedará pendiente: ${pendingAfter.toFixed(2)}</strong>
+        </div>
+
+        {Math.abs(preview.total-requested)>0.03&&<div className="feedback error form-span-3">El cálculo fiscal no coincide. No se puede emitir todavía.</div>}
+        <div className="form-span-3"><button type="button" onClick={issuePartial} disabled={busy||requested<=0||billing.remaining<=0||Math.abs(preview.total-requested)>0.03}>{busy?'Creando…':`Crear CCF por $${requested.toFixed(2)}`}</button></div>
       </>}
     </div>
     {message&&<p className={message.includes('creado')?'feedback success':'feedback error'} role="status">{message}</p>}
-    <small className="billing-auto-note">El IVA no se suma otra vez al total mostrado: el botón indica el TOTAL final del CCF. Si ya existe un anticipo en Caja para esta cotización/orden, al aceptarse el DTE se aplica sin duplicar el ingreso.</small>
+    <small className="billing-auto-note">El total mostrado ya incluye IVA. Si existe un anticipo en Caja para esta cotización/orden, se aplica sin duplicar el ingreso.</small>
   </section>
 }
