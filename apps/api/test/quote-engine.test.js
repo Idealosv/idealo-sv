@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   areaM2, tierPrice, calculateItem, calculateQuote, canTransition,
-  validateQuote, quoteCode, weightedForecast, quoteStats
+  validateQuote, quoteCode, weightedForecast, quoteStats, itemForTaxMode
 } from '../../web/src/quoteEngine.js'
 
 test('areaM2 converts cm and mm correctly', () => {
@@ -58,10 +58,17 @@ test('calculateQuote aggregates items and global discount', () => {
   assert.equal(result.profit,50)
 })
 
-test('precio sin IVA mantiene la base y suma el 13 por ciento', () => {
-  const result=calculateQuote([
-    {quantity:1,unit_price:50,taxable:false,tax_rate:13}
-  ],{include_tax:false})
+test('IVA incluido desglosa 50 en 44.25 + 5.75 sin cambiar el total', () => {
+  const item=itemForTaxMode({quantity:1,unit_price:50,taxable:true,tax_rate:13},'INCLUDED')
+  const result=calculateQuote([item])
+  assert.equal(result.subtotal,44.25)
+  assert.equal(result.tax,5.75)
+  assert.equal(result.total,50)
+})
+
+test('IVA agregado conserva 50 de base y produce total 56.50', () => {
+  const item=itemForTaxMode({quantity:1,unit_price:50,taxable:true,tax_rate:13},'ADDED')
+  const result=calculateQuote([item])
   assert.equal(result.subtotal,50)
   assert.equal(result.tax,6.5)
   assert.equal(result.total,56.5)
