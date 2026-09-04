@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
+import CashRegisterShift from './CashRegisterShift.jsx'
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0))
 const day=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
 const methodLabel=value=>({CASH:'Efectivo',TRANSFER:'Transferencia',CARD:'Tarjeta',CHECK:'Cheque',OTHER:'Otro'}[value]||value||'Pago')
@@ -23,6 +24,7 @@ export default function CashControlCenter({company,supabase,onOpenReports}){
   <div className="clients-titlebar cash-simple-title"><div><p className="form-kicker">CAJA</p><h2>Caja y bancos</h2><p>Entradas, salidas y anticipos.</p></div>{alerts>0&&<button type="button" className="cash-alert-button" onClick={onOpenReports}>{alerts} alerta{alerts===1?'':'s'}</button>}</div>
   {msg&&<p className={msg.includes('registrado')?'feedback success':'feedback error'}>{msg}</p>}
   <div className="cash-control-summary simple"><article><small>Disponible</small><strong>{money(k.total)}</strong></article><article><small>Entradas hoy</small><strong>{money(k.ins)}</strong></article><article><small>Salidas hoy</small><strong>{money(k.outs)}</strong></article></div>
+  <CashRegisterShift company={company} supabase={supabase} accounts={accounts} onChanged={load}/>
   <form onSubmit={saveAdvance} className="form-card cash-advance-card"><div className="cash-section-heading compact"><div><p className="form-kicker">ANTICIPO</p><h3>Registrar anticipo</h3></div>{k.pending>0&&<span className="cash-pending-pill">Por aplicar {money(k.pending)}</span>}</div>
    <div className="cash-advance-grid">
     <label>Cliente *<select required value={form.client_id} onChange={e=>setForm({...form,client_id:e.target.value,quote_id:''})}><option value="">Seleccionar cliente</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
