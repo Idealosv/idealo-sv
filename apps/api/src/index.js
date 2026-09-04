@@ -15,7 +15,7 @@ import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-setting
 import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
-import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit } from './admin/user-administration-service.js'
+import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit, registerCompanyActivity } from './admin/user-administration-service.js'
 import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
@@ -25,6 +25,7 @@ const configuredOrigins = (process.env.CORS_ORIGIN || '').split(',').map((value)
 if (process.env.NODE_ENV === 'production' && configuredOrigins.length === 0) throw new Error('CORS_ORIGIN es obligatoria en producción; la API no iniciará con CORS abierto.')
 
 app.disable('x-powered-by')
+app.set('trust proxy', 1)
 app.use(helmet())
 app.use(cors({ origin: configuredOrigins.length ? configuredOrigins : true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
@@ -69,6 +70,9 @@ app.delete('/api/admin/users/:userId', async (request, response, next) => {
 })
 app.get('/api/admin/audit', async (request, response, next) => {
   try { response.json(await listCompanyAdminAudit({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/activity', async (request, response, next) => {
+  try { response.status(201).json(await registerCompanyActivity({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.get('/api/admin/saas/dashboard', async (request, response, next) => {
   try { response.json(await getSaasMasterDashboard({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
