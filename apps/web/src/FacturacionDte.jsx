@@ -6,6 +6,8 @@ const PAYMENT_METHODS = [['01','Efectivo'],['02','Tarjeta de débito'],['03','Ta
 const UNIT_OPTIONS = [['59','Unidad'],['36','Servicio'],['99','Otra']]
 const ITEM_TYPES = [['1','Bien'],['2','Servicio'],['3','Bien y servicio'],['4','Otro']]
 const emptyItem = () => ({ tipoItem:'2', codigo:'', descripcion:'', cantidad:'1', uniMedida:'36', precioUni:'0.00', montoDescu:'0', tipoVenta:'gravada' })
+const ELIGIBLE_QUOTE_STATUSES = ['APPROVED','PARTIALLY_CONVERTED','CONVERTED']
+const READY_WORK_ORDER_STATUSES = ['READY','DELIVERED']
 
 const UNITS = ['', 'UNO','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE','DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE','VEINTE','VEINTIUNO','VEINTIDÓS','VEINTITRÉS','VEINTICUATRO','VEINTICINCO','VEINTISÉIS','VEINTISIETE','VEINTIOCHO','VEINTINUEVE']
 const TENS = ['', '', '', 'TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA']
@@ -53,6 +55,29 @@ function toFiscalItems(items,dteType,priceMode){
   })
 }
 
+function quotePaymentCode(value){
+  const normalized=String(value||'').trim().toUpperCase()
+  if(normalized.includes('TRANSFER'))return'05'
+  if(normalized.includes('CHEQUE'))return'04'
+  if(normalized.includes('TARJETA')||normalized.includes('CARD'))return'03'
+  if(normalized.includes('EFECTIVO')||normalized.includes('CASH'))return'01'
+  return'99'
+}
+
+function quoteLineToInvoiceItem(line){
+  const unit=String(line.unit||'').toLowerCase()
+  return {
+    tipoItem: unit.includes('serv')?'2':'1',
+    codigo: line.sku||'',
+    descripcion: line.description||'',
+    cantidad: String(line.quantity||1),
+    uniMedida: unit.includes('serv')?'36':unit.includes('unidad')?'59':'99',
+    precioUni: Number(line.unit_price||0).toFixed(2),
+    montoDescu: Number(line.discount||0).toFixed(2),
+    tipoVenta: line.taxable===false?'exenta':'gravada',
+  }
+}
+
 export default function FacturacionDte({session,supabase,company,initialClientId=''}){
   const [clients,setClients]=useState([])
   const [clientId,setClientId]=useState(initialClientId||'')
@@ -77,9 +102,41 @@ export default function FacturacionDte({session,supabase,company,initialClientId
   const [message,setMessage]=useState('')
   const [messageType,setMessageType]=useState('info')
   const [busy,setBusy]=useState(false)
+  const [quoteSources,setQuoteSources]=useState([])
+  const [sourceQuoteId,setSourceQuoteId]=useState('')
+  const [sourceLoading,setSourceLoading]=useState(false)
+  const [sourceQuote,setSourceQuote]=useState(null)
 
   useEffect(()=>{supabase.from('clients').select('*').eq('company_id',company.id).order('name').then(({data,error})=>{if(error){setMessage(error.message);setMessageType('error')}setClients(data||[])})},[company.id,supabase])
   useEffect(()=>{if(initialClientId){setClientId(initialClientId);setMessage('')}},[initialClientId])
+  useEffect(()=>{
+    let cancelled=false
+    const loadSources=async()=>{
+      setSourceLoading(true)
+      const {data:quotes,error:quoteError}=await supabase.from('quotes').select('id,number,prefix,code,status,total,tax_total,tax_mode,client_id,payment_terms,payment_method,credit_days,notes,project_name,created_at').eq('company_id',company.id).in('status',ELIGIBLE_QUOTE_STATUSES).is('soft_deleted_at',null).order('created_at',{ascending:false})
+      if(cancelled)return
+      if(quoteError){setMessage(`No se pudieron cargar cotizaciones facturables: ${quoteError.message}`);setMessageType('error');setSourceLoading(false);return}
+      const ids=(quotes||[]).map(q=>q.id)
+      let orders=[]
+      if(ids.length){
+        const {data,error}=await supabase.from('work_orders').select('id,quote_id,number,status,delivered_at,ready_at,title,total').eq('company_id',company.id).in('quote_id',ids)
+        if(error){setMessage(`No se pudieron revisar las órdenes vinculadas: ${error.message}`);setMessageType('error')}
+        else orders=data||[]
+      }
+      const orderByQuote=new Map()
+      orders.forEach(order=>{const current=orderByQuote.get(order.quote_id);if(!current||READY_WORK_ORDER_STATUSES.includes(order.status))orderByQuote.set(order.quote_id,order)})
+      const merged=(quotes||[]).map(quote=>({...quote,workOrder:orderByQuote.get(quote.id)||null})).sort((a,b)=>{
+        const ar=a.workOrder?.status==='DELIVERED'?0:a.workOrder?.status==='READY'?1:2
+        const br=b.workOrder?.status==='DELIVERED'?0:b.workOrder?.status==='READY'?1:2
+        return ar-br||Number(b.number||0)-Number(a.number||0)
+      })
+      setQuoteSources(merged)
+      setSourceLoading(false)
+    }
+    loadSources()
+    return()=>{cancelled=true}
+  },[company.id,supabase])
+
   const selectedClient=clients.find(client=>client.id===clientId)||null
   const ccfMissing=useMemo(()=>missingCcfData(selectedClient),[selectedClient])
 
@@ -132,6 +189,35 @@ export default function FacturacionDte({session,supabase,company,initialClientId
     return next
   }))
 
+  const loadQuoteIntoInvoice=async(id)=>{
+    setSourceQuoteId(id)
+    setSourceQuote(null)
+    if(!id)return
+    const quote=quoteSources.find(row=>row.id===id)
+    if(!quote)return
+    setSourceLoading(true);setMessage('')
+    const {data:lines,error}=await supabase.from('quote_items').select('id,product_id,description,quantity,unit,unit_price,discount,line_total,sku,taxable,tax_rate,sort_order').eq('quote_id',id).order('sort_order')
+    if(error){setMessage(`No se pudieron cargar los productos de la cotización: ${error.message}`);setMessageType('error');setSourceLoading(false);return}
+    if(!(lines||[]).length){setMessage('La cotización seleccionada no tiene productos o servicios para facturar.');setMessageType('error');setSourceLoading(false);return}
+    setClientId(quote.client_id||'')
+    setItems(lines.map(quoteLineToInvoiceItem))
+    setPriceMode(quote.tax_mode==='INCLUDED'?'con_iva':'sin_iva')
+    const credit=String(quote.payment_terms||'').toLowerCase().includes('crédito')||String(quote.payment_terms||'').toLowerCase().includes('credito')||Number(quote.credit_days||0)>0
+    setCondicionOperacion(credit?'2':'1')
+    setPaymentCode(quotePaymentCode(quote.payment_method))
+    if(credit){setPaymentTerm('01');setPaymentPeriod(String(quote.credit_days||30))}
+    const ref=[`Cotización ${(quote.prefix||'COT')}-${quote.number}`,quote.workOrder?`OT-${quote.workOrder.number}`:null].filter(Boolean).join(' / ')
+    setPaymentReference(ref)
+    setObservaciones([ref,quote.project_name?`Proyecto: ${quote.project_name}`:null,quote.notes||null].filter(Boolean).join(' · '))
+    const client=clients.find(row=>row.id===quote.client_id)
+    if(client?.preferred_dte_type==='03' || (client?.tax_id&&client?.nrc))setDteType('03')
+    else setDteType('01')
+    setSourceQuote(quote)
+    setMessage(`Cotización ${(quote.prefix||'COT')}-${quote.number} cargada. Revisá los datos y emití la factura cuando estés listo.`)
+    setMessageType('success')
+    setSourceLoading(false)
+  }
+
   const readiness=useMemo(()=>{
     const pending=[]
     if(dteType==='03'&&!selectedClient)pending.push('cliente contribuyente')
@@ -162,7 +248,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
         }),
       })
       setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} guardado correctamente.`);setMessageType('success')
-      setItems([emptyItem()]);setObservaciones('');setPaymentReference('');setClientId('');setDteType('01');setPriceMode('sin_iva');setCondicionOperacion('1');setPaymentCode('01');setIvaRete('0');setIvaPerci('0');setReteRenta('0');setSaldoFavor('0');setTotalNoGravado('0')
+      setItems([emptyItem()]);setObservaciones('');setPaymentReference('');setClientId('');setDteType('01');setPriceMode('sin_iva');setCondicionOperacion('1');setPaymentCode('01');setIvaRete('0');setIvaPerci('0');setReteRenta('0');setSaldoFavor('0');setTotalNoGravado('0');setSourceQuoteId('');setSourceQuote(null)
     }catch(error){setMessage(error.message);setMessageType('error')}finally{setBusy(false)}
   }
 
@@ -172,6 +258,15 @@ export default function FacturacionDte({session,supabase,company,initialClientId
 
   return <section className="facturacion-dte billing-simple-flow">
     {message&&<p className={`feedback ${messageType==='error'?'error':'success'}`} role="status">{message}</p>}
+
+    <div className="panel" style={{marginBottom:16}}>
+      <div className="form-grid two">
+        <label className="field form-span-2"><span>Cargar desde cotización / orden de trabajo</span><select value={sourceQuoteId} onChange={e=>loadQuoteIntoInvoice(e.target.value)} disabled={sourceLoading}><option value="">{sourceLoading?'Cargando…':'Seleccionar cotización facturable'}</option>{quoteSources.map(quote=><option key={quote.id} value={quote.id}>{`${quote.prefix||'COT'}-${quote.number} · ${quote.status}${quote.workOrder?` · OT-${quote.workOrder.number} ${quote.workOrder.status}`:''} · $${Number(quote.total||0).toFixed(2)}`}</option>)}</select></label>
+      </div>
+      <small className="billing-auto-note">Se muestran cotizaciones aprobadas o convertidas. Las órdenes LISTAS o ENTREGADAS aparecen primero.</small>
+      {sourceQuote&&<div className="billing-context-banner" style={{marginTop:10}}>Origen cargado: <strong>{sourceQuote.prefix||'COT'}-{sourceQuote.number}</strong>{sourceQuote.workOrder&&<> · Orden <strong>OT-{sourceQuote.workOrder.number}</strong> · {sourceQuote.workOrder.status}</>} · IVA {sourceQuote.tax_mode==='INCLUDED'?'incluido':'agregado'} · Total cotizado <strong>${Number(sourceQuote.total||0).toFixed(2)}</strong></div>}
+    </div>
+
     <div className="billing-document-picker" role="group" aria-label="Tipo de documento">
       <button type="button" className={dteType==='01'?'active':''} onClick={()=>chooseDteType('01')}><strong>Factura</strong><small>DTE-01 · Consumidor Final</small></button>
       <button type="button" className={dteType==='03'?'active':''} onClick={()=>chooseDteType('03')}><strong>Crédito Fiscal</strong><small>DTE-03 · Contribuyente</small></button>
@@ -233,6 +328,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
 
         <aside className="billing-classic-summary">
           <div><span>Documento</span><strong>{dteType==='03'?'Comprobante de Crédito Fiscal':'Factura Consumidor Final'}</strong><small>DTE-{dteType} · {dteType==='03'?'Versión 3':'Versión 2'}</small></div>
+          {sourceQuote&&<div className="billing-summary-client"><span>Origen</span><strong>{sourceQuote.prefix||'COT'}-{sourceQuote.number}</strong><small>{sourceQuote.workOrder?`OT-${sourceQuote.workOrder.number} · ${sourceQuote.workOrder.status}`:sourceQuote.status}</small></div>}
           <div className="billing-summary-lines">
             <p><span>Gravadas sin IVA</span><strong>${totals.gravada.toFixed(2)}</strong></p>
             <p><span>Exentas</span><strong>${totals.exenta.toFixed(2)}</strong></p>
