@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { addDays, balance, isOpen, localIsoDate, matchesReceivableFilter, money, statusLabel } from './billingReceivables.js'
 import { reverseCustomerPayment } from './paymentReversal.js'
+import CustomerAdvancesPanel from './CustomerAdvancesPanel.jsx'
 
 export default function BillingReceivablesPanel({company,supabase,onOpenCash}){
   const [receivables,setReceivables]=useState([])
@@ -73,9 +74,10 @@ export default function BillingReceivablesPanel({company,supabase,onOpenCash}){
   if(loading)return <section className="billing-ar-state">Cargando cuentas por cobrar…</section>
 
   return <section className="billing-ar">
-    <div className="billing-ar-head"><div><p className="form-kicker">COBRANZA · FACTURACIÓN</p><h3>Cuentas por cobrar</h3><p>Controla facturas a crédito, vencimientos y cobros registrados sin salir del módulo de Facturación.</p></div><div className="billing-ar-actions"><button type="button" className="secondary-button" onClick={load}>Actualizar</button>{onOpenCash&&<button type="button" onClick={onOpenCash}>Abrir Caja</button>}</div></div>
+    <div className="billing-ar-head"><div><p className="form-kicker">COBRANZA · FACTURACIÓN</p><h3>Cuentas por cobrar</h3><p>Controla facturas a crédito, vencimientos, anticipos y cobros registrados sin salir del módulo de Facturación.</p></div><div className="billing-ar-actions"><button type="button" className="secondary-button" onClick={load}>Actualizar</button>{onOpenCash&&<button type="button" onClick={onOpenCash}>Abrir Caja</button>}</div></div>
     {message&&<p className="feedback error">{message}</p>}
     <div className="billing-ar-kpis"><Kpi label="Saldo por cobrar" value={money(stats.open)}/><Kpi label="Vencido" value={money(stats.overdue)} danger={stats.overdue>0}/><Kpi label="Vence en 7 días" value={money(stats.due7)}/><Kpi label="Vence en 30 días" value={money(stats.due30)}/><Kpi label="Cuentas abiertas" value={stats.openCount}/><Kpi label="Cuentas vencidas" value={stats.overdueCount} danger={stats.overdueCount>0}/></div>
+    <CustomerAdvancesPanel company={company} supabase={supabase} onRegistered={load}/>
     <div className="billing-ar-toolbar"><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Buscar cliente o documento" aria-label="Buscar cuentas por cobrar"/><select value={filter} onChange={event=>setFilter(event.target.value)}><option value="OPEN">Pendientes</option><option value="OVERDUE">Vencidas</option><option value="DUE7">Por vencer</option><option value="PAID">Pagadas</option><option value="CANCELLED">Anuladas</option><option value="ALL">Todas</option></select></div>
     <div className="billing-ar-grid">
       <section className="billing-ar-card"><div className="billing-ar-card-head"><div><span>CARTERA</span><strong>Documentos por cobrar</strong></div><small>{visible.length} registro(s)</small></div>{visible.length?<div className="billing-ar-table-wrap"><table className="billing-ar-table"><thead><tr><th>Documento</th><th>Cliente</th><th>Vence</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>{visible.map(row=><tr key={row.id}><td><strong>{row.number||'Cuenta'}</strong><small>{row.concept||'Facturación'}</small></td><td>{row.clients?.name||'Cliente'}</td><td>{row.due_date||'Sin fecha'}</td><td>{money(row.amount_total)}</td><td>{money(row.amount_paid)}</td><td><strong>{money(balance(row))}</strong></td><td><span className={`billing-ar-status ${statusLabel(row).toLowerCase().replace(' ','-')}`}>{statusLabel(row)}</span></td></tr>)}</tbody></table></div>:<div className="billing-ar-empty">No hay cuentas para este filtro.</div>}</section>
