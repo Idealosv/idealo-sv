@@ -10,6 +10,7 @@ import InvoiceEmailPdfTestPanel from './InvoiceEmailPdfTestPanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
 import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
+import DteFinancialIntegrityPanel from './DteFinancialIntegrityPanel.jsx'
 
 const sections = [
   { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control', group: 'Operación diaria' },
@@ -85,7 +86,7 @@ export default function FacturacionLauncher() {
       <main className="billing-content" data-active-billing-section={activeSection}>
         <div className="billing-section-head"><div><span className="billing-section-kicker">{active.group} · {active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
         {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
-        {activeSection === 'resumen' && <Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/>} 
+        {activeSection === 'resumen' && <><Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/><DteFinancialIntegrityPanel supabase={supabase} company={company}/></>} 
         {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice">
           <div className="billing-section-intro"><div><strong>Nueva factura</strong><small>Elegí una sola forma de facturar. Si viene de una cotización/proyecto, usá el flujo de proyecto; para una venta nueva sin cotización, usá factura manual.</small></div></div>
           <div className="billing-document-picker" role="group" aria-label="Origen de la factura" style={{marginBottom:16}}>
