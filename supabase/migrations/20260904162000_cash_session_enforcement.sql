@@ -57,19 +57,29 @@ for each row execute function public.assign_cash_register_session();
 
 -- Backfill movements that clearly occurred inside an existing session.
 update public.cash_movements m
-set cash_register_session_id = s.id
-from public.cash_accounts a,
-     lateral (
-       select cs.id
-       from public.cash_register_sessions cs
-       where cs.company_id = m.company_id
-         and cs.cash_account_id = m.cash_account_id
-         and m.movement_date >= cs.opened_at
-         and (cs.closed_at is null or m.movement_date <= cs.closed_at)
-       order by cs.opened_at desc
-       limit 1
-     ) s
-where a.id = m.cash_account_id
-  and a.company_id = m.company_id
-  and upper(coalesce(a.account_type,'')) in ('CASH','CAJA')
-  and m.cash_register_session_id is null;
+set cash_register_session_id = (
+  select cs.id
+  from public.cash_register_sessions cs
+  where cs.company_id = m.company_id
+    and cs.cash_account_id = m.cash_account_id
+    and m.movement_date >= cs.opened_at
+    and (cs.closed_at is null or m.movement_date <= cs.closed_at)
+  order by cs.opened_at desc
+  limit 1
+)
+where m.cash_register_session_id is null
+  and exists (
+    select 1
+    from public.cash_accounts a
+    where a.id = m.cash_account_id
+      and a.company_id = m.company_id
+      and upper(coalesce(a.account_type,'')) in ('CASH','CAJA')
+  )
+  and exists (
+    select 1
+    from public.cash_register_sessions cs
+    where cs.company_id = m.company_id
+      and cs.cash_account_id = m.cash_account_id
+      and m.movement_date >= cs.opened_at
+      and (cs.closed_at is null or m.movement_date <= cs.closed_at)
+  );
