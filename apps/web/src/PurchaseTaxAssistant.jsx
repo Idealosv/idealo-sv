@@ -19,22 +19,36 @@ function enhancePurchaseForm(form){
   if(!subtotal||!tax||!total)return
 
   form.dataset.taxAssistant='1'
-  tax.readOnly=true
-  tax.tabIndex=-1
-  tax.title='Se calcula automáticamente según el tratamiento de IVA seleccionado.'
-
   const subtotalLabel=subtotal.closest('label')
-  const modeLabel=document.createElement('label')
-  modeLabel.className='field purchase-tax-mode'
-  modeLabel.innerHTML='<span>Tratamiento IVA *</span><select><option value="PLUS">Precio sin IVA + 13%</option><option value="INCLUDED">Precio ya incluye IVA</option><option value="EXEMPT">Sin IVA / exento</option></select><small>Selecciona cómo viene el precio de la compra.</small>'
-  subtotalLabel?.parentElement?.insertBefore(modeLabel,subtotalLabel)
-  const mode=modeLabel.querySelector('select')
+  const taxLabel=tax.closest('label')
+  const totalLabel=total.closest('label')
+  ;[subtotalLabel,taxLabel,totalLabel].forEach(label=>label?.classList.add('purchase-tax-hidden-field'))
+  tax.readOnly=true
+
+  const simple=document.createElement('div')
+  simple.className='purchase-tax-simple form-span-2'
+  simple.innerHTML=`
+    <label class="field purchase-amount-field">
+      <span>Monto de la compra *</span>
+      <input class="purchase-simple-amount" type="number" min="0.01" step="0.01" placeholder="Ej. 9.00" required>
+    </label>
+    <div class="purchase-iva-choice" role="group" aria-label="Cómo viene el IVA">
+      <span>¿Cómo viene el precio?</span>
+      <div>
+        <button type="button" data-mode="INCLUDED" class="active">Ya incluye IVA</button>
+        <button type="button" data-mode="PLUS">Agregar IVA</button>
+        <button type="button" data-mode="EXEMPT">Sin IVA</button>
+      </div>
+    </div>`
+  subtotalLabel?.parentElement?.insertBefore(simple,subtotalLabel)
+  const amount=simple.querySelector('.purchase-simple-amount')
+  const buttons=[...simple.querySelectorAll('[data-mode]')]
+  let mode='INCLUDED'
 
   const help=document.createElement('div')
-  help.className='purchase-tax-summary'
-  help.innerHTML='<span>Subtotal <strong>$0.00</strong></span><span>IVA <strong>$0.00</strong></span><span>Total <strong>$0.00</strong></span>'
-  const actions=form.querySelector('.form-actions')
-  actions?.parentElement?.insertBefore(help,actions)
+  help.className='purchase-tax-summary form-span-2'
+  help.innerHTML='<span>Base <strong>$0.00</strong></span><span>IVA <strong>$0.00</strong></span><span>Total a registrar <strong>$0.00</strong></span>'
+  subtotalLabel?.parentElement?.insertBefore(help,subtotalLabel)
   const summaryValues=help.querySelectorAll('strong')
 
   const render=(base,iva,grand)=>{
@@ -43,36 +57,31 @@ function enhancePurchaseForm(form){
     summaryValues[2].textContent=`$${round2(grand).toFixed(2)}`
   }
 
-  const calculateFromSubtotal=()=>{
-    const base=Number(subtotal.value||0)
-    if(mode.value==='EXEMPT'){
-      setNativeValue(tax,round2(0));setNativeValue(total,round2(base));render(base,0,base);return
+  const calculate=()=>{
+    const entered=round2(amount.value||0)
+    let base=entered,iva=0,grand=entered
+    if(mode==='INCLUDED'){
+      grand=entered
+      base=round2(grand/(1+IVA_RATE))
+      iva=round2(grand-base)
+    }else if(mode==='PLUS'){
+      base=entered
+      iva=round2(base*IVA_RATE)
+      grand=round2(base+iva)
     }
-    if(mode.value==='PLUS'){
-      const iva=round2(base*IVA_RATE),grand=round2(base+iva)
-      setNativeValue(tax,iva);setNativeValue(total,grand);render(base,iva,grand)
-    }
+    setNativeValue(subtotal,base)
+    setNativeValue(tax,iva)
+    setNativeValue(total,grand)
+    render(base,iva,grand)
   }
 
-  const calculateFromTotal=()=>{
-    if(mode.value!=='INCLUDED')return
-    const grand=Number(total.value||0)
-    const base=round2(grand/(1+IVA_RATE)),iva=round2(grand-base)
-    setNativeValue(subtotal,base);setNativeValue(tax,iva);render(base,iva,grand)
-  }
-
-  const applyMode=()=>{
-    subtotal.readOnly=mode.value==='INCLUDED'
-    total.readOnly=mode.value!=='INCLUDED'
-    subtotal.title=mode.value==='INCLUDED'?'Se calcula a partir del total con IVA incluido.':''
-    total.title=mode.value==='INCLUDED'?'Escribe el total pagado; el sistema separará subtotal e IVA.':'Se calcula automáticamente.'
-    if(mode.value==='INCLUDED')calculateFromTotal();else calculateFromSubtotal()
-  }
-
-  subtotal.addEventListener('input',calculateFromSubtotal)
-  total.addEventListener('input',calculateFromTotal)
-  mode.addEventListener('change',applyMode)
-  applyMode()
+  buttons.forEach(button=>button.addEventListener('click',()=>{
+    mode=button.dataset.mode
+    buttons.forEach(item=>item.classList.toggle('active',item===button))
+    calculate()
+  }))
+  amount.addEventListener('input',calculate)
+  calculate()
 }
 
 export default function PurchaseTaxAssistant(){
