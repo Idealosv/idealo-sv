@@ -28,6 +28,82 @@ async function api(path, { token, method = 'GET', body } = {}) {
   return payload
 }
 
+function normalizeQuestion(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function pending(row) {
+  return Math.max(0, Number(row?.amount_total || 0) - Number(row?.amount_paid || 0))
+}
+
+function instantAnswer(text, snapshot, priorities = []) {
+  if (!snapshot) return null
+  const q = normalizeQuestion(text)
+  const m = snapshot.metrics || {}
+  const s = snapshot.samples || {}
+  const companyName = snapshot.company?.name || 'la empresa'
+
+  if (q.includes('material') || q.includes('reponer') || q.includes('inventario') || q.includes('stock')) {
+    const rows = (s.low_stock || []).slice(0, 8)
+    if (!rows.length) return 'Hay 0 artículos en nivel mínimo o crítico. Inventario sin alertas de mínimo registradas.'
+    return [`Hay ${m.low_stock_items || rows.length} artículos en nivel mínimo o crítico.`, ...rows.map((row, index) => `${index + 1}. ${row.name || 'Material'}: existencia ${Number(row.current_stock || 0)} / mínimo ${Number(row.minimum_stock || 0)}.`)].join('\n')
+  }
+
+  if (q.includes('diagnostico') || q.includes('situacion') || q.includes('como vamos')) {
+    return [
+      `Diagnóstico ejecutivo de ${companyName}: ${m.health_score ?? 100}/100.`,
+      `Caja ${money(m.cash_total)} · CxC vencida ${money(m.overdue_receivables_value)} · CxP vencida ${money(m.overdue_payables_value)}.`,
+      `Cotizado 30 días ${money(m.quote_total_30d)} · OT atrasadas ${m.late_orders ?? 0} · Stock crítico ${m.low_stock_items ?? 0}.`,
+      priorities.length ? `Prioridad principal: ${priorities[0].title}.` : 'No aparecen alertas críticas con los datos actuales.'
+    ].join('\n')
+  }
+
+  if (q.includes('caja') || q.includes('liquidez') || q.includes('efectivo')) {
+    const risks = []
+    if (Number(m.cash_total) < 0) risks.push('La caja está en negativo.')
+    if (Number(m.overdue_payables_value) > Math.max(Number(m.cash_total || 0), 0)) risks.push('Las cuentas por pagar vencidas superan la caja disponible.')
+    if (Number(m.overdue_receivables_value) > 0) risks.push(`Tenés ${money(m.overdue_receivables_value)} por recuperar en CxC vencida.`)
+    return `Caja actual: ${money(m.cash_total)}. ${risks.length ? risks.join(' ') : 'No detecto un riesgo crítico de liquidez con los datos actuales.'}`
+  }
+
+  if (q.includes('cobrar') || q.includes('cxc') || q.includes('cuentas por cobrar')) {
+    const rows = (s.overdue_receivables || []).slice(0, 8)
+    if (!rows.length) return 'No hay cuentas por cobrar vencidas registradas.'
+    return [`Tenés ${m.overdue_receivables || rows.length} cuentas por cobrar vencidas por ${money(m.overdue_receivables_value)}.`, 'Orden sugerido de cobro:', ...rows.map((row, index) => `${index + 1}. ${money(pending(row))}${row.due_date ? ` · venció ${row.due_date}` : ''}.`)].join('\n')
+  }
+
+  if (q.includes('orden') || q.includes('atrasad') || q.includes('produccion')) {
+    const rows = (s.late_orders || []).slice(0, 8)
+    if (!rows.length) return 'No hay órdenes de trabajo atrasadas registradas.'
+    return [`Hay ${m.late_orders || rows.length} órdenes atrasadas.`, ...rows.map((row, index) => `${index + 1}. ${row.number || 'OT'}${row.title ? ` · ${row.title}` : ''}${row.due_at ? ` · venció ${String(row.due_at).slice(0, 10)}` : ''}.`)].join('\n')
+  }
+
+  if (q.includes('compar') && q.includes('cotizacion')) {
+    const current = Number(m.quote_total_30d || 0)
+    const prior = Number(m.quote_total_prior_30d || 0)
+    const growth = m.quote_growth_pct
+    if (prior <= 0) return `Cotizado en los últimos 30 días: ${money(current)}. No hay una base suficiente del período anterior para calcular una variación porcentual confiable.`
+    return `Últimos 30 días: ${money(current)}. Período anterior: ${money(prior)}. Variación: ${Number(growth || 0).toFixed(1)}%.`
+  }
+
+  if (q.includes('vencer') && q.includes('cotizacion')) {
+    const rows = (s.expiring_quotes || []).slice(0, 8)
+    if (!rows.length) return 'No hay cotizaciones próximas a vencer en los siguientes 7 días.'
+    return [`Hay ${m.expiring_quotes_7d || rows.length} cotizaciones próximas a vencer.`, ...rows.map((row, index) => `${index + 1}. ${row.code || 'Cotización'}${row.client_name ? ` · ${row.client_name}` : ''}${row.valid_until ? ` · vence ${row.valid_until}` : ''} · ${money(row.total)}.`)].join('\n')
+  }
+
+  if (q.includes('margen') || q.includes('rentabilidad') || q.includes('ganancia') || q.includes('utilidad')) {
+    return 'Puedo revisar importes cotizados y señales comerciales, pero no voy a inventar rentabilidad. Para calcular margen real necesito que los costos de materiales, mano de obra e instalación estén registrados de forma consistente.'
+  }
+
+  if (q.includes('atencion') || q.includes('prioridad') || q.includes('riesgo') || q.includes('hoy')) {
+    if (!priorities.length) return 'No aparecen alertas críticas con los datos actuales. La empresa puede enfocarse en seguimiento comercial y operación normal.'
+    return ['Estas son las prioridades actuales:', ...priorities.slice(0, 6).map((item, index) => `${index + 1}. ${item.title}.`)].join('\n')
+  }
+
+  return null
+}
+
 export default function AssistantLauncher() {
   const [open, setOpen] = useState(false)
   const [session, setSession] = useState(null)
@@ -99,10 +175,17 @@ export default function AssistantLauncher() {
     if (!text || sending || !company?.id || !session?.access_token) return
     const userMessage = { role: 'user', content: text }
     const history = messages.slice(-10)
+    const localAnswer = instantAnswer(text, snapshot, priorities)
     setMessages((current) => [...current, userMessage])
     setQuestion('')
-    setSending(true)
     setMessage('')
+
+    if (localAnswer) {
+      setMessages((current) => [...current, { role: 'assistant', content: localAnswer }])
+      return
+    }
+
+    setSending(true)
     try {
       const result = await api('/api/ai/ask', {
         token: session.access_token,
