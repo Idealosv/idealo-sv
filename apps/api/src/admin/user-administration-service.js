@@ -2,15 +2,20 @@ const ROLES=['owner','admin','staff','viewer']
 
 function httpError(message,statusCode=400,code='ADMIN_REQUEST_ERROR'){const error=new Error(message);error.statusCode=statusCode;error.code=code;return error}
 function bearer(request){const value=String(request.headers?.authorization||'');return value.startsWith('Bearer ')?value.slice(7).trim():''}
+function clientIp(request){const forwarded=String(request.headers?.['x-forwarded-for']||'').split(',')[0].trim();return forwarded||String(request.ip||request.socket?.remoteAddress||'')}
+function maskIp(value=''){const ip=String(value||'');if(!ip)return '';if(ip.includes(':'))return `${ip.split(':').slice(0,3).join(':')}::`;const parts=ip.split('.');return parts.length===4?`${parts[0]}.${parts[1]}.${parts[2]}.xxx`:ip}
+function browserFromUa(ua=''){if(/Edg\//.test(ua))return'Microsoft Edge';if(/Chrome\//.test(ua))return'Google Chrome';if(/Firefox\//.test(ua))return'Mozilla Firefox';if(/Safari\//.test(ua))return'Safari';return'Navegador web'}
+function deviceFromUa(ua=''){if(/Android/i.test(ua))return'Android';if(/iPhone|iPad|iPod/i.test(ua))return'iPhone / iPad';if(/Windows/i.test(ua))return'Windows';if(/Macintosh|Mac OS X/i.test(ua))return'Mac';return'Dispositivo web'}
 
-async function actorContext({request,supabase,companyId}){
+async function memberContext({request,supabase,companyId}){
  const token=bearer(request);if(!token)throw httpError('Sesión requerida.',401,'AUTH_REQUIRED')
  const {data:{user},error}=await supabase.auth.getUser(token);if(error||!user)throw httpError('Sesión inválida o vencida.',401,'AUTH_INVALID')
  const {data:membership,error:membershipError}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',user.id).maybeSingle()
  if(membershipError)throw membershipError
- const role=String(membership?.role||'').toLowerCase();if(!['owner','admin'].includes(role))throw httpError('No tenés permisos para administrar usuarios.',403,'ADMIN_REQUIRED')
+ const role=String(membership?.role||'').toLowerCase();if(!ROLES.includes(role))throw httpError('No tenés acceso a esta empresa.',403,'COMPANY_ACCESS_REQUIRED')
  return{user,role}
 }
+async function actorContext(args){const member=await memberContext(args);if(!['owner','admin'].includes(member.role))throw httpError('No tenés permisos para administrar usuarios.',403,'ADMIN_REQUIRED');return member}
 async function audit(supabase,{companyId,actorUserId,targetUserId=null,action,detail={}}){const {error}=await supabase.from('company_admin_audit').insert({company_id:companyId,actor_user_id:actorUserId,target_user_id:targetUserId,action,detail});if(error)throw error}
 async function ensureOwnerRule(supabase,{companyId,targetUserId,nextRole=null,remove=false}){
  const {data:target,error}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',targetUserId).maybeSingle();if(error)throw error
@@ -33,17 +38,29 @@ export async function listCompanyUsers({request,supabase}){
  return{actor_role:actor.role,users}
 }
 
+export async function registerCompanyActivity({request,supabase}){
+ const companyId=String(request.body?.company_id||'');if(!companyId)throw httpError('company_id es obligatorio.')
+ const member=await memberContext({request,supabase,companyId})
+ const since=new Date(Date.now()-8*60*1000).toISOString()
+ const {data:recent,error:recentError}=await supabase.from('company_admin_audit').select('id,created_at').eq('company_id',companyId).eq('actor_user_id',member.user.id).eq('action','SESSION_ACTIVE').gte('created_at',since).order('created_at',{ascending:false}).limit(1);if(recentError)throw recentError
+ if(recent?.length)return{ok:true,deduped:true,recorded_at:recent[0].created_at}
+ const ua=String(request.headers?.['user-agent']||'')
+ const detail={email:member.user.email||'',role:member.role,event:String(request.body?.event||'ERP_ACTIVE').slice(0,40),device:deviceFromUa(ua),browser:browserFromUa(ua),ip:maskIp(clientIp(request))}
+ await audit(supabase,{companyId,actorUserId:member.user.id,targetUserId:member.user.id,action:'SESSION_ACTIVE',detail})
+ return{ok:true,deduped:false,recorded_at:new Date().toISOString(),detail}
+}
+
 export async function inviteCompanyUser({request,supabase}){
- const companyId=String(request.body?.company_id||''),email=String(request.body?.email||'').trim().toLowerCase(),role=assertRole(request.body?.role),fullName=String(request.body?.full_name||'').trim();if(!companyId||!email)throw httpError('Empresa y correo son obligatorios.')
+ const companyId=String(request.body?.company_id||''),email=String(request.body?.email||'').trim().toLowerCase(),role=assertRole(request.body?.role),fullName=String(request.body?.full_name||'').trim(),jobTitle=String(request.body?.job_title||'').trim();if(!companyId||!email)throw httpError('Empresa y correo son obligatorios.')
  const actor=await actorContext({request,supabase,companyId});assertActorCanManage(actor.role,'',role)
  let user=await findUserByEmail(supabase,email)
- if(!user){const {data,error}=await supabase.auth.admin.inviteUserByEmail(email,{data:{full_name:fullName}});if(error)throw error;user=data.user}
+ if(!user){const {data,error}=await supabase.auth.admin.inviteUserByEmail(email,{data:{full_name:fullName,job_title:jobTitle}});if(error)throw error;user=data.user}
  if(!user)throw httpError('No se pudo crear o localizar el usuario.',500)
  const {data:existing,error:existingError}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',user.id).maybeSingle();if(existingError)throw existingError
  if(existing)throw httpError('Ese usuario ya pertenece a la empresa.',409,'MEMBERSHIP_EXISTS')
  const {error:memberError}=await supabase.from('company_members').insert({company_id:companyId,user_id:user.id,role});if(memberError)throw memberError
  if(fullName)await supabase.from('profiles').update({full_name:fullName,updated_at:new Date().toISOString()}).eq('id',user.id)
- await audit(supabase,{companyId,actorUserId:actor.user.id,targetUserId:user.id,action:'USER_INVITED',detail:{email,role}})
+ await audit(supabase,{companyId,actorUserId:actor.user.id,targetUserId:user.id,action:'USER_INVITED',detail:{email,role,job_title:jobTitle||null}})
  return{ok:true,user_id:user.id,email,role}
 }
 
@@ -66,5 +83,8 @@ export async function revokeCompanyUser({request,supabase}){
 
 export async function listCompanyAdminAudit({request,supabase}){
  const companyId=String(request.query.company_id||'');if(!companyId)throw httpError('company_id es obligatorio.');await actorContext({request,supabase,companyId})
- const {data,error}=await supabase.from('company_admin_audit').select('id,actor_user_id,target_user_id,action,detail,created_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(100);if(error)throw error;return{rows:data||[]}
+ const {data,error}=await supabase.from('company_admin_audit').select('id,actor_user_id,target_user_id,action,detail,created_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(150);if(error)throw error
+ const rows=data||[];const ids=[...new Set(rows.flatMap(x=>[x.actor_user_id,x.target_user_id]).filter(Boolean))];const names=new Map()
+ for(const id of ids){const {data:userData}=await supabase.auth.admin.getUserById(id);const user=userData?.user;if(user)names.set(id,{email:user.email||'',name:user.user_metadata?.full_name||''})}
+ return{rows:rows.map(row=>({...row,actor:names.get(row.actor_user_id)||null,target:names.get(row.target_user_id)||null}))}
 }
