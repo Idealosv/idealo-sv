@@ -64,16 +64,28 @@ export default function PurchasesExpensesCashModule({company,supabase}){
     await load()
   }
 
+  const voidExpense=async(row)=>{
+    if(row.status==='VOIDED')return
+    const reason=window.prompt(`Motivo para anular el gasto de ${money(row.amount)}:\n${row.concept}`,'Registrado por error')
+    if(reason===null)return
+    if(!reason.trim()){setMessage('Debes indicar el motivo de la anulación.');return}
+    setMessage('')
+    const {error}=await supabase.from('expenses').update({status:'VOIDED',void_reason:reason.trim(),updated_at:new Date().toISOString()}).eq('id',row.id).eq('company_id',company.id)
+    if(error){setMessage(error.message);return}
+    setMessage(`Gasto anulado. ${money(row.amount)} fue devuelto automáticamente a la Caja/Banco de origen.`)
+    await load()
+  }
+
   const monthKey=today().slice(0,7)
   const monthPurchases=useMemo(()=>purchases.filter(r=>r.purchase_date?.startsWith(monthKey)).reduce((s,r)=>s+Number(r.total||0),0),[purchases])
-  const monthExpenses=useMemo(()=>expenses.filter(r=>r.expense_date?.startsWith(monthKey)).reduce((s,r)=>s+Number(r.amount||0),0),[expenses])
+  const monthExpenses=useMemo(()=>expenses.filter(r=>r.expense_date?.startsWith(monthKey)&&r.status!=='VOIDED').reduce((s,r)=>s+Number(r.amount||0),0),[expenses])
   const supplierOptions=<><option value="">Sin proveedor / ocasional</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</>
   const cashOptions=<><option value="">Seleccionar Caja / Banco</option>{cashAccounts.map(a=><option key={a.cash_account_id} value={a.cash_account_id}>{a.name} · {a.account_type==='BANK'?'Banco':'Caja'} · Saldo {money(a.current_balance)}</option>)}</>
 
   return <section className="clients-module">
     <div className="clients-titlebar"><div><p className="form-kicker">COSTOS</p><h2>Compras y gastos</h2><p>Todo pago realizado descuenta automáticamente la Caja o Banco seleccionado.</p></div></div>
     <div className="metrics-grid"><article className="metric-card"><span>Compras del mes</span><strong>{money(monthPurchases)}</strong></article><article className="metric-card"><span>Gastos del mes</span><strong>{money(monthExpenses)}</strong></article><article className="metric-card"><span>Compras pendientes</span><strong>{purchases.filter(r=>['PENDING','PARTIAL'].includes(r.payment_status)).length}</strong></article></div>
-    {message&&<p className={message.includes('registrad')?'feedback success':'feedback error'}>{message}</p>}
+    {message&&<p className={message.includes('registrad')||message.includes('anulado')?'feedback success':'feedback error'}>{message}</p>}
     <div className="module-grid two-column">
       <form className="panel" onSubmit={savePurchase}>
         <div className="panel-heading"><div><p className="form-kicker">COMPRA</p><h3>Materiales / tercerización</h3></div></div>
@@ -111,7 +123,7 @@ export default function PurchasesExpensesCashModule({company,supabase}){
 
     <div className="module-grid two-column">
       <section className="panel"><div className="panel-heading"><div><p className="form-kicker">HISTORIAL</p><h3>Compras recientes</h3></div></div>{purchases.length?<div className="client-list">{purchases.slice(0,20).map(r=><div className="client-row" key={r.id}><div><strong>COM-{String(r.number).padStart(5,'0')} · {r.suppliers?.name||'Proveedor ocasional'}</strong><small>{r.purchase_date} · {r.concept}</small></div><div><strong>{money(r.total)}</strong><small>{r.payment_status}</small></div></div>)}</div>:<div className="empty-state"><strong>Sin compras</strong></div>}</section>
-      <section className="panel"><div className="panel-heading"><div><p className="form-kicker">HISTORIAL</p><h3>Gastos recientes</h3></div></div>{expenses.length?<div className="client-list">{expenses.slice(0,20).map(r=><div className="client-row" key={r.id}><div><strong>{r.suppliers?.name||'Gasto operativo'}</strong><small>{r.expense_date} · {r.concept} · {r.payment_method}</small></div><div><strong>{money(r.amount)}</strong><small>{r.category}</small></div></div>)}</div>:<div className="empty-state"><strong>Sin gastos</strong></div>}</section>
+      <section className="panel"><div className="panel-heading"><div><p className="form-kicker">HISTORIAL</p><h3>Gastos recientes</h3></div></div>{expenses.length?<div className="client-list">{expenses.slice(0,20).map(r=><div className="client-row" key={r.id}><div><strong>{r.suppliers?.name||'Gasto operativo'}{r.status==='VOIDED'?' · ANULADO':''}</strong><small>{r.expense_date} · {r.concept} · {r.payment_method}{r.status==='VOIDED'&&r.void_reason?` · Motivo: ${r.void_reason}`:''}</small></div><div><strong>{money(r.amount)}</strong><small>{r.status==='VOIDED'?'DEVUELTO A CAJA/BANCO':r.category}</small>{r.status!=='VOIDED'&&<button type="button" onClick={()=>voidExpense(r)}>Anular</button>}</div></div>)}</div>:<div className="empty-state"><strong>Sin gastos</strong></div>}</section>
     </div>
   </section>
 }
