@@ -40,7 +40,7 @@ export default function CustomerAdvancesPanel({company,supabase,onRegistered}){
   useEffect(()=>{load()},[company.id])
 
   const clientProjects=useMemo(()=>projects.filter(row=>!clientId||row.quote.client_id===clientId),[projects,clientId])
-  const pendingTotal=useMemo(()=>advances.filter(row=>row.status==='OPEN'||row.status==='PARTIAL').reduce((sum,row)=>sum+Math.max(0,Number(row.amount)-Number(row.applied_amount)),0),[advances])
+  const pendingTotal=useMemo(()=>advances.filter(row=>row.status==='PENDING'||row.status==='PARTIALLY_APPLIED').reduce((sum,row)=>sum+Math.max(0,Number(row.amount)-Number(row.applied_amount)),0),[advances])
 
   const register=async event=>{
     event.preventDefault();setMessage('')
@@ -76,6 +76,6 @@ export default function CustomerAdvancesPanel({company,supabase,onRegistered}){
       <label className="field"><span>Nota</span><input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Anticipo pendiente de CCF al entregar"/></label>
       <div className="form-span-2"><button type="submit" disabled={busy}>{busy?'Registrando…':'Registrar anticipo en Caja'}</button></div>
     </form>
-    <div style={{marginTop:16}}><div className="billing-ar-card-head"><div><span>HISTORIAL</span><strong>Anticipos recientes</strong></div></div>{advances.length?<div className="billing-ar-table-wrap"><table className="billing-ar-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>Ingreso</th><th>Aplicado</th><th>Pendiente</th><th>Estado</th></tr></thead><tbody>{advances.slice(0,12).map(row=><tr key={row.id}><td>{String(row.received_at||'').slice(0,10)}</td><td><strong>{row.clients?.name||'Cliente'}</strong><small>{methodLabel[row.payment_method]||row.payment_method} · {row.cash_accounts?.name||'Caja/Banco'}</small></td><td>{money(row.amount)}</td><td>{money(row.applied_amount)}</td><td><strong>{money(Math.max(0,Number(row.amount)-Number(row.applied_amount)))}</strong></td><td>{row.status==='APPLIED'?'Aplicado':row.status==='PARTIAL'?'Parcial':'Pendiente'}</td></tr>)}</tbody></table></div>:<div className="billing-ar-empty">Todavía no hay anticipos registrados.</div>}</div>
+    <div style={{marginTop:16}}><div className="billing-ar-card-head"><div><span>HISTORIAL</span><strong>Anticipos recientes</strong></div></div>{advances.length?<div className="billing-ar-table-wrap"><table className="billing-ar-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>Ingreso</th><th>Aplicado</th><th>Pendiente</th><th>Estado</th></tr></thead><tbody>{advances.slice(0,12).map(row=><tr key={row.id}><td>{String(row.received_at||'').slice(0,10)}</td><td><strong>{row.clients?.name||'Cliente'}</strong><small>{methodLabel[row.payment_method]||row.payment_method} · {row.cash_accounts?.name||'Caja/Banco'}</small></td><td>{money(row.amount)}</td><td>{money(row.applied_amount)}</td><td><strong>{money(Math.max(0,Number(row.amount)-Number(row.applied_amount)))}</strong></td><td>{row.status==='APPLIED'?'Aplicado':row.status==='PARTIALLY_APPLIED'?'Parcial':row.status==='VOID'?'Anulado':'Pendiente'}</td></tr>)}</tbody></table></div>:<div className="billing-ar-empty">Todavía no hay anticipos registrados.</div>}</div>
   </section>
 }
