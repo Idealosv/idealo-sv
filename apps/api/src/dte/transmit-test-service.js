@@ -94,6 +94,14 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     throw error
   }
 
+  const identification = document.dte_payload?.identificacion || {}
+  if (Number(identification.tipoModelo) === 2 || Number(identification.tipoOperacion) === 2 || identification.tipoContingencia) {
+    const error = new Error('Este DTE fue preparado para contingencia. No puede enviarse por recepción individual; primero reportá el evento de contingencia y luego usá la recepción por lotes.')
+    error.statusCode = 409
+    error.code = 'DTE_CONTINGENCY_REQUIRES_BATCH'
+    throw error
+  }
+
   const config = getDteConfig(env)
   if (config.environment !== 'test' || config.mhBaseUrl.includes('api.dtes.mh.gob.sv')) {
     const error = new Error('La API no está configurada de forma segura para Hacienda TEST.')
