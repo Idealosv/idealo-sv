@@ -12,6 +12,7 @@ function makeSupabase() {
     from(table) {
       if (table === 'company_members') return { select() { return this }, eq() { return this }, maybeSingle: async () => ({ data: { role: 'owner' }, error: null }) }
       if (table === 'dte_runtime_settings') return { select() { return this }, eq() { return this }, maybeSingle: async () => ({ data: { environment: 'test', production_enabled: false, production_approved: false }, error: null }) }
+      if (table === 'companies') return { select() { return this }, eq() { return this }, maybeSingle: async () => ({ data: { demo_mode: false }, error: null }) }
       throw new Error(`Tabla inesperada: ${table}`)
     },
   }
