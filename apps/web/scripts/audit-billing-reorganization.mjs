@@ -13,7 +13,8 @@ const failures=[]
 const need=(source,text,message)=>{if(!source.includes(text))failures.push(message)}
 for(const section of ["id: 'resumen'","id: 'emitir'","id: 'documentos'","id: 'cobros'","id: 'hacienda'"])need(launcher,section,`Falta sección de Facturación ${section}`)
 need(launcher,"label: 'Nueva factura'",'Facturación debe separar la emisión diaria')
-need(launcher,"label: 'Cuentas por cobrar'",'Facturación debe separar cobranza')
+need(launcher,"id: 'cobros'",'Facturación debe separar cobranza')
+need(launcher,"helper: 'Cuentas por cobrar'",'La sección Cobros debe identificar Cuentas por cobrar')
 need(launcher,"label: 'Hacienda'",'Facturación debe separar Hacienda técnico')
 need(launcher,"import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'",'Facturación debe integrar Cuentas por cobrar')
 need(launcher,'<BillingReceivablesPanel','Facturación debe renderizar Cuentas por cobrar')
