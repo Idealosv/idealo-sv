@@ -6,6 +6,7 @@ import SignerDiagnostic from './SignerDiagnostic.jsx'
 import ProductionPreflightPanel from './ProductionPreflightPanel.jsx'
 import MhAuthDiagnostic from './MhAuthDiagnostic.jsx'
 import ProcessedDtePanelBridge from './ProcessedDtePanelBridge.jsx'
+import DteContingencyOperationsPanel from './DteContingencyOperationsPanel.jsx'
 import InvoiceEmailPdfTestPanel from './InvoiceEmailPdfTestPanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
@@ -98,7 +99,7 @@ export default function FacturacionLauncher() {
             : <FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/>
           }
         </section>}
-        {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></section>}
+        {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial de DTE-01 y DTE-03 desde borrador hasta respuesta de Hacienda.</small></div></div><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><DteContingencyOperationsPanel supabase={supabase} company={company} session={session}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></section>}
         {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
         {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda y configuración técnica</strong><small>Firma, autenticación, transmisión y pruebas separadas de la facturación diaria.</small></div></div><ProductionPreflightPanel session={session} company={company}/><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><details className="billing-admin-tools"><summary>Herramientas administrativas y pruebas</summary><div className="billing-admin-tools-body"><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
       </main></div>
