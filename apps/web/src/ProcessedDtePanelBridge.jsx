@@ -25,6 +25,6 @@ export default function ProcessedDtePanelBridge(props) {
 
   return <div ref={hostRef} onClickCapture={handleClickCapture}>
     <ProcessedDtePanel {...props}/>
-    <DteTraceabilityPanel supabase={props.supabase} company={props.company} controlNumber={controlNumber}/>
+    <DteTraceabilityPanel supabase={props.supabase} company={props.company} session={props.session} controlNumber={controlNumber}/>
   </div>
 }
