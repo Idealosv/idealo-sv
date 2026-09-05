@@ -29,7 +29,7 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
   useEffect(()=>{
     if(!accountId&&cashAccounts.length){
       setAccountId(cashAccounts[0].cash_account_id)
-      setOpening(String(Number(cashAccounts[0].current_balance||0).toFixed(2)))
+      setOpening('0.00')
     }
   },[cashAccounts,accountId])
 
@@ -88,8 +88,10 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
 
   const openRegister=async()=>{
     if(!accountId){setMessage('Selecciona una caja.');return}
-    const amount=Number(opening)
-    if(!Number.isFinite(amount)||amount<0){setMessage('Ingresa un efectivo inicial válido.');return}
+    const rawOpening=String(opening).trim()
+    if(rawOpening===''){setMessage('Ingresa el efectivo inicial, aunque sea $0.00.');return}
+    const amount=Number(rawOpening)
+    if(!Number.isFinite(amount)||amount<0){setMessage('Ingresa un efectivo inicial válido, desde $0.00.');return}
     setBusy(true);setMessage('')
     const {error}=await supabase.from('cash_register_sessions').insert({company_id:company.id,cash_account_id:accountId,business_date:today(),opening_balance:amount})
     if(error)setMessage(error.message);else{setMessage(`Caja abierta con ${money(amount)}.`);await load();onChanged?.()}
@@ -132,8 +134,7 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
       setCloseDialog({open:false,expected:0,counted:'',notes:''})
       setMessage(`Caja cerrada: ${label}.`)
       setSession(null);setSummary({income:0,expense:0,expected:0,count:0});setLastCut(null)
-      const selected=cashAccounts.find(a=>a.cash_account_id===accountId)
-      setOpening(String(Number(selected?.current_balance||0).toFixed(2)))
+      setOpening('0.00')
       await load();onChanged?.()
     }catch(e){setMessage(e.message)}
     setBusy(false)
@@ -146,7 +147,7 @@ export default function CashRegisterShift({company,supabase,accounts=[],onChange
   return <>
     <section className="cash-shift-card">
       <div className="cash-shift-head"><div><p className="form-kicker">TURNO DE CAJA</p><h3>{session?'Caja abierta':'Apertura · corte · cierre'}</h3></div><span className={`cash-shift-status ${session?'open':'closed'}`}>{session?'ABIERTA':'SIN APERTURA'}</span></div>
-      {!session?<div className="cash-shift-open"><label>Caja<select value={accountId} onChange={e=>{setAccountId(e.target.value);const a=cashAccounts.find(x=>x.cash_account_id===e.target.value);setOpening(String(Number(a?.current_balance||0).toFixed(2)))}}>{cashAccounts.map(a=><option key={a.cash_account_id} value={a.cash_account_id}>{a.name}</option>)}</select></label><label>Efectivo inicial<input type="number" min="0" step="0.01" value={opening} onChange={e=>setOpening(e.target.value)}/></label><button type="button" disabled={busy||!cashAccounts.length} onClick={openRegister}>Abrir caja</button></div>:<>
+      {!session?<div className="cash-shift-open"><label>Caja<select value={accountId} onChange={e=>{setAccountId(e.target.value);setOpening('0.00')}}>{cashAccounts.map(a=><option key={a.cash_account_id} value={a.cash_account_id}>{a.name}</option>)}</select></label><label>Efectivo inicial<input type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00" value={opening} onChange={e=>setOpening(e.target.value)}/></label><button type="button" disabled={busy||!cashAccounts.length} onClick={openRegister}>Abrir caja</button></div>:<>
         <div className="cash-shift-summary"><article><small>Apertura</small><strong>{money(session.opening_balance)}</strong></article><article><small>Entradas</small><strong>+ {money(summary.income)}</strong></article><article><small>Salidas</small><strong>- {money(summary.expense)}</strong></article><article className="expected"><small>Efectivo esperado</small><strong>{money(summary.expected)}</strong></article></div>
         <div className="cash-shift-actions"><span>{activeAccount?.name||'Caja'} · abierta {fmtTime(session.opened_at)}{lastCut?` · último corte ${fmtTime(lastCut.cut_at)}`:''}</span><div><button type="button" className="secondary" disabled={busy} onClick={makeCut}>Hacer corte</button><button type="button" className="close" disabled={busy} onClick={openCloseDialog}>Cerrar caja</button></div></div>
       </>}
