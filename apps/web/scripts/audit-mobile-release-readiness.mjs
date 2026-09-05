@@ -1,0 +1,31 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import {fileURLToPath} from 'node:url'
+const here=path.dirname(fileURLToPath(import.meta.url)),root=path.resolve(here,'..')
+const read=p=>fs.readFileSync(path.join(root,p),'utf8')
+const pkg=JSON.parse(read('package.json'))
+const main=read('src/main.jsx'),app=read('src/MobileAppHost.jsx'),dte=read('src/MobileDteHost.jsx'),collections=read('src/MobileCollectionsHost.jsx'),offline=read('src/mobileOffline.js'),health=read('src/MobileHealthGuard.jsx'),notify=read('src/MobileNotificationBridge.jsx')
+const android=fs.readFileSync(path.resolve(root,'../../.github/workflows/android-apk.yml'),'utf8')
+const ios=fs.readFileSync(path.resolve(root,'../../.github/workflows/ios-simulator.yml'),'utf8')
+const checks=[]
+const ok=(name,condition)=>{if(!condition)throw new Error(`FAIL release móvil: ${name}`);checks.push(name)}
+const has=(s,...t)=>t.every(x=>s.includes(x))
+ok('flujo móvil conserva OT',has(app,"from('work_orders')",'OT-'))
+ok('flujo móvil conserva Agenda',has(app,"from('production_schedule_events')",'Agenda'))
+ok('flujo móvil conserva Clientes y Cotizaciones',has(app,"from('clients')","from('quotes')"))
+ok('entrega exige evidencia y usa flujo dedicado',has(app,'onDeliver={openDelivery}',"mobile_confirm_delivery"))
+ok('facturación móvil está montada',has(main,'<MobileDteHost/>','<MobileCollectionsHost/>'))
+ok('DTE no se transmite automáticamente desde entrega',dte.includes('Nada se transmite automáticamente a Hacienda.'))
+ok('cobro móvil usa RPC segura',collections.includes("register_customer_payment"))
+ok('offline persiste snapshots',has(offline,'saveMobileSnapshot','getMobileSnapshot','snapshots'))
+ok('offline conserva cola',has(offline,'enqueueOffline','listOffline','removeOffline'))
+ok('salud móvil vigila viewport y red',has(health,'visualViewport','navigator.onLine'))
+ok('notificaciones locales Capacitor instaladas',Boolean(pkg.dependencies?.['@capacitor/local-notifications']))
+ok('bridge de notificaciones nativas existe',has(notify,"@capacitor/local-notifications",'requestPermissions','schedule'))
+ok('bridge de notificaciones está montado',main.includes('<MobileNotificationBridge/>'))
+ok('Android genera APK',android.includes('./gradlew assembleDebug'))
+ok('Android genera AAB de release',android.includes('./gradlew bundleRelease'))
+ok('iPhone compila simulador',has(ios,'iphonesimulator','CODE_SIGNING_ALLOWED=NO'))
+ok('iPhone publica artefacto de simulador',ios.includes('ios-simulator-app'))
+console.log(`OK preparación móvil: ${checks.length} controles PASS.`)
+console.log('NOTA: firma Play Store, TestFlight/App Store, APNs/FCM remoto y sensores físicos requieren credenciales/dispositivos externos.')
