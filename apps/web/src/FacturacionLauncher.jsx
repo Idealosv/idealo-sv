@@ -121,7 +121,7 @@ export default function FacturacionLauncher() {
           }
         </section>}
         {activeSection === 'documentos' && <section className="billing-section-card"><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><details className="module-secondary-tools"><summary>Contingencia, correo y pruebas</summary><div className="module-secondary-tools-body"><DteContingencyOperationsPanel supabase={supabase} company={company} session={session}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></div></details></section>}
-        {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
+        {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash} focusWorkOrderId={projectContext.workOrderId} focusQuoteId={projectContext.quoteId}/>} 
         {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
       </main></div>
     </section></div>}
