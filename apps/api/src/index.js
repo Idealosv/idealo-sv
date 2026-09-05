@@ -9,6 +9,7 @@ import { createInvoiceDraft } from './dte/invoice-service.js'
 import { signTestDteDraft, signProductionDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
 import { transmitSignedProductionDte } from './dte/transmit-production-service.js'
+import { invalidateProcessedDte, reportDteContingency } from './dte/fiscal-event-service.js'
 import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
 import { diagnoseMhAuthentication } from './dte/mh-auth-diagnostic-service.js'
 import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-settings-service.js'
@@ -20,136 +21,39 @@ import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, crea
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
-const app = express()
-const port = Number(process.env.PORT || 4000)
-const configuredOrigins = (process.env.CORS_ORIGIN || '').split(',').map((value) => value.trim()).filter(Boolean)
-if (process.env.NODE_ENV === 'production' && configuredOrigins.length === 0) throw new Error('CORS_ORIGIN es obligatoria en producción; la API no iniciará con CORS abierto.')
-
-app.disable('x-powered-by')
-app.set('trust proxy', 1)
-app.use(helmet())
-app.use(cors({ origin: configuredOrigins.length ? configuredOrigins : true, credentials: true }))
-app.use(express.json({ limit: '1mb' }))
-
-app.get('/', (_request, response) => response.json({ name: 'IDEALO SV API', version: '0.1.0' }))
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'idealo-sv-api', supabase: isSupabaseConfigured ? 'configured' : 'pending', timestamp: new Date().toISOString() }))
-
-app.get('/api/system/status', async (_request, response, next) => {
-  try { const supabase = getSupabaseAdmin(); const { error } = await supabase.from('companies').select('id').limit(1); if (error) throw error; response.json({ api: 'ok', database: 'ok', dte: getDteConfigurationStatus() }) } catch (error) { next(error) }
-})
-
-app.get('/api/ai/status', async (_request, response, next) => {
-  try { response.json(await getAiStatus()) } catch (error) { next(error) }
-})
-app.get('/api/ai/snapshot', async (request, response, next) => {
-  try { response.json(await getAiSnapshot({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/ai/ask', async (request, response) => {
-  try { response.json(await askAiAssistant({ request, supabase: getSupabaseAdmin() })) }
-  catch (error) {
-    console.error('AI_ASSISTANT_FAILED', { code: error?.code, statusCode: error?.statusCode, message: error?.message })
-    const status = Number(error?.statusCode || 500)
-    response.status(status).json({
-      error: String(error?.code || 'AI_ASSISTANT_ERROR'),
-      code: String(error?.code || 'AI_ASSISTANT_ERROR'),
-      message: String(error?.message || 'No se pudo completar el análisis interno.')
-    })
-  }
-})
-
-app.get('/api/admin/users', async (request, response, next) => {
-  try { response.json(await listCompanyUsers({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/admin/users/invite', async (request, response, next) => {
-  try { response.status(201).json(await inviteCompanyUser({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.patch('/api/admin/users/:userId', async (request, response, next) => {
-  try { response.json(await updateCompanyUserRole({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.delete('/api/admin/users/:userId', async (request, response, next) => {
-  try { response.json(await revokeCompanyUser({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.get('/api/admin/audit', async (request, response, next) => {
-  try { response.json(await listCompanyAdminAudit({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/activity', async (request, response, next) => {
-  try { response.status(201).json(await registerCompanyActivity({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/security/audit', async (request, response, next) => {
-  try { response.status(201).json(await recordSecurityAuditEvent({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.get('/api/admin/saas/dashboard', async (request, response, next) => {
-  try { response.json(await getSaasMasterDashboard({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/admin/saas/companies', async (request, response, next) => {
-  try { response.status(201).json(await createSaasCompany({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.patch('/api/admin/saas/companies/:companyId/subscription', async (request, response, next) => {
-  try { response.json(await updateSaasSubscription({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/admin/saas/companies/:companyId/payments', async (request, response, next) => {
-  try { response.status(201).json(await createSaasBillingEvent({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-
-app.get('/api/dte/status', (_request, response) => response.json(getDteConfigurationStatus()))
-app.get('/api/dte/production-preflight', (_request, response) => response.json(getDteProductionPreflightStatus()))
-app.get('/api/dte/runtime-settings', async (request, response, next) => {
-  try { response.json(await getRuntimeSettings({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.put('/api/dte/runtime-settings', async (request, response, next) => {
-  try { response.json(await updateRuntimeSettings({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.get('/api/dte/mh-auth-diagnostic', async (request, response, next) => {
-  try { response.json(await diagnoseMhAuthentication({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.get('/api/dte/signer-diagnostic', async (request, response, next) => {
-  try { response.json(await diagnoseDteSigner({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/gmail-test', async (request, response) => {
-  try { response.json(await sendGmailSelfTest({ request, supabase: getSupabaseAdmin() })) }
-  catch (error) {
-    console.error('GMAIL_TEST_FAILED', { code: error?.code, statusCode: error?.statusCode, message: error?.message })
-    const status = Number(error?.statusCode || 502)
-    response.status(status).json({ error: 'GMAIL_TEST_FAILED', code: String(error?.code || 'GMAIL_ERROR'), message: String(error?.message || 'No se pudo completar la prueba de Gmail.') })
-  }
-})
-app.post('/api/dte/invoice-email-self-test', async (request, response) => {
-  try { response.json(await sendInvoicePdfSelfTest({ request, supabase: getSupabaseAdmin() })) }
-  catch (error) {
-    console.error('INVOICE_PDF_SELF_TEST_FAILED', { stage: error?.stage, code: error?.code, statusCode: error?.statusCode, message: error?.message })
-    const status = Number(error?.statusCode || 502)
-    response.status(status).json({ error: 'INVOICE_PDF_SELF_TEST_FAILED', stage: String(error?.stage || 'unknown'), code: String(error?.code || 'PDF_EMAIL_TEST_FAILED'), message: String(error?.message || 'No se pudo completar la prueba PDF por Gmail.') })
-  }
-})
-app.get('/api/dte/invoice-email-status', async (request, response, next) => {
-  try { response.json(await getInvoiceEmailStatus({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/invoice-email-resend', async (request, response, next) => {
-  try { response.json(await resendInvoiceEmail({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/drafts', async (request, response, next) => {
-  try { response.status(201).json(await createTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/invoices', async (request, response, next) => {
-  try { response.status(201).json(await createInvoiceDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/sign-test', async (request, response, next) => {
-  try { response.json(await signTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/sign-production', async (request, response, next) => {
-  try { response.json(await signProductionDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/transmit-test', async (request, response, next) => {
-  try { response.json(await transmitSignedTestDte({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-app.post('/api/dte/transmit-production', async (request, response, next) => {
-  try { response.json(await transmitSignedProductionDte({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
-})
-
-app.use((error, _request, response, _next) => {
-  console.error(error)
-  const status = Number(error.statusCode || 500)
-  response.status(status).json({ error: status >= 500 ? 'INTERNAL_SERVER_ERROR' : (error.code || 'REQUEST_ERROR'), message: status >= 500 && process.env.NODE_ENV === 'production' ? 'Ocurrió un error inesperado.' : error.message })
-})
-app.listen(port, '0.0.0.0', () => console.log(`IDEALO SV API disponible en el puerto ${port}`))
-export { app }
+const app=express();const port=Number(process.env.PORT||4000)
+const configuredOrigins=(process.env.CORS_ORIGIN||'').split(',').map(v=>v.trim()).filter(Boolean)
+if(process.env.NODE_ENV==='production'&&configuredOrigins.length===0)throw new Error('CORS_ORIGIN es obligatoria en producción; la API no iniciará con CORS abierto.')
+app.disable('x-powered-by');app.set('trust proxy',1);app.use(helmet());app.use(cors({origin:configuredOrigins.length?configuredOrigins:true,credentials:true}));app.use(express.json({limit:'1mb'}))
+const db=()=>getSupabaseAdmin()
+app.get('/',(_q,r)=>r.json({name:'IDEALO SV API',version:'0.1.0'}));app.get('/health',(_q,r)=>r.json({status:'ok',service:'idealo-sv-api',supabase:isSupabaseConfigured?'configured':'pending',timestamp:new Date().toISOString()}))
+app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',dte:getDteConfigurationStatus()})}catch(e){n(e)}})
+app.get('/api/ai/status',async(_q,r,n)=>{try{r.json(await getAiStatus())}catch(e){n(e)}})
+app.get('/api/ai/snapshot',async(q,r,n)=>{try{r.json(await getAiSnapshot({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/ai/ask',async(q,r)=>{try{r.json(await askAiAssistant({request:q,supabase:db()}))}catch(e){console.error('AI_ASSISTANT_FAILED',{code:e?.code,statusCode:e?.statusCode,message:e?.message});const s=Number(e?.statusCode||500);r.status(s).json({error:String(e?.code||'AI_ASSISTANT_ERROR'),code:String(e?.code||'AI_ASSISTANT_ERROR'),message:String(e?.message||'No se pudo completar el análisis interno.')})}})
+app.get('/api/admin/users',async(q,r,n)=>{try{r.json(await listCompanyUsers({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/users/invite',async(q,r,n)=>{try{r.status(201).json(await inviteCompanyUser({request:q,supabase:db()}))}catch(e){n(e)}})
+app.patch('/api/admin/users/:userId',async(q,r,n)=>{try{r.json(await updateCompanyUserRole({request:q,supabase:db()}))}catch(e){n(e)}})
+app.delete('/api/admin/users/:userId',async(q,r,n)=>{try{r.json(await revokeCompanyUser({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/admin/audit',async(q,r,n)=>{try{r.json(await listCompanyAdminAudit({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/activity',async(q,r,n)=>{try{r.status(201).json(await registerCompanyActivity({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/security/audit',async(q,r,n)=>{try{r.status(201).json(await recordSecurityAuditEvent({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/admin/saas/dashboard',async(q,r,n)=>{try{r.json(await getSaasMasterDashboard({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
+app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscription({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await createSaasBillingEvent({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/dte/status',(_q,r)=>r.json(getDteConfigurationStatus()));app.get('/api/dte/production-preflight',(_q,r)=>r.json(getDteProductionPreflightStatus()))
+app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
+app.put('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await updateRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/dte/mh-auth-diagnostic',async(q,r,n)=>{try{r.json(await diagnoseMhAuthentication({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/dte/signer-diagnostic',async(q,r,n)=>{try{r.json(await diagnoseDteSigner({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/gmail-test',async(q,r)=>{try{r.json(await sendGmailSelfTest({request:q,supabase:db()}))}catch(e){console.error('GMAIL_TEST_FAILED',{code:e?.code,statusCode:e?.statusCode,message:e?.message});r.status(Number(e?.statusCode||502)).json({error:'GMAIL_TEST_FAILED',code:String(e?.code||'GMAIL_ERROR'),message:String(e?.message||'No se pudo completar la prueba de Gmail.')})}})
+app.post('/api/dte/invoice-email-self-test',async(q,r)=>{try{r.json(await sendInvoicePdfSelfTest({request:q,supabase:db()}))}catch(e){console.error('INVOICE_PDF_SELF_TEST_FAILED',{stage:e?.stage,code:e?.code,statusCode:e?.statusCode,message:e?.message});r.status(Number(e?.statusCode||502)).json({error:'INVOICE_PDF_SELF_TEST_FAILED',stage:String(e?.stage||'unknown'),code:String(e?.code||'PDF_EMAIL_TEST_FAILED'),message:String(e?.message||'No se pudo completar la prueba PDF por Gmail.')})}})
+app.get('/api/dte/invoice-email-status',async(q,r,n)=>{try{r.json(await getInvoiceEmailStatus({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoice-email-resend',async(q,r,n)=>{try{r.json(await resendInvoiceEmail({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/drafts',async(q,r,n)=>{try{r.status(201).json(await createTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoices',async(q,r,n)=>{try{r.status(201).json(await createInvoiceDraft({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/sign-test',async(q,r,n)=>{try{r.json(await signTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/sign-production',async(q,r,n)=>{try{r.json(await signProductionDteDraft({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/transmit-test',async(q,r,n)=>{try{r.json(await transmitSignedTestDte({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/transmit-production',async(q,r,n)=>{try{r.json(await transmitSignedProductionDte({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/invalidate',async(q,r,n)=>{try{r.json(await invalidateProcessedDte({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/contingency-event',async(q,r,n)=>{try{r.json(await reportDteContingency({request:q,supabase:db()}))}catch(e){n(e)}})
+app.use((e,_q,r,_n)=>{console.error(e);const s=Number(e.statusCode||500);r.status(s).json({error:s>=500?'INTERNAL_SERVER_ERROR':(e.code||'REQUEST_ERROR'),message:s>=500&&process.env.NODE_ENV==='production'?'Ocurrió un error inesperado.':e.message})})
+app.listen(port,'0.0.0.0',()=>console.log(`IDEALO SV API disponible en el puerto ${port}`));export{app}
