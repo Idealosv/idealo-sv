@@ -1,12 +1,8 @@
 import { buildCreditoFiscalFromRecords, buildFacturaFromRecords } from './fiscal-profile.js'
+import { DTE_ROLES, requireAuthenticatedUser, requireCompanyRole } from './access-control.js'
 
 const TEST_ESTABLISHMENT_CODE = 'M001'
 const TEST_POINT_OF_SALE_CODE = 'P001'
-
-function bearerToken(request) {
-  const authorization = request.headers.authorization || ''
-  return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
-}
 
 function padSequence(value) { return String(value).padStart(15, '0') }
 function nextControlNumber(lastControlNumber, dteType = '01') {
@@ -16,11 +12,7 @@ function nextControlNumber(lastControlNumber, dteType = '01') {
 }
 
 export async function createInvoiceDraft({ request, supabase }) {
-  const token = bearerToken(request)
-  if (!token) { const error = new Error('Debes iniciar sesión para crear una factura DTE.'); error.statusCode = 401; throw error }
-
-  const { data: userData, error: userError } = await supabase.auth.getUser(token)
-  if (userError || !userData?.user) { const error = new Error('La sesión no es válida o ya venció.'); error.statusCode = 401; throw error }
+  const user = await requireAuthenticatedUser({ request, supabase })
 
   const {
     companyId, clientId = null, dteType = '01', items, condicionOperacion = 1, totalLetras, observaciones = null,
@@ -37,9 +29,13 @@ export async function createInvoiceDraft({ request, supabase }) {
     const error = new Error('El Comprobante de Crédito Fiscal requiere seleccionar un cliente contribuyente.'); error.statusCode = 400; throw error
   }
 
-  const { data: membership, error: membershipError } = await supabase.from('company_members').select('role').eq('company_id', companyId).eq('user_id', userData.user.id).maybeSingle()
-  if (membershipError) throw membershipError
-  if (!membership) { const error = new Error('No tienes permiso para facturar en esta empresa.'); error.statusCode = 403; throw error }
+  await requireCompanyRole({
+    supabase,
+    companyId,
+    userId: user.id,
+    allowedRoles: DTE_ROLES.DRAFT,
+    operation: 'crear borradores de facturación electrónica',
+  })
 
   let rejectedSource = null
   if (reissuedFromId) {
@@ -121,7 +117,7 @@ export async function createInvoiceDraft({ request, supabase }) {
 
   const { data: document, error: insertError } = await supabase.from('dte_documents').insert({
     company_id: companyId, client_id: client?.id || null, dte_type: type, generation_code: dte.identificacion.codigoGeneracion,
-    control_number: dte.identificacion.numeroControl, environment: 'test', status: 'DRAFT', dte_payload: dte, created_by: userData.user.id,
+    control_number: dte.identificacion.numeroControl, environment: 'test', status: 'DRAFT', dte_payload: dte, created_by: user.id,
     reissued_from_id: rejectedSource?.id || null, source_quote_id: sourceQuote?.id || null, source_work_order_id: sourceWorkOrder?.id || null,
   }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload, reissued_from_id, source_quote_id, source_work_order_id').single()
   if (insertError) throw insertError
