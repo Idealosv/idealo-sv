@@ -1,0 +1,125 @@
+name: Preparar iPhone para App Store
+
+on:
+  workflow_dispatch:
+
+jobs:
+  archive-ios:
+    runs-on: macos-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      KEYCHAIN_PASSWORD: idealo-ci-keychain
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar credenciales de publicación iPhone
+        shell: bash
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "Falta VITE_SUPABASE_URL"; exit 1; }
+          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "Falta VITE_SUPABASE_ANON_KEY"; exit 1; }
+          test -n "$APPLE_CERTIFICATE_P12_BASE64" || { echo "Falta APPLE_CERTIFICATE_P12_BASE64"; exit 1; }
+          test -n "$APPLE_CERTIFICATE_PASSWORD" || { echo "Falta APPLE_CERTIFICATE_PASSWORD"; exit 1; }
+          test -n "$APPLE_PROVISIONING_PROFILE_BASE64" || { echo "Falta APPLE_PROVISIONING_PROFILE_BASE64"; exit 1; }
+          test -n "$APPLE_TEAM_ID" || { echo "Falta APPLE_TEAM_ID"; exit 1; }
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Regresión móvil automática
+        run: npm --workspace apps/web run mobile:regression
+
+      - name: Compilar frontend
+        run: npm --workspace apps/web run build
+
+      - name: Crear y sincronizar proyecto iOS
+        working-directory: apps/web
+        run: |
+          npx cap add ios
+          npx cap sync ios
+          node scripts/patch-native-mobile-permissions.mjs ios
+
+      - name: Instalar certificado Apple y perfil
+        shell: bash
+        run: |
+          CERT_PATH="$RUNNER_TEMP/idealo-distribution.p12"
+          PROFILE_PATH="$RUNNER_TEMP/idealo.mobileprovision"
+          printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          printf '%s' "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$PROFILE_PLIST")
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+
+      - name: Archivar app iPhone firmada
+        working-directory: apps/web
+        shell: bash
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath ios/build/IDEALO-SV.xcarchive \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_IDENTITY='Apple Distribution' \
+            archive
+
+      - name: Crear opciones App Store
+        working-directory: apps/web
+        shell: bash
+        run: |
+          cat > ios/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict><key>sv.idealo.erp</key><string>${PROFILE_NAME}</string></dict>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Exportar IPA para App Store Connect
+        working-directory: apps/web
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath ios/build/IDEALO-SV.xcarchive \
+            -exportPath ios/build/export \
+            -exportOptionsPlist ios/ExportOptions.plist
+          test -f ios/build/export/App.ipa || { find ios/build/export -maxdepth 2 -type f -print; exit 1; }
+          mv ios/build/export/App.ipa ios/build/export/IDEALO-SV-iPhone.ipa
+
+      - name: Publicar IPA firmado
+        uses: actions/upload-artifact@v4
+        with:
+          name: idealo-sv-ios-app-store-ipa
+          path: apps/web/ios/build/export/IDEALO-SV-iPhone.ipa
+          if-no-files-found: error
+          retention-days: 30
