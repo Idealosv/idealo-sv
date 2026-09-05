@@ -13,17 +13,17 @@ test('cotizaciones usa la experiencia rápida y conserva la anterior como respal
   assert.match(legacySource, /Opciones avanzadas de esta partida/)
 })
 
-test('el estado del editor rápido cambia con trazabilidad', () => {
+test('el estado del editor rápido cambia mediante RPC con trazabilidad', () => {
   assert.doesNotMatch(quickSource, /label="Estado"[\s\S]{0,200}update\('status'/)
-  assert.match(quickSource, /quote_status_history/)
+  assert.match(quickSource, /transition_quote_status/)
   assert.match(quickSource, /changeStatus\('SENT'\)/)
   assert.match(quickSource, /changeStatus\('APPROVED'\)/)
 })
 
-test('guardar una edición no borra primero todas las partidas', () => {
+test('guardar una edición delega persistencia atómica y no borra partidas directamente', () => {
   assert.doesNotMatch(quickSource, /from\('quote_items'\)\.delete\(\)\.eq\('quote_id'/)
-  assert.match(quickSource, /retained/)
-  assert.match(quickSource, /removed/)
+  assert.match(quickSource, /save_quote_quick/)
+  assert.match(quickSource, /p_items:items\.map\(itemPayload\)/)
 })
 
 test('el módulo anterior sigue disponible como respaldo funcional', () => {
