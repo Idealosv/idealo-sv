@@ -1,0 +1,55 @@
+-- CxC, cobros, reversos y anticipos: permisos financieros y RPCs controlados.
+drop policy if exists "members manage customer payments" on public.customer_payments;
+create policy customer_payments_read on public.customer_payments for select to authenticated using (public.erp_can_read_finance(company_id));
+create policy customer_payments_write on public.customer_payments for all to authenticated using (public.erp_can_admin(company_id)) with check (public.erp_can_admin(company_id));
+drop policy if exists "members manage customer payment reversals" on public.customer_payment_reversals;
+create policy customer_payment_reversals_read on public.customer_payment_reversals for select to authenticated using (public.erp_can_read_finance(company_id));
+create policy customer_payment_reversals_write on public.customer_payment_reversals for all to authenticated using (public.erp_can_admin(company_id)) with check (public.erp_can_admin(company_id));
+drop policy if exists customer_advances_read on public.customer_advances; drop policy if exists customer_advances_write on public.customer_advances;
+create policy customer_advances_read on public.customer_advances for select to authenticated using (public.erp_can_read_finance(company_id));
+create policy customer_advances_write on public.customer_advances for all to authenticated using (public.erp_can_admin(company_id)) with check (public.erp_can_admin(company_id));
+drop policy if exists customer_advance_applications_member_all on public.customer_advance_applications; drop policy if exists customer_advance_applications_member_select on public.customer_advance_applications;
+create policy customer_advance_applications_read on public.customer_advance_applications for select to authenticated using (public.erp_can_read_finance(company_id));
+create policy customer_advance_applications_write on public.customer_advance_applications for all to authenticated using (public.erp_can_admin(company_id)) with check (public.erp_can_admin(company_id));
+revoke all on public.customer_payments,public.customer_payment_reversals,public.customer_advances,public.customer_advance_applications from anon;
+grant select on public.customer_payments,public.customer_payment_reversals,public.customer_advances,public.customer_advance_applications to authenticated;
+
+create or replace function public.register_customer_payment(p_receivable uuid,p_cash_account uuid,p_amount numeric,p_payment_method text default 'CASH',p_reference text default null,p_notes text default null,p_payment_key uuid default gen_random_uuid()) returns uuid language plpgsql security definer set search_path='' as $$
+declare r public.accounts_receivable%rowtype; c public.cash_accounts%rowtype; v_balance numeric(12,2); v_existing uuid; v_payment uuid; v_session uuid;
+begin
+ if auth.uid() is null then raise exception 'No autenticado'; end if; if coalesce(p_amount,0)<=0 then raise exception 'El cobro debe ser mayor a cero'; end if;
+ select id into v_existing from public.customer_payments where payment_key=p_payment_key limit 1; if v_existing is not null then return v_existing; end if;
+ select * into r from public.accounts_receivable where id=p_receivable for update; if not found then raise exception 'Cuenta por cobrar no encontrada'; end if;
+ if not public.erp_can_admin(r.company_id) then raise exception 'Solo propietario o administrador puede registrar cobros'; end if; if r.status in ('PAID','CANCELLED') then raise exception 'La cuenta por cobrar no admite más cobros'; end if;
+ select * into c from public.cash_accounts where id=p_cash_account and company_id=r.company_id and active=true; if not found then raise exception 'Caja o banco no disponible'; end if;
+ if upper(coalesce(c.account_type,'')) in ('CASH','CAJA','PETTY_CASH') then select id into v_session from public.cash_register_sessions where company_id=r.company_id and cash_account_id=c.id and status='OPEN' order by opened_at desc limit 1; if v_session is null then raise exception 'Caja cerrada. Abrí la caja antes de recibir efectivo'; end if; end if;
+ v_balance:=greatest(r.amount_total-r.amount_paid,0); if p_amount>v_balance+0.001 then raise exception 'El cobro excede el saldo pendiente'; end if;
+ insert into public.customer_payments(company_id,receivable_id,client_id,cash_account_id,amount,payment_method,reference,notes,payment_key) values(r.company_id,r.id,r.client_id,c.id,p_amount,case when p_payment_method in ('CASH','TRANSFER','CARD','CHECK','OTHER') then p_payment_method else 'OTHER' end,nullif(trim(coalesce(p_reference,'')),''),nullif(trim(coalesce(p_notes,'')),''),p_payment_key) returning id into v_payment; return v_payment;
+end $$;
+
+create or replace function public.reverse_customer_payment(p_payment uuid,p_reason text,p_reversal_key uuid default gen_random_uuid()) returns uuid language plpgsql security definer set search_path='' as $$
+declare p public.customer_payments%rowtype; v_existing uuid; v_id uuid; v_balance numeric; v_type text; v_session uuid;
+begin
+ if auth.uid() is null then raise exception 'No autenticado'; end if; if char_length(trim(coalesce(p_reason,'')))<4 then raise exception 'Indicá el motivo de la reversión'; end if;
+ select id into v_existing from public.customer_payment_reversals where payment_id=p_payment or reversal_key=p_reversal_key limit 1; if v_existing is not null then return v_existing; end if;
+ select * into p from public.customer_payments where id=p_payment for share; if not found then raise exception 'Cobro no encontrado'; end if; if not public.erp_can_admin(p.company_id) then raise exception 'Solo propietario o administrador puede revertir cobros'; end if;
+ if p.source_advance_id is null then select balance,upper(coalesce(account_type,'')) into v_balance,v_type from public.cash_accounts where id=p.cash_account_id and company_id=p.company_id and active=true; if not found then raise exception 'Caja o banco no disponible'; end if; if coalesce(v_balance,0)<p.amount then raise exception 'Saldo insuficiente para revertir el cobro'; end if; if v_type in ('CASH','CAJA','PETTY_CASH') then select id into v_session from public.cash_register_sessions where company_id=p.company_id and cash_account_id=p.cash_account_id and status='OPEN' order by opened_at desc limit 1; if v_session is null then raise exception 'Caja cerrada. Abrí la caja antes de revertir el cobro'; end if; end if; end if;
+ insert into public.customer_payment_reversals(company_id,payment_id,receivable_id,cash_account_id,amount,reason,reversal_key,reversed_by) values(p.company_id,p.id,p.receivable_id,p.cash_account_id,p.amount,trim(p_reason),p_reversal_key,auth.uid()) returning id into v_id; return v_id;
+end $$;
+
+create or replace function public.apply_customer_advance(p_advance uuid,p_receivable uuid,p_amount numeric,p_application_key uuid default gen_random_uuid()) returns uuid language plpgsql security definer set search_path='' as $$
+declare a public.customer_advances%rowtype; r public.accounts_receivable%rowtype; v_available numeric; v_due numeric; v_payment uuid; v_application uuid;
+begin
+ if auth.uid() is null then raise exception 'No autenticado'; end if; if coalesce(p_amount,0)<=0 then raise exception 'El monto a aplicar debe ser mayor a cero'; end if;
+ select * into a from public.customer_advances where id=p_advance for update; if not found then raise exception 'Anticipo no encontrado'; end if; if not public.erp_can_admin(a.company_id) then raise exception 'Solo propietario o administrador puede aplicar anticipos'; end if;
+ select * into r from public.accounts_receivable where id=p_receivable for update; if not found or r.company_id<>a.company_id then raise exception 'Cuenta por cobrar inválida'; end if; if r.client_id is distinct from a.client_id then raise exception 'El anticipo y la cuenta por cobrar deben pertenecer al mismo cliente'; end if; if r.status in ('PAID','CANCELLED') then raise exception 'La cuenta por cobrar no admite aplicaciones'; end if;
+ v_available:=greatest(a.amount-a.applied_amount,0); v_due:=greatest(r.amount_total-r.amount_paid,0); if p_amount>v_available+0.001 then raise exception 'El monto supera el saldo disponible del anticipo'; end if; if p_amount>v_due+0.001 then raise exception 'El monto supera el saldo pendiente de la cuenta por cobrar'; end if;
+ select id into v_application from public.customer_advance_applications where id=p_application_key; if v_application is not null then return v_application; end if;
+ insert into public.customer_payments(company_id,receivable_id,client_id,cash_account_id,amount,payment_method,reference,notes,payment_key,source_advance_id) values(a.company_id,r.id,r.client_id,a.cash_account_id,p_amount,'OTHER','ANTICIPO','Aplicación de anticipo',p_application_key,a.id) returning id into v_payment;
+ insert into public.customer_advance_applications(id,company_id,advance_id,dte_document_id,receivable_id,amount) values(p_application_key,a.company_id,a.id,r.dte_document_id,r.id,p_amount) returning id into v_application;
+ update public.customer_advances set applied_amount=least(amount,applied_amount+p_amount),status=case when applied_amount+p_amount>=amount then 'APPLIED' else 'PARTIAL' end,dte_document_id=coalesce(dte_document_id,r.dte_document_id),updated_at=now() where id=a.id; return v_application;
+end $$;
+
+revoke execute on function public.register_customer_payment(uuid,uuid,numeric,text,text,text,uuid),public.reverse_customer_payment(uuid,text,uuid),public.apply_customer_advance(uuid,uuid,numeric,uuid),public.mobile_register_customer_payment(uuid,numeric,text,text,text) from public,anon;
+grant execute on function public.register_customer_payment(uuid,uuid,numeric,text,text,text,uuid),public.reverse_customer_payment(uuid,text,uuid),public.apply_customer_advance(uuid,uuid,numeric,uuid) to authenticated;
+revoke execute on function public.mobile_register_customer_payment(uuid,numeric,text,text,text) from authenticated;
