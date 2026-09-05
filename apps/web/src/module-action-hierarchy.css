@@ -101,6 +101,31 @@
   border-color:#c7cdd4!important;
 }
 
+/* Herramientas avanzadas o de control: ocultas por defecto para evitar
+   repetir paneles principales. Se conservan todas las funciones. */
+.module-secondary-tools {
+  margin:0 0 12px;
+  border:1px solid #d7dce1;
+  border-radius:10px;
+  background:#f8f9fa;
+  overflow:hidden;
+}
+.module-secondary-tools > summary {
+  cursor:pointer;
+  list-style:none;
+  padding:10px 12px;
+  font-size:12px;
+  font-weight:800;
+  color:#3e464d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.module-secondary-tools > summary::-webkit-details-marker{display:none}
+.module-secondary-tools > summary::after{content:'Mostrar';font-size:10px;font-weight:700;color:#f06400}
+.module-secondary-tools[open] > summary::after{content:'Ocultar'}
+.module-secondary-tools-body{padding:0 10px 10px}
+
 /* En pantallas estrechas, las acciones se mantienen legibles sin convertirse
    en una fila interminable. */
 @media(max-width:760px){
