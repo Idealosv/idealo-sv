@@ -50,10 +50,22 @@ export default function FacturacionLauncher() {
     if (!company?.id || !supabase) return undefined
     const channel = supabase.channel(`billing-dte-trace-${company.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'dte_documents', filter: `company_id=eq.${company.id}` }, (payload) => {
       const row = payload.new || {}
-      if (payload.eventType === 'UPDATE' && String(row.status || '').toUpperCase() === 'PROCESSED') setReceivablesVersion((value) => value + 1)
+      if (payload.eventType !== 'UPDATE' || String(row.status || '').toUpperCase() !== 'PROCESSED') return
+      const sourceWorkOrder = row.source_work_order_id || row.work_order_id || ''
+      const sourceQuote = row.source_quote_id || row.quote_id || ''
+      const hasProjectContext = Boolean(projectContext.workOrderId || projectContext.quoteId)
+      const matchesProject = !hasProjectContext || sourceWorkOrder === projectContext.workOrderId || sourceQuote === projectContext.quoteId
+      setReceivablesVersion((value) => value + 1)
+      if (open && activeSection === 'emitir' && matchesProject) {
+        window.setTimeout(() => {
+          setReceivablesVersion((value) => value + 1)
+          setActiveSection('cobros')
+          window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
+        }, 350)
+      }
     }).subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [company?.id])
+  }, [company?.id, open, activeSection, projectContext.workOrderId, projectContext.quoteId])
 
   const notifyBillingActive = () => window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
   const openSection = (id) => { if (sections.some((section) => section.id === id)) setActiveSection(id) }
