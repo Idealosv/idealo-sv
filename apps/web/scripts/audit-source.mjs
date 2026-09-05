@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const src = resolve(here, '../src')
 const paths = {
-  main: resolve(src, 'main.jsx'), runtime: resolve(src, 'ModuleRuntime.jsx'), menu: resolve(src, 'MainMenuController.jsx'), menuCss: resolve(src, 'main-menu.css'),
-  clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'), clientsCss: resolve(src, 'client-module-organizer.css'), dashboardCss: resolve(src, 'executive-dashboard-main.css'),
+  main: resolve(src, 'main.jsx'), runtime: resolve(src, 'ModuleRuntime.jsx'), menu: resolve(src, 'MainMenuController.jsx'), accessControl: resolve(src, 'erp-access-control.js'), menuCss: resolve(src, 'main-menu.css'),
+  clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'), clientsCss: resolve(src, 'client-module-organizer.css'), dashboardCss: resolve(src, 'executive-dashboard-main.css'), dashboardHost: resolve(src, 'ExecutiveDashboardHost.jsx'),
   commercial: resolve(src, 'CommercialLauncher.jsx'), inventory: resolve(src, 'InventoryCostLauncher.jsx'), billing: resolve(src, 'FacturacionLauncher.jsx'), procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
   planning: resolve(src, 'ProductionCalendarLauncher.jsx'), financial: resolve(src, 'FinancialDashboardLauncher.jsx'), assistant: resolve(src, 'AssistantLauncher.jsx'), security: resolve(src, 'SecurityLauncher.jsx'), workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
   actionHierarchy: resolve(src, 'module-action-hierarchy.css'), formSimplification: resolve(src, 'FormSimplificationManager.jsx'), formSimplificationCss: resolve(src, 'form-simplification.css'),
@@ -37,9 +37,11 @@ if (!source.actionHierarchy.includes('.danger-action')) failures.push('Las accio
 if (!source.formSimplification.includes('simplified-quote-item-grid') || !source.formSimplification.includes('simplified-quote-document-grid')) failures.push('Cotizaciones debe ocultar opciones avanzadas detrás de controles explícitos')
 if (!source.formSimplificationCss.includes('.show-advanced-fields')) failures.push('Las opciones avanzadas deben poder reabrirse sin perder campos')
 
-const moduleScopedHosts = ['ExecutiveDashboardHost','MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
+const moduleScopedHosts = ['MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
 const leakedHosts = moduleScopedHosts.filter((name) => source.main.includes(`<${name}`) || source.main.includes(`import ${name} `))
 if (leakedHosts.length) failures.push(`Hosts de módulo cargados globalmente: ${leakedHosts.join(', ')}`)
+if (!source.main.includes('<ExecutiveDashboardHost/>')) failures.push('Dashboard ejecutivo no está montado en el runtime principal')
+if (!source.dashboardHost.includes("detail === 'Dashboard'") && !source.dashboardHost.includes("detail==='Dashboard'")) failures.push('Dashboard ejecutivo debe mostrarse solo cuando Dashboard está activo')
 if (!source.runtime.includes("activeModule === 'Dashboard'")) failures.push('Dashboard no está aislado por módulo')
 if (!source.runtime.includes("activeModule === 'App móviles'")) failures.push('Extensiones móviles no están aisladas por módulo')
 if (!source.runtime.includes("activeModule === 'Clientes'")) failures.push('Extensiones de Clientes no están aisladas por módulo')
@@ -57,7 +59,13 @@ if (!source.dashboardCss.includes('>.welcome-strip') || !source.dashboardCss.inc
 const directRoutes = [
   ['Dashboard','workspace','Resumen'],['Clientes','workspace','Clientes'],['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja'],['Asistente IA','assistant',null],['Agenda','planning',null],['Reportes','financial',null],['Seguridad','security',null],
 ]
-for (const [name,target,tab] of directRoutes) { const expected = tab ? `openDirectModule('${target}', '${tab}')` : `openDirectModule('${target}')`; if (!source.menu.includes(expected)) failures.push(`${name} debe abrirse por evento directo`) }
+const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+for (const [name,target,tab] of directRoutes) {
+  const pattern = tab
+    ? new RegExp(`openDirectModule\\(\\s*['\"]${escapeRegExp(target)}['\"]\\s*,\\s*['\"]${escapeRegExp(tab)}['\"]\\s*\\)`)
+    : new RegExp(`openDirectModule\\(\\s*['\"]${escapeRegExp(target)}['\"]\\s*\\)`)
+  if (!pattern.test(source.menu)) failures.push(`${name} debe abrirse por evento directo`)
+}
 for (const [key,label] of [['commercial','CommercialLauncher'],['inventory','InventoryCostLauncher'],['billing','FacturacionLauncher'],['procurement','OperationsFinanceLauncher'],['planning','ProductionCalendarLauncher'],['financial','FinancialDashboardLauncher'],['assistant','AssistantLauncher'],['security','SecurityLauncher']]) { if (!source[key].includes("window.addEventListener('idealo-open-module'")) failures.push(`${label} no escucha apertura directa desde el menú`) }
 if (!source.workspaceBridge.includes("detail.target !== 'workspace'")) failures.push('WorkspaceNavigationBridge no está limitado al target workspace')
 if (!source.commercial.includes('mainModuleForTab')) failures.push('Las pestañas comerciales deben sincronizar el módulo activo del menú')
@@ -66,9 +74,10 @@ if (source.menu.includes('openLauncher(') || source.menu.includes('clickWorkspac
 if (source.menu.includes('MÓDULO EN ESTRUCTURA') || source.menu.includes('module-placeholder-card')) failures.push('El menú principal no debe renderizar placeholders genéricos')
 
 const expectedModules = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
-const moduleBlock = source.menu.match(/const MODULES = \[([\s\S]*?)\]/)?.[1] || ''
+const moduleBlock = source.accessControl.match(/ERP_MODULES\s*=\s*\[([\s\S]*?)\]/)?.[1] || ''
 const actualModules = [...moduleBlock.matchAll(/'([^']+)'/g)].map((match) => match[1])
 if (JSON.stringify(actualModules) !== JSON.stringify(expectedModules)) failures.push(`Orden del menú inconsistente. Esperado: ${expectedModules.join(' > ')}`)
+if (!source.menu.includes('ERP_MODULES')) failures.push('El menú principal debe consumir ERP_MODULES como fuente única')
 if (new Set(actualModules).size !== actualModules.length) failures.push('Hay módulos duplicados en el menú principal')
 if (source.menu.includes('MODULE_GROUPS') || source.menu.includes('idealo-menu-group-label')) failures.push('El menú principal volvió a mostrar categorías o rótulos extra')
 if (!source.menuCss.includes('.erp-sidebar > nav:not(.idealo-main-menu){display:none!important}')) failures.push('El menú legado puede volver a mostrarse junto al menú principal')
