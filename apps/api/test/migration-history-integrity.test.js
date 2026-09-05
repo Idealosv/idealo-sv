@@ -7,9 +7,12 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const migrationsDir = path.resolve(here, '../../../supabase/migrations')
 
+// Prefijos duplicados que ya forman parte del historial aplicado del proyecto.
+// Se mantienen explícitos para impedir que aparezcan colisiones nuevas sin revisión.
 const allowedLegacyDuplicates = new Set([
-  '0002','0022','0024','0025','0027','0030','0031','0033',
+  '0002','0022','0024','0025','0027','0030','0031','0033','0101',
   '20260822191500','20260823175500','20260826223000',
+  '20260904114500','20260904230000','20260905033000',
 ])
 
 function prefixOf(name) {
