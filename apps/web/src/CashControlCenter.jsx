@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import CashRegisterShift from './CashRegisterShift.jsx'
+import InternalIncomeCard from './InternalIncomeCard.jsx'
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0))
 const day=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
 const methodLabel=value=>({CASH:'Efectivo',TRANSFER:'Transferencia',CARD:'Tarjeta',CHECK:'Cheque',OTHER:'Otro'}[value]||value||'Pago')
@@ -21,10 +22,11 @@ export default function CashControlCenter({company,supabase,onOpenReports}){
  const saveAdvance=async e=>{e.preventDefault();setMsg('');if(!form.client_id||!form.cash_account_id||Number(form.amount)<=0){setMsg('Selecciona cliente, cuenta y un monto mayor que cero.');return}setSaving(true);const {error}=await supabase.rpc('register_customer_advance',{p_company_id:company.id,p_client_id:form.client_id,p_quote_id:form.quote_id||null,p_work_order_id:null,p_cash_account_id:form.cash_account_id,p_amount:Number(form.amount),p_received_at:`${form.received_at}T12:00:00`,p_payment_method:form.payment_method,p_reference:form.reference||null,p_notes:form.notes||null});if(error)setMsg(error.message);else{setMsg(`Anticipo de ${money(form.amount)} registrado.`);setForm(f=>({...f,amount:'',reference:'',notes:''}));await load()}setSaving(false)}
  const alerts=k.negative.length+k.diff.length
  return <section className="cash-control">
-  <div className="clients-titlebar cash-simple-title"><div><p className="form-kicker">CAJA</p><h2>Caja y bancos</h2><p>Entradas, salidas y anticipos.</p></div>{alerts>0&&<button type="button" className="cash-alert-button" onClick={onOpenReports}>{alerts} alerta{alerts===1?'':'s'}</button>}</div>
+  <div className="clients-titlebar cash-simple-title"><div><p className="form-kicker">CAJA</p><h2>Caja y bancos</h2><p>Entradas, salidas, ingresos internos y anticipos.</p></div>{alerts>0&&<button type="button" className="cash-alert-button" onClick={onOpenReports}>{alerts} alerta{alerts===1?'':'s'}</button>}</div>
   {msg&&<p className={msg.includes('registrado')?'feedback success':'feedback error'}>{msg}</p>}
   <div className="cash-control-summary simple"><article><small>Disponible</small><strong>{money(k.total)}</strong></article><article><small>Entradas hoy</small><strong>{money(k.ins)}</strong></article><article><small>Salidas hoy</small><strong>{money(k.outs)}</strong></article></div>
   <CashRegisterShift company={company} supabase={supabase} accounts={accounts} onChanged={load}/>
+  <InternalIncomeCard company={company} supabase={supabase} accounts={accounts} clients={clients} onSaved={load}/>
   <form onSubmit={saveAdvance} className="form-card cash-advance-card"><div className="cash-section-heading compact"><div><p className="form-kicker">ANTICIPO</p><h3>Registrar anticipo</h3></div>{k.pending>0&&<span className="cash-pending-pill">Por aplicar {money(k.pending)}</span>}</div>
    <div className="cash-advance-grid">
     <label>Cliente *<select required value={form.client_id} onChange={e=>setForm({...form,client_id:e.target.value,quote_id:''})}><option value="">Seleccionar cliente</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
