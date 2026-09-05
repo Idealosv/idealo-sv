@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-
-const MODULES = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
+import { supabase } from './lib/supabase.js'
+import { canAccessModule, ERP_MODULES, ROLE_LABEL } from './erp-access-control.js'
 
 const openDirectModule = (target, tab) => {
   window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target, tab } }))
@@ -12,6 +12,7 @@ export default function MainMenuController() {
   const [sidebar, setSidebar] = useState(null)
   const [active, setActive] = useState('Dashboard')
   const [query, setQuery] = useState('')
+  const [role, setRole] = useState('')
   const searchRef = useRef(null)
 
   useEffect(() => {
@@ -29,8 +30,22 @@ export default function MainMenuController() {
   }, [])
 
   useEffect(() => {
+    let live = true
+    if (!supabase) return undefined
+    const loadRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { if (live) setRole(''); return }
+      const { data, error } = await supabase.from('company_members').select('role').eq('user_id', session.user.id).limit(1).maybeSingle()
+      if (live && !error) setRole(String(data?.role || '').toLowerCase())
+    }
+    loadRole()
+    const { data: listener } = supabase.auth.onAuthStateChange(() => loadRole())
+    return () => { live = false; listener.subscription.unsubscribe() }
+  }, [])
+
+  useEffect(() => {
     const syncActive = (event) => {
-      if (MODULES.includes(event.detail)) setActive(event.detail)
+      if (ERP_MODULES.includes(event.detail)) setActive(event.detail)
     }
     window.addEventListener('idealo-module-change', syncActive)
     return () => window.removeEventListener('idealo-module-change', syncActive)
@@ -48,6 +63,10 @@ export default function MainMenuController() {
   }, [])
 
   const openModule = (name) => {
+    if (role && !canAccessModule(role, name)) {
+      window.dispatchEvent(new CustomEvent('idealo-access-denied', { detail: { message: `${ROLE_LABEL[role] || role} no tiene permiso para ${name}.` } }))
+      return false
+    }
     setActive(name)
     setQuery('')
     window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
@@ -72,7 +91,7 @@ export default function MainMenuController() {
 
   const filteredModules = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    return normalized ? MODULES.filter((name) => name.toLowerCase().includes(normalized)) : MODULES
+    return normalized ? ERP_MODULES.filter((name) => name.toLowerCase().includes(normalized)) : ERP_MODULES
   }, [query])
 
   if (!sidebar) return null
@@ -83,8 +102,12 @@ export default function MainMenuController() {
         <input ref={searchRef} className="idealo-menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar módulo…" aria-label="Buscar módulo" />
         {query && <button type="button" className="idealo-menu-search-clear" onClick={() => setQuery('')} aria-label="Limpiar búsqueda">×</button>}
       </div>
+      {role && <div className="idealo-role-strip"><span>Perfil</span><strong>{ROLE_LABEL[role] || role}</strong></div>}
       <div className="idealo-menu-list">
-        {filteredModules.map((name) => <button type="button" key={name} className={active === name ? 'idealo-main-menu-item active' : 'idealo-main-menu-item'} onClick={() => openModule(name)}>{name}</button>)}
+        {filteredModules.map((name) => {
+          const allowed = !role || canAccessModule(role, name)
+          return <button type="button" key={name} aria-disabled={!allowed} className={`${active === name ? 'idealo-main-menu-item active' : 'idealo-main-menu-item'}${allowed ? '' : ' locked'}`} onClick={() => openModule(name)}>{name}{!allowed && <small>Sin acceso</small>}</button>
+        })}
       </div>
       {filteredModules.length === 0 && <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>}
     </nav>,
