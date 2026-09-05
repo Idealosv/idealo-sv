@@ -16,12 +16,18 @@ const failures=[]
 const requireText=(source,text,message)=>{if(!source.includes(text))failures.push(message)}
 
 requireText(main,"import './financial-alerts-dashboard.css'",'main.jsx debe cargar estilos de alertas financieras')
-requireText(runtime,"import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'",'ModuleRuntime debe importar ExecutiveDashboardHost')
-requireText(runtime,"activeModule === 'Dashboard'",'ModuleRuntime debe cargar el Dashboard únicamente en su módulo')
-requireText(runtime,'<Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost /></Safe>','ModuleRuntime debe montar el Dashboard ejecutivo de forma condicional')
+requireText(main,"import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'",'main.jsx debe importar ExecutiveDashboardHost')
+requireText(main,'<Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost/></Safe>','main.jsx debe montar una sola vez el Dashboard ejecutivo')
+if(runtime.includes("import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'")||runtime.includes('<ExecutiveDashboardHost'))failures.push('ModuleRuntime no debe duplicar el Dashboard ejecutivo')
 requireText(host,"import FinancialAlertsDashboard from './FinancialAlertsDashboard.jsx'",'ExecutiveDashboardHost debe integrar alertas financieras')
+requireText(host,"window.addEventListener('idealo-module-change',onModule)",'ExecutiveDashboardHost debe escuchar el cambio de módulo')
+requireText(host,"event.detail==='Dashboard'",'ExecutiveDashboardHost debe mostrarse únicamente en Dashboard')
+requireText(host,'if(!content||!visible)return null','ExecutiveDashboardHost debe ocultarse fuera del módulo Dashboard')
 requireText(host,'<FinancialAlertsDashboard company={company} supabase={supabase}/>','ExecutiveDashboardHost debe renderizar las alertas')
 if(host.includes('new MutationObserver')||host.includes('observe(document.body'))failures.push('ExecutiveDashboardHost no debe reintroducir MutationObserver global')
+
+const mainMounts=(main.match(/<ExecutiveDashboardHost\s*\/?>/g)||[]).length
+if(mainMounts!==1)failures.push(`ExecutiveDashboardHost debe montarse exactamente una vez en main.jsx; encontrados ${mainMounts}`)
 
 for(const table of ['cash_accounts','cash_movements','accounts_receivable','accounts_payable','cash_reconciliations','work_orders','inventory_movements','work_order_costs']){
   requireText(alerts,`.from('${table}')`,`Alertas debe consultar ${table}`)
@@ -36,4 +42,4 @@ if(failures.length){
   failures.forEach((failure)=>console.error(`- ${failure}`))
   process.exit(1)
 }
-console.log('Auditoría Dashboard ejecutivo OK: runtime condicional, aislamiento por empresa y alertas financieras críticas cubiertas.')
+console.log('Auditoría Dashboard ejecutivo OK: host único, visibilidad por módulo, aislamiento por empresa y alertas financieras críticas cubiertas.')
