@@ -1,15 +1,20 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import ProcessedDtePanel from './ProcessedDtePanel.jsx'
+import DteTraceabilityPanel from './DteTraceabilityPanel.jsx'
 
 export default function ProcessedDtePanelBridge(props) {
   const hostRef = useRef(null)
+  const [controlNumber,setControlNumber]=useState('')
 
   const handleClickCapture = (event) => {
     const button = event.target.closest?.('.billing-document-link')
     if (!button || !hostRef.current?.contains(button)) return
     const row = button.closest('tr')
-    const controlNumber = row?.querySelector('td:first-child small')?.textContent?.trim() || ''
-    if (controlNumber) window.dispatchEvent(new CustomEvent('idealo-dte-detail-selected', { detail: { controlNumber } }))
+    const selectedControl = row?.querySelector('td:first-child small')?.textContent?.trim() || ''
+    if (selectedControl) {
+      setControlNumber(selectedControl)
+      window.dispatchEvent(new CustomEvent('idealo-dte-detail-selected', { detail: { controlNumber: selectedControl } }))
+    }
     window.setTimeout(() => {
       const detail = hostRef.current?.querySelector('.billing-document-detail')
       detail?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -20,5 +25,6 @@ export default function ProcessedDtePanelBridge(props) {
 
   return <div ref={hostRef} onClickCapture={handleClickCapture}>
     <ProcessedDtePanel {...props}/>
+    <DteTraceabilityPanel supabase={props.supabase} company={props.company} controlNumber={controlNumber}/>
   </div>
 }
