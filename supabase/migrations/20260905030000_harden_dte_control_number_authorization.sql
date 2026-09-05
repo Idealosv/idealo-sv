@@ -2,7 +2,7 @@ create or replace function public.next_dte_control_number(p_company_id uuid, p_d
 declare v_value bigint; v_local_max bigint; v_establishment text; v_pos text; v_role text;
 begin
  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
- select lower(cm.role) into v_role from public.company_members cm where cm.company_id=p_company_id and cm.user_id=auth.uid();
+ select lower(cm.role::text) into v_role from public.company_members cm where cm.company_id=p_company_id and cm.user_id=auth.uid();
  if v_role not in ('owner','admin') then raise exception 'DTE_ROLE_FORBIDDEN'; end if;
  if p_dte_type not in ('01','03') then raise exception 'DTE_TYPE_INVALID'; end if;
  if p_environment not in ('test','production') then raise exception 'DTE_ENVIRONMENT_INVALID'; end if;
