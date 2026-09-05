@@ -37,6 +37,7 @@ const patchAndroid = async () => {
     'android.permission.CAMERA',
     'android.permission.ACCESS_FINE_LOCATION',
     'android.permission.ACCESS_COARSE_LOCATION',
+    'android.permission.POST_NOTIFICATIONS',
   ]
   for (const permission of permissions) {
     if (text.includes(`android:name="${permission}"`)) continue
@@ -46,7 +47,7 @@ const patchAndroid = async () => {
   for (const permission of permissions) {
     if (!text.includes(`android:name="${permission}"`)) throw new Error(`No se pudo agregar ${permission}`)
   }
-  console.log('OK Android: permisos de cámara y ubicación declarados en AndroidManifest.xml.')
+  console.log('OK Android: permisos de cámara, ubicación y notificaciones declarados en AndroidManifest.xml.')
 }
 
 if (platform === 'ios') await patchIos()
