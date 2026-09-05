@@ -31,7 +31,9 @@ requireText(main,"import './mobile-dte.css'",'Estilos DTE móvil')
 
 const invoice=read('apps/api/src/dte/invoice-service.js')
 requireText(invoice,"['01', '03'].includes(type)",'Backend DTE-01/DTE-03')
-requireText(invoice,'company_members','Permiso backend DTE')
-requireText(invoice,'Bearer ','Autenticación backend DTE')
+requireText(invoice,'requireAuthenticatedUser','Autenticación backend DTE')
+requireText(invoice,'requireCompanyRole','Permiso backend DTE')
+requireText(invoice,'DTE_ROLES.DRAFT','Roles backend DTE')
+requireText(invoice,'DTE_ROLES.TRANSMIT_PRODUCTION','Protección producción DTE')
 
 console.log('OK auditoría DTE móvil: crear, firmar, transmitir, estado MH, PDF y compartir')
