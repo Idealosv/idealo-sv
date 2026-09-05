@@ -61,28 +61,6 @@ export function DeliveriesModule({ company, supabase }) {
     }
   }
 
-  const delivered = async (row) => {
-    const recipient = window.prompt('Nombre de quien recibe:', '')
-    if (recipient === null) return
-
-    const { error } = await supabase.from('deliveries').update({
-      status: 'DELIVERED',
-      delivered_at: new Date().toISOString(),
-      recipient_name: recipient || null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', row.id)
-
-    if (!error && row.work_order_id) {
-      await supabase.from('work_orders').update({
-        status: 'DELIVERED',
-        updated_at: new Date().toISOString(),
-      }).eq('id', row.work_order_id)
-    }
-
-    setMessage(error ? error.message : 'Entrega confirmada. La OT ya puede pasar directamente a Facturación.')
-    await load()
-  }
-
   const openBilling = (row) => {
     window.dispatchEvent(new CustomEvent('idealo-open-module', {
       detail: {
@@ -94,6 +72,32 @@ export function DeliveriesModule({ company, supabase }) {
         clientName: row.clients?.name || '',
       },
     }))
+  }
+
+  const delivered = async (row) => {
+    const recipient = window.prompt('Nombre de quien recibe:', '')
+    if (recipient === null) return
+
+    const { error: deliveryError } = await supabase.from('deliveries').update({
+      status: 'DELIVERED',
+      delivered_at: new Date().toISOString(),
+      recipient_name: recipient || null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', row.id).eq('company_id', company.id)
+
+    let workOrderError = null
+    if (!deliveryError && row.work_order_id) {
+      const { error } = await supabase.from('work_orders').update({
+        status: 'DELIVERED',
+        updated_at: new Date().toISOString(),
+      }).eq('id', row.work_order_id).eq('company_id', company.id)
+      workOrderError = error
+    }
+
+    const error = deliveryError || workOrderError
+    setMessage(error ? error.message : 'Entrega confirmada. Abriendo Facturación con la OT seleccionada…')
+    await load()
+    if (!error) window.setTimeout(() => openBilling(row), 350)
   }
 
   const open = rows.filter((row) => row.status !== 'DELIVERED' && row.status !== 'CANCELLED').length
