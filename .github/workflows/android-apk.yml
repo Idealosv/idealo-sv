@@ -61,6 +61,18 @@ jobs:
         working-directory: apps/web
         run: npx cap sync android
 
+      - name: Declarar permisos nativos Android
+        working-directory: apps/web
+        run: node scripts/patch-native-mobile-permissions.mjs android
+
+      - name: Verificar permisos Android
+        working-directory: apps/web
+        shell: bash
+        run: |
+          grep -q 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.ACCESS_FINE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.ACCESS_COARSE_LOCATION' android/app/src/main/AndroidManifest.xml
+
       - name: Aplicar icono nativo IDEALO SV
         working-directory: apps/web
         shell: bash
