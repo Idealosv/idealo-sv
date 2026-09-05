@@ -14,11 +14,11 @@ import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
 import DteFinancialIntegrityPanel from './DteFinancialIntegrityPanel.jsx'
 
 const sections = [
-  { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control', group: 'Operación diaria' },
-  { id: 'emitir', label: 'Nueva factura', helper: 'Cliente, productos y pago', group: 'Operación diaria' },
-  { id: 'documentos', label: 'Documentos', helper: 'DTE y estados', group: 'Operación diaria' },
-  { id: 'cobros', label: 'Cuentas por cobrar', helper: 'Crédito, vencidos y cobros', group: 'Cobranza' },
-  { id: 'hacienda', label: 'Hacienda', helper: 'Firma y control técnico', group: 'Administración fiscal' },
+  { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control' },
+  { id: 'emitir', label: 'Nueva factura', helper: 'Emitir desde proyecto o venta manual' },
+  { id: 'documentos', label: 'Documentos', helper: 'DTE y estados' },
+  { id: 'cobros', label: 'Cobros', helper: 'Cuentas por cobrar' },
+  { id: 'hacienda', label: 'Hacienda', helper: 'Configuración y diagnóstico' },
 ]
 
 export default function FacturacionLauncher() {
@@ -58,8 +58,9 @@ export default function FacturacionLauncher() {
   const notifyBillingActive = () => window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
   const openSection = (id) => { if (sections.some((section) => section.id === id)) setActiveSection(id) }
   const clearProjectContext = () => setProjectContext({ workOrderId: '', quoteId: '', workOrderNumber: '' })
-  const openNewInvoice = () => { setContextClient({ id: '', name: '' }); clearProjectContext(); setIssueMode('project'); setActiveSection('emitir') }
-  const prepareMhTestCase = () => { setContextClient({ id: '', name: '' }); clearProjectContext(); setIssueMode('manual'); setActiveSection('emitir'); notifyBillingActive() }
+  const resetIssueContext = () => { setContextClient({ id: '', name: '' }); clearProjectContext() }
+  const openNewInvoice = () => { resetIssueContext(); setIssueMode('project'); setActiveSection('emitir') }
+  const prepareMhTestCase = () => { resetIssueContext(); setIssueMode('manual'); setActiveSection('emitir'); notifyBillingActive() }
   const openCash = () => { setOpen(false); window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target: 'procurement', tab: 'Caja' } })) }
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function FacturacionLauncher() {
       setContextClient({ id: detail.clientId || '', name: detail.clientName || '' })
       setProjectContext({ workOrderId: detail.workOrderId || '', quoteId: detail.quoteId || '', workOrderNumber: detail.workOrderNumber || '' })
       const fromWorkOrder = Boolean(detail.workOrderId || detail.quoteId)
-      setIssueMode(fromWorkOrder ? 'project' : 'project')
+      setIssueMode('project')
       setActiveSection(fromWorkOrder ? 'emitir' : (sections.some((section) => section.id === detail.tab) ? detail.tab : 'resumen'))
       setOpen(true); notifyBillingActive()
     }
@@ -84,32 +85,32 @@ export default function FacturacionLauncher() {
 
   if (!session || !company) return null
   const active = sections.find((item) => item.id === activeSection) || sections[0]
-  const groups = [...new Set(sections.map((section) => section.group))]
+  const contextText = projectContext.workOrderId
+    ? `${projectContext.workOrderNumber ? `OT-${String(projectContext.workOrderNumber).padStart(5,'0')}` : 'OT seleccionada'} lista para facturar${contextClient.name ? ` · ${contextClient.name}` : ''}`
+    : contextClient.id ? `Cliente seleccionado · ${contextClient.name || 'receptor seleccionado'}` : ''
 
   return <>
-    <button type="button" onClick={() => { setContextClient({ id: '', name: '' }); clearProjectContext(); setIssueMode('project'); setActiveSection('resumen'); setOpen(true); notifyBillingActive() }} className="sidebar-module-access billing" aria-label="Abrir facturación"><span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span></button>
+    <button type="button" onClick={() => { resetIssueContext(); setIssueMode('project'); setActiveSection('resumen'); setOpen(true); notifyBillingActive() }} className="sidebar-module-access billing" aria-label="Abrir facturación"><span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span></button>
     {open && <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}><section className="erp-modal-panel billing-modal" role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
-      <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Emisión · documentos · cobranza · Hacienda</small></div><button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button></header>
-      <div className="billing-workspace billing-workspace-organized"><nav className="billing-nav" aria-label="Secciones de facturación"><div className="billing-nav-title">Facturación</div>{groups.map((group) => <div className="billing-nav-group" key={group}><span className="billing-nav-group-label">{group}</span>{sections.filter((section) => section.group === group).map((section) => <button key={section.id} type="button" data-billing-section={section.id} className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => openSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span><small>{section.helper}</small></button>)}</div>)}</nav>
+      <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Emitir · documentos · cobros</small></div><button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button></header>
+      <div className="billing-workspace billing-workspace-organized"><nav className="billing-nav billing-nav-compact" aria-label="Secciones de facturación">{sections.map((section) => <button key={section.id} type="button" data-billing-section={section.id} className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => openSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span></button>)}</nav>
       <main className="billing-content" data-active-billing-section={activeSection}>
-        <div className="billing-section-head"><div><span className="billing-section-kicker">{active.group} · {active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
-        {contextClient.id && activeSection === 'emitir' && <div className="billing-context-banner">Cliente seleccionado: <strong>{contextClient.name || 'receptor seleccionado'}</strong>.</div>}
-        {projectContext.workOrderId && activeSection === 'emitir' && <div className="billing-context-banner"><strong>Entrega completada.</strong> Continuando {projectContext.workOrderNumber ? `OT-${String(projectContext.workOrderNumber).padStart(5,'0')}` : 'la OT seleccionada'} hacia Facturación.</div>}
-        {activeSection === 'resumen' && <><Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/><details className="module-secondary-tools"><summary>Revisar integridad financiera</summary><div className="module-secondary-tools-body"><DteFinancialIntegrityPanel supabase={supabase} company={company}/></div></details></>} 
+        <div className="billing-section-head"><div><span className="billing-section-kicker">{active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>
+        {contextText && activeSection === 'emitir' && <div className="billing-context-banner"><strong>{contextText}</strong></div>}
+        {activeSection === 'resumen' && <><Billing360Dashboard supabase={supabase} company={company} onOpenNewInvoice={openNewInvoice}/><details className="module-secondary-tools"><summary>Revisión financiera avanzada</summary><div className="module-secondary-tools-body"><DteFinancialIntegrityPanel supabase={supabase} company={company}/></div></details></>} 
         {activeSection === 'emitir' && <section className="billing-section-card billing-issue-card" data-billing-view="new-invoice">
-          <div className="billing-section-intro"><div><strong>Nueva factura</strong><small>{projectContext.workOrderId?'La información del trabajo ya viene enlazada desde Entregas.':'Elegí una sola forma de facturar.'}</small></div></div>
           <div className="billing-document-picker" role="group" aria-label="Origen de la factura" style={{marginBottom:16}}>
-            <button type="button" className={issueMode==='project'?'active':''} onClick={()=>{setIssueMode('project');setContextClient({id:'',name:''})}}><strong>Desde proyecto</strong><small>Cotización aprobada, completa o parcial</small></button>
-            <button type="button" className={issueMode==='manual'?'active':''} onClick={()=>{setIssueMode('manual');clearProjectContext()}}><strong>Factura manual</strong><small>Venta nueva sin cotización</small></button>
+            <button type="button" className={issueMode==='project'?'active':''} onClick={()=>setIssueMode('project')}><strong>Desde proyecto</strong><small>Usa la cotización y la OT</small></button>
+            <button type="button" className={issueMode==='manual'?'active':''} onClick={()=>{setIssueMode('manual');clearProjectContext()}}><strong>Venta manual</strong><small>Sin cotización previa</small></button>
           </div>
           {issueMode==='project'
             ? <PartialInvoiceFromQuote session={session} supabase={supabase} company={company} initialWorkOrderId={projectContext.workOrderId} initialQuoteId={projectContext.quoteId}/>
             : <FacturacionDte session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/>
           }
         </section>}
-        {activeSection === 'documentos' && <section className="billing-section-card"><div className="billing-section-intro"><div><strong>Documentos y estados</strong><small>Historial y seguimiento de DTE.</small></div></div><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><details className="module-secondary-tools"><summary>Contingencia, correo y pruebas de documento</summary><div className="module-secondary-tools-body"><DteContingencyOperationsPanel supabase={supabase} company={company} session={session}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></div></details></section>}
+        {activeSection === 'documentos' && <section className="billing-section-card"><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><details className="module-secondary-tools"><summary>Contingencia, correo y pruebas</summary><div className="module-secondary-tools-body"><DteContingencyOperationsPanel supabase={supabase} company={company} session={session}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></div></details></section>}
         {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash}/>} 
-        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><div className="billing-section-intro"><div><strong>Hacienda</strong><small>Estado técnico y herramientas de soporte.</small></div></div><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
+        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
       </main></div>
     </section></div>}
   </>
