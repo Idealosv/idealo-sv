@@ -52,6 +52,13 @@ jobs:
         working-directory: apps/web
         run: npx cap sync ios
 
+      - name: Verificar proyecto Xcode generado
+        working-directory: apps/web/ios
+        shell: bash
+        run: |
+          test -d App/App.xcodeproj || { echo "No se generó App/App.xcodeproj"; find App -maxdepth 2 -print; exit 1; }
+          xcodebuild -project App/App.xcodeproj -list
+
       - name: Compilar para simulador iPhone
         working-directory: apps/web/ios
-        run: xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+        run: xcodebuild -project App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
