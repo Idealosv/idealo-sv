@@ -57,7 +57,7 @@ if (/\.erp-content:has\(\.executive-dashboard-host\)>:not\(\.executive-dashboard
 if (!source.dashboardCss.includes('>.welcome-strip') || !source.dashboardCss.includes('>.metric-grid') || !source.dashboardCss.includes('>.dashboard-grid')) failures.push('Dashboard debe ocultar únicamente los bloques básicos duplicados cuando está activo el ejecutivo')
 
 const directRoutes = [
-  ['Dashboard','workspace','Resumen'],['Clientes','workspace','Clientes'],['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja'],['Asistente IA','assistant',null],['Agenda','planning',null],['Reportes','financial',null],['Seguridad','security',null],
+  ['Dashboard','workspace','Resumen'],['Clientes','workspace','Clientes'],['Comercial','commercial','Cotizaciones'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Abastecimiento','procurement','Control'],['Caja','procurement','Caja'],['Agenda','planning',null],['Reportes','financial',null],['Asistente IA','assistant',null],['Seguridad','security',null],
 ]
 const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 for (const [name,target,tab] of directRoutes) {
@@ -68,12 +68,15 @@ for (const [name,target,tab] of directRoutes) {
 }
 for (const [key,label] of [['commercial','CommercialLauncher'],['inventory','InventoryCostLauncher'],['billing','FacturacionLauncher'],['procurement','OperationsFinanceLauncher'],['planning','ProductionCalendarLauncher'],['financial','FinancialDashboardLauncher'],['assistant','AssistantLauncher'],['security','SecurityLauncher']]) { if (!source[key].includes("window.addEventListener('idealo-open-module'")) failures.push(`${label} no escucha apertura directa desde el menú`) }
 if (!source.workspaceBridge.includes("detail.target !== 'workspace'")) failures.push('WorkspaceNavigationBridge no está limitado al target workspace')
-if (!source.commercial.includes('mainModuleForTab')) failures.push('Las pestañas comerciales deben sincronizar el módulo activo del menú')
-if (!source.procurement.includes('menuForTab')) failures.push('Proveedores, Compras y Caja deben sincronizar el módulo activo del menú')
+if (!source.menu.includes('normalizeModule')) failures.push('El menú agrupado debe normalizar nombres legados')
+if (!source.accessControl.includes("'Productos':'Comercial'") || !source.accessControl.includes("'Cotizaciones':'Comercial'") || !source.accessControl.includes("'Producción':'Comercial'")) failures.push('Comercial perdió compatibilidad con rutas anteriores')
+if (!source.accessControl.includes("'Proveedores':'Abastecimiento'") || !source.accessControl.includes("'Compras':'Abastecimiento'")) failures.push('Abastecimiento perdió compatibilidad con rutas anteriores')
+if (!source.commercial.includes("step==='quote'") || !source.commercial.includes("step==='work-order'") || !source.commercial.includes("step==='production'") || !source.commercial.includes("step==='delivery'") || !source.commercial.includes("step==='collection'")) failures.push('El recorrido comercial simplificado está incompleto')
+if (!source.procurement.includes('menuForTab')) failures.push('Abastecimiento y Caja deben conservar sincronización interna')
 if (source.menu.includes('openLauncher(') || source.menu.includes('clickWorkspaceModule(')) failures.push('El menú principal volvió a usar navegación por clic simulado')
 if (source.menu.includes('MÓDULO EN ESTRUCTURA') || source.menu.includes('module-placeholder-card')) failures.push('El menú principal no debe renderizar placeholders genéricos')
 
-const expectedModules = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
+const expectedModules = ['Dashboard','Clientes','Comercial','Inventario','Facturación','Abastecimiento','Caja','Agenda','Reportes','Asistente IA','Seguridad']
 const moduleBlock = source.accessControl.match(/ERP_MODULES\s*=\s*\[([\s\S]*?)\]/)?.[1] || ''
 const actualModules = [...moduleBlock.matchAll(/'([^']+)'/g)].map((match) => match[1])
 if (JSON.stringify(actualModules) !== JSON.stringify(expectedModules)) failures.push(`Orden del menú inconsistente. Esperado: ${expectedModules.join(' > ')}`)
@@ -85,4 +88,4 @@ if (/\.idealo-main-menu-item\.active\s*\{[^}]*background\s*:\s*#f36c21/i.test(so
 if (!/\.idealo-main-menu-item\.active\s*\{[^}]*color\s*:\s*#f36c21/i.test(source.menuCss)) failures.push('El módulo activo debe marcarse con texto naranja')
 
 if (failures.length) { console.error('\nAuditoría frontend falló:'); failures.forEach((failure) => console.error(`- ${failure}`)); process.exit(1) }
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, formularios simplificados, jerarquía visual protegida, navegación directa consolidada, runtime aislado y menú protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, formularios simplificados, jerarquía visual protegida, navegación agrupada consolidada, runtime aislado y menú protegido.`)
