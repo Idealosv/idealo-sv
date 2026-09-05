@@ -15,7 +15,10 @@ requireText(security,"UsersAdministrationCenter",'Seguridad ↔ Centro de Usuari
 requireText(usersAdmin,"/api/admin/users?company_id=",'Usuarios y Administración ↔ API segura')
 requireText(usersAdmin,"/api/admin/audit?company_id=",'Usuarios y Administración ↔ auditoría')
 requireText(usersAdmin,"/api/admin/users/invite",'Usuarios y Administración ↔ invitaciones')
+requireText(usersAdmin,'session?.access_token','Usuarios y Administración ↔ sesión autenticada')
+requireText(usersAdmin,'Authorization:`Bearer ${token}`','Usuarios y Administración ↔ token Bearer')
 forbidText(usersAdmin,"from '@supabase/supabase-js'",'Usuarios y Administración cliente duplicado')
+forbidText(usersAdmin,"from './lib/supabase.js'",'Usuarios y Administración debe operar solo por API')
 
 const receivables=read('apps/web/src/BillingReceivablesPanel.jsx')
 forbidText(receivables,'source_type','CxC ↔ accounts_receivable')
@@ -44,7 +47,6 @@ for(const relative of [
   'apps/web/src/HrPayrollLauncher.jsx',
   'apps/web/src/ProductionCalendarLauncher.jsx',
   'apps/web/src/SecurityLauncher.jsx',
-  'apps/web/src/UsersAdministrationCenter.jsx',
   'apps/web/src/AssistantLauncher.jsx',
   'apps/web/src/QualityControlLauncher.jsx',
   'apps/web/src/MobileAppHost.jsx',
