@@ -4,7 +4,7 @@ const money = (value) => new Intl.NumberFormat('en-US', { style: 'currency', cur
 const dt = (value) => value ? new Date(value).toLocaleString('es-SV') : '—'
 const newKey = () => crypto.randomUUID()
 
-export function DeliveriesModule({ company, supabase }) {
+export function DeliveriesModule({ company, supabase, initialWorkOrderId = '' }) {
   const [orders, setOrders] = useState([])
   const [rows, setRows] = useState([])
   const [message, setMessage] = useState('')
@@ -36,6 +36,11 @@ export function DeliveriesModule({ company, supabase }) {
   }
 
   useEffect(() => { load() }, [company.id])
+  useEffect(() => {
+    if (!initialWorkOrderId || !orders.some((order) => order.id === initialWorkOrderId)) return
+    const alreadyCreated = rows.some((row) => row.work_order_id === initialWorkOrderId)
+    if (!alreadyCreated) setForm((value) => ({ ...value, work_order_id: initialWorkOrderId }))
+  }, [initialWorkOrderId, orders, rows])
 
   const create = async (event) => {
     event.preventDefault()
