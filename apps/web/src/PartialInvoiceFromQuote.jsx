@@ -57,7 +57,7 @@ async function apiRequest(path,session,body){
   return payload
 }
 
-export default function PartialInvoiceFromQuote({session,supabase,company}){
+export default function PartialInvoiceFromQuote({session,supabase,company,initialWorkOrderId='',initialQuoteId=''}){
   const [quotes,setQuotes]=useState([])
   const [quoteId,setQuoteId]=useState('')
   const [percentage,setPercentage]=useState('50')
@@ -105,6 +105,20 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
     setBilling({billed,remaining:round(Math.max(0,Number(selected?.total||0)-billed)),documents:billedDocs.length,advance,advanceAvailable})
   }
 
+  useEffect(()=>{
+    if(!quotes.length)return
+    const resolve=async()=>{
+      let target=initialQuoteId||''
+      if(!target&&initialWorkOrderId){
+        const {data,error}=await supabase.from('work_orders').select('quote_id').eq('company_id',company.id).eq('id',initialWorkOrderId).maybeSingle()
+        if(error){setMessage(error.message);return}
+        target=data?.quote_id||''
+      }
+      if(target&&target!==quoteId&&quotes.some(row=>row.id===target))await chooseQuote(target)
+    }
+    resolve()
+  },[initialQuoteId,initialWorkOrderId,quotes.length,company.id,supabase,quoteId])
+
   const issuePartial=async()=>{
     if(!quote||!lines.length||requested<=0)return
     if(requested>billing.remaining+0.01){setMessage('El monto supera el saldo pendiente de facturar.');return}
@@ -129,10 +143,11 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
   const choosePercentage=(value)=>{setMode('percentage');setPercentage(value);setManualAmount('')}
 
   return <section className="panel" style={{marginBottom:16}}>
-    <div className="billing-section-intro"><div><strong>Facturar parte del proyecto</strong><small>Seleccioná la cotización y cuánto querés facturar. El IVA se calcula solo.</small></div></div>
+    <div className="billing-section-intro"><div><strong>Facturar parte del proyecto</strong><small>{initialWorkOrderId?'La OT entregada ya quedó seleccionada. Revisá el saldo y emití el documento.':'Seleccioná la cotización y cuánto querés facturar. El IVA se calcula solo.'}</small></div></div>
     <div className="form-grid three">
       <label className="field form-span-3"><span>Proyecto</span><select value={quoteId} onChange={e=>chooseQuote(e.target.value)}><option value="">Seleccionar cotización</option>{quotes.map(row=><option key={row.id} value={row.id}>{`${row.prefix||'COT'}-${row.number} · ${row.project_name||'Proyecto'} · $${Number(row.total||0).toFixed(2)}`}</option>)}</select></label>
       {quote&&<>
+        {initialWorkOrderId&&workOrder&&<div className="billing-context-banner form-span-3"><strong>Continuación automática:</strong> OT-{String(workOrder.number).padStart(5,'0')} → Facturación.</div>}
         <div className="billing-context-banner form-span-3" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:12}}>
           <span>Total proyecto<br/><strong>${projectTotal.toFixed(2)}</strong></span>
           <span>Anticipo recibido<br/><strong>${billing.advance.toFixed(2)}</strong></span>
@@ -159,6 +174,6 @@ export default function PartialInvoiceFromQuote({session,supabase,company}){
       </>}
     </div>
     {message&&<p className={message.includes('creado')?'feedback success':'feedback error'} role="status">{message}</p>}
-    <small className="billing-auto-note">Un borrador no cuenta como facturado. Solo los DTE aceptados/procesados por Hacienda descuentan el saldo por facturar. Los anticipos se muestran aparte y se aplican sin duplicar Caja.</small>
+    <small className="billing-auto-note">Un borrador no cuenta como facturado. Solo los DTE aceptados/procesados por Hacienda descuentan el saldo por facturar. Si es crédito, la cuenta por cobrar se genera automáticamente al ser aceptado; si es contado, el ingreso se registra según la configuración de Caja/Banco.</small>
   </section>
 }
