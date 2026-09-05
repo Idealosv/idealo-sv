@@ -6,6 +6,7 @@ const here=path.dirname(fileURLToPath(import.meta.url))
 const root=path.resolve(here,'../../..')
 const read=(relative)=>fs.readFileSync(path.join(root,relative),'utf8')
 const requireText=(text,token,label)=>{if(!text.includes(token))throw new Error(`${label}: falta ${token}`)}
+const requirePattern=(text,pattern,label)=>{if(!pattern.test(text))throw new Error(`${label}: no coincide ${pattern}`)}
 const forbidText=(text,token,label)=>{if(text.includes(token))throw new Error(`${label}: no debe contener ${token}`)}
 
 const security=read('apps/web/src/SecurityLauncher.jsx')
@@ -23,7 +24,7 @@ requireText(receivables,'dte_document_id','CxC ↔ accounts_receivable')
 requireText(receivables,'concept','CxC ↔ accounts_receivable')
 
 const api=read('apps/api/src/index.js')
-requireText(api,"process.env.NODE_ENV === 'production'",'CORS producción')
+requirePattern(api,/process\.env\.NODE_ENV\s*===\s*['"]production['"]\s*&&\s*configuredOrigins\.length\s*===\s*0/,'CORS producción')
 requireText(api,'CORS_ORIGIN es obligatoria en producción','CORS producción')
 requireText(api,"/api/admin/users",'API administración de usuarios')
 requireText(api,"/api/admin/audit",'API auditoría administrativa')
