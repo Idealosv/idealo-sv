@@ -12,4 +12,5 @@ html[data-erp-role="viewer"] .submit-button,html[data-erp-role="viewer"] .form-a
 .compact-module-placeholder{max-width:760px}
 .module-placeholder-card{min-height:220px;display:flex;flex-direction:column;justify-content:center}
 .module-placeholder-card h2{margin:6px 0 10px}
-@media(max-width:760px){.idealo-main-menu{max-height:none;padding-bottom:16px}#idealo-access-toast{left:14px;right:14px;bottom:14px}}
+.mfa-gate{position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;padding:20px;background:rgba(14,17,20,.86);backdrop-filter:blur(8px)}.mfa-gate section{width:min(440px,100%);background:#fff;border-radius:18px;padding:26px;box-shadow:0 28px 80px rgba(0,0,0,.38)}.mfa-gate h2{margin:5px 0 8px}.mfa-gate p{color:#606870;line-height:1.45}.mfa-gate label{display:grid;gap:6px;margin:18px 0 12px;font-weight:800}.mfa-gate input{min-height:48px;border:1px solid #ccd2d8;border-radius:11px;padding:0 13px;font:inherit;font-size:1.08rem;letter-spacing:.2em}.mfa-gate .btn{width:100%;margin-top:8px}
+@media(max-width:760px){.idealo-main-menu{max-height:none;padding-bottom:16px}#idealo-access-toast{left:14px;right:14px;bottom:14px}.mfa-gate section{padding:20px}}
