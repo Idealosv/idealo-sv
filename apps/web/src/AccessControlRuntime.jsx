@@ -1,0 +1,16 @@
+import {useEffect,useState} from 'react'
+import {supabase} from './lib/supabase.js'
+import {canAccessModule,isReadOnlyRole,moduleFromOpenDetail,ROLE_LABEL} from './erp-access-control.js'
+
+const MUTATION_WORDS=['guardar','crear','nuevo','nueva','agregar','añadir','eliminar','borrar','anular','revocar','autorizar','aprobar','rechazar','emitir','facturar','cobrar','pagar','registrar','actualizar','editar','modificar','enviar invitación','procesar']
+const SAFE_WORDS=['cerrar','volver','cancelar','buscar','filtrar','ver','detalle','detalles','actualizar lista','refrescar','descargar','imprimir']
+
+export default function AccessControlRuntime(){
+ const [role,setRole]=useState('')
+ useEffect(()=>{let live=true;if(!supabase)return;const load=async()=>{const {data:{session}}=await supabase.auth.getSession();if(!session){if(live)setRole('');return}const {data,error}=await supabase.from('company_members').select('role').eq('user_id',session.user.id).limit(1).maybeSingle();if(live&&!error)setRole(String(data?.role||'').toLowerCase())};load();const {data:l}=supabase.auth.onAuthStateChange(()=>load());return()=>{live=false;l.subscription.unsubscribe()}},[])
+ useEffect(()=>{if(!role)return;const guard=e=>{const module=moduleFromOpenDetail(e.detail||{});if(!module||canAccessModule(role,module))return;e.stopImmediatePropagation();e.preventDefault?.();notify(`Acceso restringido: ${ROLE_LABEL[role]||role} no tiene permiso para ${module}.`)};window.addEventListener('idealo-open-module',guard,true);return()=>window.removeEventListener('idealo-open-module',guard,true)},[role])
+ useEffect(()=>{if(!role)return;document.documentElement.dataset.erpRole=role;if(!isReadOnlyRole(role))return()=>{delete document.documentElement.dataset.erpRole};const onSubmit=e=>{if(!insideErp(e.target))return;e.preventDefault();e.stopImmediatePropagation();notify('Modo Solo lectura: no podés guardar ni modificar información.')};const onClick=e=>{const button=e.target.closest?.('button,[role="button"]');if(!button||!insideErp(button)||button.closest('.idealo-main-menu'))return;const text=(button.innerText||button.getAttribute('aria-label')||'').trim().toLowerCase();if(!text||SAFE_WORDS.some(x=>text.includes(x)))return;if(MUTATION_WORDS.some(x=>text.includes(x))){e.preventDefault();e.stopImmediatePropagation();notify('Modo Solo lectura: esta acción requiere permiso de edición.')}};document.addEventListener('submit',onSubmit,true);document.addEventListener('click',onClick,true);return()=>{delete document.documentElement.dataset.erpRole;document.removeEventListener('submit',onSubmit,true);document.removeEventListener('click',onClick,true)}},[role])
+ return null
+}
+function insideErp(node){return Boolean(node?.closest?.('.erp-shell,.erp-modal-panel,.clients-module,.invoice-form,.admin-users-panel'))}
+function notify(message){window.dispatchEvent(new CustomEvent('idealo-access-denied',{detail:{message}}));let box=document.getElementById('idealo-access-toast');if(!box){box=document.createElement('div');box.id='idealo-access-toast';box.setAttribute('role','status');document.body.appendChild(box)}box.textContent=message;box.classList.add('show');window.clearTimeout(box._t);box._t=window.setTimeout(()=>box.classList.remove('show'),3200)}
