@@ -35,14 +35,14 @@ function enhancePurchaseForm(form){
     <div class="purchase-iva-choice" role="group" aria-label="Cómo viene el IVA">
       <span>¿Cómo viene el precio?</span>
       <div>
-        <button type="button" data-mode="INCLUDED" class="active">Ya incluye IVA</button>
-        <button type="button" data-mode="PLUS">Agregar IVA</button>
-        <button type="button" data-mode="EXEMPT">Sin IVA</button>
+        <button type="button" data-runtime-action="set-tax-mode" data-mode="INCLUDED" class="active">Ya incluye IVA</button>
+        <button type="button" data-runtime-action="set-tax-mode" data-mode="PLUS">Agregar IVA</button>
+        <button type="button" data-runtime-action="set-tax-mode" data-mode="EXEMPT">Sin IVA</button>
       </div>
     </div>`
   subtotalLabel?.parentElement?.insertBefore(simple,subtotalLabel)
   const amount=simple.querySelector('.purchase-simple-amount')
-  const buttons=[...simple.querySelectorAll('[data-mode]')]
+  const buttons=[...simple.querySelectorAll('[data-runtime-action="set-tax-mode"][data-mode]')]
   let mode='INCLUDED'
 
   const help=document.createElement('div')
