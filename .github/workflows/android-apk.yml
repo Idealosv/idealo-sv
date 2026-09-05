@@ -23,6 +23,7 @@ jobs:
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       VITE_API_URL: ${{ secrets.VITE_API_URL }}
       VITE_ANDROID_BUILD_SHA: ${{ github.sha }}
+      ANDROID_SIGNING_READY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
@@ -93,6 +94,25 @@ jobs:
             cp "$dir/ic_launcher.xml" "$dir/ic_launcher_round.xml"
           done
 
+      - name: Preparar firma Android release
+        if: env.ANDROID_SIGNING_READY == 'true'
+        working-directory: apps/web
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          IDEALO_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/web/android/app/idealo-release.jks
+          IDEALO_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          IDEALO_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          IDEALO_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/idealo-release.jks
+          node scripts/patch-android-release-signing.mjs
+          keytool -list -keystore android/app/idealo-release.jks -storepass "$IDEALO_ANDROID_KEYSTORE_PASSWORD" -alias "$IDEALO_ANDROID_KEY_ALIAS" >/dev/null
+
+      - name: Avisar si AAB aún no tiene firma de tienda
+        if: env.ANDROID_SIGNING_READY != 'true'
+        run: echo "AAB compilable, pero faltan secretos de firma de Google Play. El APK debug seguirá disponible para pruebas físicas."
+
       - name: Compilar APK debug y AAB release
         working-directory: apps/web/android
         run: |
@@ -107,13 +127,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publicar AAB de release como artefacto
+      - name: Publicar AAB firmado de release
+        if: env.ANDROID_SIGNING_READY == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: idealo-sv-android-release-aab
+          name: idealo-sv-android-release-signed
           path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publicar AAB no firmado de validación
+        if: env.ANDROID_SIGNING_READY != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: idealo-sv-android-release-unsigned
+          path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Publicar actualización Android más reciente
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -126,4 +156,4 @@ jobs:
             apps/web/android/app/build/outputs/apk/debug/app-debug.apk#IDEALO-SV-Android.apk \
             --target "$GITHUB_SHA" \
             --title "IDEALO SV Android ${GITHUB_SHA::7}" \
-            --notes "build_sha=${GITHUB_SHA}"
+            --notes "build_sha=${GITHUB_SHA}; signing_ready=${ANDROID_SIGNING_READY}"
