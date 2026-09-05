@@ -92,9 +92,11 @@ jobs:
             cp "$dir/ic_launcher.xml" "$dir/ic_launcher_round.xml"
           done
 
-      - name: Compilar APK debug
+      - name: Compilar APK debug y AAB release
         working-directory: apps/web/android
-        run: ./gradlew assembleDebug
+        run: |
+          ./gradlew assembleDebug
+          ./gradlew bundleRelease
 
       - name: Publicar APK como artefacto
         uses: actions/upload-artifact@v4
@@ -103,6 +105,14 @@ jobs:
           path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publicar AAB de release como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: idealo-sv-android-release-aab
+          path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Publicar actualización Android más reciente
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
