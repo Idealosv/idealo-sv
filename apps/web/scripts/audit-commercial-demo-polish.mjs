@@ -11,8 +11,8 @@ const dashboard=read('../src/ExecutiveDashboardHost.jsx')
 
 const checks=[
  ['cotizaciones bloquea acciones concurrentes',quotes.includes("[actionBusy,setActionBusy]")&&quotes.includes("const locked=Boolean(busy||actionBusy)")],
- ['cotizaciones busca OT existente antes de insertar',quotes.includes('findExistingWorkOrder')&&quotes.includes(".eq('quote_id',form.id).maybeSingle()")],
- ['cotizaciones recupera conflicto único sin duplicar',quotes.includes("error.code==='23505'")&&quotes.includes('No se creó un duplicado')],
+ ['cotizaciones convierte OT mediante RPC atómico',quotes.includes("rpc('convert_quote_to_work_order'")&&quotes.includes("p_quote_id:form.id")],
+ ['cotizaciones informa idempotencia sin duplicar',quotes.includes('data?.existing')&&quotes.includes('No se creó un duplicado')],
  ['botón crear orden informa progreso',quotes.includes('Creando orden…')&&quotes.includes("disabled={locked}")],
  ['lista de cotizaciones distingue cero datos de cero coincidencias',quotes.includes('Todavía no hay cotizaciones.')&&quotes.includes('No encontramos coincidencias.')],
  ['producción refresca sin vaciar el tablero',production.includes('[refreshing,setRefreshing]')&&production.includes("refreshing?'Actualizando…':'Actualizar'")],
