@@ -95,7 +95,7 @@
 }
 
 .module-secondary-tools {
-  margin:0 0 12px;
+  margin:12px 0 0;
   border:1px solid #d7dce1;
   border-radius:10px;
   background:#f8f9fa;
@@ -117,8 +117,6 @@
 .module-secondary-tools[open] > summary::after{content:'Ocultar'}
 .module-secondary-tools-body{padding:0 10px 10px}
 
-/* Subnavegación para agrupar funciones relacionadas sin llenar el encabezado
-   con pestañas repetidas. */
 .compact-subnav{
   display:flex;
   gap:6px;
@@ -147,15 +145,40 @@
   color:#fff!important;
 }
 
-/* Recorrido comercial: una sola guía para entender en qué etapa está el trabajo
-   y saltar al módulo correcto sin duplicar menús. */
-.commercial-journey{
-  display:grid;
-  grid-template-columns:repeat(7,minmax(92px,1fr));
-  gap:1px;
+/* Comercial usa un solo control de navegación: Catálogo + recorrido completo. */
+.commercial-flow-toolbar{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
   padding:8px 12px;
   border-bottom:1px solid #dfe3e7;
   background:#f7f8f9;
+}
+.commercial-flow-toolbar>button{
+  flex:0 0 auto;
+  min-width:92px;
+  min-height:46px;
+  padding:7px 12px;
+  border:1px solid #d4d9de!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#3c444b!important;
+  box-shadow:none!important;
+  font-size:11px;
+  font-weight:800;
+}
+.commercial-flow-toolbar>button.active{
+  background:#23282f!important;
+  border-color:#23282f!important;
+  color:#fff!important;
+}
+.commercial-journey{
+  flex:1 1 auto;
+  display:grid;
+  grid-template-columns:repeat(7,minmax(92px,1fr));
+  gap:1px;
+  padding:0;
+  background:transparent;
   overflow-x:auto;
 }
 .commercial-journey button{
@@ -191,25 +214,20 @@
   color:#181b1f!important;
   box-shadow:inset 0 0 0 1px #cfd5da!important;
 }
-.commercial-journey button.active span{
-  background:#f36c21;
-  color:#fff;
-}
+.commercial-journey button.active span{background:#f36c21;color:#fff}
 
 @media(max-width:760px){
   .products360-savebar,
   .production-detail-actions,
   .billing-content .form-actions,
-  .commercial-module .form-actions {
-    align-items:stretch;
-  }
+  .commercial-module .form-actions {align-items:stretch}
   .products360-savebar > button,
   .production-detail-actions > button,
   .billing-content .form-actions > button,
-  .commercial-module .form-actions > button {
-    flex:1 1 150px;
-  }
+  .commercial-module .form-actions > button {flex:1 1 150px}
   .compact-subnav{align-items:stretch}
   .compact-subnav button{flex:1 1 130px}
-  .commercial-journey{grid-template-columns:repeat(7,minmax(100px,1fr));padding:7px 8px}
+  .commercial-flow-toolbar{padding:7px 8px;overflow-x:auto}
+  .commercial-flow-toolbar>button{min-width:86px}
+  .commercial-journey{grid-template-columns:repeat(7,minmax(100px,1fr));min-width:700px}
 }
