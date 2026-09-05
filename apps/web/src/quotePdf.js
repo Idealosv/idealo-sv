@@ -1,3 +1,5 @@
+import { calculateItem, number, round2 } from './quoteEngine.js'
+
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value)||0)
 const clean=value=>String(value??'').replace(/[\u0000-\u001f]/g,' ').replace(/\s+/g,' ').trim()
 const pdfEscape=value=>clean(value).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')
@@ -6,6 +8,18 @@ const wrapNotes=(value,max=116)=>{const raw=String(value??'').replace(/\r/g,'');
 const winAnsiBytes=text=>{const map={8364:128,8218:130,402:131,8222:132,8230:133,8224:134,8225:135,710:136,8240:137,352:138,8249:139,338:140,381:142,8216:145,8217:146,8220:147,8221:148,8226:149,8211:150,8212:151,732:152,8482:153,353:154,8250:155,339:156,382:158,376:159};const bytes=[];for(const ch of text){const code=ch.charCodeAt(0);bytes.push(code<=255?code:(map[code]??63))}return new Uint8Array(bytes)}
 function buildPdf(objects){let body='%PDF-1.4\n',offsets=[0];for(let i=0;i<objects.length;i++){offsets.push(body.length);body+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`}const xref=body.length;body+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;for(let i=1;i<offsets.length;i++)body+=`${String(offsets[i]).padStart(10,'0')} 00000 n \n`;body+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;return new Blob([winAnsiBytes(body)],{type:'application/pdf'})}
 function buildPagedPdf(streams){const count=streams.length;const font1=3+count*2,font2=font1+1;const kids=streams.map((_,index)=>`${3+index*2} 0 R`).join(' ');const objects=[`<< /Type /Catalog /Pages 2 0 R >>`,`<< /Type /Pages /Kids [${kids}] /Count ${count} >>`];streams.forEach((stream,index)=>{const pageId=3+index*2,contentId=pageId+1;objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >> >> /Contents ${contentId} 0 R >>`);objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)});objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');return buildPdf(objects)}
+
+export function quotePdfLineValues(item){
+ const calc=calculateItem(item)
+ const taxRate=item?.taxable===false?0:Math.max(0,number(item?.tax_rate,13))
+ const grossFactor=taxRate>0?1+taxRate/100:1
+ return {
+  ...calc,
+  customerUnit:round2(calc.unitPrice*grossFactor),
+  customerRatePerM2:number(item?.price_per_m2)>0?round2(number(item.price_per_m2)*grossFactor):0,
+  customerLineTotal:round2(calc.total)
+ }
+}
 
 export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  const pages=[[]]
@@ -46,15 +60,27 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  if(quote?.title){text(42,y,'PROYECTO / SERVICIO',8,true,ORANGE);y-=18;text(42,y,quote.title,17,true,BLACK);y-=30}
 
  fill(36,y-2,523,30,BLACK)
- text(55,y+7,'DESCRIPCION',8,true,WHITE);text(390,y+7,'CANT.',8,true,WHITE);text(435,y+7,'P. UNIT.',8,true,WHITE);text(505,y+7,'TOTAL',8,true,WHITE)
+ text(55,y+7,'DESCRIPCION',8,true,WHITE);text(390,y+7,'CANT.',8,true,WHITE);text(431,y+7,'P. UNIT. C/IVA',7,true,WHITE);text(503,y+7,'TOTAL C/IVA',7,true,WHITE)
  y-=24
  items.forEach((item,index)=>{
-   const desc=clean(item.description)||`Partida ${index+1}`;const rows=wrap(desc,68);const qty=Number(item.quantity)||0;const unit=Number(item.unit_price)||0;const h=Math.max(38,24+(rows.length-1)*11)
+   const metrics=quotePdfLineValues(item)
+   const desc=clean(item.description)||`Partida ${index+1}`
+   const rows=wrap(desc,60)
+   const details=[]
+   if(metrics.area>0&&number(item.price_per_m2)>0){const unit=clean(item.dimension_unit||'m');details.push(`Medida: ${number(item.width)} x ${number(item.height)} ${unit} · Area: ${metrics.area} m2 · ${money(metrics.customerRatePerM2)}/m2 c/IVA`)}
+   if(metrics.discount>0)details.push(`Descuento aplicado: ${money(metrics.discount)}`)
+   if(metrics.surcharge>0)details.push(`Recargo aplicado: ${money(metrics.surcharge)}`)
+   const detailRows=details.flatMap(value=>wrap(value,68))
+   const allRows=[...rows,...detailRows]
+   const qty=metrics.quantity
+   const h=Math.max(38,24+(allRows.length-1)*11)
    if(index%2===1)fill(36,y-h+8,523,h,LIGHT)
    text(55,y,`${String(index+1).padStart(2,'0')}.`,8,true,ORANGE)
    text(82,y,rows[0],9,true,BLACK)
-   text(394,y,String(qty),9,false,DARK);text(435,y,money(unit),9,false,DARK);text(505,y,money(qty*unit),9,true,BLACK)
-   let yy=y-12;rows.slice(1).forEach(row=>{text(82,yy,row,8,false,MID);yy-=10})
+   text(394,y,String(qty),9,false,DARK);text(435,y,money(metrics.customerUnit),9,false,DARK);text(505,y,money(metrics.customerLineTotal),9,true,BLACK)
+   let yy=y-12
+   rows.slice(1).forEach(row=>{text(82,yy,row,8,false,MID);yy-=10})
+   detailRows.forEach(row=>{text(82,yy,row,7.5,false,MID);yy-=10})
    y-=h;line(36,y+8,559,y+8,'0.90 0.90 0.90',.4)
  })
 
