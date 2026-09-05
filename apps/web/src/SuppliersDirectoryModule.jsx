@@ -21,12 +21,15 @@ const TYPE_LABELS = {
   OTHER: 'Otro',
 }
 
+const digits = (value) => String(value || '').replace(/\D/g, '')
+
 export default function SuppliersDirectoryModule({ company, supabase }) {
   const [rows, setRows] = useState([])
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('success')
   const [form, setForm] = useState(EMPTY_FORM)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -70,7 +73,33 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
 
   const closeForm = () => {
     setShowForm(false)
+    setEditingId(null)
     setForm(EMPTY_FORM)
+  }
+
+  const startNew = () => {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setShowForm(true)
+    setMessage('')
+  }
+
+  const startEdit = (row) => {
+    setEditingId(row.id)
+    setForm({
+      name: row.name || '',
+      trade_name: row.trade_name || '',
+      nit: row.nit || '',
+      nrc: row.nrc || '',
+      contact_name: row.contact_name || '',
+      phone: row.phone || '',
+      email: row.email || '',
+      supplier_type: row.supplier_type || 'MATERIALS',
+      notes: row.notes || '',
+    })
+    setShowForm(true)
+    setMessage('')
+    window.setTimeout(() => document.querySelector('.supplier-create-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
   const save = async (event) => {
@@ -78,11 +107,18 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
     const name = form.name.trim()
     if (!name) return
 
-    const normalizedNit = form.nit.trim()
-    const duplicate = rows.find((row) => normalizedNit && String(row.nit || '').trim() === normalizedNit)
-    if (duplicate) {
+    const normalizedNit = digits(form.nit)
+    const normalizedNrc = digits(form.nrc)
+    const duplicateNit = rows.find((row) => row.id !== editingId && normalizedNit && digits(row.nit) === normalizedNit)
+    if (duplicateNit) {
       setMessageType('error')
-      setMessage(`Ya existe un proveedor con el NIT ${normalizedNit}: ${duplicate.name}.`)
+      setMessage(`Ya existe un proveedor con ese NIT: ${duplicateNit.name}.`)
+      return
+    }
+    const duplicateNrc = rows.find((row) => row.id !== editingId && normalizedNrc && digits(row.nrc) === normalizedNrc)
+    if (duplicateNrc) {
+      setMessageType('error')
+      setMessage(`Ya existe un proveedor con ese NRC: ${duplicateNrc.name}.`)
       return
     }
 
@@ -91,18 +127,22 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
     const payload = Object.fromEntries(
       Object.entries({ ...form, name }).map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value]),
     )
-    const { error } = await supabase.from('suppliers').insert({ ...payload, company_id: company.id })
+    const query = editingId
+      ? supabase.from('suppliers').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId).eq('company_id', company.id)
+      : supabase.from('suppliers').insert({ ...payload, company_id: company.id })
+    const { error } = await query
 
     if (error) {
       setMessageType('error')
-      setMessage(error.message)
+      setMessage(error.code === '23505' ? 'Ya existe un proveedor con ese NIT o NRC.' : error.message)
       setSaving(false)
       return
     }
 
     setMessageType('success')
-    setMessage('Proveedor guardado correctamente.')
+    setMessage(editingId ? 'Proveedor actualizado correctamente.' : 'Proveedor guardado correctamente.')
     setForm(EMPTY_FORM)
+    setEditingId(null)
     setShowForm(false)
     await load()
     setSaving(false)
@@ -113,6 +153,7 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
       .from('suppliers')
       .update({ active: !row.active, updated_at: new Date().toISOString() })
       .eq('id', row.id)
+      .eq('company_id', company.id)
 
     setMessageType(error ? 'error' : 'success')
     setMessage(error ? error.message : row.active ? 'Proveedor desactivado.' : 'Proveedor activado.')
@@ -127,7 +168,7 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
           <h2>Proveedores</h2>
           <p>Directorio de empresas y personas que suministran materiales, servicios, transporte y gastos operativos.</p>
         </div>
-        <button type="button" className="suppliers-primary" onClick={() => setShowForm((current) => !current)}>
+        <button type="button" className="suppliers-primary" onClick={showForm ? closeForm : startNew}>
           {showForm ? 'Cerrar registro' : '+ Nuevo proveedor'}
         </button>
       </div>
@@ -144,8 +185,8 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
       {showForm && (
         <form className="panel supplier-create-card" onSubmit={save}>
           <div className="supplier-form-head">
-            <div><p className="form-kicker">NUEVO PROVEEDOR</p><h3>Información del proveedor</h3></div>
-            <p>Completa solo los datos que tengas disponibles. La razón social es obligatoria.</p>
+            <div><p className="form-kicker">{editingId ? 'EDITAR PROVEEDOR' : 'NUEVO PROVEEDOR'}</p><h3>{editingId ? 'Actualizar información' : 'Información del proveedor'}</h3></div>
+            <p>La razón social es obligatoria. NIT y NRC no pueden repetirse dentro de la misma empresa.</p>
           </div>
 
           <fieldset className="supplier-fieldset">
@@ -171,7 +212,7 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
 
           <div className="form-actions end supplier-form-actions">
             <button type="button" className="supplier-secondary" onClick={closeForm}>Cancelar</button>
-            <button type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar proveedor'}</button>
+            <button type="submit" disabled={saving}>{saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Guardar proveedor'}</button>
           </div>
         </form>
       )}
@@ -200,7 +241,7 @@ export default function SuppliersDirectoryModule({ company, supabase }) {
                   <td><strong>{row.contact_name || 'Sin contacto'}</strong><small>{row.phone || row.email || 'Sin datos de contacto'}</small></td>
                   <td><span>NIT {row.nit || '—'}</span><small>NRC {row.nrc || '—'}</small></td>
                   <td><span className={`supplier-status ${row.active ? 'active' : 'inactive'}`}>{row.active ? 'Activo' : 'Inactivo'}</span></td>
-                  <td><button type="button" className="supplier-row-action" onClick={() => toggle(row)}>{row.active ? 'Desactivar' : 'Activar'}</button></td>
+                  <td><button type="button" className="supplier-row-action" onClick={() => startEdit(row)}>Editar</button> <button type="button" className="supplier-row-action" onClick={() => toggle(row)}>{row.active ? 'Desactivar' : 'Activar'}</button></td>
                 </tr>
               ))}</tbody>
             </table>
