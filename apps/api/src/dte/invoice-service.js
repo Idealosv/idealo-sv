@@ -1,5 +1,7 @@
 import { buildCreditoFiscalFromRecords, buildFacturaFromRecords } from './fiscal-profile.js'
 import { DTE_ROLES, requireAuthenticatedUser, requireCompanyRole } from './access-control.js'
+import { buildCompanyDteEnv } from './runtime-settings-service.js'
+import { getDteProductionPreflightStatus } from './config.js'
 
 const TEST_ESTABLISHMENT_CODE = 'M001'
 const TEST_POINT_OF_SALE_CODE = 'P001'
@@ -10,8 +12,9 @@ function nextControlNumber(lastControlNumber, dteType = '01') {
   const next = Number.isFinite(current) ? current + 1 : 1
   return `DTE-${dteType}-${TEST_ESTABLISHMENT_CODE}${TEST_POINT_OF_SALE_CODE}-${padSequence(next)}`
 }
+export function productionDraftConfirmation(dteType='01') { return `PREPARAR PRODUCCION DTE-${String(dteType)}` }
 
-export async function createInvoiceDraft({ request, supabase }) {
+export async function createInvoiceDraft({ request, supabase, env = process.env }) {
   const user = await requireAuthenticatedUser({ request, supabase })
 
   const {
@@ -19,9 +22,12 @@ export async function createInvoiceDraft({ request, supabase }) {
     payment = null, numPagoElectronico = null, documentoRelacionado = null, ventaTercero = null,
     apendice = null, ivaRete = 0, ivaPerci = 0, reteRenta = 0, saldoFavor = 0, totalNoGravado = 0,
     reissuedFromId = null, sourceQuoteId = null, sourceWorkOrderId = null,
+    environment = 'test', confirmation = null,
   } = request.body || {}
   const type = String(dteType)
+  const targetEnvironment = String(environment || 'test').toLowerCase()
   if (!['01', '03'].includes(type)) { const error = new Error('Tipo DTE no soportado. Usa 01 o 03.'); error.statusCode = 400; throw error }
+  if (!['test','production'].includes(targetEnvironment)) { const error = new Error('Ambiente DTE inválido. Usa test o production.'); error.statusCode = 400; throw error }
   if (!companyId || !Array.isArray(items) || items.length === 0 || !totalLetras) {
     const error = new Error(`Faltan datos obligatorios para crear el DTE-${type}.`); error.statusCode = 400; throw error
   }
@@ -33,14 +39,22 @@ export async function createInvoiceDraft({ request, supabase }) {
     supabase,
     companyId,
     userId: user.id,
-    allowedRoles: DTE_ROLES.DRAFT,
-    operation: 'crear borradores de facturación electrónica',
+    allowedRoles: targetEnvironment === 'production' ? DTE_ROLES.TRANSMIT_PRODUCTION : DTE_ROLES.DRAFT,
+    operation: targetEnvironment === 'production' ? 'preparar DTE de PRODUCCIÓN' : 'crear borradores de facturación electrónica',
   })
+
+  if (targetEnvironment === 'production') {
+    const expected = productionDraftConfirmation(type)
+    if (confirmation !== expected) { const error = new Error(`Confirmación inválida. Debes confirmar exactamente: ${expected}`); error.statusCode = 409; throw error }
+    const companyEnv = await buildCompanyDteEnv({ companyId, supabase, env })
+    const preflight = getDteProductionPreflightStatus(companyEnv)
+    if (!preflight.configurationReady) { const error = new Error(`PRODUCCIÓN continúa bloqueada: ${(preflight.blockers || []).join(' ')}`); error.statusCode = 409; throw error }
+  }
 
   let rejectedSource = null
   if (reissuedFromId) {
     const { data, error } = await supabase.from('dte_documents')
-      .select('id, company_id, client_id, dte_type, status, control_number, source_quote_id, source_work_order_id')
+      .select('id, company_id, client_id, dte_type, environment, status, control_number, source_quote_id, source_work_order_id')
       .eq('id', reissuedFromId)
       .eq('company_id', companyId)
       .single()
@@ -50,8 +64,8 @@ export async function createInvoiceDraft({ request, supabase }) {
       reissueError.statusCode = 409
       throw reissueError
     }
-    if (String(data.dte_type) !== type) {
-      const reissueError = new Error('La reemisión debe conservar el mismo tipo de DTE del documento rechazado.')
+    if (String(data.dte_type) !== type || data.environment !== targetEnvironment) {
+      const reissueError = new Error('La reemisión debe conservar el mismo tipo de DTE y ambiente del documento rechazado.')
       reissueError.statusCode = 409
       throw reissueError
     }
@@ -93,12 +107,14 @@ export async function createInvoiceDraft({ request, supabase }) {
   const { data: controlNumber, error: controlError } = await supabase.rpc('next_dte_control_number', {
     p_company_id: companyId,
     p_dte_type: type,
-    p_environment: 'test',
+    p_environment: targetEnvironment,
   })
   if (controlError) throw controlError
   if (!controlNumber) { const error = new Error('No se pudo reservar un número de control DTE único.'); error.statusCode = 500; throw error }
 
-  const testCompany = { ...company, establishment_code: TEST_ESTABLISHMENT_CODE, point_of_sale_code: TEST_POINT_OF_SALE_CODE }
+  const issuerCompany = targetEnvironment === 'test'
+    ? { ...company, establishment_code: TEST_ESTABLISHMENT_CODE, point_of_sale_code: TEST_POINT_OF_SALE_CODE }
+    : company
   const normalizedItems = items.map((item) => ({
     descripcion: String(item.descripcion || '').trim(), cantidad: Number(item.cantidad), precioUni: Number(item.precioUni), montoDescu: Number(item.montoDescu || 0),
     tipoItem: Number(item.tipoItem || 2), uniMedida: Number(item.uniMedida || 59), codigo: item.codigo ? String(item.codigo).trim() : null,
@@ -106,7 +122,7 @@ export async function createInvoiceDraft({ request, supabase }) {
   }))
 
   const common = {
-    company: testCompany, client, items: normalizedItems, numeroControl: controlNumber,
+    company: issuerCompany, client, items: normalizedItems, numeroControl: controlNumber,
     condicionOperacion: Number(condicionOperacion), totalLetras: String(totalLetras).trim(), observaciones: observaciones ? String(observaciones).trim() : null,
     payment, numPagoElectronico: numPagoElectronico || null, documentoRelacionado, ventaTercero, apendice,
     ivaRete: Number(ivaRete || 0), saldoFavor: Number(saldoFavor || 0), totalNoGravado: Number(totalNoGravado || 0),
@@ -114,14 +130,15 @@ export async function createInvoiceDraft({ request, supabase }) {
   const dte = type === '03'
     ? buildCreditoFiscalFromRecords({ ...common, ivaPerci: Number(ivaPerci || 0), reteRenta: Number(reteRenta || 0) })
     : buildFacturaFromRecords(common)
+  if (targetEnvironment === 'production') dte.identificacion.ambiente = '01'
 
   const { data: document, error: insertError } = await supabase.from('dte_documents').insert({
     company_id: companyId, client_id: client?.id || null, dte_type: type, generation_code: dte.identificacion.codigoGeneracion,
-    control_number: dte.identificacion.numeroControl, environment: 'test', status: 'DRAFT', dte_payload: dte, created_by: user.id,
+    control_number: dte.identificacion.numeroControl, environment: targetEnvironment, status: 'DRAFT', dte_payload: dte, created_by: user.id,
     reissued_from_id: rejectedSource?.id || null, source_quote_id: sourceQuote?.id || null, source_work_order_id: sourceWorkOrder?.id || null,
   }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload, reissued_from_id, source_quote_id, source_work_order_id').single()
   if (insertError) throw insertError
-  return { ...document, transmissionAllowed: false, signingPrepared: true, reissuePrepared: Boolean(rejectedSource) }
+  return { ...document, transmissionAllowed: false, signingPrepared: true, reissuePrepared: Boolean(rejectedSource), productionPrepared: targetEnvironment === 'production' }
 }
 
-export const __test__ = { nextControlNumber }
+export const __test__ = { nextControlNumber, productionDraftConfirmation }
