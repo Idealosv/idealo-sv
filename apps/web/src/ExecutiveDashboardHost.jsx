@@ -2,8 +2,6 @@ import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import ExecutiveDashboard from './ExecutiveDashboard.jsx'
-import DashboardIntelligence from './DashboardIntelligence.jsx'
-import DashboardAdvancedInsights from './DashboardAdvancedInsights.jsx'
 import DashboardOwnerDailyControl from './DashboardOwnerDailyControl.jsx'
 import FinancialAlertsDashboard from './FinancialAlertsDashboard.jsx'
 
@@ -12,9 +10,9 @@ const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 
 export default function ExecutiveDashboardHost(){
-  const [content,setContent]=useState(null),[company,setCompany]=useState(null),[visible,setVisible]=useState(true),[loadingCompany,setLoadingCompany]=useState(true),[loadError,setLoadError]=useState('')
+  const [content,setContent]=useState(null),[company,setCompany]=useState(null),[visible,setVisible]=useState(true),[loadingCompany,setLoadingCompany]=useState(true),[loadError,setLoadError]=useState(''),[expanded,setExpanded]=useState(false)
   useEffect(()=>{let attempts=0;const find=()=>{const target=document.querySelector('.erp-content');if(target){setContent(target);return true}return false};if(find())return undefined;const timer=window.setInterval(()=>{attempts+=1;if(find()||attempts>=40)window.clearInterval(timer)},250);return()=>window.clearInterval(timer)},[])
-  useEffect(()=>{const onModule=(event)=>setVisible(event.detail==='Dashboard');window.addEventListener('idealo-module-change',onModule);return()=>window.removeEventListener('idealo-module-change',onModule)},[])
+  useEffect(()=>{const onModule=(event)=>{const isDashboard=event.detail==='Dashboard';setVisible(isDashboard);if(!isDashboard)setExpanded(false)};window.addEventListener('idealo-module-change',onModule);return()=>window.removeEventListener('idealo-module-change',onModule)},[])
   useEffect(()=>{
     if(!supabase){setLoadingCompany(false);setLoadError('No se pudo inicializar la conexión del Dashboard.');return undefined}
     let active=true
@@ -25,5 +23,13 @@ export default function ExecutiveDashboardHost(){
   if(loadingCompany)return createPortal(<section className="executive-dashboard-host"><div className="panel empty-state"><strong>Preparando el Dashboard ejecutivo…</strong><small>Estamos reuniendo ventas, producción, caja, cartera e inventario de tu empresa.</small></div></section>,content)
   if(loadError)return createPortal(<section className="executive-dashboard-host"><div className="panel empty-state"><strong>Dashboard temporalmente no disponible</strong><small>{loadError}</small></div></section>,content)
   if(!company||!supabase)return null
-  return createPortal(<div className="executive-dashboard-host"><FinancialAlertsDashboard company={company} supabase={supabase}/><DashboardOwnerDailyControl company={company} supabase={supabase}/><DashboardIntelligence company={company} supabase={supabase}/><DashboardAdvancedInsights company={company} supabase={supabase}/><ExecutiveDashboard company={company} supabase={supabase}/></div>,content)
+  return createPortal(<div className="executive-dashboard-host dashboard-clean-view">
+    <FinancialAlertsDashboard company={company} supabase={supabase}/>
+    <DashboardOwnerDailyControl company={company} supabase={supabase}/>
+    <section className="dashboard-detail-gate" aria-label="Análisis detallado del negocio">
+      <div><p className="form-kicker">ANÁLISIS DEL NEGOCIO</p><h2>{expanded?'Detalle ejecutivo':'Más información cuando la necesités'}</h2><p>{expanded?'Ventas, producción, caja, inventario, compras y facturación en una sola vista.':'El Dashboard principal queda enfocado en alertas y decisiones. Los indicadores extensos se muestran solo bajo demanda.'}</p></div>
+      <button type="button" onClick={()=>setExpanded(value=>!value)} aria-expanded={expanded}>{expanded?'Ocultar análisis':'Ver análisis completo'}</button>
+    </section>
+    {expanded&&<div className="dashboard-expanded-analysis"><ExecutiveDashboard company={company} supabase={supabase}/></div>}
+  </div>,content)
 }
