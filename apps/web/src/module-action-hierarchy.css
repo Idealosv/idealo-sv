@@ -22,7 +22,6 @@
   font-weight:750;
 }
 
-/* Acción primaria: último paso operativo de la barra. */
 .products360-savebar > button:last-child,
 .production-detail-actions > button:last-child:not(.secondary),
 .billing-content .form-actions > button[type='submit'],
@@ -32,7 +31,6 @@
   border:1px solid #f36c21!important;
 }
 
-/* Secundarias: negro/gris empresarial, sin competir con la acción principal. */
 .products360-savebar .secondary-action,
 .production-detail-actions .secondary,
 .billing-content .form-actions .secondary,
@@ -43,7 +41,6 @@
   border:1px solid #23282f!important;
 }
 
-/* Destructivas: visibles, pero no como CTA principal. */
 .products360-savebar .danger-action,
 .commercial-module .danger-action,
 .billing-content .danger-action {
@@ -59,7 +56,6 @@
   border-color:#a12a2a!important;
 }
 
-/* Los filtros no deben parecer botones de acción. */
 .products360-toolbar select,
 .products360-toolbar input,
 .production-toolbar select,
@@ -73,7 +69,6 @@
   box-shadow:none!important;
 }
 
-/* Separación visual entre búsqueda/filtros y contenido. */
 .products360-toolbar,
 .production-toolbar {
   background:#f2f4f6!important;
@@ -82,7 +77,6 @@
   padding:10px!important;
 }
 
-/* Pestañas internas: activo negro; naranja reservado para acción/estado. */
 .erp-module-tab.active,
 .segmented-control button.active {
   background:#23282f!important;
@@ -91,7 +85,6 @@
   box-shadow:none!important;
 }
 
-/* Reducir ruido de tarjetas: borde claro y sin sombras acumuladas. */
 .products360 .panel,
 .production-suite .panel,
 .inventory360 .panel,
@@ -101,8 +94,6 @@
   border-color:#c7cdd4!important;
 }
 
-/* Herramientas avanzadas o de control: ocultas por defecto para evitar
-   repetir paneles principales. Se conservan todas las funciones. */
 .module-secondary-tools {
   margin:0 0 12px;
   border:1px solid #d7dce1;
@@ -126,8 +117,36 @@
 .module-secondary-tools[open] > summary::after{content:'Ocultar'}
 .module-secondary-tools-body{padding:0 10px 10px}
 
-/* En pantallas estrechas, las acciones se mantienen legibles sin convertirse
-   en una fila interminable. */
+/* Subnavegación para agrupar funciones relacionadas sin llenar el encabezado
+   con pestañas repetidas. */
+.compact-subnav{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:0 0 14px;
+  padding:6px;
+  border:1px solid #d7dce1;
+  border-radius:10px;
+  background:#f5f6f7;
+}
+.compact-subnav button{
+  min-height:32px;
+  padding:6px 11px;
+  border:1px solid transparent!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  color:#535c64!important;
+  box-shadow:none!important;
+  font-size:12px;
+  font-weight:750;
+}
+.compact-subnav button.active{
+  background:#23282f!important;
+  border-color:#23282f!important;
+  color:#fff!important;
+}
+
 @media(max-width:760px){
   .products360-savebar,
   .production-detail-actions,
@@ -141,4 +160,6 @@
   .commercial-module .form-actions > button {
     flex:1 1 150px;
   }
+  .compact-subnav{align-items:stretch}
+  .compact-subnav button{flex:1 1 130px}
 }
