@@ -20,6 +20,7 @@ export default function MobileEvidenceSheet({supabase,company,order,onClose,onSa
   if(!navigator.onLine){await enqueueOffline({kind:'evidence',blob:file,meta});return 'queued'}
   const {error:u}=await supabase.storage.from('work-order-evidence').upload(path,file,{contentType:meta.mime_type,upsert:false});if(u)throw u
   const {error:i}=await supabase.from('work_order_evidence').insert(meta);if(i){await supabase.storage.from('work-order-evidence').remove([path]);throw i}return 'saved'}
+ const openBillingPreparation=()=>window.dispatchEvent(new CustomEvent('idealo-mobile-delivery-billing',{detail:{workOrderId:order.id,workOrderNumber:order.number,clientId:order.client_id||'',description:order.title||`OT-${order.number}`,total:Number(order.total||0)}}))
  const save=async()=>{
   if(deliveryMode){
    if(!recipient.trim()){setMsg('Indicá el nombre de la persona que recibe.');return}
@@ -29,8 +30,8 @@ export default function MobileEvidenceSheet({supabase,company,order,onClose,onSa
   }else if(!files.length&&!signed.current){setMsg('Tomá al menos una foto o pedí la firma del cliente.');return}
   setBusy(true);setMsg('');try{let queued=0;for(const f of files){if(await uploadOne(f,deliveryMode?'DELIVERY':type)==='queued')queued++}if(signed.current){const blob=await dataUrlToBlob(canvasRef.current.toDataURL('image/png'));blob.name='firma-cliente.png';if(await uploadOne(blob,'SIGNATURE')==='queued')queued++}
    let deliveryResult=null;if(deliveryMode){if(!onConfirmDelivery)throw new Error('No está disponible la confirmación de entrega.');deliveryResult=await onConfirmDelivery({order,recipient:recipient.trim(),notes:notes||null,geo});setDone(true)}
-   if(deliveryMode)setMsg(deliveryResult==='queued'||queued?'Entrega guardada sin conexión. Foto, GPS, firma y confirmación se sincronizarán automáticamente.':'Entrega confirmada con foto, GPS y firma.');else setMsg(queued?'Guardado sin conexión. Se sincronizará automáticamente.':'Evidencia guardada correctamente.')
-   if(deliveryResult!=='queued')await onSaved?.();if(!deliveryMode&&!queued&&deliveryResult!=='queued')setGallery(true)
+   if(deliveryMode)setMsg(deliveryResult==='queued'||queued?'Entrega guardada sin conexión. Foto, GPS, firma y confirmación se sincronizarán automáticamente.':'Entrega confirmada con foto, GPS y firma. Facturación quedó preparada para revisión.');else setMsg(queued?'Guardado sin conexión. Se sincronizará automáticamente.':'Evidencia guardada correctamente.')
+   if(deliveryResult!=='queued'){await onSaved?.();if(deliveryMode)openBillingPreparation()}if(!deliveryMode&&!queued&&deliveryResult!=='queued')setGallery(true)
   }catch(e){if(!navigator.onLine){setMsg('Sin conexión: intentá guardar nuevamente para dejarlo en cola.')}else setMsg(e.message||'No se pudo guardar la evidencia.')}finally{setBusy(false)}}
  return <>{!gallery&&<div className="mobile-sheet-backdrop" onMouseDown={onClose}><section className="mobile-sheet" onMouseDown={e=>e.stopPropagation()}><header><div><small>{deliveryMode?'COMPROBANTE DE ENTREGA':'EVIDENCIA'} OT-{order.number}</small><strong>{order.title}</strong></div><button onClick={onClose}>×</button></header><div className="mobile-sheet-body">
   {deliveryMode&&<div className="mobile-evidence-msg">Para cerrar la OT como entregada se requiere persona que recibe, foto, ubicación GPS y firma.</div>}
