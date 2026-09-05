@@ -6,7 +6,7 @@ import './billing-receivables-payments.css'
 
 const emptyPayment={open:false,row:null,amount:'',payment_method:'CASH',cash_account_id:'',reference:'',notes:'',payment_key:''}
 
-export default function BillingReceivablesPanel({company,supabase,onOpenCash}){
+export default function BillingReceivablesPanel({company,supabase,onOpenCash,focusWorkOrderId='',focusQuoteId=''}){
   const [receivables,setReceivables]=useState([])
   const [payments,setPayments]=useState([])
   const [reversals,setReversals]=useState([])
@@ -35,6 +35,7 @@ export default function BillingReceivablesPanel({company,supabase,onOpenCash}){
   }
 
   useEffect(()=>{load()},[company.id])
+  useEffect(()=>{if(focusWorkOrderId||focusQuoteId){setFilter('OPEN');setQuery('')}},[focusWorkOrderId,focusQuoteId])
 
   const reversalByPayment=useMemo(()=>new Map(reversals.map(row=>[row.payment_id,row])),[reversals])
   const accountById=useMemo(()=>new Map(accounts.map(row=>[row.cash_account_id,row])),[accounts])
@@ -100,25 +101,30 @@ export default function BillingReceivablesPanel({company,supabase,onOpenCash}){
   },[receivables])
 
   const visible=useMemo(()=>{
-    const needle=query.trim().toLowerCase(),today=localIsoDate()
-    return receivables.filter(row=>matchesReceivableFilter(row,filter,today)&&(!needle||[row.number,row.clients?.name,row.concept,row.status].some(value=>String(value||'').toLowerCase().includes(needle))))
-  },[receivables,query,filter])
+    const needle=query.trim().toLowerCase(),today=localIsoDate(),hasFocus=Boolean(focusWorkOrderId||focusQuoteId)
+    return receivables.filter(row=>{
+      const focusMatches=!hasFocus||row.work_order_id===focusWorkOrderId||row.quote_id===focusQuoteId
+      return focusMatches&&matchesReceivableFilter(row,filter,today)&&(!needle||[row.number,row.clients?.name,row.concept,row.status].some(value=>String(value||'').toLowerCase().includes(needle)))
+    })
+  },[receivables,query,filter,focusWorkOrderId,focusQuoteId])
 
   if(loading)return <section className="billing-ar-state">Cargando cuentas por cobrar…</section>
 
   const pending=payment.row?balance(payment.row):0
   const after=Math.max(pending-Number(payment.amount||0),0)
   const selectedAccount=accountById.get(payment.cash_account_id)
+  const focused=Boolean(focusWorkOrderId||focusQuoteId)
 
   return <section className="billing-ar">
     <div className="billing-ar-head"><div><p className="form-kicker">COBRANZA · FACTURACIÓN</p><h3>Cuentas por cobrar</h3><p>Facturas a crédito, vencimientos, abonos parciales y cobros conectados directamente con Caja o Banco.</p></div><div className="billing-ar-actions"><button type="button" className="secondary-button" onClick={load}>Actualizar</button>{onOpenCash&&<button type="button" onClick={onOpenCash}>Abrir Caja</button>}</div></div>
+    {focused&&<div className="billing-context-banner"><strong>Mostrando la cuenta por cobrar del trabajo recién facturado.</strong></div>}
     {message&&<p className="feedback error">{message}</p>}
     {success&&<p className="feedback success">{success}</p>}
     <div className="billing-ar-kpis"><Kpi label="Saldo por cobrar" value={money(stats.open)}/><Kpi label="Vencido" value={money(stats.overdue)} danger={stats.overdue>0}/><Kpi label="Vence en 7 días" value={money(stats.due7)}/><Kpi label="Vence en 30 días" value={money(stats.due30)}/><Kpi label="Cuentas abiertas" value={stats.openCount}/><Kpi label="Cuentas vencidas" value={stats.overdueCount} danger={stats.overdueCount>0}/></div>
     <CustomerAdvancesPanel company={company} supabase={supabase} onRegistered={load}/>
     <div className="billing-ar-toolbar"><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Buscar cliente o documento" aria-label="Buscar cuentas por cobrar"/><select value={filter} onChange={event=>setFilter(event.target.value)}><option value="OPEN">Pendientes</option><option value="OVERDUE">Vencidas</option><option value="DUE7">Por vencer</option><option value="PAID">Pagadas</option><option value="CANCELLED">Anuladas</option><option value="ALL">Todas</option></select></div>
     <div className="billing-ar-grid">
-      <section className="billing-ar-card"><div className="billing-ar-card-head"><div><span>CARTERA</span><strong>Documentos por cobrar</strong></div><small>{visible.length} registro(s)</small></div>{visible.length?<div className="billing-ar-table-wrap"><table className="billing-ar-table"><thead><tr><th>Documento</th><th>Cliente</th><th>Vence</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th></th></tr></thead><tbody>{visible.map(row=><tr key={row.id}><td><strong>{row.number||'Cuenta'}</strong><small>{row.concept||'Facturación'}</small></td><td>{row.clients?.name||'Cliente'}</td><td>{row.due_date||'Sin fecha'}</td><td>{money(row.amount_total)}</td><td>{money(row.amount_paid)}</td><td><strong>{money(balance(row))}</strong></td><td><span className={`billing-ar-status ${statusLabel(row).toLowerCase().replaceAll(' ','-')}`}>{statusLabel(row)}</span></td><td>{isOpen(row)&&<button type="button" className="billing-ar-pay-button" onClick={()=>openPayment(row)}>Registrar cobro</button>}</td></tr>)}</tbody></table></div>:<div className="billing-ar-empty">No hay cuentas para este filtro.</div>}</section>
+      <section className="billing-ar-card"><div className="billing-ar-card-head"><div><span>CARTERA</span><strong>Documentos por cobrar</strong></div><small>{visible.length} registro(s)</small></div>{visible.length?<div className="billing-ar-table-wrap"><table className="billing-ar-table"><thead><tr><th>Documento</th><th>Cliente</th><th>Vence</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th></th></tr></thead><tbody>{visible.map(row=><tr key={row.id}><td><strong>{row.number||'Cuenta'}</strong><small>{row.concept||'Facturación'}</small></td><td>{row.clients?.name||'Cliente'}</td><td>{row.due_date||'Sin fecha'}</td><td>{money(row.amount_total)}</td><td>{money(row.amount_paid)}</td><td><strong>{money(balance(row))}</strong></td><td><span className={`billing-ar-status ${statusLabel(row).toLowerCase().replaceAll(' ','-')}`}>{statusLabel(row)}</span></td><td>{isOpen(row)&&<button type="button" className="billing-ar-pay-button" onClick={()=>openPayment(row)}>Registrar cobro</button>}</td></tr>)}</tbody></table></div>:<div className="billing-ar-empty">{focused?'Todavía no aparece una cuenta por cobrar abierta para este trabajo.':'No hay cuentas para este filtro.'}</div>}</section>
       <aside className="billing-ar-card billing-ar-payments"><div className="billing-ar-card-head"><div><span>COBROS</span><strong>Últimos pagos</strong></div></div>{payments.length?<div className="billing-ar-payment-list">{payments.slice(0,12).map(paymentRow=>{const reversal=reversalByPayment.get(paymentRow.id),account=accountById.get(paymentRow.cash_account_id);return <div key={paymentRow.id}><div><strong>{paymentRow.clients?.name||'Cliente'}</strong><small>{paymentRow.paid_at?new Date(paymentRow.paid_at).toLocaleString('es-SV'):'—'} · {paymentRow.source_advance_id?'Anticipo aplicado':paymentRow.payment_method||'Pago'}</small><small>{account?.name||'Caja/Banco'}{paymentRow.reference?` · Ref. ${paymentRow.reference}`:''}{reversal?' · REVERSADO':''}</small>{reversal&&<small title={reversal.reason}>Motivo: {reversal.reason}</small>}</div><div><strong>{money(paymentRow.amount)}</strong>{!reversal&&<button type="button" className="secondary-button" disabled={reversing===paymentRow.id} onClick={()=>reversePayment(paymentRow)}>{reversing===paymentRow.id?'Reversando…':'Reversar'}</button>}</div></div>})}</div>:<div className="billing-ar-empty">Todavía no hay cobros registrados.</div>}</aside>
     </div>
 
