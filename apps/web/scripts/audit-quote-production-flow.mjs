@@ -17,7 +17,8 @@ expect(quotes, "supabase.from('work_orders').insert", 'Cotizaciones debe crear u
 expect(quotes, "supabase.from('work_order_items').insert", 'Cotizaciones debe crear partidas de la orden.')
 expect(quotes, 'converted_quantity', 'La conversión debe proteger cantidades ya convertidas.')
 expect(production, "supabase.from('work_orders').select('*,clients(name,phone),work_order_items(*)')", 'Producción debe cargar las partidas completas de la orden.')
-expect(production, "supabase.from('production_tasks')", 'Producción debe consumir la ruta de procesos.')
+expect(production, "supabase.rpc('transition_work_order_status'", 'Producción debe avanzar por el RPC controlado de estados.')
+expect(production, 'Al iniciar producción, los materiales reservados se consumen automáticamente', 'Producción debe informar el consumo automático de materiales.')
 
 for (const token of [
   'idealo_enrich_work_order_from_quote',
@@ -44,4 +45,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('Auditoría Cotización → Producción OK: aprobación, cantidades, OT, partidas, costos, variante, instalación y ruta productiva protegidos.')
+console.log('Auditoría Cotización → Producción OK: aprobación, cantidades, OT, partidas, costos, variante, instalación y transición productiva protegidos.')
