@@ -58,12 +58,21 @@ export async function signTestDteDraft({ request, supabase, env = process.env, f
     throw error
   }
 
-  const signer = new DteSignerClient(getDteSignerConfig(env), { fetchImpl })
-
-  await supabase
+  const { data: claimed, error: claimError } = await supabase
     .from('dte_documents')
     .update({ status: 'SIGNING', updated_at: new Date().toISOString() })
     .eq('id', document.id)
+    .eq('status', 'DRAFT')
+    .select('id')
+    .maybeSingle()
+  if (claimError) throw claimError
+  if (!claimed) {
+    const error = new Error('Este DTE ya está siendo firmado o cambió de estado. No se iniciará una segunda firma.')
+    error.statusCode = 409
+    throw error
+  }
+
+  const signer = new DteSignerClient(getDteSignerConfig(env), { fetchImpl })
 
   try {
     const response = await signer.sign(document.dte_payload)
@@ -78,10 +87,16 @@ export async function signTestDteDraft({ request, supabase, env = process.env, f
         updated_at: new Date().toISOString(),
       })
       .eq('id', document.id)
+      .eq('status', 'SIGNING')
       .select('id, control_number, generation_code, environment, status, updated_at')
-      .single()
+      .maybeSingle()
 
     if (updateError) throw updateError
+    if (!updated) {
+      const error = new Error('El DTE cambió de estado durante la firma y no se sobrescribirá el resultado.')
+      error.statusCode = 409
+      throw error
+    }
 
     return {
       ...updated,
@@ -94,6 +109,7 @@ export async function signTestDteDraft({ request, supabase, env = process.env, f
       .from('dte_documents')
       .update({ status: 'DRAFT', updated_at: new Date().toISOString() })
       .eq('id', document.id)
+      .eq('status', 'SIGNING')
     throw error
   }
 }
