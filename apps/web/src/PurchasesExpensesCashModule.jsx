@@ -48,13 +48,18 @@ export default function PurchasesExpensesCashModule({company,supabase}){
     e.preventDefault();setMessage('')
     const {subtotal,tax,total}=purchaseCalc
     if(total<=0){setMessage('Ingresa un monto de compra mayor que cero.');return}
-    if(purchase.payment_status==='PAID'&&!purchase.cash_account_id){setMessage('Selecciona de qué Caja o Banco se pagó la compra.');return}
+    if(purchase.payment_status==='PAID'){
+      if(!purchase.cash_account_id){setMessage('Selecciona de qué Caja o Banco se pagó la compra.');return}
+      const account=cashAccounts.find(x=>x.cash_account_id===purchase.cash_account_id)
+      if(!account){setMessage('La Caja o Banco seleccionada ya no está disponible.');return}
+      if(Number(account.current_balance||0)+0.001<total){setMessage(`Saldo insuficiente en ${account.name}. Disponible: ${money(account.current_balance)}.`);return}
+    }
     const payload={...purchase,company_id:company.id,supplier_id:purchase.supplier_id||null,subtotal,tax,total,due_date:purchase.due_date||null,cash_account_id:purchase.payment_status==='PAID'?purchase.cash_account_id:null}
     delete payload.amount_input
     const {error}=await supabase.from('purchases').insert(payload)
     if(error){setMessage(error.message);return}
     const account=cashAccounts.find(x=>x.cash_account_id===purchase.cash_account_id)
-    setMessage(purchase.payment_status==='PAID'?`Compra ${money(total)} registrada y descontada de ${account?.name||'Caja/Banco'}.`:`Compra ${money(total)} registrada. Queda pendiente de pago y no descuenta Caja.`)
+    setMessage(purchase.payment_status==='PAID'?`Compra ${money(total)} registrada y descontada de ${account?.name||'Caja/Banco'}.`:`Compra ${money(total)} registrada. Queda pendiente; los abonos se aplican desde Cuentas por pagar.`)
     setPurchase(emptyPurchase(purchase.cash_account_id));await load()
   }
 
@@ -115,7 +120,7 @@ export default function PurchasesExpensesCashModule({company,supabase}){
           <label className="field form-span-2"><span>¿Cómo viene el precio?</span><select value={purchase.tax_mode} onChange={e=>setPurchase({...purchase,tax_mode:e.target.value})}><option value="ADDED">Precio sin IVA · agregar 13%</option><option value="INCLUDED">IVA incluido · mantener total</option><option value="EXEMPT">Sin IVA / exento</option></select></label>
           <label className="field form-span-2"><span>{purchase.tax_mode==='INCLUDED'?'Total que pagás *':'Precio de compra *'}</span><input type="number" min="0.01" step="0.01" required value={purchase.amount_input} onChange={e=>setPurchase({...purchase,amount_input:e.target.value})} placeholder="0.00"/></label>
           <div className="field form-span-2"><span>Cálculo automático</span><div className="purchase-tax-summary"><b>Base {money(purchaseCalc.subtotal)}</b><b>IVA {money(purchaseCalc.tax)}</b><strong>Total {money(purchaseCalc.total)}</strong></div></div>
-          <label className="field"><span>Estado pago</span><select value={purchase.payment_status} onChange={e=>setPurchase({...purchase,payment_status:e.target.value})}><option value="PENDING">Pendiente</option><option value="PARTIAL">Parcial</option><option value="PAID">Pagada</option></select></label>
+          <label className="field"><span>Estado pago</span><select value={purchase.payment_status} onChange={e=>setPurchase({...purchase,payment_status:e.target.value})}><option value="PENDING">Pendiente / pagar después</option><option value="PAID">Pagada ahora</option></select></label>
           <label className="field"><span>Vence</span><input type="date" value={purchase.due_date} onChange={e=>setPurchase({...purchase,due_date:e.target.value})}/></label>
           {purchase.payment_status==='PAID'&&<label className="field form-span-2"><span>Pagar desde *</span><select required value={purchase.cash_account_id} onChange={e=>setPurchase({...purchase,cash_account_id:e.target.value})}>{cashOptions}</select></label>}
         </div>
