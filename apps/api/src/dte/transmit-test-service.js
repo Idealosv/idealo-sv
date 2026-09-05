@@ -115,34 +115,44 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     throw error
   }
 
-  const { data: existingAttempts, error: attemptsError } = await supabase
-    .from('dte_transmission_attempts')
-    .select('id, attempt_number, response_payload, error_message, started_at, finished_at')
-    .eq('dte_document_id', document.id)
-    .order('attempt_number', { ascending: true })
-  if (attemptsError) throw attemptsError
-
-  const attemptNumber = nextTransmissionAttempt(existingAttempts || [])
-  const payload = buildTestReceptionPayload(document, attemptNumber)
-  const { data: attempt, error: attemptError } = await supabase
-    .from('dte_transmission_attempts')
-    .insert({
-      dte_document_id: document.id,
-      attempt_number: attemptNumber,
-      request_payload: payload,
-    })
-    .select('id')
-    .single()
-  if (attemptError) throw attemptError
-
-  const { error: transmittingError } = await supabase
+  const { data: claimed, error: claimError } = await supabase
     .from('dte_documents')
     .update({ status: 'TRANSMITTING', updated_at: new Date().toISOString() })
     .eq('id', document.id)
-  if (transmittingError) throw transmittingError
+    .eq('status', 'SIGNED')
+    .select('id')
+    .maybeSingle()
+  if (claimError) throw claimError
+  if (!claimed) {
+    const error = new Error('Este DTE ya está siendo transmitido o cambió de estado. No se enviará por segunda vez.')
+    error.statusCode = 409
+    throw error
+  }
 
-  const mh = new MhDteClient(config, { fetchImpl })
+  let attempt = null
   try {
+    const { data: existingAttempts, error: attemptsError } = await supabase
+      .from('dte_transmission_attempts')
+      .select('id, attempt_number, response_payload, error_message, started_at, finished_at')
+      .eq('dte_document_id', document.id)
+      .order('attempt_number', { ascending: true })
+    if (attemptsError) throw attemptsError
+
+    const attemptNumber = nextTransmissionAttempt(existingAttempts || [])
+    const payload = buildTestReceptionPayload(document, attemptNumber)
+    const { data: createdAttempt, error: attemptError } = await supabase
+      .from('dte_transmission_attempts')
+      .insert({
+        dte_document_id: document.id,
+        attempt_number: attemptNumber,
+        request_payload: payload,
+      })
+      .select('id')
+      .single()
+    if (attemptError) throw attemptError
+    attempt = createdAttempt
+
+    const mh = new MhDteClient(config, { fetchImpl })
     try {
       await mh.authenticate()
     } catch (error) {
@@ -169,9 +179,15 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
       .from('dte_documents')
       .update({ status, mh_response: response, updated_at: now })
       .eq('id', document.id)
+      .eq('status', 'TRANSMITTING')
       .select('id, control_number, generation_code, environment, status, mh_response, updated_at')
-      .single()
+      .maybeSingle()
     if (documentUpdateError) throw documentUpdateError
+    if (!updated) {
+      const error = new Error('El DTE cambió de estado durante la transmisión y no se sobrescribirá la respuesta de Hacienda.')
+      error.statusCode = 409
+      throw error
+    }
 
     let completedScenarioCodes = []
     if (status === 'PROCESSED') {
@@ -195,14 +211,16 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
   } catch (error) {
     const now = new Date().toISOString()
     const documentRejected = error.mhPhase === 'recepcion' && Boolean(error.mhBody)
-    await supabase
-      .from('dte_transmission_attempts')
-      .update({
-        response_payload: error.mhBody || null,
-        error_message: error.message,
-        finished_at: now,
-      })
-      .eq('id', attempt.id)
+    if (attempt?.id) {
+      await supabase
+        .from('dte_transmission_attempts')
+        .update({
+          response_payload: error.mhBody || null,
+          error_message: error.message,
+          finished_at: now,
+        })
+        .eq('id', attempt.id)
+    }
     await supabase
       .from('dte_documents')
       .update({
@@ -212,6 +230,7 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
         updated_at: now,
       })
       .eq('id', document.id)
+      .eq('status', 'TRANSMITTING')
     throw error
   }
 }
