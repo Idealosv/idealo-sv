@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
-import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import MobileFieldTools from './MobileFieldTools.jsx'
 import MobileSalesFieldBlock from './MobileSalesFieldBlock.jsx'
 import MobileClient360 from './MobileClient360.jsx'
@@ -24,10 +23,6 @@ export default function ModuleRuntime() {
 
   return (
     <>
-      {activeModule === 'Dashboard' && (
-        <Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost /></Safe>
-      )}
-
       {activeModule === 'App móviles' && (
         <>
           <Safe label="Herramientas móviles"><MobileFieldTools /></Safe>
