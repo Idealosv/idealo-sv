@@ -4,8 +4,7 @@ import { createPortal } from 'react-dom'
 const TABS = [
   ['general', 'Datos generales'],
   ['fiscal', 'Fiscal DTE'],
-  ['contact', 'Contacto'],
-  ['address', 'Dirección'],
+  ['contact', 'Contacto y dirección'],
   ['commercial', 'Comercial'],
 ]
 
@@ -14,8 +13,7 @@ const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f
 const sectionFor = (fieldset, index) => {
   const legend = normalize(fieldset.querySelector('legend')?.textContent || '')
   if (/dte|facturacion|tribut|fiscal|identificacion tributaria/.test(legend)) return 'fiscal'
-  if (/contact|telefono|correo|whatsapp/.test(legend)) return 'contact'
-  if (/domicilio|direccion|ubicacion|departamento|municipio|distrito/.test(legend)) return 'address'
+  if (/contact|telefono|correo|whatsapp|domicilio|direccion|ubicacion|departamento|municipio|distrito/.test(legend)) return 'contact'
   if (/credito|comercial|seguimiento|observacion|nota|condicion|clasificacion/.test(legend)) return 'commercial'
   return index === 0 ? 'general' : 'general'
 }
@@ -96,10 +94,7 @@ function installClientFieldSync(form) {
   const sync = () => window.setTimeout(() => normalizeVisibleClientFields(form), 0)
   normalizeVisibleClientFields(form)
   form.addEventListener('change', sync, true)
-
-  return () => {
-    form.removeEventListener('change', sync, true)
-  }
+  return () => form.removeEventListener('change', sync, true)
 }
 
 export default function ClientModuleOrganizer() {
@@ -194,7 +189,7 @@ export default function ClientModuleOrganizer() {
           ))}
         </div>
         <div className="client-organizer-help">
-          <p>{active === 'general' ? 'Identidad básica del cliente.' : active === 'fiscal' ? 'Solo los datos fiscales aplicables al tipo de cliente y DTE.' : active === 'contact' ? 'Un contacto principal; los contactos adicionales se administran después en la ficha 360.' : active === 'address' ? 'Un domicilio fiscal principal; ubicaciones adicionales se agregan después.' : 'Condición de pago, crédito cuando aplique, origen y notas internas.'}</p>
+          <p>{active === 'general' ? 'Identidad básica del cliente.' : active === 'fiscal' ? 'Solo los datos fiscales aplicables al tipo de cliente y DTE.' : active === 'contact' ? 'Contacto principal y domicilio fiscal en una sola sección; contactos o ubicaciones adicionales se administran después.' : 'Condición de pago, crédito cuando aplique, origen y notas internas.'}</p>
           <div>
             <button type="button" disabled={currentIndex === 0} onClick={() => go(-1)}>← Anterior</button>
             <button type="button" disabled={currentIndex === TABS.length - 1} onClick={() => go(1)}>Siguiente →</button>
