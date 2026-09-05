@@ -3,12 +3,18 @@
   "appName": "IDEALO SV",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
   },
   "android": {
     "backgroundColor": "#101214",
     "allowMixedContent": false,
     "captureInput": true,
     "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "backgroundColor": "#101214",
+    "contentInset": "automatic",
+    "scrollEnabled": true
   }
 }
