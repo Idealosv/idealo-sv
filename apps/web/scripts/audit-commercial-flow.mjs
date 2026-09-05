@@ -12,7 +12,7 @@ if (!quotes.includes('const chooseClient=id=>')) failures.push('Cotizaciones deb
 for (const field of ['contact_name','contact_phone','contact_email','delivery_address']) if (!quotes.includes(field)) failures.push(`Cotizaciones no conserva ${field} del cliente`)
 if (!quotes.includes('const chooseProduct=(idx,id)=>')) failures.push('Cotizaciones debe importar datos del producto seleccionado')
 for (const field of ['unit_price','minimum_price','taxable','tax_rate','unit_cost','labor_unit_cost','installation_unit_cost','requires_production']) if (!quotes.includes(field)) failures.push(`Cotizaciones no conserva ${field} del producto`)
-if (!products.includes("supabase.from('finished_products').insert(payload)")) failures.push('Productos debe permitir creación persistente')
+if (!/supabase\.from\('finished_products'\)\.insert\(payloadFromForm\(\)\)/.test(products)) failures.push('Productos debe permitir creación persistente')
 if (!products.includes("'Producto creado correctamente. Ya puede usarse en cotizaciones.'")) failures.push('Productos debe confirmar disponibilidad para cotizaciones')
 if (clients.includes('new MutationObserver')) failures.push('ClientModuleOrganizer no debe observar document.body continuamente')
 
