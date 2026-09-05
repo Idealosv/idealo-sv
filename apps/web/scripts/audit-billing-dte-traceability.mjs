@@ -12,8 +12,12 @@ const requireText = (text, token, label) => { if (!text.includes(token)) throw n
 requireText(launcher, "table: 'dte_documents'", 'Facturación escucha cambios DTE')
 requireText(launcher, "activeSection === 'documentos'", 'Documentos sigue disponible como sección explícita')
 requireText(launcher, 'ProcessedDtePanel', 'Documentos conserva trazabilidad DTE')
-requireText(launcher, "row.status || '').toUpperCase() === 'PROCESSED'", 'Procesado MH refresca cobranza')
+requireText(launcher, "String(row.status || '').toUpperCase() !== 'PROCESSED'", 'Procesado MH filtra exclusivamente estado PROCESSED')
+requireText(launcher, "payload.eventType !== 'UPDATE'", 'Procesado MH solo reacciona a actualización DTE')
 requireText(launcher, 'receivablesVersion', 'CxC tiene invalidación por cambio DTE')
+requireText(launcher, "setActiveSection('cobros')", 'DTE procesado continúa automáticamente hacia Cobros')
+requireText(launcher, 'source_work_order_id', 'Continuación a Cobros conserva contexto de OT')
+requireText(launcher, 'source_quote_id', 'Continuación a Cobros conserva contexto de cotización')
 requireText(receivables, "new.status <> 'PROCESSED'", 'CxC solo nace con DTE procesado')
 requireText(receivables, 'v_condition<>2', 'CxC solo nace para crédito')
 requireText(receivables, 'dte_document_id', 'CxC mantiene vínculo con DTE')
@@ -22,4 +26,4 @@ if (launcher.includes("payload.eventType === 'INSERT'") && launcher.includes("se
   throw new Error('Guardar DTE no debe desmontar Nueva factura antes de terminar la respuesta API')
 }
 
-console.log('OK trazabilidad Facturación: guardado estable → Documentos explícito → PROCESSED → CxC')
+console.log('OK trazabilidad Facturación: guardado estable → Documentos explícito → PROCESSED → CxC → Cobros')
