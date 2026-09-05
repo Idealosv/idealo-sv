@@ -3,10 +3,13 @@
 .idealo-main-menu{order:1;display:flex;flex-direction:column;gap:8px;margin-top:0;padding:0 4px 14px;overflow:auto;min-height:0;flex:1}
 .sidebar-logout{order:2}
 .idealo-menu-list{display:grid;gap:3px}
-.idealo-main-menu-item{width:100%;border:0!important;background:transparent!important;color:#fff!important;text-align:left;padding:9px 11px;border-radius:8px;font:inherit;font-weight:650;cursor:pointer;box-shadow:none!important;transition:color .15s ease,background .15s ease}
+.idealo-main-menu-item{width:100%;border:0!important;background:transparent!important;color:#fff!important;text-align:left;padding:9px 11px;border-radius:8px;font:inherit;font-weight:650;cursor:pointer;box-shadow:none!important;transition:color .15s ease,background .15s ease;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .idealo-main-menu-item:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
 .idealo-main-menu-item.active{background:transparent!important;color:#f36c21!important;box-shadow:none!important}
+.idealo-main-menu-item.locked{opacity:.42;cursor:not-allowed}.idealo-main-menu-item.locked small{font-size:.61rem;font-weight:800;color:#c7ccd2}.idealo-role-strip{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 3px 4px;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.035);color:#aeb5bd;font-size:.68rem}.idealo-role-strip strong{color:#f36c21;font-size:.7rem}
+#idealo-access-toast{position:fixed;right:22px;bottom:22px;z-index:99999;max-width:420px;padding:12px 15px;border-radius:10px;background:#24282d;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.26);font-size:.84rem;font-weight:750;opacity:0;transform:translateY(10px);pointer-events:none;transition:.18s ease;border-left:4px solid #f36c21}#idealo-access-toast.show{opacity:1;transform:translateY(0)}
+html[data-erp-role="viewer"] .submit-button,html[data-erp-role="viewer"] .form-actions button[type="submit"]{cursor:not-allowed}
 .compact-module-placeholder{max-width:760px}
 .module-placeholder-card{min-height:220px;display:flex;flex-direction:column;justify-content:center}
 .module-placeholder-card h2{margin:6px 0 10px}
-@media(max-width:760px){.idealo-main-menu{max-height:none;padding-bottom:16px}}
+@media(max-width:760px){.idealo-main-menu{max-height:none;padding-bottom:16px}#idealo-access-toast{left:14px;right:14px;bottom:14px}}
