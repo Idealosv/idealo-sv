@@ -147,6 +147,55 @@
   color:#fff!important;
 }
 
+/* Recorrido comercial: una sola guía para entender en qué etapa está el trabajo
+   y saltar al módulo correcto sin duplicar menús. */
+.commercial-journey{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(92px,1fr));
+  gap:1px;
+  padding:8px 12px;
+  border-bottom:1px solid #dfe3e7;
+  background:#f7f8f9;
+  overflow-x:auto;
+}
+.commercial-journey button{
+  position:relative;
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:7px 8px;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:#5d6670!important;
+  box-shadow:none!important;
+  white-space:nowrap;
+}
+.commercial-journey button span{
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  background:#e3e7ea;
+  color:#444c54;
+  font-size:10px;
+  font-weight:800;
+}
+.commercial-journey button strong{font-size:11px}
+.commercial-journey button:hover{background:#fff!important;color:#222!important}
+.commercial-journey button.active{
+  background:#fff!important;
+  color:#181b1f!important;
+  box-shadow:inset 0 0 0 1px #cfd5da!important;
+}
+.commercial-journey button.active span{
+  background:#f36c21;
+  color:#fff;
+}
+
 @media(max-width:760px){
   .products360-savebar,
   .production-detail-actions,
@@ -162,4 +211,5 @@
   }
   .compact-subnav{align-items:stretch}
   .compact-subnav button{flex:1 1 130px}
+  .commercial-journey{grid-template-columns:repeat(7,minmax(100px,1fr));padding:7px 8px}
 }
