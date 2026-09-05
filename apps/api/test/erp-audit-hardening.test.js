@@ -8,8 +8,9 @@ const userAdministration = fs.readFileSync(new URL('../src/admin/user-administra
 const clientRoleHardening = fs.readFileSync(new URL('../../../supabase/migrations/20260830060000_clients_role_hardening.sql', import.meta.url), 'utf8')
 
 test('configuración DTE solo puede modificarse por owner/admin y producción solo por owner', () => {
-  assert.match(runtimeSettings, /\['owner', 'admin'\]\.includes\(role\)/)
-  assert.match(runtimeSettings, /role !== 'owner'/)
+  assert.match(runtimeSettings, /requireCompanyAccess/)
+  assert.match(runtimeSettings, /allowedRoles:COMPANY_ROLES\.ADMIN/)
+  assert.match(runtimeSettings, /role\s*!==\s*'owner'/)
   assert.match(runtimeSettings, /DTE_OWNER_REQUIRED/)
 })
 
