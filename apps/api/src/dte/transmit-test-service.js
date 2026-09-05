@@ -1,11 +1,7 @@
 import { getDteConfig } from './config.js'
 import { MhDteClient } from './mh-client.js'
 import { registerProcessedTestEvidence } from './test-scenario-service.js'
-
-function bearerToken(request) {
-  const authorization = request.headers.authorization || ''
-  return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
-}
+import { DTE_ROLES, requireAuthenticatedUser, requireCompanyRole } from './access-control.js'
 
 function mhStatus(response) {
   const value = response?.body || response || {}
@@ -68,19 +64,7 @@ export function nextTransmissionAttempt(existingAttempts = []) {
 }
 
 export async function transmitSignedTestDte({ request, supabase, env = process.env, fetchImpl = fetch }) {
-  const token = bearerToken(request)
-  if (!token) {
-    const error = new Error('Debes iniciar sesión para enviar un DTE de prueba.')
-    error.statusCode = 401
-    throw error
-  }
-
-  const { data: userData, error: userError } = await supabase.auth.getUser(token)
-  if (userError || !userData?.user) {
-    const error = new Error('La sesión no es válida o ya venció.')
-    error.statusCode = 401
-    throw error
-  }
+  const user = await requireAuthenticatedUser({ request, supabase })
 
   const { documentId } = request.body || {}
   if (!documentId) {
@@ -96,18 +80,13 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
     .single()
   if (documentError) throw documentError
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', document.company_id)
-    .eq('user_id', userData.user.id)
-    .maybeSingle()
-  if (membershipError) throw membershipError
-  if (!membership) {
-    const error = new Error('No tienes permiso para transmitir DTE de esta empresa.')
-    error.statusCode = 403
-    throw error
-  }
+  await requireCompanyRole({
+    supabase,
+    companyId: document.company_id,
+    userId: user.id,
+    allowedRoles: DTE_ROLES.TRANSMIT_TEST,
+    operation: 'transmitir DTE al ambiente TEST de Hacienda',
+  })
 
   if (document.environment !== 'test' || document.dte_payload?.identificacion?.ambiente !== '00') {
     const error = new Error('Este endpoint está bloqueado exclusivamente al ambiente TEST 00 de Hacienda.')
@@ -202,7 +181,6 @@ export async function transmitSignedTestDte({ request, supabase, env = process.e
           document: { ...document, status },
         })
       } catch (evidenceError) {
-        // Un error del tablero interno nunca debe convertir una recepción aceptada por MH en fallo fiscal.
         console.error('No se pudo sincronizar la evidencia interna de pruebas MH:', evidenceError)
       }
     }
