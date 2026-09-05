@@ -6,6 +6,11 @@ const addDays=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOSt
 const balance=r=>Math.max(0,Number(r.amount_total||0)-Number(r.amount_paid||0))
 const open=r=>!['PAID','CANCELLED'].includes(r.status)
 const go=name=>[...document.querySelectorAll('.idealo-main-menu-item')].find(b=>b.textContent.trim()===name)?.click()
+const workLabel=title=>{
+ const value=String(title||'').trim()
+ if(!value)return 'Trabajo sin descripción'
+ return value.replace(/^COT-\d{4}-\d+\s*(?:[·|\-]\s*)?/i,'').trim()||value
+}
 
 export default function DashboardOwnerDailyControl({company,supabase}){
  const [data,setData]=useState({quotes:[],orders:[],ar:[],ap:[],inventory:[],moves:[],products:[]})
@@ -51,7 +56,7 @@ export default function DashboardOwnerDailyControl({company,supabase}){
    const dueSoon=o.due_at&&new Date(o.due_at)<new Date(Date.now()+72*3600000)
    const priority=['URGENT','HIGH'].includes(o.priority)
    const score=(overdue?10000:dueSoon?4000:0)+(priority?2500:0)+Number(o.total||0)
-   return {title:`OT-${String(o.number).padStart(5,'0')} · ${o.clients?.name||'Cliente'}`,detail:`${o.title} · ${o.status}${o.due_at?` · entrega ${o.due_at.slice(0,10)}`:''}`,score,overdue}
+   return {title:`OT-${String(o.number).padStart(5,'0')} · ${o.clients?.name||'Cliente'}`,detail:`Trabajo: ${workLabel(o.title)}${o.due_at?` · Entrega ${o.due_at.slice(0,10)}`:''}`,score,overdue}
   }).sort((a,b)=>b.score-a.score).slice(0,5)
 
   const days=Math.max(1,new Date().getDate()),used={}
