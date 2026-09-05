@@ -27,7 +27,8 @@ async function inspect(path) {
     const disabled = /\bdisabled(?:\s|=|>)/.test(tag)
     const interactive = /\bon(?:Click|MouseDown|PointerDown|KeyDown)\s*=/.test(tag)
     const spreadsProps = /\{\.\.\.[^}]+\}/.test(tag)
-    if (disabled || interactive || spreadsProps) continue
+    const delegatedRuntimeAction = /\bdata-runtime-action\s*=\s*["'][^"']+["']/.test(tag)
+    if (disabled || interactive || spreadsProps || delegatedRuntimeAction) continue
     const line = source.slice(0, match.index).split('\n').length
     failures.push(`${relative(new URL('../src/', import.meta.url).pathname, path)}:${line} type=button sin acción explícita`)
   }
@@ -44,4 +45,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log(`Auditoría de botones OK: ${checked} botones JSX revisados; ${explicitButtons} botones type=button tienen acción o estado deshabilitado explícito.`)
+console.log(`Auditoría de botones OK: ${checked} botones JSX revisados; ${explicitButtons} botones type=button tienen acción, estado deshabilitado o acción delegada explícita.`)
