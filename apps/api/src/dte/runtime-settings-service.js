@@ -27,4 +27,14 @@ export async function updateRuntimeSettings({ request, supabase, env = process.e
  request.query={...(request.query||{}),companyId};return getRuntimeSettings({request,supabase,env})
 }
 
-export async function buildCompanyDteEnv({ companyId, supabase, env = process.env }) {const {data,error}=await supabase.from('dte_runtime_settings').select('environment, production_enabled, production_approved').eq('company_id',companyId).maybeSingle();if(error)throw error;const row=data||{environment:'test',production_enabled:false,production_approved:false};return{...env,DTE_ENVIRONMENT:row.environment,DTE_ENABLE_PRODUCTION:row.production_enabled?'true':'false',DTE_PRODUCTION_APPROVAL:row.production_approved?'IDEALO_SV_PRODUCTION_APPROVED':''}}
+export async function buildCompanyDteEnv({ companyId, supabase, env = process.env }) {
+ const [{data:settings,error:settingsError},{data:company,error:companyError}]=await Promise.all([
+  supabase.from('dte_runtime_settings').select('environment, production_enabled, production_approved').eq('company_id',companyId).maybeSingle(),
+  supabase.from('companies').select('demo_mode').eq('id',companyId).maybeSingle(),
+ ])
+ if(settingsError)throw settingsError
+ if(companyError)throw companyError
+ const row=settings||{environment:'test',production_enabled:false,production_approved:false}
+ const effectiveRow=company?.demo_mode?{...row,environment:'test',production_enabled:false,production_approved:false}:row
+ return{...env,DTE_ENVIRONMENT:effectiveRow.environment,DTE_ENABLE_PRODUCTION:effectiveRow.production_enabled?'true':'false',DTE_PRODUCTION_APPROVAL:effectiveRow.production_approved?'IDEALO_SV_PRODUCTION_APPROVED':''}
+}
