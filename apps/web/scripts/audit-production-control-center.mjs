@@ -13,7 +13,7 @@ const failures=[]
 const need=(source,text,message)=>{if(!source.includes(text))failures.push(message)}
 
 need(launcher,"import Production360Module from './Production360Module.jsx'",'Producción debe importar el módulo 360 simplificado')
-need(launcher,"tab==='Producción'&&<Production360Module",'Producción debe montar el módulo 360 simplificado')
+need(launcher,"operationView==='Producción'&&<Production360Module",'Producción debe montar el módulo 360 dentro del recorrido comercial')
 need(production,"supabase.from('work_orders').select('*,clients(name,phone),work_order_items(*)')",'Producción debe cargar órdenes con cliente y partidas')
 need(production,"supabase.from('employees')",'Producción debe cargar responsables activos')
 need(production,"supabase.rpc('transition_work_order_status'",'Producción debe cambiar estados mediante RPC controlado')
