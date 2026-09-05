@@ -1,10 +1,6 @@
 import { getDteSignerConfig } from './config.js'
 import { DteSignerClient } from './signer-client.js'
-
-function bearerToken(request) {
-  const authorization = request.headers.authorization || ''
-  return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
-}
+import { DTE_ROLES, requireAuthenticatedUser, requireCompanyRole } from './access-control.js'
 
 export function extractSignedDocument(response) {
   const value = response?.body || response
@@ -13,19 +9,7 @@ export function extractSignedDocument(response) {
 }
 
 export async function signTestDteDraft({ request, supabase, env = process.env, fetchImpl = fetch }) {
-  const token = bearerToken(request)
-  if (!token) {
-    const error = new Error('Debes iniciar sesión para firmar un DTE.')
-    error.statusCode = 401
-    throw error
-  }
-
-  const { data: userData, error: userError } = await supabase.auth.getUser(token)
-  if (userError || !userData?.user) {
-    const error = new Error('La sesión no es válida o ya venció.')
-    error.statusCode = 401
-    throw error
-  }
+  const user = await requireAuthenticatedUser({ request, supabase })
 
   const { documentId } = request.body || {}
   if (!documentId) {
@@ -42,19 +26,13 @@ export async function signTestDteDraft({ request, supabase, env = process.env, f
 
   if (documentError) throw documentError
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', document.company_id)
-    .eq('user_id', userData.user.id)
-    .maybeSingle()
-
-  if (membershipError) throw membershipError
-  if (!membership) {
-    const error = new Error('No tienes permiso para firmar DTE de esta empresa.')
-    error.statusCode = 403
-    throw error
-  }
+  await requireCompanyRole({
+    supabase,
+    companyId: document.company_id,
+    userId: user.id,
+    allowedRoles: DTE_ROLES.SIGN,
+    operation: 'firmar documentos tributarios electrónicos',
+  })
 
   if (document.environment !== 'test' || document.dte_payload?.identificacion?.ambiente !== '00') {
     const error = new Error('Este endpoint solo permite firmar DTE del ambiente de prueba 00.')
