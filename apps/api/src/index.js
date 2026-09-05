@@ -10,6 +10,7 @@ import { signTestDteDraft, signProductionDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
 import { transmitSignedProductionDte } from './dte/transmit-production-service.js'
 import { invalidateProcessedDte, reportDteContingency } from './dte/fiscal-event-service.js'
+import { transmitContingencyBatches, reconcileContingencyBatches } from './dte/contingency-batch-service.js'
 import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
 import { diagnoseMhAuthentication } from './dte/mh-auth-diagnostic-service.js'
 import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-settings-service.js'
@@ -55,5 +56,7 @@ app.post('/api/dte/sign-test',async(q,r,n)=>{try{r.json(await signTestDteDraft({
 app.post('/api/dte/transmit-test',async(q,r,n)=>{try{r.json(await transmitSignedTestDte({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/transmit-production',async(q,r,n)=>{try{r.json(await transmitSignedProductionDte({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/invalidate',async(q,r,n)=>{try{r.json(await invalidateProcessedDte({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/contingency-event',async(q,r,n)=>{try{r.json(await reportDteContingency({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/contingency-batches/transmit',async(q,r,n)=>{try{r.json(await transmitContingencyBatches({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/dte/contingency-batches/reconcile',async(q,r,n)=>{try{r.json(await reconcileContingencyBatches({request:q,supabase:db()}))}catch(e){n(e)}})
 app.use((e,_q,r,_n)=>{console.error(e);const s=Number(e.statusCode||500);r.status(s).json({error:s>=500?'INTERNAL_SERVER_ERROR':(e.code||'REQUEST_ERROR'),message:s>=500&&process.env.NODE_ENV==='production'?'Ocurrió un error inesperado.':e.message})})
 app.listen(port,'0.0.0.0',()=>console.log(`IDEALO SV API disponible en el puerto ${port}`));export{app}
