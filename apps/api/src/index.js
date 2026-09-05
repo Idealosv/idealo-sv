@@ -6,6 +6,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus, getDteProductionPreflightStatus } from './dte/config.js'
 import { createTestDteDraft } from './dte/draft-service.js'
 import { createInvoiceDraft } from './dte/invoice-service.js'
+import { prepareDteContingency } from './dte/prepare-contingency-service.js'
 import { signTestDteDraft, signProductionDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
 import { transmitSignedProductionDte } from './dte/transmit-production-service.js'
@@ -52,6 +53,7 @@ app.post('/api/dte/gmail-test',async(q,r)=>{try{r.json(await sendGmailSelfTest({
 app.post('/api/dte/invoice-email-self-test',async(q,r)=>{try{r.json(await sendInvoicePdfSelfTest({request:q,supabase:db()}))}catch(e){console.error('INVOICE_PDF_SELF_TEST_FAILED',{stage:e?.stage,code:e?.code,statusCode:e?.statusCode,message:e?.message});r.status(Number(e?.statusCode||502)).json({error:'INVOICE_PDF_SELF_TEST_FAILED',stage:String(e?.stage||'unknown'),code:String(e?.code||'PDF_EMAIL_TEST_FAILED'),message:String(e?.message||'No se pudo completar la prueba PDF por Gmail.')})}})
 app.get('/api/dte/invoice-email-status',async(q,r,n)=>{try{r.json(await getInvoiceEmailStatus({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoice-email-resend',async(q,r,n)=>{try{r.json(await resendInvoiceEmail({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/drafts',async(q,r,n)=>{try{r.status(201).json(await createTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoices',async(q,r,n)=>{try{r.status(201).json(await createInvoiceDraft({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/prepare-contingency',async(q,r,n)=>{try{r.json(await prepareDteContingency({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/sign-test',async(q,r,n)=>{try{r.json(await signTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/sign-production',async(q,r,n)=>{try{r.json(await signProductionDteDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/transmit-test',async(q,r,n)=>{try{r.json(await transmitSignedTestDte({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/transmit-production',async(q,r,n)=>{try{r.json(await transmitSignedProductionDte({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/invalidate',async(q,r,n)=>{try{r.json(await invalidateProcessedDte({request:q,supabase:db()}))}catch(e){n(e)}})
