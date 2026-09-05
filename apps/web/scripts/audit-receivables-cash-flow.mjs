@@ -12,7 +12,7 @@ const checks=[
   ['idempotencia de cobro',migration.includes('payment_key')&&migration.includes('customer_payments_company_key_uidx')],
   ['RPC de cobro',migration.includes('register_customer_payment')&&ui.includes("rpc('register_customer_payment'")],
   ['entrada de caja por cobro',migration.includes("'INCOME','CUSTOMER_PAYMENT'")&&migration.includes('cash_movements_customer_payment_uidx')],
-  ['protección doble clic',ui.includes('if (busy) return')&&ui.includes('disabled={busy||!accounts.length}')],
+  ['protección doble clic',/if\s*\(\s*busy\s*\)\s*return/.test(ui)&&/disabled\s*=\s*\{\s*busy\s*\|\|\s*!accounts\.length\s*\}/.test(ui)],
   ['clave se renueva tras éxito',/payment_key\s*:\s*newKey\(\)/.test(ui)],
 ]
 const failed=checks.filter(([,ok])=>!ok)
