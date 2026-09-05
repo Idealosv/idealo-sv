@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import ProcessedDtePanel from './ProcessedDtePanel.jsx'
 import DteTraceabilityPanel from './DteTraceabilityPanel.jsx'
 import DteContingencyPreparation from './DteContingencyPreparation.jsx'
+import DteInvalidationPanel from './DteInvalidationPanel.jsx'
 
 export default function ProcessedDtePanelBridge(props) {
   const hostRef = useRef(null)
@@ -27,6 +28,7 @@ export default function ProcessedDtePanelBridge(props) {
   return <div ref={hostRef} onClickCapture={handleClickCapture}>
     <ProcessedDtePanel {...props}/>
     <DteContingencyPreparation supabase={props.supabase} company={props.company} session={props.session} controlNumber={controlNumber}/>
+    <DteInvalidationPanel supabase={props.supabase} company={props.company} session={props.session} controlNumber={controlNumber}/>
     <DteTraceabilityPanel supabase={props.supabase} company={props.company} session={props.session} controlNumber={controlNumber}/>
   </div>
 }
