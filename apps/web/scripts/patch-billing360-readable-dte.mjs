@@ -1,0 +1,57 @@
+import fs from 'node:fs'
+
+const file = new URL('../src/Billing360Dashboard.jsx', import.meta.url)
+let source = fs.readFileSync(file, 'utf8')
+
+const start = source.indexOf('async function openReadableVersion(')
+const end = source.indexOf('\n\nexport default function Billing360Dashboard', start)
+if (start === -1 || end === -1) throw new Error('No se encontró openReadableVersion en Billing360Dashboard.jsx')
+
+async function professionalReadableVersion(row, company) {
+  if (!isAccepted(row)) return
+  const payload = row.dte_payload || {}
+  const id = payload.identificacion || {}
+  const emisor = payload.emisor || {}
+  const receptor = payload.receptor || {}
+  const resumen = payload.resumen || {}
+  const items = Array.isArray(payload.cuerpoDocumento) ? payload.cuerpoDocumento : []
+  const ambiente = row.environment === 'production' || row.environment === '01' ? '01' : '00'
+  const generation = String(row.generation_code || id.codigoGeneracion || '').toUpperCase()
+  const publicUrl = 'https://admin.factura.gob.sv/consultaPublica?ambiente=' + ambiente + '&codGen=' + encodeURIComponent(generation)
+  const qrDataUrl = await QRCode.toDataURL(publicUrl, { errorCorrectionLevel: 'M', margin: 1, width: 260 })
+  const mh = mhBody(row)
+  const seal = receiptSeal(row) || '—'
+  const dteName = row.dte_type === '03' ? 'COMPROBANTE DE CRÉDITO FISCAL' : 'FACTURA CONSUMIDOR FINAL'
+  const dteCode = row.dte_type === '03' ? 'DTE-03' : 'DTE-01'
+  const taxTotal = row.dte_type === '03'
+    ? (Array.isArray(resumen.tributos) ? resumen.tributos.reduce((sum, tax) => sum + Number(tax.valor || 0), 0) : 0)
+    : Number(resumen.totalIva || 0)
+  const lineRows = items.map((item) => {
+    const lineTotal = Number(item.ventaGravada || 0) + Number(item.ventaExenta || 0) + Number(item.ventaNoSuj || 0)
+    return '<tr><td class="c">' + safe(item.numItem || '') + '</td><td><strong>' + safe(item.descripcion || '') + '</strong>' + (item.codigo ? '<small>Código: ' + safe(item.codigo) + '</small>' : '') + '</td><td class="r">' + safe(item.cantidad || '') + '</td><td class="r">' + money(item.precioUni) + '</td><td class="r strong">' + money(lineTotal) + '</td></tr>'
+  }).join('')
+
+  const popup = window.open('', '_blank', 'width=1040,height=940')
+  if (!popup) return
+
+  const html = '<!doctype html><html><head><meta charset="utf-8"><title>' + safe(row.control_number) + '</title><style>' +
+    '@page{size:A4;margin:9mm}*{box-sizing:border-box}body{margin:0;background:#e9eaec;color:#16181b;font-family:Arial,Helvetica,sans-serif;font-size:11px}.paper{width:794px;min-height:1123px;margin:20px auto;background:#fff;padding:30px 34px 26px;box-shadow:0 16px 44px rgba(0,0,0,.14);position:relative}.accent{position:absolute;left:0;right:0;top:0;height:7px;background:#f36c21}.top{display:grid;grid-template-columns:1fr 165px;gap:24px;align-items:start;padding:8px 0 17px;border-bottom:2px solid #181a1d}.brand{font-size:30px;font-weight:900;letter-spacing:-1px}.brand span{color:#f36c21}.legal{margin-top:5px;font-size:10px;font-weight:700}.issuer{margin-top:8px;color:#62666c;font-size:8.5px;line-height:1.5}.doc{text-align:right}.doc h1{font-size:13px;line-height:1.25;margin:0;text-transform:uppercase}.doc-code{font-size:26px;color:#f36c21;font-weight:900;margin-top:4px}.badge{display:inline-block;margin-top:8px;padding:5px 8px;border:1px solid #198143;color:#166534;border-radius:4px;font-size:8px;font-weight:900}.test{margin-top:10px;padding:7px 10px;border:1px solid #f0c7ad;background:#fff8f3;color:#93420f;text-align:center;font-size:7.5px;font-weight:900;letter-spacing:.6px}.identity{display:grid;grid-template-columns:1fr 1fr;margin-top:13px;border:1px solid #d9dcdf;border-radius:6px;overflow:hidden}.identity div{padding:10px 12px}.identity div:nth-child(odd){border-right:1px solid #d9dcdf}.identity div:nth-child(-n+2){border-bottom:1px solid #d9dcdf}.lbl{display:block;color:#747980;font-size:6.8px;font-weight:900;text-transform:uppercase;letter-spacing:.55px;margin-bottom:3px}.identity strong{font-size:9px;word-break:break-word}.parties{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.party{border:1px solid #d9dcdf;border-radius:6px;padding:12px 13px;min-height:118px}.party h3{margin:0 0 9px;padding-left:8px;border-left:4px solid #f36c21;font-size:9px;text-transform:uppercase;letter-spacing:.5px}.party .name{font-size:10.5px;font-weight:900;margin-bottom:7px}.party p{margin:5px 0;line-height:1.35}.party p b{display:block;color:#747980;font-size:7px;text-transform:uppercase}.title{margin:17px 0 7px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.7px}table{width:100%;border-collapse:collapse;border:1px solid #d9dcdf}th{padding:8px;background:#1d2024;color:#fff;font-size:7px;text-transform:uppercase;letter-spacing:.4px;text-align:left}td{padding:9px 8px;border-bottom:1px solid #e4e6e8;font-size:8.7px;vertical-align:top}td small{display:block;color:#777c82;margin-top:3px;font-size:7px}.r{text-align:right}.c{text-align:center}.strong{font-weight:900}.summary{display:grid;grid-template-columns:1fr 250px;gap:14px;margin-top:14px}.words{border:1px solid #d9dcdf;border-radius:6px;padding:12px}.words p{margin:6px 0 0;font-size:8.5px;font-weight:700;line-height:1.45}.totals{border:1px solid #d9dcdf;border-radius:6px;overflow:hidden}.t{display:flex;justify-content:space-between;padding:5px 9px;border-bottom:1px solid #eceeef;font-size:8px}.grand{background:#1d2024;color:white;font-size:12px;font-weight:900;padding:9px}.grand strong{color:#ff7b2e}.validation{display:grid;grid-template-columns:1fr 112px;gap:14px;margin-top:14px;border:1px solid #d9dcdf;border-radius:6px;padding:12px 13px;align-items:center}.mhhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.mhhead b{font-size:9px}.mhhead span{font-size:7px;color:#17753a;font-weight:900}.mhgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}.mhgrid strong{font-size:8px;word-break:break-word}.seal{font-family:monospace;font-size:7px!important}.qr{text-align:center;border-left:1px solid #e3e5e7;padding-left:12px}.qr img{width:92px;height:92px;display:block;margin:auto}.qr b{display:block;font-size:6.5px;margin-top:4px}.footer{margin-top:14px;padding-top:8px;border-top:1px solid #dfe1e3;color:#73777d;font-size:6.8px;display:flex;justify-content:space-between;gap:16px}.actions{text-align:right;margin-top:14px}.actions button{border:0;border-radius:5px;background:#1d2024;color:#fff;padding:10px 15px;font-weight:900;cursor:pointer}@media print{body{background:#fff}.paper{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none}.accent{top:-9mm}.actions{display:none}}' +
+    '</style></head><body><main class="paper"><div class="accent"></div>' +
+    '<header class="top"><div><div class="brand">IDEALO <span>SV</span></div><div class="legal">' + safe(emisor.nombre || company.name || 'Emisor') + '</div><div class="issuer">NIT ' + safe(emisor.nit || company.nit || '—') + ' &nbsp; · &nbsp; NRC ' + safe(emisor.nrc || company.nrc || '—') + '<br>' + safe(emisor.descActividad || company.business_activity || '') + '</div></div><div class="doc"><h1>' + safe(dteName) + '</h1><div class="doc-code">' + dteCode + '</div><span class="badge">ACEPTADO MH</span></div></header>' +
+    (ambiente === '00' ? '<div class="test">AMBIENTE DE PRUEBAS · DOCUMENTO SIN VALIDEZ TRIBUTARIA</div>' : '') +
+    '<section class="identity"><div><span class="lbl">Número de control</span><strong>' + safe(row.control_number) + '</strong></div><div><span class="lbl">Código de generación</span><strong>' + safe(generation) + '</strong></div><div><span class="lbl">Fecha y hora de emisión</span><strong>' + safe(id.fecEmi || '—') + ' &nbsp; ' + safe(id.horEmi || '') + '</strong></div><div><span class="lbl">Ambiente</span><strong>' + (ambiente === '00' ? '00 · PRUEBAS' : '01 · PRODUCCIÓN') + '</strong></div></section>' +
+    '<section class="parties"><div class="party"><h3>Emisor</h3><div class="name">' + safe(emisor.nombre || company.name || '—') + '</div><p><b>NIT / NRC</b>' + safe(emisor.nit || company.nit || '—') + ' · ' + safe(emisor.nrc || company.nrc || '—') + '</p><p><b>Actividad económica</b>' + safe(emisor.descActividad || company.business_activity || '—') + '</p><p><b>Dirección</b>' + safe(emisor.direccion?.complemento || company.address || '—') + '</p></div><div class="party"><h3>Receptor</h3><div class="name">' + safe(receptor.nombre || 'Consumidor final') + '</div><p><b>Documento / NRC</b>' + safe(receptor.numDocumento || receptor.nit || '—') + ' · ' + safe(receptor.nrc || '—') + '</p><p><b>Actividad económica</b>' + safe(receptor.descActividad || '—') + '</p><p><b>Dirección</b>' + safe(receptor.direccion?.complemento || '—') + '</p><p><b>Correo</b>' + safe(receptor.correo || '—') + '</p></div></section>' +
+    '<div class="title">Detalle de la operación</div><table><thead><tr><th>#</th><th>Descripción</th><th class="r">Cantidad</th><th class="r">Precio unitario</th><th class="r">Total</th></tr></thead><tbody>' + lineRows + '</tbody></table>' +
+    '<section class="summary"><div class="words"><span class="lbl">Total en letras</span><p>' + safe(resumen.totalLetras || '—') + '</p></div><div class="totals"><div class="t"><span>Ventas gravadas</span><strong>' + money(resumen.totalGravada) + '</strong></div><div class="t"><span>Ventas exentas</span><strong>' + money(resumen.totalExenta) + '</strong></div><div class="t"><span>Ventas no sujetas</span><strong>' + money(resumen.totalNoSuj) + '</strong></div><div class="t"><span>' + (row.dte_type === '03' ? 'IVA 13%' : 'IVA incluido') + '</span><strong>' + money(taxTotal) + '</strong></div><div class="t grand"><span>TOTAL A PAGAR</span><strong>' + money(resumen.totalPagar ?? resumen.montoTotalOperacion) + '</strong></div></div></section>' +
+    '<section class="validation"><div><div class="mhhead"><b>VALIDACIÓN MINISTERIO DE HACIENDA</b><span>✓ DOCUMENTO PROCESADO</span></div><div class="mhgrid"><div><span class="lbl">Estado</span><strong>' + safe(mh.estado || 'PROCESADO') + '</strong></div><div><span class="lbl">Código / mensaje</span><strong>' + safe(mh.codigoMsg || row.mh_message_code || '—') + ' · ' + safe(mh.descripcionMsg || row.mh_message || 'RECIBIDO') + '</strong></div><div><span class="lbl">Fecha de procesamiento</span><strong>' + safe(row.mh_processed_at || mh.fhProcesamiento || '—') + '</strong></div><div><span class="lbl">Sello de recepción</span><strong class="seal">' + safe(seal) + '</strong></div></div></div><div class="qr"><img src="' + qrDataUrl + '" alt="QR de consulta pública MH"><b>CONSULTAR EN HACIENDA</b></div></section>' +
+    '<footer class="footer"><span>Representación gráfica del Documento Tributario Electrónico generada desde el DTE almacenado.</span><span>IDEALO SV · El Salvador</span></footer><div class="actions"><button onclick="window.print()">Imprimir / Guardar PDF</button></div></main></body></html>'
+
+  popup.document.write(html)
+  popup.document.close()
+}
+
+const replacement = professionalReadableVersion.toString().replace(/^async function professionalReadableVersion/, 'async function openReadableVersion')
+source = source.slice(0, start) + replacement + source.slice(end)
+source = source.replace("const mhConsultUrl='https://portaldgii.mh.gob.sv/ssc/consulta/fe'\n", '')
+fs.writeFileSync(file, source)
+console.log('Billing360: versión legible DTE profesional y QR dinámico aplicados.')
