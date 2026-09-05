@@ -52,13 +52,20 @@ jobs:
         working-directory: apps/web
         run: npx cap sync ios
 
-      - name: Verificar proyecto Xcode generado
-        working-directory: apps/web/ios
+      - name: Declarar permisos nativos iPhone
+        working-directory: apps/web
+        run: node scripts/patch-native-mobile-permissions.mjs ios
+
+      - name: Verificar permisos y proyecto Xcode
+        working-directory: apps/web
         shell: bash
         run: |
-          test -d App/App.xcodeproj || { echo "No se generó App/App.xcodeproj"; find App -maxdepth 2 -print; exit 1; }
-          xcodebuild -project App/App.xcodeproj -list
+          grep -q 'NSCameraUsageDescription' ios/App/App/Info.plist
+          grep -q 'NSPhotoLibraryUsageDescription' ios/App/App/Info.plist
+          grep -q 'NSLocationWhenInUseUsageDescription' ios/App/App/Info.plist
+          test -d ios/App/App.xcodeproj || { echo "No se generó ios/App/App.xcodeproj"; find ios/App -maxdepth 2 -print; exit 1; }
+          xcodebuild -project ios/App/App.xcodeproj -list
 
       - name: Compilar para simulador iPhone
-        working-directory: apps/web/ios
-        run: xcodebuild -project App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+        working-directory: apps/web
+        run: xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
