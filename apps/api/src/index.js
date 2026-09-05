@@ -17,6 +17,7 @@ import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit, registerCompanyActivity } from './admin/user-administration-service.js'
 import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
+import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
 const app = express()
@@ -73,6 +74,9 @@ app.get('/api/admin/audit', async (request, response, next) => {
 })
 app.post('/api/activity', async (request, response, next) => {
   try { response.status(201).json(await registerCompanyActivity({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/security/audit', async (request, response, next) => {
+  try { response.status(201).json(await recordSecurityAuditEvent({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.get('/api/admin/saas/dashboard', async (request, response, next) => {
   try { response.json(await getSaasMasterDashboard({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
