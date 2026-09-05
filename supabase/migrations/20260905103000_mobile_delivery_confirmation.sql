@@ -1,7 +1,8 @@
+drop function if exists public.mobile_confirm_delivery(uuid,text,timestamptz,text,text);
+
 create or replace function public.mobile_confirm_delivery(
   p_work_order_id uuid,
   p_recipient_name text,
-  p_delivered_at timestamptz default now(),
   p_delivery_method text default 'DELIVERY',
   p_notes text default null
 )
@@ -26,16 +27,16 @@ begin
     raise exception 'Orden no encontrada';
   end if;
 
+  if v_order.status not in ('READY','DELIVERED') then
+    raise exception 'La OT debe estar LISTA antes de confirmar la entrega';
+  end if;
+
   select role into v_role
   from public.company_members
   where company_id=v_order.company_id and user_id=auth.uid();
 
   if v_role is null or v_role='viewer' then
     raise exception 'Sin permiso para confirmar la entrega';
-  end if;
-
-  if v_order.status not in ('READY','DELIVERED') then
-    raise exception 'La OT debe estar lista antes de confirmar la entrega';
   end if;
 
   if v_role='staff' then
@@ -56,40 +57,30 @@ begin
 
   v_recipient:=nullif(btrim(coalesce(p_recipient_name,'')),'');
   if v_recipient is null then
-    raise exception 'Indicá quién recibe la entrega';
+    raise exception 'Indicá el nombre de quien recibe';
   end if;
 
   if p_delivery_method not in ('PICKUP','DELIVERY','INSTALLATION') then
-    raise exception 'Método de entrega no permitido';
+    raise exception 'Modalidad de entrega no permitida';
   end if;
 
-  select * into v_delivery
-  from public.deliveries
-  where work_order_id=v_order.id
-  for update;
-
-  if v_delivery.id is null then
-    insert into public.deliveries(
-      company_id,work_order_id,client_id,status,delivery_method,
-      delivered_at,recipient_name,notes,updated_at
-    ) values (
-      v_order.company_id,v_order.id,v_order.client_id,'DELIVERED',p_delivery_method,
-      coalesce(p_delivered_at,now()),v_recipient,nullif(btrim(coalesce(p_notes,'')),''),now()
-    ) returning * into v_delivery;
-  else
-    if v_delivery.status='CANCELLED' then
-      raise exception 'La entrega asociada está cancelada';
-    end if;
-    update public.deliveries
-    set status='DELIVERED',
-        delivery_method=p_delivery_method,
-        delivered_at=coalesce(p_delivered_at,delivered_at,now()),
-        recipient_name=v_recipient,
-        notes=coalesce(nullif(btrim(coalesce(p_notes,'')),''),notes),
-        updated_at=now()
-    where id=v_delivery.id
-    returning * into v_delivery;
-  end if;
+  insert into public.deliveries(
+    company_id,work_order_id,client_id,status,delivery_method,
+    delivered_at,recipient_name,notes,updated_at
+  ) values (
+    v_order.company_id,v_order.id,v_order.client_id,'DELIVERED',p_delivery_method,
+    now(),v_recipient,nullif(btrim(coalesce(p_notes,'')),''),now()
+  )
+  on conflict (work_order_id) where work_order_id is not null
+  do update set
+    client_id=coalesce(public.deliveries.client_id,excluded.client_id),
+    status='DELIVERED',
+    delivery_method=excluded.delivery_method,
+    delivered_at=coalesce(public.deliveries.delivered_at,excluded.delivered_at),
+    recipient_name=excluded.recipient_name,
+    notes=coalesce(excluded.notes,public.deliveries.notes),
+    updated_at=now()
+  returning * into v_delivery;
 
   update public.work_orders
   set status='DELIVERED',
@@ -101,8 +92,8 @@ begin
 end
 $$;
 
-revoke all on function public.mobile_confirm_delivery(uuid,text,timestamptz,text,text) from public;
-grant execute on function public.mobile_confirm_delivery(uuid,text,timestamptz,text,text) to authenticated;
+revoke all on function public.mobile_confirm_delivery(uuid,text,text,text) from public;
+grant execute on function public.mobile_confirm_delivery(uuid,text,text,text) to authenticated;
 
-comment on function public.mobile_confirm_delivery(uuid,text,timestamptz,text,text)
+comment on function public.mobile_confirm_delivery(uuid,text,text,text)
 is 'Confirma entrega móvil de una OT READY/DELIVERED, valida rol/asignación y sincroniza delivery + OT.';
