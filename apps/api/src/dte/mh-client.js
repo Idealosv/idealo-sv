@@ -5,6 +5,7 @@ const PATHS = Object.freeze({
   receive: '/fesv/recepciondte',
   receiveBatch: '/fesv/recepcionlote',
   query: '/fesv/recepcion/consultadte',
+  queryBatch: '/fesv/recepcion/consultadtelote',
   contingency: '/fesv/contingencia',
   invalidate: '/fesv/anulardte',
 })
@@ -31,6 +32,7 @@ export class MhDteClient {
   async receive(payload) { return this.authorizedPost(PATHS.receive, payload) }
   async receiveBatch(payload) { return this.authorizedPost(PATHS.receiveBatch, payload) }
   async query(payload) { return this.authorizedPost(PATHS.query, payload) }
+  async queryBatch(codigoLote) { return this.authorizedGet(`${PATHS.queryBatch}/${encodeURIComponent(String(codigoLote || '').trim())}`) }
   async reportContingency(payload) { return this.authorizedPost(PATHS.contingency, payload) }
   async invalidate(payload) { return this.authorizedPost(PATHS.invalidate, payload) }
 
@@ -40,6 +42,14 @@ export class MhDteClient {
       method: 'POST',
       body: JSON.stringify(payload),
       headers: { authorization: this.token },
+    }, this.requestOptions())
+  }
+
+  async authorizedGet(path) {
+    if (!this.token) await this.authenticate()
+    return requestJson(`${this.config.mhBaseUrl}${path}`, {
+      method: 'GET',
+      headers: { authorization: this.token, accept: 'application/json' },
     }, this.requestOptions())
   }
 
