@@ -52,6 +52,7 @@ function normalizeVisibleClientFields(form) {
 
   const documentNumber = form.querySelector('[name="document_number"]')
   const taxId = form.querySelector('[name="tax_id"]')
+  const dui = form.querySelector('[name="dui"]')
   const documentNumberLabel = labelOf(form, 'document_number')
   const taxIdLabel = labelOf(form, 'tax_id')
   const duiLabel = labelOf(form, 'dui')
@@ -72,6 +73,10 @@ function normalizeVisibleClientFields(form) {
     }
     if (taxIdLabel) taxIdLabel.hidden = true
     if (duiLabel) duiLabel.hidden = true
+    if (documentNumber?.value) {
+      nativeSet(dui, documentNumber.value)
+      nativeSet(taxId, documentNumber.value)
+    }
   } else {
     if (documentNumberLabel) {
       documentNumberLabel.hidden = false
