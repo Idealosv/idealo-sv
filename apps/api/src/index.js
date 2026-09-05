@@ -6,7 +6,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus, getDteProductionPreflightStatus } from './dte/config.js'
 import { createTestDteDraft } from './dte/draft-service.js'
 import { createInvoiceDraft } from './dte/invoice-service.js'
-import { signTestDteDraft } from './dte/sign-service.js'
+import { signTestDteDraft, signProductionDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
 import { transmitSignedProductionDte } from './dte/transmit-production-service.js'
 import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
@@ -135,6 +135,9 @@ app.post('/api/dte/invoices', async (request, response, next) => {
 })
 app.post('/api/dte/sign-test', async (request, response, next) => {
   try { response.json(await signTestDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
+})
+app.post('/api/dte/sign-production', async (request, response, next) => {
+  try { response.json(await signProductionDteDraft({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
 })
 app.post('/api/dte/transmit-test', async (request, response, next) => {
   try { response.json(await transmitSignedTestDte({ request, supabase: getSupabaseAdmin() })) } catch (error) { next(error) }
