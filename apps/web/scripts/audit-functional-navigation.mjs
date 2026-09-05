@@ -13,23 +13,29 @@ const [menu, billing, commercial, inventory, procurement, planning, financial, a
 ])
 
 const failures = []
+const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const routes = [
-  ['Dashboard', "openDirectModule('workspace', 'Resumen')"],
-  ['Clientes', "openDirectModule('workspace', 'Clientes')"],
-  ['Productos', "openDirectModule('commercial', 'Productos y trabajos')"],
-  ['Cotizaciones', "openDirectModule('commercial', 'Cotizaciones')"],
-  ['Producción', "openDirectModule('commercial', 'Producción')"],
-  ['Inventario', "openDirectModule('inventory', 'Inventario')"],
-  ['Facturación', "openDirectModule('billing', 'resumen')"],
-  ['Proveedores', "openDirectModule('procurement', 'Proveedores')"],
-  ['Compras', "openDirectModule('procurement', 'Compras y gastos')"],
-  ['Caja', "openDirectModule('procurement', 'Caja')"],
-  ['Asistente IA', "openDirectModule('assistant')"],
-  ['Agenda', "openDirectModule('planning')"],
-  ['Reportes', "openDirectModule('financial')"],
-  ['Seguridad', "openDirectModule('security')"],
+  ['Dashboard','workspace','Resumen'],
+  ['Clientes','workspace','Clientes'],
+  ['Productos','commercial','Productos y trabajos'],
+  ['Cotizaciones','commercial','Cotizaciones'],
+  ['Producción','commercial','Producción'],
+  ['Inventario','inventory','Inventario'],
+  ['Facturación','billing','resumen'],
+  ['Proveedores','procurement','Proveedores'],
+  ['Compras','procurement','Compras y gastos'],
+  ['Caja','procurement','Caja'],
+  ['Asistente IA','assistant',null],
+  ['Agenda','planning',null],
+  ['Reportes','financial',null],
+  ['Seguridad','security',null],
 ]
-for (const [name, token] of routes) if (!menu.includes(token)) failures.push(`${name} no tiene ruta funcional directa`)
+for (const [name,target,tab] of routes) {
+  const pattern = tab
+    ? new RegExp(`openDirectModule\\(\\s*['\"]${escapeRegExp(target)}['\"]\\s*,\\s*['\"]${escapeRegExp(tab)}['\"]\\s*\\)`)
+    : new RegExp(`openDirectModule\\(\\s*['\"]${escapeRegExp(target)}['\"]\\s*\\)`)
+  if (!pattern.test(menu)) failures.push(`${name} no tiene ruta funcional directa`)
+}
 
 for (const [name, source] of [
   ['Facturación', billing], ['Comercial', commercial], ['Inventario', inventory], ['Compras/Finanzas', procurement],
