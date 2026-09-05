@@ -1,0 +1,57 @@
+name: Validar app iPhone
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ios-simulator.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ios-simulator.yml'
+
+jobs:
+  build-ios-simulator:
+    runs-on: macos-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar configuración pública iPhone
+        shell: bash
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "Falta VITE_SUPABASE_URL en GitHub Actions"; exit 1; }
+          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "Falta VITE_SUPABASE_ANON_KEY en GitHub Actions"; exit 1; }
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Regresión móvil automática
+        run: npm --workspace apps/web run mobile:regression
+
+      - name: Compilar frontend
+        run: npm --workspace apps/web run build
+
+      - name: Crear proyecto iOS
+        working-directory: apps/web
+        run: npx cap add ios
+
+      - name: Sincronizar Capacitor iOS
+        working-directory: apps/web
+        run: npx cap sync ios
+
+      - name: Compilar para simulador iPhone
+        working-directory: apps/web/ios
+        run: xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
