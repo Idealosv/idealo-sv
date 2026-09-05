@@ -1,0 +1,16 @@
+do $$
+declare
+  r record;
+begin
+  for r in
+    select n.nspname, p.proname, pg_get_function_identity_arguments(p.oid) as args, p.prorettype::regtype::text as return_type
+    from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.prosecdef
+  loop
+    execute format('revoke execute on function %I.%I(%s) from anon',r.nspname,r.proname,r.args);
+    if r.return_type in ('trigger','event_trigger') then
+      execute format('revoke execute on function %I.%I(%s) from authenticated',r.nspname,r.proname,r.args);
+    end if;
+  end loop;
+end $$;
