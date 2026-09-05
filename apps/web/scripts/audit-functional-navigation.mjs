@@ -17,10 +17,13 @@ const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&
 const routes = [
   ['Dashboard','workspace','Resumen'],
   ['Clientes','workspace','Clientes'],
-  ['Comercial','commercial','Cotizaciones'],
+  ['Productos','commercial','Productos y trabajos'],
+  ['Cotizaciones','commercial','Cotizaciones'],
+  ['Producción','commercial','Producción'],
   ['Inventario','inventory','Inventario'],
   ['Facturación','billing','resumen'],
-  ['Abastecimiento','procurement','Control'],
+  ['Proveedores','procurement','Proveedores'],
+  ['Compras','procurement','Compras y gastos'],
   ['Caja','procurement','Caja'],
   ['Agenda','planning',null],
   ['Reportes','financial',null],
@@ -35,7 +38,7 @@ for (const [name,target,tab] of routes) {
 }
 
 for (const [name, source] of [
-  ['Facturación', billing], ['Comercial', commercial], ['Inventario', inventory], ['Abastecimiento/Caja', procurement],
+  ['Facturación', billing], ['Comercial', commercial], ['Inventario', inventory], ['Compras/Proveedores/Caja', procurement],
   ['Agenda', planning], ['Reportes', financial], ['Asistente IA', assistant], ['Seguridad', security],
 ]) {
   if (!source.includes("window.addEventListener('idealo-open-module'")) failures.push(`${name} no escucha apertura desde menú`)
@@ -45,8 +48,9 @@ for (const [name, source] of [
 
 if (!bridge.includes("detail.target !== 'workspace'")) failures.push('El adaptador de Dashboard/Clientes no está aislado a workspace')
 if (menu.includes('new MutationObserver')) failures.push('El menú principal mantiene un MutationObserver global')
-if (!menu.includes('normalizeModule')) failures.push('El menú no normaliza módulos legados hacia las áreas agrupadas')
-if (!access.includes("'Productos':'Comercial'") || !access.includes("'Producción':'Comercial'") || !access.includes("'Proveedores':'Abastecimiento'")) failures.push('Faltan alias de compatibilidad para módulos agrupados')
+if (!menu.includes("name==='App móviles'")) failures.push('App móviles perdió su acceso individual en el menú')
+if (!access.includes("'Productos y trabajos':'Productos'") || !access.includes("'Cotizaciones':'Cotizaciones'") || !access.includes("'Producción':'Producción'")) failures.push('Faltan rutas de compatibilidad para Productos, Cotizaciones y Producción')
+if (!access.includes("'Proveedores':'Proveedores'") || !access.includes("'Compras y gastos':'Compras'")) failures.push('Faltan rutas de compatibilidad para Proveedores y Compras')
 if (!billing.includes("onClick={() => openSection(section.id)}")) failures.push('Las secciones internas de Facturación no tienen navegación local')
 if (!billing.includes("activeSection === 'emitir'")) failures.push('Facturación no monta Nueva factura por estado')
 if (!billing.includes("activeSection === 'documentos'")) failures.push('Facturación no monta Documentos por estado')
@@ -58,4 +62,4 @@ if (failures.length) {
   failures.forEach((failure) => console.error(`- ${failure}`))
   process.exit(1)
 }
-console.log('Auditoría funcional de navegación OK: menú agrupado, compatibilidad, cierre y secciones internas protegidos.')
+console.log('Auditoría funcional de navegación OK: módulos individuales, cierre, rutas y secciones internas protegidos.')
