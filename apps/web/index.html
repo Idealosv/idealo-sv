@@ -10,9 +10,68 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>IDEALO SV</title>
+    <style>
+      #idealo-boot{position:fixed;inset:0;display:grid;place-items:center;background:#0b0d10;color:#f8fafc;font-family:Arial,sans-serif;z-index:2147483647}
+      #idealo-boot-card{width:min(440px,calc(100vw - 36px));padding:28px;border:1px solid #2b3138;border-radius:16px;background:#15191e;box-shadow:0 24px 70px rgba(0,0,0,.45);text-align:center}
+      #idealo-boot-mark{width:52px;height:52px;margin:0 auto 16px;border-radius:13px;display:grid;place-items:center;background:#f97316;color:#fff;font-weight:900;font-size:22px}
+      #idealo-boot-title{font-size:20px;font-weight:800;margin:0 0 8px}
+      #idealo-boot-text{margin:0;color:#cbd5e1;line-height:1.5}
+      #idealo-boot button{margin-top:18px;border:0;border-radius:10px;background:#f97316;color:#fff;font-weight:800;padding:11px 18px;cursor:pointer}
+      #idealo-boot-detail{display:none;margin-top:12px;color:#fca5a5;font-size:12px;word-break:break-word}
+    </style>
+    <script>
+      (function(){
+        var ua=navigator.userAgent||'';
+        var isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||location.pathname==='/mobile'||location.pathname.indexOf('/mobile/')===0;
+        var repairKey='idealo-desktop-repair-v2';
+        var showBootError=function(message){
+          var text=document.getElementById('idealo-boot-text');
+          var detail=document.getElementById('idealo-boot-detail');
+          var button=document.getElementById('idealo-boot-retry');
+          if(text) text.textContent='IDEALO SV no pudo iniciar correctamente. Ya podés intentar una carga limpia.';
+          if(detail&&message){detail.style.display='block';detail.textContent=String(message).slice(0,300)}
+          if(button) button.style.display='inline-block';
+        };
+        window.addEventListener('error',function(event){showBootError(event&&event.message||'Error al cargar el frontend')});
+        window.addEventListener('unhandledrejection',function(event){showBootError(event&&event.reason&&event.reason.message||event&&event.reason||'Error al iniciar la aplicación')});
+        window.__idealoBootError=showBootError;
+        if(!isMobile&&'serviceWorker' in navigator){
+          Promise.resolve().then(async function(){
+            try{
+              var hadController=!!navigator.serviceWorker.controller;
+              var regs=await navigator.serviceWorker.getRegistrations();
+              await Promise.all(regs.map(function(reg){return reg.unregister()}));
+              if('caches' in window){
+                var keys=await caches.keys();
+                await Promise.all(keys.filter(function(key){return key.indexOf('idealo-mobile-')===0}).map(function(key){return caches.delete(key)}));
+              }
+              if(hadController&&sessionStorage.getItem(repairKey)!=='1'){
+                sessionStorage.setItem(repairKey,'1');
+                location.replace(location.pathname+'?desktop_repair='+Date.now()+location.hash);
+              }
+            }catch(e){showBootError(e&&e.message||e)}
+          });
+        }
+        setTimeout(function(){
+          var root=document.getElementById('root');
+          var boot=document.getElementById('idealo-boot');
+          if(root&&boot&&root.contains(boot)) showBootError('El módulo principal no respondió en 8 segundos.');
+        },8000);
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="idealo-boot">
+        <div id="idealo-boot-card">
+          <div id="idealo-boot-mark">I</div>
+          <p id="idealo-boot-title">IDEALO SV</p>
+          <p id="idealo-boot-text">Cargando sistema…</p>
+          <div id="idealo-boot-detail"></div>
+          <button id="idealo-boot-retry" type="button" style="display:none" onclick="sessionStorage.removeItem('idealo-desktop-repair-v2');location.reload()">Reintentar carga limpia</button>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
     <script type="module" src="/src/product-form-gate.js"></script>
   </body>
