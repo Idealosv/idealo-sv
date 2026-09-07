@@ -34,7 +34,7 @@ requireText(qaReceivable,'QA saldo','Limpieza QA CxC')
 requireText(qaReceivable,'987650','Limpieza QA CxC')
 
 const sw=read('apps/web/public/sw.js')
-requireText(sw,"CACHE='idealo-mobile-v5'",'Versión PWA')
+requireText(sw,"CACHE='idealo-mobile-v6'",'Versión PWA')
 requireText(sw,"url.origin!==self.location.origin",'PWA same-origin')
 requireText(sw,'fetch(request).then','PWA network-first')
 forbidText(sw,'caches.match(request).then((cached)=>cached||fetch','PWA cache-first obsoleto')
