@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const src = resolve(here, '../src')
 const paths = {
-  main: resolve(src, 'main.jsx'), runtime: resolve(src, 'ModuleRuntime.jsx'), menu: resolve(src, 'MainMenuController.jsx'), accessControl: resolve(src, 'erp-access-control.js'), menuCss: resolve(src, 'main-menu.css'),
+  main: resolve(src, 'main.jsx'), deferred: resolve(src, 'DeferredRuntimeHosts.jsx'), runtime: resolve(src, 'ModuleRuntime.jsx'), menu: resolve(src, 'MainMenuController.jsx'), accessControl: resolve(src, 'erp-access-control.js'), menuCss: resolve(src, 'main-menu.css'),
   clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'), clientsCss: resolve(src, 'client-module-organizer.css'), dashboardCss: resolve(src, 'executive-dashboard-main.css'), dashboardHost: resolve(src, 'ExecutiveDashboardHost.jsx'),
   commercial: resolve(src, 'CommercialLauncher.jsx'), inventory: resolve(src, 'InventoryCostLauncher.jsx'), billing: resolve(src, 'FacturacionLauncher.jsx'), procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
   planning: resolve(src, 'ProductionCalendarLauncher.jsx'), financial: resolve(src, 'FinancialDashboardLauncher.jsx'), assistant: resolve(src, 'AssistantLauncher.jsx'), security: resolve(src, 'SecurityLauncher.jsx'), workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
@@ -13,23 +13,24 @@ const paths = {
 }
 const source = {}
 for (const [key,path] of Object.entries(paths)) source[key] = await readFile(path, 'utf8')
+const mountedRuntime = `${source.main}\n${source.deferred}`
 
 const importsFrom = (text) => [...text.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"](\.\/[^'\"]+)['\"]/g)].map((match) => match[1])
-const relativeImports = [...new Set([...importsFrom(source.main), ...importsFrom(source.runtime)])]
+const relativeImports = [...new Set([...importsFrom(source.main), ...importsFrom(source.deferred), ...importsFrom(source.runtime)])]
 const missing = []
 for (const specifier of relativeImports) { try { await access(resolve(src, specifier.replace(/^\.\//, ''))) } catch { missing.push(specifier) } }
 
 const failures = []
 if (missing.length) failures.push(`Imports inexistentes: ${missing.join(', ')}`)
 if (!source.main.includes('RuntimeBoundary')) failures.push('Falta RuntimeBoundary en el arranque')
-if (!source.main.includes('FormAccordionManager')) failures.push('Falta el gestor seguro de formularios')
-if (!source.main.includes('FormSimplificationManager')) failures.push('Falta el gestor de simplificación de formularios')
+if (!mountedRuntime.includes('FormAccordionManager')) failures.push('Falta el gestor seguro de formularios')
+if (!mountedRuntime.includes('FormSimplificationManager')) failures.push('Falta el gestor de simplificación de formularios')
 if (!source.main.includes("'./form-simplification.css'")) failures.push('Falta la capa visual de simplificación de formularios')
 if (source.main.includes('FormAccordionCoordinator')) failures.push('El coordinador global inestable volvió al arranque')
-if (!source.main.includes('ModuleRuntime')) failures.push('Falta el runtime aislado por módulo')
-if (!source.main.includes('AssistantLauncher')) failures.push('Asistente IA no tiene vista principal propia')
-if (!source.main.includes('SecurityLauncher')) failures.push('Seguridad no tiene vista principal propia')
-if (!source.main.includes('WorkspaceNavigationBridge')) failures.push('Falta el adaptador aislado para módulos legados de Workspace')
+if (!mountedRuntime.includes('ModuleRuntime')) failures.push('Falta el runtime aislado por módulo')
+if (!mountedRuntime.includes('AssistantLauncher')) failures.push('Asistente IA no tiene vista principal propia')
+if (!mountedRuntime.includes('SecurityLauncher')) failures.push('Seguridad no tiene vista principal propia')
+if (!mountedRuntime.includes('WorkspaceNavigationBridge')) failures.push('Falta el adaptador aislado para módulos legados de Workspace')
 if (!source.main.includes("'./module-action-hierarchy.css'")) failures.push('Falta la capa final de jerarquía visual de acciones')
 if (!source.actionHierarchy.includes('.products360-savebar') || !source.actionHierarchy.includes('.production-detail-actions')) failures.push('La jerarquía visual no cubre Productos y Producción')
 if (!source.actionHierarchy.includes("button[type='submit']")) failures.push('La acción primaria debe quedar diferenciada de las secundarias')
@@ -40,7 +41,7 @@ if (!source.formSimplificationCss.includes('.show-advanced-fields')) failures.pu
 const moduleScopedHosts = ['MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
 const leakedHosts = moduleScopedHosts.filter((name) => source.main.includes(`<${name}`) || source.main.includes(`import ${name} `))
 if (leakedHosts.length) failures.push(`Hosts de módulo cargados globalmente: ${leakedHosts.join(', ')}`)
-if (!source.main.includes('<ExecutiveDashboardHost/>')) failures.push('Dashboard ejecutivo no está montado en el runtime principal')
+if (!mountedRuntime.includes('<ExecutiveDashboardHost/>')) failures.push('Dashboard ejecutivo no está montado en el runtime principal o diferido')
 if (!source.dashboardHost.includes("detail === 'Dashboard'") && !source.dashboardHost.includes("detail==='Dashboard'")) failures.push('Dashboard ejecutivo debe mostrarse solo cuando Dashboard está activo')
 if (source.runtime.includes('ExecutiveDashboardHost') || source.runtime.includes("activeModule === 'Dashboard'")) failures.push('Dashboard ejecutivo volvió a montarse también dentro de ModuleRuntime')
 if (!source.runtime.includes("activeModule === 'App móviles'")) failures.push('Extensiones móviles no están aisladas por módulo')
@@ -88,4 +89,4 @@ if (/\.idealo-main-menu-item\.active\s*\{[^}]*background\s*:\s*#f36c21/i.test(so
 if (!/\.idealo-main-menu-item\.active\s*\{[^}]*color\s*:\s*#f36c21/i.test(source.menuCss)) failures.push('El módulo activo debe marcarse con texto naranja')
 
 if (failures.length) { console.error('\nAuditoría frontend falló:'); failures.forEach((failure) => console.error(`- ${failure}`)); process.exit(1) }
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, formularios simplificados, jerarquía visual protegida, navegación individual restaurada, runtime aislado y menú protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, formularios simplificados, jerarquía visual protegida, navegación individual restaurada, runtime crítico+diferido aislado y menú protegido.`)
