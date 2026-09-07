@@ -24,12 +24,39 @@ import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
 const app=express();const port=Number(process.env.PORT||4000)
+const demoMode=String(process.env.DEMO_MODE||'').trim().toLowerCase()==='true'
 const configuredOrigins=(process.env.CORS_ORIGIN||'').split(',').map(v=>v.trim()).filter(Boolean)
 if(process.env.NODE_ENV==='production'&&configuredOrigins.length===0)throw new Error('CORS_ORIGIN es obligatoria en producción; la API no iniciará con CORS abierto.')
 app.disable('x-powered-by');app.set('trust proxy',1);app.use(helmet());app.use(cors({origin:configuredOrigins.length?configuredOrigins:true,credentials:true}));app.use(express.json({limit:'1mb'}))
+
+const demoBlockedRoutes=new Set([
+  'PUT /api/dte/runtime-settings',
+  'GET /api/dte/mh-auth-diagnostic',
+  'GET /api/dte/signer-diagnostic',
+  'POST /api/dte/gmail-test',
+  'POST /api/dte/invoice-email-self-test',
+  'POST /api/dte/invoice-email-resend',
+  'POST /api/dte/prepare-contingency',
+  'POST /api/dte/sign-test',
+  'POST /api/dte/sign-production',
+  'POST /api/dte/transmit-test',
+  'POST /api/dte/transmit-production',
+  'POST /api/dte/invalidate',
+  'POST /api/dte/contingency-event',
+  'POST /api/dte/contingency-batches/transmit',
+  'GET /api/dte/contingency-batches/reconcile',
+])
+app.use((q,r,n)=>{
+  if(!demoMode)return n()
+  r.setHeader('X-Idealo-Demo','true')
+  const route=`${q.method} ${q.path}`
+  if(demoBlockedRoutes.has(route))return r.status(403).json({error:'DEMO_MODE_BLOCKED',code:'DEMO_MODE_BLOCKED',message:'MODO DEMOSTRACIÓN: esta acción externa está bloqueada. La demo no firma, transmite, invalida DTE ni envía correos reales.'})
+  n()
+})
+
 const db=()=>getSupabaseAdmin()
-app.get('/',(_q,r)=>r.json({name:'IDEALO SV API',version:'0.1.0'}));app.get('/health',(_q,r)=>r.json({status:'ok',service:'idealo-sv-api',supabase:isSupabaseConfigured?'configured':'pending',timestamp:new Date().toISOString()}))
-app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',dte:getDteConfigurationStatus()})}catch(e){n(e)}})
+app.get('/',(_q,r)=>r.json({name:demoMode?'IDEALO SV DEMO API':'IDEALO SV API',version:'0.1.0',demo:demoMode}));app.get('/health',(_q,r)=>r.json({status:'ok',service:demoMode?'idealo-sv-demo-api':'idealo-sv-api',demo:demoMode,supabase:isSupabaseConfigured?'configured':'pending',timestamp:new Date().toISOString()}))
+app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',demo:demoMode,dte:demoMode?{...getDteConfigurationStatus(),externalActions:'blocked'}:getDteConfigurationStatus()})}catch(e){n(e)}})
 app.get('/api/ai/status',async(_q,r,n)=>{try{r.json(await getAiStatus())}catch(e){n(e)}})
 app.get('/api/ai/snapshot',async(q,r,n)=>{try{r.json(await getAiSnapshot({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/ai/ask',async(q,r)=>{try{r.json(await askAiAssistant({request:q,supabase:db()}))}catch(e){console.error('AI_ASSISTANT_FAILED',{code:e?.code,statusCode:e?.statusCode,message:e?.message});const s=Number(e?.statusCode||500);r.status(s).json({error:String(e?.code||'AI_ASSISTANT_ERROR'),code:String(e?.code||'AI_ASSISTANT_ERROR'),message:String(e?.message||'No se pudo completar el análisis interno.')})}})
@@ -44,7 +71,7 @@ app.get('/api/admin/saas/dashboard',async(q,r,n)=>{try{r.json(await getSaasMaste
 app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
 app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscription({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await createSaasBillingEvent({request:q,supabase:db()}))}catch(e){n(e)}})
-app.get('/api/dte/status',(_q,r)=>r.json(getDteConfigurationStatus()));app.get('/api/dte/production-preflight',(_q,r)=>r.json(getDteProductionPreflightStatus()))
+app.get('/api/dte/status',(_q,r)=>r.json(demoMode?{...getDteConfigurationStatus(),demo:true,externalActions:'blocked'}:getDteConfigurationStatus()));app.get('/api/dte/production-preflight',(_q,r)=>demoMode?r.status(403).json({ready:false,demo:true,message:'MODO DEMOSTRACIÓN: PRODUCCIÓN está bloqueada.'}):r.json(getDteProductionPreflightStatus()))
 app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
 app.put('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await updateRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/mh-auth-diagnostic',async(q,r,n)=>{try{r.json(await diagnoseMhAuthentication({request:q,supabase:db()}))}catch(e){n(e)}})
@@ -61,4 +88,4 @@ app.post('/api/dte/contingency-event',async(q,r,n)=>{try{r.json(await reportDteC
 app.post('/api/dte/contingency-batches/transmit',async(q,r,n)=>{try{r.json(await transmitContingencyBatches({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/contingency-batches/reconcile',async(q,r,n)=>{try{r.json(await reconcileContingencyBatches({request:q,supabase:db()}))}catch(e){n(e)}})
 app.use((e,_q,r,_n)=>{console.error(e);const s=Number(e.statusCode||500);r.status(s).json({error:s>=500?'INTERNAL_SERVER_ERROR':(e.code||'REQUEST_ERROR'),message:s>=500&&process.env.NODE_ENV==='production'?'Ocurrió un error inesperado.':e.message})})
-app.listen(port,'0.0.0.0',()=>console.log(`IDEALO SV API disponible en el puerto ${port}`));export{app}
+app.listen(port,'0.0.0.0',()=>console.log(`${demoMode?'IDEALO SV DEMO API':'IDEALO SV API'} disponible en el puerto ${port}`));export{app}
