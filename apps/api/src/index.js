@@ -19,7 +19,8 @@ import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit, registerCompanyActivity } from './admin/user-administration-service.js'
-import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription } from './admin/saas-master-service.js'
+import { getSaasMasterDashboard, createSaasCompany } from './admin/saas-master-service.js'
+import { updateSaasSubscriptionSafely } from './admin/saas-subscription-admin-service.js'
 import { getSaasBillingCenter } from './admin/saas-billing-center-service.js'
 import { recordSaasPayment } from './admin/saas-payment-service.js'
 import { listPlanChangeRequests, reviewPlanChangeRequest } from './admin/saas-plan-change-service.js'
@@ -53,7 +54,7 @@ app.get('/api/admin/saas/billing',async(q,r,n)=>{try{r.json(await getSaasBilling
 app.get('/api/admin/saas/plan-changes',async(q,r,n)=>{try{r.json(await listPlanChangeRequests({request:q,supabase:db()}))}catch(e){n(e)}})
 app.patch('/api/admin/saas/plan-changes/:requestId',async(q,r,n)=>{try{r.json(await reviewPlanChangeRequest({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
-app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscription({request:q,supabase:db()}))}catch(e){n(e)}})
+app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscriptionSafely({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await recordSaasPayment({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/status',(_q,r)=>r.json(getDteConfigurationStatus()));app.get('/api/dte/production-preflight',(_q,r)=>r.json(getDteProductionPreflightStatus()))
 app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
