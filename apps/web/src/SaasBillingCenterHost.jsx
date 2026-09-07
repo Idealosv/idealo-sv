@@ -14,10 +14,7 @@ function printReceipt(company,event){
  popup.document.write(html);popup.document.close();popup.focus()
 }
 
-export default function SaasBillingCenterHost(){
- const path=window.location.pathname
- if(path==='/master')return <a className="saas-billing-fab" href="/master/cobros">Historial y saldos</a>
- if(path!=='/master/cobros')return null
+function BillingCenterPage(){
  const [session,setSession]=useState(null),[data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState(''),[selected,setSelected]=useState(null)
  useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data:auth})=>setSession(auth.session));const {data:listener}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));return()=>listener.subscription.unsubscribe()},[])
  const load=async()=>{if(!session?.access_token)return;setLoading(true);setError('');try{const response=await fetch(`${apiUrl}/api/admin/saas/billing`,{headers:{Authorization:`Bearer ${session.access_token}`}});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.message||'No se pudo cargar el centro de cobros.');setData(body)}catch(err){setError(err.message)}finally{setLoading(false)}}
@@ -30,4 +27,11 @@ export default function SaasBillingCenterHost(){
  <main><div className="saas-billing-toolbar"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar empresa o plan"/><span>{rows.length} empresas</span></div><div className="saas-billing-table"><table><thead><tr><th>Empresa</th><th>Plan</th><th>Próximo cobro</th><th>Saldo</th><th>Activación</th><th>Estado</th><th></th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong>{row.name}</strong><small>{row.slug}</small></td><td>{row.subscription?.plan?.name||'Sin plan'}<small>{money(row.subscription?.plan?.monthly_price)}/mes</small></td><td><strong>{date(row.next_charge_at)}</strong><small>{row.overdue_days?`${row.overdue_days} días vencida`:'Programado'}</small></td><td className={row.balance_due?'due':''}><strong>{money(row.balance_due)}</strong><small>{row.monthly_pending?'Mensualidad pendiente':''}</small></td><td>{row.activation_pending?'Pendiente':'Pagada'}</td><td>{row.subscription?.status||'—'}{row.subscription?.grace_ends_at&&<small>Gracia hasta {date(row.subscription.grace_ends_at)}</small>}</td><td><button onClick={()=>setSelected(row)}>Ver historial ({row.payments.length})</button></td></tr>)}</tbody></table></div></main></>}
  {selected&&<div className="saas-billing-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}><section className="saas-billing-modal"><div className="saas-billing-modal-head"><div><small>HISTORIAL DE PAGOS</small><h2>{selected.name}</h2><p>Pagado acumulado: <strong>{money(selected.total_paid)}</strong> · Saldo actual: <strong>{money(selected.balance_due)}</strong></p></div><button onClick={()=>setSelected(null)}>×</button></div><div className="saas-billing-history"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th>Referencia</th><th>Comprobante</th></tr></thead><tbody>{selected.payments.length?selected.payments.map(event=><tr key={event.id}><td>{date(event.occurred_at)}</td><td>{chargeLabels[event.charge_type]||event.charge_type}</td><td><strong>{money(event.amount)}</strong></td><td>{event.external_reference||'—'}</td><td><button onClick={()=>printReceipt(selected,event)}>Imprimir {event.receipt_number}</button></td></tr>):<tr><td colSpan="5">Todavía no hay pagos registrados.</td></tr>}</tbody></table></div></section></div>}
  </div>
+}
+
+export default function SaasBillingCenterHost(){
+ const path=window.location.pathname
+ if(path==='/master')return <a className="saas-billing-fab" href="/master/cobros">Historial y saldos</a>
+ if(path==='/master/cobros')return <BillingCenterPage/>
+ return null
 }
