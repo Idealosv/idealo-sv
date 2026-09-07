@@ -45,6 +45,16 @@ export default function SafeWorkspaceGate({ session, supabase }) {
   }, [loadCompanies])
 
   useEffect(()=>{
+    const company=companies[0]||null
+    if(status!=='ready')return undefined
+    window.__IDEALO_ACTIVE_COMPANY__=company
+    window.dispatchEvent(new CustomEvent('idealo-company-resolved',{detail:company}))
+    return()=>{
+      if(window.__IDEALO_ACTIVE_COMPANY__?.id===company?.id)window.__IDEALO_ACTIVE_COMPANY__=null
+    }
+  },[status,companies])
+
+  useEffect(()=>{
     const company=companies[0]
     if(status!=='ready'||!company?.id||!session?.access_token||!API)return undefined
     let stopped=false
