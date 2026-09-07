@@ -2,6 +2,7 @@ import fs from 'node:fs'
 const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),'utf8')
 const host=read('src/SaasMasterPanelHost.jsx')
 const main=read('src/main.jsx')
+const deferred=read('src/DeferredRuntimeHosts.jsx')
 const service=fs.readFileSync(new URL('../../api/src/admin/saas-master-service.js',import.meta.url),'utf8')
 const migration=fs.readFileSync(new URL('../../../supabase/migrations/0040_saas_commercial_core.sql',import.meta.url),'utf8')
 const compact=value=>value.replace(/\s+/g,'')
@@ -9,7 +10,8 @@ const compactHost=compact(host)
 const compactService=compact(service)
 const checks=[
  ['ruta /master',/window\.location\.pathname\s*===\s*['"]\/master['"]/.test(host)],
- ['host montado',main.includes('<SaasMasterPanelHost/>')],
+ ['runtime diferido conectado',main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))")],
+ ['host montado',deferred.includes("import SaasMasterPanelHost from './SaasMasterPanelHost.jsx'")&&deferred.includes('<SaasMasterPanelHost/>')],
  ['sesión bearer',/Authorization\s*:\s*`Bearer\s+\$\{session\.access_token\}`/.test(host)],
  ['dashboard SaaS',host.includes('/api/admin/saas/dashboard')],
  ['crear empresa',host.includes('/api/admin/saas/companies')],
