@@ -10,6 +10,7 @@ const reminderCron=read('../../../../supabase/migrations/0049_saas_commercial_re
 const closeout=read('../../../../supabase/migrations/0050_security_dte_commercial_closeout.sql')
 const wrapperCleanup=read('../../../../supabase/migrations/0051_security_definer_wrapper_cleanup.sql')
 const finalHardening=read('../../../../supabase/migrations/20260907195500_final_security_dte_erp_hardening.sql')
+const writeGuard=read('../../../../supabase/migrations/20260907200500_operational_write_trigger_guard.sql')
 const payment=read('../admin/saas-payment-service.js')
 const portal=read('./customer-portal-service.js')
 const planChanges=read('../admin/saas-plan-change-service.js')
@@ -36,3 +37,4 @@ test('alta móvil de cotización y OT no acepta cliente de otra empresa',()=>{as
 test('cambio de estado móvil respeta secuencia productiva y deja historial',()=>{assert.match(finalHardening,/mobile_set_work_order_status/);assert.match(finalHardening,/v_from='PENDING' and p_status='DESIGN'/);assert.match(finalHardening,/v_from='PRODUCTION' and p_status='READY'/);assert.match(finalHardening,/production_status_history/);assert.match(finalHardening,/SAAS_SUBSCRIPTION_INACTIVE/)})
 test('aprobación móvil de diseño no salta bloqueo de membresía',()=>{assert.match(finalHardening,/mobile_set_design_decision/);assert.match(finalHardening,/saas_company_operational_access\(v_company\)/)})
 test('numeración DTE valida plan, demo y aprobación de producción antes de consumir secuencia',()=>{assert.match(finalHardening,/SAAS_DTE_PLAN_REQUIRED/);assert.match(finalHardening,/DEMO_DTE_PRODUCTION_FORBIDDEN/);assert.match(finalHardening,/DTE_PRODUCTION_NOT_APPROVED/);assert.match(finalHardening,/production_enabled=true/);assert.match(finalHardening,/production_approved=true/);assert.ok(finalHardening.indexOf('DTE_PRODUCTION_NOT_APPROVED')<finalHardening.indexOf('pg_advisory_xact_lock'),'el guard de producción debe ocurrir antes de consumir numeración')})
+test('guardia de tabla bloquea SECURITY DEFINER que intenten escribir con membresía suspendida',()=>{assert.match(writeGuard,/saas_enforce_operational_write/);assert.match(writeGuard,/SAAS_SUBSCRIPTION_INACTIVE/);for(const table of ['clients','quotes','work_orders','attendance_records','production_schedule_events','deliveries','design_approvals'])assert.ok(writeGuard.includes(`'${table}'`),`falta guardia de escritura para ${table}`);assert.match(writeGuard,/revoke all on function public\.saas_enforce_operational_write\(\) from public,anon,authenticated/)})
