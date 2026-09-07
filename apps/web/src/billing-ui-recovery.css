@@ -1,0 +1,23 @@
+.billing-classic-summary .billing-orange-submit,
+.billing-classic-summary button[type="submit"].billing-orange-submit{
+  background:#f97316 !important;
+  border-color:#f97316 !important;
+  color:#fff !important;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(249,115,22,.22);
+}
+
+.billing-classic-summary .billing-orange-submit:hover:not(:disabled),
+.billing-classic-summary button[type="submit"].billing-orange-submit:hover:not(:disabled){
+  background:#ea580c !important;
+  border-color:#ea580c !important;
+}
+
+.billing-classic-summary .billing-orange-submit:focus-visible{
+  outline:3px solid rgba(249,115,22,.28);
+  outline-offset:2px;
+}
+
+.billing-classic-summary .billing-orange-submit:disabled{
+  opacity:.62;
+}
