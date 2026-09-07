@@ -1,0 +1,5 @@
+.cash-history-tools{display:grid;grid-template-columns:minmax(240px,1fr) 180px auto;gap:10px;padding:12px 14px;border-top:1px solid rgba(148,163,184,.18)}
+.cash-history-tools input{width:100%;min-height:42px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#111827;outline:none}
+.cash-history-tools input:focus{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.10)}
+.cash-history-tools button{min-height:42px;white-space:nowrap}
+@media(max-width:760px){.cash-history-tools{grid-template-columns:1fr}.cash-history-tools button{width:100%}}
