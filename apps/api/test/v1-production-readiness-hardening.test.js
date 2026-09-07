@@ -6,7 +6,6 @@ const read = (path) => readFileSync(new URL(`../../../${path}`, import.meta.url)
 
 const migration = read('supabase/migrations/20260907202000_rpc_execution_surface_hardening.sql')
 const production = read('apps/api/src/dte/transmit-production-service.js')
-const access = read('apps/api/src/dte/access-control.js')
 const mobileGuard = read('apps/web/src/MobileDteEnvironmentGuard.jsx')
 const saasGuard = read('apps/web/src/MobileSaasPlanGuard.jsx')
 
@@ -20,9 +19,11 @@ test('numeración DTE queda reservada al backend privilegiado', () => {
   assert.match(migration, /grant execute on function public\.next_dte_control_number[\s\S]*service_role, postgres/i)
 })
 
-test('preproducción conserva autorización explícita y no activa producción automáticamente', () => {
-  assert.match(access, /production_approved/i)
-  assert.match(production, /PRODUCTION/i)
+test('preproducción conserva confirmación deliberada y endpoint oficial sin activar producción', () => {
+  assert.match(production, /getDteProductionPreflightStatus/)
+  assert.match(production, /Solo el propietario de la empresa puede transmitir DTE en PRODUCCIÓN/)
+  assert.match(production, /api\.dtes\.mh\.gob\.sv/)
+  assert.match(production, /TRANSMITIR PRODUCCION/)
   assert.doesNotMatch(migration, /update\s+public\.dte_runtime_settings[\s\S]*production_approved\s*=\s*true/i)
 })
 
