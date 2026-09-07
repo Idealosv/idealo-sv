@@ -3,6 +3,8 @@ import Workspace from './Workspace.jsx'
 
 const RETRY_DELAYS = [0, 450, 1200]
 const API=(import.meta.env.VITE_API_URL||'').replace(/\/$/,'')
+const requestedCompanyId=()=>new URLSearchParams(window.location.search).get('company')||''
+const prioritizeRequested=(rows=[])=>{const id=requestedCompanyId();if(!id)return rows;const index=rows.findIndex(row=>row?.id===id||row?.company_id===id);if(index<=0)return rows;const copy=[...rows];const [selected]=copy.splice(index,1);copy.unshift(selected);return copy}
 
 export default function SafeWorkspaceGate({ session, supabase }) {
   const [status, setStatus] = useState('checking')
@@ -17,7 +19,7 @@ export default function SafeWorkspaceGate({ session, supabase }) {
       if (delay) await wait(delay)
       try {
         const { data, error } = await supabase.rpc('get_my_companies')
-        if (!error) { setCompanies(Array.isArray(data) ? data : []); setStatus('ready'); return }
+        if (!error) { setCompanies(prioritizeRequested(Array.isArray(data) ? data : [])); setStatus('ready'); return }
         lastError = error
       } catch (error) { lastError = error }
     }
@@ -28,7 +30,7 @@ export default function SafeWorkspaceGate({ session, supabase }) {
           const company = Array.isArray(membership.companies) ? membership.companies[0] : membership.companies
           return company ? { ...company, role: membership.role } : null
         }).filter(Boolean)
-        setCompanies(recovered);setStatus('ready');return
+        setCompanies(prioritizeRequested(recovered));setStatus('ready');return
       }
       lastError = error
     } catch (error) { lastError = error }
@@ -49,6 +51,7 @@ export default function SafeWorkspaceGate({ session, supabase }) {
     if(status!=='ready')return undefined
     window.__IDEALO_ACTIVE_COMPANY__=company
     window.dispatchEvent(new CustomEvent('idealo-company-resolved',{detail:company}))
+    if(company?.id&&requestedCompanyId()===company.id){const url=new URL(window.location.href);url.searchParams.delete('company');url.searchParams.delete('master');window.history.replaceState({},'',`${url.pathname}${url.search}${url.hash}`)}
     return()=>{
       if(window.__IDEALO_ACTIVE_COMPANY__?.id===company?.id)window.__IDEALO_ACTIVE_COMPANY__=null
     }
