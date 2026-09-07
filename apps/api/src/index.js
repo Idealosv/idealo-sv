@@ -14,7 +14,7 @@ import { invalidateProcessedDte, reportDteContingency } from './dte/fiscal-event
 import { transmitContingencyBatches, reconcileContingencyBatches } from './dte/contingency-batch-service.js'
 import { diagnoseDteSigner } from './dte/signer-diagnostic-service.js'
 import { diagnoseMhAuthentication } from './dte/mh-auth-diagnostic-service.js'
-import { getRuntimeSettings, updateRuntimeSettings } from './dte/runtime-settings-service.js'
+import { getRuntimeSettings, updateRuntimeSettings, buildCompanyDteEnv } from './dte/runtime-settings-service.js'
 import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
@@ -27,6 +27,7 @@ import { listPlanChangeRequests, reviewPlanChangeRequest } from './admin/saas-pl
 import { getCompanyEntitlements, requireSaasFeature } from './saas/entitlement-service.js'
 import { getCustomerSaasAccount, requestPlanChange } from './saas/customer-portal-service.js'
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
+import { requireCompanyAccess, COMPANY_ROLES } from './security/company-access.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
 const app=express();const port=Number(process.env.PORT||4000)
@@ -34,8 +35,9 @@ const configuredOrigins=(process.env.CORS_ORIGIN||'').split(',').map(v=>v.trim()
 if(process.env.NODE_ENV==='production'&&configuredOrigins.length===0)throw new Error('CORS_ORIGIN es obligatoria en producción; la API no iniciará con CORS abierto.')
 app.disable('x-powered-by');app.set('trust proxy',1);app.use(helmet());app.use(cors({origin:configuredOrigins.length?configuredOrigins:true,credentials:true}));app.use(express.json({limit:'1mb'}))
 const db=()=>getSupabaseAdmin()
+async function requireDteAdminRoute(request,companyId){await requireCompanyAccess({request,supabase:db(),companyId,allowedRoles:COMPANY_ROLES.ADMIN,operation:'consultar el estado técnico DTE',auditAction:'DTE_ACCESS_DENIED'});await requireSaasFeature({request,supabase:db(),companyId,moduleCode:'DTE',featureLabel:'Facturación Electrónica DTE'})}
 app.get('/',(_q,r)=>r.json({name:'IDEALO SV API',version:'0.1.0'}));app.get('/health',(_q,r)=>r.json({status:'ok',service:'idealo-sv-api',supabase:isSupabaseConfigured?'configured':'pending',timestamp:new Date().toISOString()}))
-app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',dte:getDteConfigurationStatus()})}catch(e){n(e)}})
+app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',dte:{configuration:'protected'}})}catch(e){n(e)}})
 app.get('/api/saas/access',async(q,r,n)=>{try{r.json(await getCompanyEntitlements({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/saas/account',async(q,r,n)=>{try{r.json(await getCustomerSaasAccount({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/saas/plan-change',async(q,r,n)=>{try{r.status(201).json(await requestPlanChange({request:q,supabase:db()}))}catch(e){n(e)}})
@@ -56,7 +58,8 @@ app.patch('/api/admin/saas/plan-changes/:requestId',async(q,r,n)=>{try{r.json(aw
 app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
 app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscriptionSafely({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await recordSaasPayment({request:q,supabase:db()}))}catch(e){n(e)}})
-app.get('/api/dte/status',(_q,r)=>r.json(getDteConfigurationStatus()));app.get('/api/dte/production-preflight',(_q,r)=>r.json(getDteProductionPreflightStatus()))
+app.get('/api/dte/status',async(q,r,n)=>{try{const companyId=String(q.query?.companyId||q.query?.company_id||'').trim();await requireDteAdminRoute(q,companyId);const companyEnv=await buildCompanyDteEnv({companyId,supabase:db()});r.json(getDteConfigurationStatus(companyEnv))}catch(e){n(e)}})
+app.get('/api/dte/production-preflight',async(q,r,n)=>{try{const companyId=String(q.query?.companyId||q.query?.company_id||'').trim();await requireDteAdminRoute(q,companyId);const companyEnv=await buildCompanyDteEnv({companyId,supabase:db()});r.json(getDteProductionPreflightStatus(companyEnv))}catch(e){n(e)}})
 app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
 app.put('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await updateRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/mh-auth-diagnostic',async(q,r,n)=>{try{r.json(await diagnoseMhAuthentication({request:q,supabase:db()}))}catch(e){n(e)}})
