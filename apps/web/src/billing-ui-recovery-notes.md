@@ -1,0 +1,1 @@
+Hotfix de interfaz de Facturación: oculta únicamente el aviso genérico obsoleto cuando el formulario confirma que el documento está listo para guardar y resalta en anaranjado el botón de Crédito Fiscal.
