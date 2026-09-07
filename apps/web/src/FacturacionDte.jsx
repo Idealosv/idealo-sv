@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './facturacion.css'
+import { normalizeQuoteItemsToTotal } from './quoteInvoiceNormalizer.js'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const PAYMENT_METHODS = [['01','Efectivo'],['02','Tarjeta de débito'],['03','Tarjeta de crédito'],['04','Cheque'],['05','Transferencia bancaria'],['08','Dinero electrónico'],['99','Otro']]
@@ -178,6 +179,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
     return result
   },[items,priceMode,ivaRete,ivaPerci,reteRenta,saldoFavor,totalNoGravado])
   const totalLetras=useMemo(()=>moneyToWords(totals.pagar),[totals.pagar])
+  const sourceTotalMismatch=Boolean(sourceQuote&&Math.abs(roundMoney(totals.operacion)-roundMoney(sourceQuote.total))>0.01)
 
   const chooseClient=(value)=>{setClientId(value);setMessage('')}
   const chooseDteType=(value)=>{setMessage('');setDteType(value)}
@@ -199,9 +201,11 @@ export default function FacturacionDte({session,supabase,company,initialClientId
     const {data:lines,error}=await supabase.from('quote_items').select('id,product_id,description,quantity,unit,unit_price,discount,line_total,sku,taxable,tax_rate,sort_order').eq('quote_id',id).order('sort_order')
     if(error){setMessage(`No se pudieron cargar los productos de la cotización: ${error.message}`);setMessageType('error');setSourceLoading(false);return}
     if(!(lines||[]).length){setMessage('La cotización seleccionada no tiene productos o servicios para facturar.');setMessageType('error');setSourceLoading(false);return}
+    const nextPriceMode=quote.tax_mode==='INCLUDED'?'con_iva':'sin_iva'
+    const sourceItems=normalizeQuoteItemsToTotal((lines||[]).map(quoteLineToInvoiceItem),nextPriceMode,quote.total)
     setClientId(quote.client_id||'')
-    setItems(lines.map(quoteLineToInvoiceItem))
-    setPriceMode(quote.tax_mode==='INCLUDED'?'con_iva':'sin_iva')
+    setItems(sourceItems)
+    setPriceMode(nextPriceMode)
     const credit=String(quote.payment_terms||'').toLowerCase().includes('crédito')||String(quote.payment_terms||'').toLowerCase().includes('credito')||Number(quote.credit_days||0)>0
     setCondicionOperacion(credit?'2':'1')
     setPaymentCode(quotePaymentCode(quote.payment_method))
@@ -213,7 +217,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
     if(client?.preferred_dte_type==='03' || (client?.tax_id&&client?.nrc))setDteType('03')
     else setDteType('01')
     setSourceQuote(quote)
-    setMessage(`Cotización ${(quote.prefix||'COT')}-${quote.number} cargada. Revisá los datos y emití la factura cuando estés listo.`)
+    setMessage(`Cotización ${(quote.prefix||'COT')}-${quote.number} cargada por $${Number(quote.total||0).toFixed(2)}. El DTE conservará exactamente el total cotizado.`)
     setMessageType('success')
     setSourceLoading(false)
   }
@@ -224,8 +228,9 @@ export default function FacturacionDte({session,supabase,company,initialClientId
     if(dteType==='03'&&ccfMissing.length)pending.push(`datos fiscales: ${ccfMissing.join(', ')}`)
     items.forEach((item,index)=>{if(!item.descripcion.trim())pending.push(`descripción línea ${index+1}`);if(!(Number(item.cantidad)>0))pending.push(`cantidad línea ${index+1}`);if(!(Number(item.precioUni)>0))pending.push(`precio línea ${index+1}`)})
     if(condicionOperacion==='2'&&(!paymentPeriod||!paymentTerm))pending.push('plazo de crédito')
+    if(sourceTotalMismatch)pending.push(`el total del DTE no coincide con la cotización ($${Number(sourceQuote?.total||0).toFixed(2)})`)
     return pending
-  },[dteType,selectedClient,ccfMissing,items,condicionOperacion,paymentPeriod,paymentTerm])
+  },[dteType,selectedClient,ccfMissing,items,condicionOperacion,paymentPeriod,paymentTerm,sourceTotalMismatch,sourceQuote])
 
   const validate=()=>{const errors=[...readiness];if(!(totals.pagar>0))errors.push('total a pagar');return errors}
 
@@ -264,7 +269,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
         <label className="field form-span-2"><span>Cargar desde cotización / orden de trabajo</span><select value={sourceQuoteId} onChange={e=>loadQuoteIntoInvoice(e.target.value)} disabled={sourceLoading}><option value="">{sourceLoading?'Cargando…':'Seleccionar cotización facturable'}</option>{quoteSources.map(quote=><option key={quote.id} value={quote.id}>{`${quote.prefix||'COT'}-${quote.number} · ${quote.status}${quote.workOrder?` · OT-${quote.workOrder.number} ${quote.workOrder.status}`:''} · $${Number(quote.total||0).toFixed(2)}`}</option>)}</select></label>
       </div>
       <small className="billing-auto-note">Se muestran cotizaciones aprobadas o convertidas. Las órdenes LISTAS o ENTREGADAS aparecen primero.</small>
-      {sourceQuote&&<div className="billing-context-banner" style={{marginTop:10}}>Origen cargado: <strong>{sourceQuote.prefix||'COT'}-{sourceQuote.number}</strong>{sourceQuote.workOrder&&<> · Orden <strong>OT-{sourceQuote.workOrder.number}</strong> · {sourceQuote.workOrder.status}</>} · IVA {sourceQuote.tax_mode==='INCLUDED'?'incluido':'agregado'} · Total cotizado <strong>${Number(sourceQuote.total||0).toFixed(2)}</strong></div>}
+      {sourceQuote&&<div className="billing-context-banner" style={{marginTop:10}}>Origen cargado: <strong>{sourceQuote.prefix||'COT'}-{sourceQuote.number}</strong>{sourceQuote.workOrder&&<> · Orden <strong>OT-{sourceQuote.workOrder.number}</strong> · {sourceQuote.workOrder.status}</>} · IVA {sourceQuote.tax_mode==='INCLUDED'?'incluido':'agregado'} · Total cotizado <strong>${Number(sourceQuote.total||0).toFixed(2)}</strong>{sourceTotalMismatch&&<> · <strong style={{color:'#b91c1c'}}>NO COINCIDE CON EL DTE</strong></>}</div>}
     </div>
 
     <div className="billing-document-picker" role="group" aria-label="Tipo de documento">
@@ -339,6 +344,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
             {dteType==='03'&&clampMoney(ivaPerci)>0&&<p><span>IVA percibido</span><strong>+ ${clampMoney(ivaPerci).toFixed(2)}</strong></p>}
           </div>
           <div className="billing-summary-total"><span>Total calculado automáticamente</span><strong>${totals.pagar.toFixed(2)}</strong><small>{totalLetras}</small></div>
+          {sourceQuote&&<div className={sourceTotalMismatch?'billing-client-warning':'feedback success'}>{sourceTotalMismatch?`El total del DTE no coincide con la cotización de $${Number(sourceQuote.total||0).toFixed(2)}. No se puede guardar.`:`Total verificado contra la cotización: $${Number(sourceQuote.total||0).toFixed(2)}.`}</div>}
           <div className="billing-summary-client"><span>{dteType==='03'?'Cliente contribuyente':'Cliente'}</span><strong>{clientSummary}</strong>{selectedClient&&<small>{dteType==='03'?`NIT ${selectedClient.tax_id||'—'} · NRC ${selectedClient.nrc||'—'}`:selectedClient.document_number||selectedClient.tax_id||''}</small>}</div>
           <div className={readiness.length?'billing-client-warning':'feedback success'}>{readiness.length?`Pendiente: ${readiness.join(' · ')}`:'Documento listo para guardar.'}</div>
           <button type="submit" disabled={busy||readiness.length>0||!(totals.pagar>0)}>{busy?'Guardando…':dteType==='03'?'Guardar Crédito Fiscal':'Guardar factura'}</button>
