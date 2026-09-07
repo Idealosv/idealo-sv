@@ -57,6 +57,17 @@ test('empresa Legacy solo recibe plan mediante confirmación administrativa expl
   assert.doesNotMatch(subscriptionAdmin, /assignLegacySubscription[\s\S]*activation_paid_at\s*:/)
 })
 
+test('Asistente IA no permite a staff saltarse permisos financieros', () => {
+  assert.match(api, /requireAiCompanyRoute/)
+  assert.match(api, /allowedRoles:\['owner','admin','viewer'\]/)
+  assert.match(api, /auditAction:'AI_ACCESS_DENIED'/)
+  for (const route of ['/api/ai/snapshot','/api/ai/ask']) {
+    const routeIndex = api.indexOf(route)
+    assert.ok(routeIndex >= 0)
+    assert.ok(api.slice(routeIndex, routeIndex + 360).includes('requireAiCompanyRoute'))
+  }
+})
+
 test('ningún cambio V2 activa DTE PRODUCCIÓN por defecto', () => {
   assert.doesNotMatch(api, /DTE_PRODUCTION_APPROVAL\s*=\s*['"]IDEALO_SV_PRODUCTION_APPROVED/)
   assert.match(api, /configuration:'protected'/)
