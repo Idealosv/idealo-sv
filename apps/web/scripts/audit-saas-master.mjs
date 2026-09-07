@@ -14,7 +14,7 @@ const checks=[
  ['dashboard SaaS',host.includes('/api/admin/saas/dashboard')],
  ['crear empresa',host.includes('/api/admin/saas/companies')],
  ['registrar pago',host.includes('/payments')],
- ['renovar suscripción',compactHost.includes("JSON.stringify({status:'active',renew:true})")||compactService.includes("if(chargeType==='monthly'){patch.status='active'&&false}")||compactService.includes("if(chargeType==='monthly'){patch.status='active';")],
+ ['renovar suscripción',compactHost.includes("JSON.stringify({status:'active',renew:true})")||compactService.includes("if(chargeType==='monthly'){patch.status='active';")],
  ['protección servidor',service.includes('IDEALO_PLATFORM_ADMIN_EMAILS')&&service.includes('PLATFORM_ADMIN_REQUIRED')],
  ['validación JWT servidor',compactService.includes('supabase.auth.getUser(token)')],
  ['catálogo planes',migration.includes('create table if not exists public.saas_plans')],
