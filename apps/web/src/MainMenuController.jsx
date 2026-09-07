@@ -71,10 +71,13 @@ export default function MainMenuController() {
       if (email) email.textContent = 'IDEALO SV'
     }
     hidePrivateIdentity()
-    const observer = new MutationObserver(hidePrivateIdentity)
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [])
+    const retry1 = window.setTimeout(hidePrivateIdentity, 150)
+    const retry2 = window.setTimeout(hidePrivateIdentity, 700)
+    return () => {
+      window.clearTimeout(retry1)
+      window.clearTimeout(retry2)
+    }
+  }, [sidebar])
 
   useEffect(() => {
     const syncActive = event => { if (ERP_MODULES.includes(event.detail)) setActive(event.detail) }
