@@ -17,6 +17,14 @@ const demoRuntimeProtected =
   runtime.includes("supabase.from('companies').select('demo_mode')") &&
   runtime.includes('effectiveRow')
 
+const masterCreatesDemo =
+  master.includes('demo_mode: false') &&
+  master.includes('form.demo_mode') &&
+  master.includes('Crear como DEMO comercial') &&
+  master.includes("request('/api/admin/saas/companies'") &&
+  masterApi.includes('demo_mode:demoMode') &&
+  masterApi.includes('if(demoMode)await seedAgencyDemo')
+
 const checks = [
   ['guard demo montado', main.includes('AgencyDemoGuard')],
   ['marca ENTORNO DEMO', guard.includes('ENTORNO DEMO')],
@@ -26,7 +34,7 @@ const checks = [
   ['bloqueo DB producción', migration.includes('block_demo_company_production_dte') && migration.includes("new.environment <> 'production'")],
   ['bloqueo API producción', api.includes('DEMO_PRODUCTION_BLOCKED') && api.includes("select('demo_mode,demo_expires_at')")],
   ['configuración fiscal demo queda TEST', demoRuntimeProtected],
-  ['Panel Maestro crea demo', master.includes('Preparar como DEMO para agencia') && master.includes('demo_mode:true')],
+  ['Panel Maestro crea demo', masterCreatesDemo],
   ['seed comercial ficticio', masterApi.includes('[DEMO] Café Central') && masterApi.includes('[DEMO] Banner lona 13 oz')],
   ['seed cotización y producción', masterApi.includes("from('quotes').insert") && masterApi.includes("from('work_orders').insert")],
   ['demo contabilizado', masterApi.includes('demos:rows.filter(x=>x.demo_mode).length')],

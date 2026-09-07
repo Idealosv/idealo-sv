@@ -19,9 +19,13 @@ import { sendGmailSelfTest } from './dte/gmail-test-service.js'
 import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit, registerCompanyActivity } from './admin/user-administration-service.js'
-import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
+import { getSaasMasterDashboard, createSaasCompany } from './admin/saas-master-service.js'
+import { updateSaasSubscriptionSafely } from './admin/saas-subscription-admin-service.js'
 import { getSaasBillingCenter } from './admin/saas-billing-center-service.js'
+import { recordSaasPayment } from './admin/saas-payment-service.js'
+import { listPlanChangeRequests, reviewPlanChangeRequest } from './admin/saas-plan-change-service.js'
 import { getCompanyEntitlements, requireSaasFeature } from './saas/entitlement-service.js'
+import { getCustomerSaasAccount, requestPlanChange } from './saas/customer-portal-service.js'
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
@@ -33,6 +37,8 @@ const db=()=>getSupabaseAdmin()
 app.get('/',(_q,r)=>r.json({name:'IDEALO SV API',version:'0.1.0'}));app.get('/health',(_q,r)=>r.json({status:'ok',service:'idealo-sv-api',supabase:isSupabaseConfigured?'configured':'pending',timestamp:new Date().toISOString()}))
 app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',dte:getDteConfigurationStatus()})}catch(e){n(e)}})
 app.get('/api/saas/access',async(q,r,n)=>{try{r.json(await getCompanyEntitlements({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/saas/account',async(q,r,n)=>{try{r.json(await getCustomerSaasAccount({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/saas/plan-change',async(q,r,n)=>{try{r.status(201).json(await requestPlanChange({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/ai/status',async(_q,r,n)=>{try{r.json(await getAiStatus())}catch(e){n(e)}})
 app.get('/api/ai/snapshot',async(q,r,n)=>{try{const companyId=String(q.query?.company_id||'').trim();await requireSaasFeature({request:q,supabase:db(),companyId,moduleCode:'AI',featureLabel:'el Asistente IA'});r.json(await getAiSnapshot({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/ai/ask',async(q,r)=>{try{const companyId=String(q.body?.company_id||'').trim();await requireSaasFeature({request:q,supabase:db(),companyId,moduleCode:'AI',featureLabel:'el Asistente IA'});r.json(await askAiAssistant({request:q,supabase:db()}))}catch(e){console.error('AI_ASSISTANT_FAILED',{code:e?.code,statusCode:e?.statusCode,message:e?.message});const s=Number(e?.statusCode||500);r.status(s).json({error:String(e?.code||'AI_ASSISTANT_ERROR'),code:String(e?.code||'AI_ASSISTANT_ERROR'),message:String(e?.message||'No se pudo completar el análisis interno.')})}})
@@ -45,9 +51,11 @@ app.post('/api/activity',async(q,r,n)=>{try{r.status(201).json(await registerCom
 app.post('/api/security/audit',async(q,r,n)=>{try{r.status(201).json(await recordSecurityAuditEvent({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/admin/saas/dashboard',async(q,r,n)=>{try{r.json(await getSaasMasterDashboard({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/admin/saas/billing',async(q,r,n)=>{try{r.json(await getSaasBillingCenter({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/admin/saas/plan-changes',async(q,r,n)=>{try{r.json(await listPlanChangeRequests({request:q,supabase:db()}))}catch(e){n(e)}})
+app.patch('/api/admin/saas/plan-changes/:requestId',async(q,r,n)=>{try{r.json(await reviewPlanChangeRequest({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
-app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscription({request:q,supabase:db()}))}catch(e){n(e)}})
-app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await createSaasBillingEvent({request:q,supabase:db()}))}catch(e){n(e)}})
+app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscriptionSafely({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await recordSaasPayment({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/status',(_q,r)=>r.json(getDteConfigurationStatus()));app.get('/api/dte/production-preflight',(_q,r)=>r.json(getDteProductionPreflightStatus()))
 app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
 app.put('/api/dte/runtime-settings',async(q,r,n)=>{try{r.json(await updateRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
