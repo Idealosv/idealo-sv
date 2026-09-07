@@ -1,5 +1,0 @@
-.billing-document-picker button.active{border-color:#f97316!important;box-shadow:inset 0 0 0 2px rgba(249,115,22,.35)}
-.billing-document-picker button.active strong{color:#fff}
-.billing-project-primary{background:#f97316!important;border-color:#f97316!important;color:#fff!important;font-weight:800!important}
-.billing-project-primary:hover:not(:disabled){background:#ea580c!important;border-color:#ea580c!important}
-.billing-project-primary:disabled{background:#fdba74!important;border-color:#fdba74!important;color:#fff!important;cursor:not-allowed}
