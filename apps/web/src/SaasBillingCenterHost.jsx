@@ -1,0 +1,37 @@
+import { useEffect, useMemo, useState } from 'react'
+import { supabase } from './lib/supabase.js'
+import './saas-billing-center.css'
+
+const apiUrl=import.meta.env.VITE_API_URL||'http://localhost:4000'
+const money=value=>`$${Number(value||0).toFixed(2)}`
+const date=value=>value?new Date(value).toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}):'—'
+const chargeLabels={activation:'Activación',monthly:'Mensualidad',other:'Otro cobro'}
+
+function printReceipt(company,event){
+ const popup=window.open('','_blank','width=760,height=820')
+ if(!popup)return
+ const html=`<!doctype html><html><head><meta charset="utf-8"><title>${event.receipt_number}</title><style>body{font-family:Arial,sans-serif;padding:42px;color:#171717}.brand{border-bottom:4px solid #f36c21;padding-bottom:14px;margin-bottom:24px}.brand h1{margin:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}.box{border:1px solid #ccc;border-radius:8px;padding:12px}.amount{font-size:32px;font-weight:800}.foot{margin-top:36px;color:#666;font-size:12px}@media print{button{display:none}}</style></head><body><div class="brand"><h1>IDEALO SV</h1><div>Comprobante de pago</div></div><div class="grid"><div class="box"><strong>Comprobante</strong><br>${event.receipt_number}</div><div class="box"><strong>Fecha</strong><br>${date(event.occurred_at)}</div><div class="box"><strong>Empresa</strong><br>${company.name}</div><div class="box"><strong>Concepto</strong><br>${chargeLabels[event.charge_type]||event.charge_type}</div></div><div class="box"><strong>Monto recibido</strong><div class="amount">${money(event.amount)}</div></div><div class="grid"><div class="box"><strong>Referencia</strong><br>${event.external_reference||'Sin referencia'}</div><div class="box"><strong>Moneda</strong><br>${event.currency||'USD'}</div></div><p class="foot">Registro administrativo generado por IDEALO SV. Este comprobante refleja el pago registrado en el sistema.</p><button onclick="window.print()">Imprimir</button></body></html>`
+ popup.document.write(html);popup.document.close();popup.focus()
+}
+
+function BillingCenterPage(){
+ const [session,setSession]=useState(null),[data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[search,setSearch]=useState(''),[selected,setSelected]=useState(null)
+ useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data:auth})=>setSession(auth.session));const {data:listener}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));return()=>listener.subscription.unsubscribe()},[])
+ const load=async()=>{if(!session?.access_token)return;setLoading(true);setError('');try{const response=await fetch(`${apiUrl}/api/admin/saas/billing`,{headers:{Authorization:`Bearer ${session.access_token}`}});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.message||'No se pudo cargar el centro de cobros.');setData(body)}catch(err){setError(err.message)}finally{setLoading(false)}}
+ useEffect(()=>{if(session)load()},[session])
+ const rows=useMemo(()=>{const term=search.trim().toLowerCase();return(data?.companies||[]).filter(row=>!term||`${row.name} ${row.slug} ${row.subscription?.plan?.name||''}`.toLowerCase().includes(term))},[data,search])
+ const m=data?.metrics||{}
+ return <div className="saas-billing-root"><header><div><small>IDEALO SV · ADMINISTRACIÓN</small><h1>Centro de Cobros</h1><p>Historial, saldos pendientes, próximos vencimientos y comprobantes.</p></div><div><a href="/master">Volver a Membresías</a><button onClick={load}>Actualizar</button></div></header>
+ {!session&&<section className="saas-billing-message">Iniciá sesión con la cuenta administradora.</section>}{error&&<section className="saas-billing-error">{error}</section>}
+ {loading?<section className="saas-billing-message">Cargando cobros…</section>:data&&<><section className="saas-billing-metrics"><article><span>Saldo pendiente</span><strong>{money(m.balance_due)}</strong></article><article><span>Activaciones pendientes</span><strong>{m.activation_pending||0}</strong></article><article><span>Mensualidades pendientes</span><strong>{m.monthly_pending||0}</strong></article><article><span>Total cobrado</span><strong>{money(m.total_collected)}</strong></article></section>
+ <main><div className="saas-billing-toolbar"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar empresa o plan"/><span>{rows.length} empresas</span></div><div className="saas-billing-table"><table><thead><tr><th>Empresa</th><th>Plan</th><th>Próximo cobro</th><th>Saldo</th><th>Activación</th><th>Estado</th><th></th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><strong>{row.name}</strong><small>{row.slug}</small></td><td>{row.subscription?.plan?.name||'Sin plan'}<small>{money(row.subscription?.plan?.monthly_price)}/mes</small></td><td><strong>{date(row.next_charge_at)}</strong><small>{row.overdue_days?`${row.overdue_days} días vencida`:'Programado'}</small></td><td className={row.balance_due?'due':''}><strong>{money(row.balance_due)}</strong><small>{row.monthly_pending?'Mensualidad pendiente':''}</small></td><td>{row.activation_pending?'Pendiente':'Pagada'}</td><td>{row.subscription?.status||'—'}{row.subscription?.grace_ends_at&&<small>Gracia hasta {date(row.subscription.grace_ends_at)}</small>}</td><td><button onClick={()=>setSelected(row)}>Ver historial ({row.payments.length})</button></td></tr>)}</tbody></table></div></main></>}
+ {selected&&<div className="saas-billing-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}><section className="saas-billing-modal"><div className="saas-billing-modal-head"><div><small>HISTORIAL DE PAGOS</small><h2>{selected.name}</h2><p>Pagado acumulado: <strong>{money(selected.total_paid)}</strong> · Saldo actual: <strong>{money(selected.balance_due)}</strong></p></div><button onClick={()=>setSelected(null)}>×</button></div><div className="saas-billing-history"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th>Referencia</th><th>Comprobante</th></tr></thead><tbody>{selected.payments.length?selected.payments.map(event=><tr key={event.id}><td>{date(event.occurred_at)}</td><td>{chargeLabels[event.charge_type]||event.charge_type}</td><td><strong>{money(event.amount)}</strong></td><td>{event.external_reference||'—'}</td><td><button onClick={()=>printReceipt(selected,event)}>Imprimir {event.receipt_number}</button></td></tr>):<tr><td colSpan="5">Todavía no hay pagos registrados.</td></tr>}</tbody></table></div></section></div>}
+ </div>
+}
+
+export default function SaasBillingCenterHost(){
+ const path=window.location.pathname
+ if(path==='/master')return <a className="saas-billing-fab" href="/master/cobros">Historial y saldos</a>
+ if(path==='/master/cobros')return <BillingCenterPage/>
+ return null
+}
