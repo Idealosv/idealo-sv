@@ -40,9 +40,13 @@ requireText(sw,'fetch(request).then','PWA network-first')
 forbidText(sw,'caches.match(request).then((cached)=>cached||fetch','PWA cache-first obsoleto')
 
 const main=read('apps/web/src/main.jsx')
+const deferred=read('apps/web/src/DeferredRuntimeHosts.jsx')
+const mountedRuntime=`${main}\n${deferred}`
 requireText(main,"navigator.serviceWorker.addEventListener('controllerchange'",'Actualización PWA')
 requireText(main,"updateViaCache:'none'",'Service worker sin caché obsoleta')
 requireText(main,'window.location.reload()','Recarga de bundle actualizado')
-requireText(main,'MobileRuntimeGuard','Runtime Android dedicado')
+requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'Runtime diferido cargado desde arranque')
+requireText(mountedRuntime,'MobileRuntimeGuard','Runtime Android dedicado')
+requireText(deferred,'<Safe label="Runtime móvil"><MobileRuntimeGuard/></Safe>','Runtime Android aislado en carga diferida')
 
-console.log('OK auditoría funcional runtime: Clientes/CRM, móvil Android, PWA y fixtures QA protegidos')
+console.log('OK auditoría funcional runtime: Clientes/CRM, móvil Android, PWA, runtime diferido y fixtures QA protegidos')

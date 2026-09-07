@@ -3,6 +3,7 @@ import fs from 'node:fs'
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8')
 const guard = read('../src/AgencyDemoGuard.jsx')
 const main = read('../src/main.jsx')
+const deferred = read('../src/DeferredRuntimeHosts.jsx')
 const master = read('../src/SaasMasterPanelHost.jsx')
 const api = read('../../api/src/dte/transmit-production-service.js')
 const runtime = read('../../api/src/dte/runtime-settings-service.js')
@@ -26,7 +27,8 @@ const masterCreatesDemo =
   masterApi.includes('if(demoMode)await seedAgencyDemo')
 
 const checks = [
-  ['guard demo montado', main.includes('AgencyDemoGuard')],
+  ['runtime diferido conectado', main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))")],
+  ['guard demo montado', deferred.includes("import AgencyDemoGuard from './AgencyDemoGuard.jsx'") && deferred.includes('<AgencyDemoGuard/>')],
   ['marca ENTORNO DEMO', guard.includes('ENTORNO DEMO')],
   ['guía comercial', guard.includes('RECORRIDO RECOMENDADO') && guard.includes('Cotizaciones') && guard.includes('Producción')],
   ['consulta demo por empresa', guard.includes(".select('id,name,demo_mode,demo_label,demo_expires_at')")],

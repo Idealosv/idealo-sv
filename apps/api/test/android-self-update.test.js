@@ -5,6 +5,7 @@ import fs from 'node:fs'
 const workflow=fs.readFileSync(new URL('../../../.github/workflows/android-apk.yml',import.meta.url),'utf8')
 const update=fs.readFileSync(new URL('../../web/src/MobileUpdateNotice.jsx',import.meta.url),'utf8')
 const main=fs.readFileSync(new URL('../../web/src/main.jsx',import.meta.url),'utf8')
+const deferred=fs.readFileSync(new URL('../../web/src/DeferredRuntimeHosts.jsx',import.meta.url),'utf8')
 
 test('Android publica una actualización estable al cambiar main',()=>{
  assert.match(workflow,/push:\s*\n\s*branches:/)
@@ -21,7 +22,8 @@ test('App compara su build con la actualización publicada antes de avisar',()=>
  assert.match(update,/isAndroidNative/)
 })
 
-test('actualizador forma parte del runtime sin agregar otro menú',()=>{
- assert.match(main,/MobileUpdateNotice/)
+test('actualizador forma parte del runtime diferido sin agregar otro menú',()=>{
+ assert.match(main,/DeferredRuntimeHosts/)
+ assert.match(deferred,/MobileUpdateNotice/)
  assert.doesNotMatch(update,/mobile-bottom-nav/)
 })

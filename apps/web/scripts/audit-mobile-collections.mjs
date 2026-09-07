@@ -7,6 +7,7 @@ const root=path.resolve(here,'..')
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8')
 const collections=read('src/MobileCollectionsHost.jsx')
 const main=read('src/main.jsx')
+const deferred=read('src/DeferredRuntimeHosts.jsx')
 const css=read('src/mobile-collections.css')
 const migration=fs.readFileSync(path.resolve(root,'../../supabase/migrations/20260905072000_harden_customer_receivables_payments_advances.sql'),'utf8')
 const financial=fs.readFileSync(path.resolve(root,'../../supabase/migrations/20260904103000_dte_control_and_financial_posting.sql'),'utf8')
@@ -14,7 +15,8 @@ const checks=[]
 const expect=(name,condition)=>{if(!condition)throw new Error(`FAIL cobros móvil: ${name}`);checks.push(name)}
 const has=(source,...tokens)=>tokens.every(token=>source.includes(token))
 
-expect('Host de cobros móviles montado una sola vez',has(main,"import MobileCollectionsHost from './MobileCollectionsHost.jsx'",'<MobileCollectionsHost/>'))
+expect('Host de cobros móviles montado una sola vez',has(deferred,"import MobileCollectionsHost from './MobileCollectionsHost.jsx'",'<MobileCollectionsHost/>'))
+expect('Runtime diferido está conectado al arranque',main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))"))
 expect('Estilos de cobros móviles montados',main.includes("import './mobile-collections.css'"))
 expect('Cobros sólo para owner/admin',has(collections,"['owner','admin'].includes(role)",'Solo Propietario/Administrador'))
 expect('Cobros requieren conexión y nunca se encolan offline',has(collections,"if(!navigator.onLine)",'No se guardan cobros financieros sin internet')&&!collections.includes("kind:'payment'"))

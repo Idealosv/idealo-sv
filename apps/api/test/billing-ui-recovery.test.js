@@ -7,11 +7,13 @@ import { fileURLToPath } from 'node:url'
 const here=path.dirname(fileURLToPath(import.meta.url))
 const web=path.resolve(here,'../../web/src')
 const main=fs.readFileSync(path.join(web,'main.jsx'),'utf8')
+const deferred=fs.readFileSync(path.join(web,'DeferredRuntimeHosts.jsx'),'utf8')
 const recovery=fs.readFileSync(path.join(web,'BillingUiRecovery.jsx'),'utf8')
 const css=fs.readFileSync(path.join(web,'billing-ui-recovery.css'),'utf8')
 
-test('facturacion: recuperación UI queda montada',()=>{
-  assert.match(main,/BillingUiRecovery/)
+test('facturacion: recuperación UI queda montada en runtime diferido',()=>{
+  assert.match(main,/DeferredRuntimeHosts/)
+  assert.match(deferred,/BillingUiRecovery/)
   assert.match(main,/billing-ui-recovery\.css/)
 })
 

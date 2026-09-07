@@ -25,8 +25,10 @@ forbidText(mobile,"from '@supabase/supabase-js'",'DTE móvil singleton Supabase'
 forbidText(mobile,'setInterval(','DTE móvil sin polling continuo')
 
 const main=read('apps/web/src/main.jsx')
-requireText(main,"import MobileDteHost from './MobileDteHost.jsx'",'Montaje DTE móvil')
-requireText(main,'<MobileDteHost/>','Montaje DTE móvil')
+const deferred=read('apps/web/src/DeferredRuntimeHosts.jsx')
+requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'Runtime diferido DTE móvil')
+requireText(deferred,"import MobileDteHost from './MobileDteHost.jsx'",'Montaje DTE móvil')
+requireText(deferred,'<Safe label="DTE móvil"><MobileDteHost/></Safe>','Montaje DTE móvil')
 requireText(main,"import './mobile-dte.css'",'Estilos DTE móvil')
 
 const invoice=read('apps/api/src/dte/invoice-service.js')
@@ -36,4 +38,4 @@ requireText(invoice,'requireCompanyRole','Permiso backend DTE')
 requireText(invoice,'DTE_ROLES.DRAFT','Roles backend DTE')
 requireText(invoice,'DTE_ROLES.TRANSMIT_PRODUCTION','Protección producción DTE')
 
-console.log('OK auditoría DTE móvil: crear, firmar, transmitir, estado MH, PDF y compartir')
+console.log('OK auditoría DTE móvil: runtime diferido, crear, firmar, transmitir, estado MH, PDF y compartir')
