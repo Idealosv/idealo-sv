@@ -1,0 +1,89 @@
+/* Capa final de presentación comercial. Se importa al final para evitar que estilos globales del ERP sobrescriban la portada. */
+.welcome-login-shell {
+  min-height: 100vh !important;
+  background: #08090b !important;
+}
+
+.welcome-login-brand-panel {
+  background:
+    radial-gradient(circle at 12% 42%, rgba(249,115,22,.24), transparent 34%),
+    radial-gradient(circle at 88% 78%, rgba(249,115,22,.07), transparent 25%),
+    linear-gradient(135deg, #1b100b 0%, #101114 45%, #08090b 100%) !important;
+  color: #f8fafc !important;
+}
+
+.welcome-login-access-panel {
+  position: relative;
+  background:
+    radial-gradient(circle at 95% 8%, rgba(249,115,22,.12), transparent 28%),
+    radial-gradient(circle at 10% 95%, rgba(255,255,255,.035), transparent 24%),
+    linear-gradient(145deg, #16181c 0%, #0e0f12 54%, #090a0c 100%) !important;
+  border-left: 1px solid rgba(255,255,255,.07) !important;
+}
+
+.welcome-login-access-panel::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 1px;
+  background: linear-gradient(transparent, rgba(249,115,22,.7), transparent);
+  pointer-events: none;
+}
+
+.welcome-login-copy .brand > span:last-child,
+.welcome-login-copy h1 {
+  color: #fff !important;
+}
+
+.welcome-login-description {
+  color: #c5ccd6 !important;
+}
+
+.welcome-login-cloud-pill {
+  color: #dce3ec !important;
+  background: rgba(255,255,255,.045) !important;
+  border-color: rgba(255,255,255,.10) !important;
+}
+
+.welcome-login-card {
+  color: #f8fafc !important;
+  background: linear-gradient(160deg, rgba(35,36,40,.98), rgba(17,18,21,.98)) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 34px 90px rgba(0,0,0,.46), 0 0 0 1px rgba(249,115,22,.025) inset !important;
+}
+
+.welcome-login-card h2 {
+  color: #fff !important;
+}
+
+.welcome-login-card-copy {
+  color: #aeb7c4 !important;
+}
+
+.welcome-login-primary {
+  color: #fff !important;
+  background: linear-gradient(135deg, #ff7a00, #ef5f0b) !important;
+  border: 1px solid rgba(255,166,77,.22) !important;
+  box-shadow: 0 14px 32px rgba(249,115,22,.22) !important;
+}
+
+.welcome-login-primary:hover {
+  background: linear-gradient(135deg, #ff861c, #f66a12) !important;
+  box-shadow: 0 18px 38px rgba(249,115,22,.30) !important;
+}
+
+.welcome-login-status {
+  background: rgba(255,255,255,.035) !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+.welcome-login-status strong { color: #f4f5f7 !important; }
+.welcome-login-status small,
+.welcome-login-api-link { color: #8f99a7 !important; }
+
+@media (max-width: 900px) {
+  .welcome-login-access-panel { border-left: 0 !important; border-top: 1px solid rgba(255,255,255,.07) !important; }
+  .welcome-login-access-panel::before { display: none; }
+}
