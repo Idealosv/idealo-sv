@@ -1,5 +1,6 @@
 .billing-classic-summary .billing-orange-submit,
-.billing-classic-summary button[type="submit"].billing-orange-submit{
+.billing-classic-summary button[type="submit"].billing-orange-submit,
+.billing-classic-summary button[type="submit"]{
   background:#f97316 !important;
   border-color:#f97316 !important;
   color:#fff !important;
@@ -8,16 +9,37 @@
 }
 
 .billing-classic-summary .billing-orange-submit:hover:not(:disabled),
-.billing-classic-summary button[type="submit"].billing-orange-submit:hover:not(:disabled){
+.billing-classic-summary button[type="submit"].billing-orange-submit:hover:not(:disabled),
+.billing-classic-summary button[type="submit"]:hover:not(:disabled){
   background:#ea580c !important;
   border-color:#ea580c !important;
 }
 
-.billing-classic-summary .billing-orange-submit:focus-visible{
+.billing-classic-summary .billing-orange-submit:focus-visible,
+.billing-classic-summary button[type="submit"]:focus-visible{
   outline:3px solid rgba(249,115,22,.28);
   outline-offset:2px;
 }
 
-.billing-classic-summary .billing-orange-submit:disabled{
+.billing-classic-summary .billing-orange-submit:disabled,
+.billing-classic-summary button[type="submit"]:disabled{
   opacity:.62;
+}
+
+.billing-issue-card[data-issue-mode="project"] .billing-document-picker[aria-label="Origen de la factura"] > button:first-child,
+.billing-issue-card[data-issue-mode="manual"] .billing-document-picker[aria-label="Origen de la factura"] > button:last-child{
+  border-color:#f97316 !important;
+  box-shadow:inset 0 0 0 2px rgba(249,115,22,.38);
+}
+
+.billing-issue-card[data-issue-mode="project"] .panel .form-grid.three > div.form-span-3:last-of-type > button{
+  background:#f97316 !important;
+  border-color:#f97316 !important;
+  color:#fff !important;
+  font-weight:800;
+}
+
+.billing-issue-card[data-issue-mode="project"] .panel .form-grid.three > div.form-span-3:last-of-type > button:hover:not(:disabled){
+  background:#ea580c !important;
+  border-color:#ea580c !important;
 }
