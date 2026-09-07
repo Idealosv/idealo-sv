@@ -23,7 +23,7 @@ test('abrir App móviles sincroniza la URL con /mobile',()=>{
 })
 
 test('service worker deja de servir JS y CSS viejos primero',()=>{
-  assert.match(sw,/idealo-mobile-v5/)
+  assert.match(sw,/idealo-mobile-v6/)
   assert.match(sw,/fetch\(request\)\.then/)
   assert.doesNotMatch(sw,/caches\.match\(request\)\.then\(\(cached\)=>cached\|\|fetch/)
   assert.match(main,/updateViaCache:'none'/)
