@@ -21,6 +21,7 @@ import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-m
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit, registerCompanyActivity } from './admin/user-administration-service.js'
 import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
 import { getSaasBillingCenter } from './admin/saas-billing-center-service.js'
+import { getCompanyEntitlements } from './saas/entitlement-service.js'
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
@@ -31,6 +32,7 @@ app.disable('x-powered-by');app.set('trust proxy',1);app.use(helmet());app.use(c
 const db=()=>getSupabaseAdmin()
 app.get('/',(_q,r)=>r.json({name:'IDEALO SV API',version:'0.1.0'}));app.get('/health',(_q,r)=>r.json({status:'ok',service:'idealo-sv-api',supabase:isSupabaseConfigured?'configured':'pending',timestamp:new Date().toISOString()}))
 app.get('/api/system/status',async(_q,r,n)=>{try{const {error}=await db().from('companies').select('id').limit(1);if(error)throw error;r.json({api:'ok',database:'ok',dte:getDteConfigurationStatus()})}catch(e){n(e)}})
+app.get('/api/saas/access',async(q,r,n)=>{try{r.json(await getCompanyEntitlements({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/ai/status',async(_q,r,n)=>{try{r.json(await getAiStatus())}catch(e){n(e)}})
 app.get('/api/ai/snapshot',async(q,r,n)=>{try{r.json(await getAiSnapshot({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/ai/ask',async(q,r)=>{try{r.json(await askAiAssistant({request:q,supabase:db()}))}catch(e){console.error('AI_ASSISTANT_FAILED',{code:e?.code,statusCode:e?.statusCode,message:e?.message});const s=Number(e?.statusCode||500);r.status(s).json({error:String(e?.code||'AI_ASSISTANT_ERROR'),code:String(e?.code||'AI_ASSISTANT_ERROR'),message:String(e?.message||'No se pudo completar el análisis interno.')})}})
