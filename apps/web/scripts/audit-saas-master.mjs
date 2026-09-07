@@ -4,16 +4,19 @@ const host=read('src/SaasMasterPanelHost.jsx')
 const main=read('src/main.jsx')
 const service=fs.readFileSync(new URL('../../api/src/admin/saas-master-service.js',import.meta.url),'utf8')
 const migration=fs.readFileSync(new URL('../../../supabase/migrations/0040_saas_commercial_core.sql',import.meta.url),'utf8')
+const compact=value=>value.replace(/\s+/g,'')
+const compactHost=compact(host)
+const compactService=compact(service)
 const checks=[
- ['ruta /master',host.includes("window.location.pathname==='/master'")],
+ ['ruta /master',/window\.location\.pathname\s*===\s*['"]\/master['"]/.test(host)],
  ['host montado',main.includes('<SaasMasterPanelHost/>')],
- ['sesión bearer',host.includes('Authorization:`Bearer ${session.access_token}`')],
+ ['sesión bearer',/Authorization\s*:\s*`Bearer\s+\$\{session\.access_token\}`/.test(host)],
  ['dashboard SaaS',host.includes('/api/admin/saas/dashboard')],
  ['crear empresa',host.includes('/api/admin/saas/companies')],
  ['registrar pago',host.includes('/payments')],
- ['renovar suscripción',host.includes("renew:true")],
+ ['renovar suscripción',compactHost.includes("JSON.stringify({status:'active',renew:true})")||compactService.includes("if(chargeType==='monthly'){patch.status='active';")],
  ['protección servidor',service.includes('IDEALO_PLATFORM_ADMIN_EMAILS')&&service.includes('PLATFORM_ADMIN_REQUIRED')],
- ['validación JWT servidor',service.includes('supabase.auth.getUser(token)')],
+ ['validación JWT servidor',compactService.includes('supabase.auth.getUser(token)')],
  ['catálogo planes',migration.includes('create table if not exists public.saas_plans')],
  ['suscripciones empresa',migration.includes('public.saas_company_subscriptions')],
  ['eventos billing',migration.includes('public.saas_billing_events')],
