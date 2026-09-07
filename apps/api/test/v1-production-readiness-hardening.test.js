@@ -16,7 +16,7 @@ test('helpers internos de autorización no quedan ejecutables por authenticated'
 })
 
 test('numeración DTE queda reservada al backend privilegiado', () => {
-  assert.match(migration, /next_dte_control_number\(uuid, text, text, text, text\).*public, anon, authenticated/i)
+  assert.match(migration, /next_dte_control_number\(uuid, text, text\).*public, anon, authenticated/i)
   assert.match(migration, /grant execute on function public\.next_dte_control_number[\s\S]*service_role, postgres/i)
 })
 
