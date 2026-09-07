@@ -9,6 +9,7 @@ const invoice = read('apps/api/src/dte/invoice-service.js')
 const sign = read('apps/api/src/dte/sign-service.js')
 const transmitTest = read('apps/api/src/dte/transmit-test-service.js')
 const transmitProduction = read('apps/api/src/dte/transmit-production-service.js')
+const subscriptionAdmin = read('apps/api/src/admin/saas-subscription-admin-service.js')
 
 test('estado y preflight DTE ya no son endpoints públicos de configuración', () => {
   assert.match(api, /requireDteAdminRoute/)
@@ -45,6 +46,15 @@ test('flujo DTE principal conserva aislamiento, rol, preflight y protección ant
   assert.match(transmitProduction, /Solo el propietario/)
   assert.match(transmitProduction, /TRANSMITTING/)
   assert.match(transmitProduction, /productionConfirmation/)
+})
+
+test('empresa Legacy solo recibe plan mediante confirmación administrativa explícita', () => {
+  assert.match(api, /assign-legacy-plan/)
+  assert.match(subscriptionAdmin, /ASIGNAR PLAN A EMPRESA LEGACY/)
+  assert.match(subscriptionAdmin, /COMPANY_ALREADY_SUBSCRIBED/)
+  assert.match(subscriptionAdmin, /LEGACY_PLAN_ASSIGNED/)
+  assert.match(subscriptionAdmin, /activation_payment_recorded:false/)
+  assert.doesNotMatch(subscriptionAdmin, /assignLegacySubscription[\s\S]*activation_paid_at\s*:/)
 })
 
 test('ningún cambio V2 activa DTE PRODUCCIÓN por defecto', () => {
