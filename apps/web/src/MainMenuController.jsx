@@ -44,7 +44,7 @@ export default function MainMenuController() {
       if (!session) { if (live) setRole(''); return }
       const { data: companies, error: companyError } = await supabase.rpc('get_my_companies')
       if (companyError || !companies?.[0]?.id) { if (live) setRole(''); return }
-      const { data, error } = await supabase.from('company_members').select('role').eq('company_id', companies[0].id).eq('user_id', session.user.id).maybeSingle()
+      const { data, error } = await supabase.from('company_members').select('role').eq('company_id',companies[0].id).eq('user_id', session.user.id).maybeSingle()
       if (live && !error) setRole(String(data?.role || '').toLowerCase())
     }
     supabase.auth.getSession().then(({ data }) => void applySession(data.session))
