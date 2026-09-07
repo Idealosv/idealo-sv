@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 const CONTROL_PATTERN = /^DTE-03-(M|B|S|P)\d{3}P\d{3}-\d{15}$/
 const UUID_PATTERN = /^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$/
+const PAYMENT_REFERENCE_MAX_LENGTH = 50
 
 const money = (value) => Number(Number(value || 0).toFixed(2))
 const required = (value, name) => {
@@ -56,6 +57,18 @@ function buildItem(item, index) {
   }
 }
 
+function normalizePaymentReference(value) {
+  if (value === undefined || value === null) return null
+  const normalized = String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9 .,_-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, PAYMENT_REFERENCE_MAX_LENGTH)
+  return normalized || null
+}
+
 function normalizePayment(payment, totalPagar, condicionOperacion) {
   if (!payment?.codigo) {
     if (Number(condicionOperacion) === 1) return [{ codigo: '01', montoPago: totalPagar, referencia: null, plazo: null, periodo: null }]
@@ -64,7 +77,7 @@ function normalizePayment(payment, totalPagar, condicionOperacion) {
   return [{
     codigo: String(payment.codigo),
     montoPago: money(payment.montoPago ?? totalPagar),
-    referencia: payment.referencia ? String(payment.referencia) : null,
+    referencia: normalizePaymentReference(payment.referencia),
     plazo: payment.plazo ? String(payment.plazo) : null,
     periodo: payment.periodo === '' || payment.periodo == null ? null : Number(payment.periodo),
   }]
@@ -83,6 +96,8 @@ export function validateCreditoFiscal(dte) {
   add(!Object.hasOwn(dte?.receptor?.direccion || {}, 'distrito'), 'receptor.direccion no debe incluir distrito en DTE-03 v3')
   add(Array.isArray(dte?.cuerpoDocumento) && dte.cuerpoDocumento.length > 0, 'cuerpoDocumento debe contener partidas')
   add(typeof dte?.resumen?.totalPagar === 'number' && dte.resumen.totalPagar >= 0, 'totalPagar no es válido')
+  const payments = Array.isArray(dte?.resumen?.pagos) ? dte.resumen.pagos : []
+  payments.forEach((payment, index) => add(payment.referencia == null || String(payment.referencia).length <= PAYMENT_REFERENCE_MAX_LENGTH, `resumen.pagos[${index}].referencia excede 50 caracteres`))
   if (errors.length) throw new Error(`DTE-03 inválido: ${errors.join('; ')}.`)
   return true
 }
