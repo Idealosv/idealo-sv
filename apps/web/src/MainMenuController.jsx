@@ -3,18 +3,16 @@ import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase.js'
 import { canAccessModule, ERP_MODULES, ROLE_LABEL } from './erp-access-control.js'
 
-const emitModule = (target, tab) => {
+const openDirectModule = (target, tab) => {
+  if (target === 'workspace' && tab) {
+    const buttons = [...document.querySelectorAll('.erp-sidebar nav .nav-item')]
+    const button = buttons.find(node => node.textContent?.trim().endsWith(tab))
+    if (button) button.click()
+  }
   const detail = { target, tab }
   window.dispatchEvent(new CustomEvent('idealo-open-module', { detail }))
   window.setTimeout(() => window.dispatchEvent(new CustomEvent('idealo-open-module', { detail })), 120)
   return true
-}
-
-const openWorkspaceTab = (tab) => {
-  const buttons = [...document.querySelectorAll('.erp-sidebar nav .nav-item')]
-  const button = buttons.find(node => node.textContent?.trim().endsWith(tab))
-  if (button) button.click()
-  return emitModule('workspace', tab)
 }
 
 export default function MainMenuController() {
@@ -104,22 +102,22 @@ export default function MainMenuController() {
     setActive(name)
     setQuery('')
     window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
-    if (name === 'Dashboard') return openWorkspaceTab('Resumen')
-    if (name === 'App móviles') return emitModule('mobile')
-    if (name === 'Clientes') return openWorkspaceTab('Clientes')
-    if (name === 'Productos') return emitModule('commercial', 'Productos y trabajos')
-    if (name === 'Cotizaciones') return emitModule('commercial', 'Cotizaciones')
-    if (name === 'Producción') return emitModule('commercial', 'Producción')
-    if (name === 'Inventario') return emitModule('inventory', 'Inventario')
-    if (name === 'Facturación') return emitModule('billing', 'resumen')
-    if (name === 'Cuentas por cobrar') return emitModule('billing', 'cobros')
-    if (name === 'Proveedores') return emitModule('procurement', 'Proveedores')
-    if (name === 'Compras') return emitModule('procurement', 'Compras y gastos')
-    if (name === 'Caja') return emitModule('procurement', 'Caja')
-    if (name === 'Asistente IA') return emitModule('assistant')
-    if (name === 'Agenda') return emitModule('planning')
-    if (name === 'Reportes') return emitModule('financial')
-    if (name === 'Seguridad') return emitModule('security')
+    if(name==='Dashboard')return openDirectModule('workspace','Resumen')
+    if(name==='App móviles')return openDirectModule('mobile')
+    if(name==='Clientes')return openDirectModule('workspace','Clientes')
+    if(name==='Productos')return openDirectModule('commercial','Productos y trabajos')
+    if(name==='Cotizaciones')return openDirectModule('commercial','Cotizaciones')
+    if(name==='Producción')return openDirectModule('commercial','Producción')
+    if(name==='Inventario')return openDirectModule('inventory','Inventario')
+    if(name==='Facturación')return openDirectModule('billing','resumen')
+    if(name==='Cuentas por cobrar')return openDirectModule('billing','cobros')
+    if(name==='Proveedores')return openDirectModule('procurement','Proveedores')
+    if(name==='Compras')return openDirectModule('procurement','Compras y gastos')
+    if(name==='Caja')return openDirectModule('procurement','Caja')
+    if(name==='Asistente IA')return openDirectModule('assistant')
+    if(name==='Agenda')return openDirectModule('planning')
+    if(name==='Reportes')return openDirectModule('financial')
+    if(name==='Seguridad')return openDirectModule('security')
     return false
   }
 
