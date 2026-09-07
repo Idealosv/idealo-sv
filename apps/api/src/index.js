@@ -20,6 +20,7 @@ import { sendInvoicePdfSelfTest } from './dte/invoice-email-preview-service.js'
 import { getInvoiceEmailStatus, resendInvoiceEmail } from './dte/invoice-email-management-service.js'
 import { listCompanyUsers, inviteCompanyUser, updateCompanyUserRole, revokeCompanyUser, listCompanyAdminAudit, registerCompanyActivity } from './admin/user-administration-service.js'
 import { getSaasMasterDashboard, createSaasCompany, updateSaasSubscription, createSaasBillingEvent } from './admin/saas-master-service.js'
+import { getSaasBillingCenter } from './admin/saas-billing-center-service.js'
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
 
@@ -41,6 +42,7 @@ app.get('/api/admin/audit',async(q,r,n)=>{try{r.json(await listCompanyAdminAudit
 app.post('/api/activity',async(q,r,n)=>{try{r.status(201).json(await registerCompanyActivity({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/security/audit',async(q,r,n)=>{try{r.status(201).json(await recordSecurityAuditEvent({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/admin/saas/dashboard',async(q,r,n)=>{try{r.json(await getSaasMasterDashboard({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/admin/saas/billing',async(q,r,n)=>{try{r.json(await getSaasBillingCenter({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
 app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscription({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await createSaasBillingEvent({request:q,supabase:db()}))}catch(e){n(e)}})
