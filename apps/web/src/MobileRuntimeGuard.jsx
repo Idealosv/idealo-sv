@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import MobileSaasPlanGuard from './MobileSaasPlanGuard.jsx'
 
 const isHandheld=()=>{
   const ua=navigator.userAgent||''
@@ -66,5 +67,5 @@ export default function MobileRuntimeGuard(){
       deactivate()
     }
   },[])
-  return null
+  return <MobileSaasPlanGuard/>
 }
