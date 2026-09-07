@@ -25,6 +25,7 @@ import { getSaasBillingCenter } from './admin/saas-billing-center-service.js'
 import { recordSaasPayment } from './admin/saas-payment-service.js'
 import { dispatchPendingSaasReminders } from './admin/saas-notification-service.js'
 import { listPlanChangeRequests, reviewPlanChangeRequest } from './admin/saas-plan-change-service.js'
+import { grantMasterCompanyAccess, sendMasterOwnerAccess } from './admin/master-company-access-service.js'
 import { getCompanyEntitlements, requireSaasFeature } from './saas/entitlement-service.js'
 import { getCustomerSaasAccount, requestPlanChange } from './saas/customer-portal-service.js'
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
@@ -63,6 +64,8 @@ app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await
 app.post('/api/admin/saas/companies/:companyId/assign-legacy-plan',async(q,r,n)=>{try{r.status(201).json(await assignLegacySubscription({request:q,supabase:db()}))}catch(e){n(e)}})
 app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try{r.json(await updateSaasSubscriptionSafely({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await recordSaasPayment({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/saas/companies/:companyId/access',async(q,r,n)=>{try{r.json(await grantMasterCompanyAccess({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/saas/companies/:companyId/owner-access',async(q,r,n)=>{try{r.json(await sendMasterOwnerAccess({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/status',async(q,r,n)=>{try{const companyId=await requireDteAdminRoute(q);const companyEnv=await buildCompanyDteEnv({companyId,supabase:db()});r.json(getDteConfigurationStatus(companyEnv))}catch(e){n(e)}})
 app.get('/api/dte/production-preflight',async(q,r,n)=>{try{const companyId=await requireDteAdminRoute(q);const companyEnv=await buildCompanyDteEnv({companyId,supabase:db()});r.json(getDteProductionPreflightStatus(companyEnv))}catch(e){n(e)}})
 app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{await requireDteAdminRoute(q);r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
