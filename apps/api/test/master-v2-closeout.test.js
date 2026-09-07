@@ -10,6 +10,7 @@ const sign = read('apps/api/src/dte/sign-service.js')
 const transmitTest = read('apps/api/src/dte/transmit-test-service.js')
 const transmitProduction = read('apps/api/src/dte/transmit-production-service.js')
 const subscriptionAdmin = read('apps/api/src/admin/saas-subscription-admin-service.js')
+const notifications = read('apps/api/src/admin/saas-notification-service.js')
 
 test('estado y preflight DTE ya no son endpoints públicos de configuración', () => {
   assert.match(api, /requireDteAdminRoute/)
@@ -66,6 +67,18 @@ test('Asistente IA no permite a staff saltarse permisos financieros', () => {
     assert.ok(routeIndex >= 0)
     assert.ok(api.slice(routeIndex, routeIndex + 360).includes('requireAiCompanyRoute'))
   }
+})
+
+test('recordatorios SaaS tienen dry-run, deduplicación y protección DEMO', () => {
+  assert.match(api, /\/api\/admin\/saas\/reminders\/dispatch/)
+  assert.match(notifications, /dry_run!==false/)
+  assert.match(notifications, /eq\('status','pending'\)/)
+  assert.match(notifications, /is\('sent_at',null\)/)
+  assert.match(notifications, /company\.demo_mode/)
+  assert.match(notifications, /status:'sent',sent_at:now/)
+  assert.match(notifications, /PLATFORM_ADMIN_REQUIRED/)
+  assert.match(notifications, /DUE_7/)
+  assert.match(notifications, /SUSPENDED/)
 })
 
 test('ningún cambio V2 activa DTE PRODUCCIÓN por defecto', () => {
