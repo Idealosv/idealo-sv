@@ -1,4 +1,5 @@
 import {useMemo,useState} from 'react'
+import './CashPaymentHistory.css'
 
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0))
 const methodLabel=v=>({CASH:'Efectivo',TRANSFER:'Transferencia',CARD:'Tarjeta',CHECK:'Cheque',OTHER:'Otro'}[v]||v||'Pago')
