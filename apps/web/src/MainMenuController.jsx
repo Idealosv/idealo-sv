@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase.js'
 import { canAccessModule, ERP_MODULES, ROLE_LABEL } from './erp-access-control.js'
 
-const openDirectModule = (target, tab) => {window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target, tab } }));return true}
+const openDirectModule = (target, tab) => {if(target==='workspace'&&tab){const buttons=[...document.querySelectorAll('.erp-sidebar nav .nav-item')];const button=buttons.find(node=>node.textContent?.trim().endsWith(tab));button?.click()}const detail={target,tab};window.dispatchEvent(new CustomEvent('idealo-open-module',{detail}));window.setTimeout(()=>window.dispatchEvent(new CustomEvent('idealo-open-module',{detail})),120);return true}
 
 export default function MainMenuController() {
  const [sidebar,setSidebar]=useState(null),[active,setActive]=useState('Dashboard'),[query,setQuery]=useState(''),[role,setRole]=useState('')
