@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ErpApp from './ErpApp.jsx'
 import SafeWorkspaceGate from './SafeWorkspaceGate.jsx'
 import { supabase } from './lib/supabase.js'
+import './welcome-login.css'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -88,39 +89,52 @@ export default function App() {
   }
 
   return (
-    <main className="shell">
-      <section className="hero">
-        <Brand />
-
-        <p className="eyebrow">SISTEMA DE GESTIÓN PUBLICITARIA</p>
-        <h1>Una base nueva para hacer crecer tu agencia.</h1>
-        <p className="lead">
-          Proyecto preparado desde el primer día para trabajar en línea con
-          Supabase, Render y GitHub.
-        </p>
-
-        <div className="actions">
-          <button type="button" onClick={() => setScreen('auth')}>
-            Comenzar configuración
-          </button>
-          <a href={`${apiUrl}/health`} target="_blank" rel="noreferrer">
-            Revisar API
-          </a>
+    <main className="welcome-login-shell">
+      <section className="welcome-login-brand-panel">
+        <div className="welcome-login-copy">
+          <Brand />
+          <p className="welcome-login-kicker">SISTEMA DE GESTIÓN PUBLICITARIA</p>
+          <h1>ERP empresarial</h1>
+          <p className="welcome-login-description">
+            Clientes, productos, cotizaciones, producción, inventario, compras,
+            caja, agenda, facturación electrónica y administración desde un solo lugar.
+          </p>
+          <div className="welcome-login-cloud-pill">
+            <span className="welcome-login-online-dot" />
+            IDEALO SV en línea · Supabase + Render
+          </div>
         </div>
+      </section>
 
-        <div className="status-grid" aria-label="Estado de servicios">
-          <Status label="Frontend" value="listo" active />
-          <Status label="API" value={serviceStatus.api} active={apiConnected} />
-          <Status
-            label="Supabase"
-            value={serviceStatus.database}
-            active={databaseConnected}
-          />
-          <Status
-            label="Render"
-            value={apiConnected ? 'desplegado' : 'comprobando'}
-            active={apiConnected}
-          />
+      <section className="welcome-login-access-panel">
+        <div className="welcome-login-card">
+          <p className="welcome-login-card-kicker">ACCESO SEGURO</p>
+          <h2>Iniciar sesión</h2>
+          <p className="welcome-login-card-copy">
+            Ingresa con tu cuenta para abrir la empresa que tienes autorizada en IDEALO SV.
+          </p>
+
+          <button
+            type="button"
+            className="welcome-login-primary"
+            onClick={() => setScreen('auth')}
+          >
+            Entrar a IDEALO SV
+          </button>
+
+          <div className="welcome-login-status" aria-label="Estado del sistema">
+            <span className={apiConnected && databaseConnected ? 'welcome-login-status-dot online' : 'welcome-login-status-dot'} />
+            <div>
+              <strong>{apiConnected && databaseConnected ? 'Sistema disponible' : 'Comprobando servicios'}</strong>
+              <small>
+                API {serviceStatus.api} · Supabase {serviceStatus.database}
+              </small>
+            </div>
+          </div>
+
+          <a className="welcome-login-api-link" href={`${apiUrl}/health`} target="_blank" rel="noreferrer">
+            Estado técnico de la API
+          </a>
         </div>
       </section>
     </main>
