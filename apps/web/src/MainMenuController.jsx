@@ -81,7 +81,7 @@ export default function MainMenuController() {
     }
     setQuery('')
     if (name === 'Dashboard') { openDirectModule('workspace', 'Resumen'); markActive(name); return true }
-    if (name === 'App móviles') { markActive(name); return true }
+    if(name==='App móviles'){markActive(name);return true}
     if (name === 'Clientes') { openDirectModule('workspace', 'Clientes'); markActive(name); return true }
     if (name === 'Productos') { openDirectModule('commercial', 'Productos y trabajos'); markActive(name); return true }
     if (name === 'Cotizaciones') { openDirectModule('commercial', 'Cotizaciones'); markActive(name); return true }
