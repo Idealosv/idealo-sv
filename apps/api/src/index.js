@@ -23,6 +23,7 @@ import { getSaasMasterDashboard, createSaasCompany } from './admin/saas-master-s
 import { updateSaasSubscriptionSafely, assignLegacySubscription } from './admin/saas-subscription-admin-service.js'
 import { getSaasBillingCenter } from './admin/saas-billing-center-service.js'
 import { recordSaasPayment } from './admin/saas-payment-service.js'
+import { dispatchPendingSaasReminders } from './admin/saas-notification-service.js'
 import { listPlanChangeRequests, reviewPlanChangeRequest } from './admin/saas-plan-change-service.js'
 import { getCompanyEntitlements, requireSaasFeature } from './saas/entitlement-service.js'
 import { getCustomerSaasAccount, requestPlanChange } from './saas/customer-portal-service.js'
@@ -55,6 +56,7 @@ app.post('/api/activity',async(q,r,n)=>{try{r.status(201).json(await registerCom
 app.post('/api/security/audit',async(q,r,n)=>{try{r.status(201).json(await recordSecurityAuditEvent({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/admin/saas/dashboard',async(q,r,n)=>{try{r.json(await getSaasMasterDashboard({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/admin/saas/billing',async(q,r,n)=>{try{r.json(await getSaasBillingCenter({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/admin/saas/reminders/dispatch',async(q,r,n)=>{try{r.json(await dispatchPendingSaasReminders({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/admin/saas/plan-changes',async(q,r,n)=>{try{r.json(await listPlanChangeRequests({request:q,supabase:db()}))}catch(e){n(e)}})
 app.patch('/api/admin/saas/plan-changes/:requestId',async(q,r,n)=>{try{r.json(await reviewPlanChangeRequest({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies',async(q,r,n)=>{try{r.status(201).json(await createSaasCompany({request:q,supabase:db()}))}catch(e){n(e)}})
