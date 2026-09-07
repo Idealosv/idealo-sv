@@ -4,6 +4,7 @@ import fs from 'node:fs'
 
 const guard=fs.readFileSync(new URL('../../web/src/MobileRuntimeGuard.jsx',import.meta.url),'utf8')
 const main=fs.readFileSync(new URL('../../web/src/main.jsx',import.meta.url),'utf8')
+const deferred=fs.readFileSync(new URL('../../web/src/DeferredRuntimeHosts.jsx',import.meta.url),'utf8')
 const sw=fs.readFileSync(new URL('../../web/public/sw.js',import.meta.url),'utf8')
 const css=fs.readFileSync(new URL('../../web/src/mobile-native-shell.css',import.meta.url),'utf8')
 
@@ -13,7 +14,8 @@ test('runtime móvil abre /mobile y PWA Android en modo dedicado',()=>{
   assert.match(guard,/pathname==='\/mobile'/)
   assert.match(guard,/idealo-module-change/)
   assert.match(guard,/App móviles/)
-  assert.match(main,/MobileRuntimeGuard/)
+  assert.match(main,/DeferredRuntimeHosts/)
+  assert.match(deferred,/MobileRuntimeGuard/)
 })
 
 test('abrir App móviles sincroniza la URL con /mobile',()=>{
