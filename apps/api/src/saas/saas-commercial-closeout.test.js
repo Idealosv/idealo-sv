@@ -8,6 +8,7 @@ const gate=read('../../../../supabase/migrations/0047_saas_operational_rls_gate.
 const cleanup=read('../../../../supabase/migrations/0048_saas_security_advisor_cleanup.sql')
 const reminderCron=read('../../../../supabase/migrations/0049_saas_commercial_reminder_cron.sql')
 const closeout=read('../../../../supabase/migrations/0050_security_dte_commercial_closeout.sql')
+const wrapperCleanup=read('../../../../supabase/migrations/0051_security_definer_wrapper_cleanup.sql')
 const payment=read('../admin/saas-payment-service.js')
 const portal=read('./customer-portal-service.js')
 const planChanges=read('../admin/saas-plan-change-service.js')
@@ -28,3 +29,4 @@ test('secuencia DTE no queda expuesta directamente a usuarios autenticados',()=>
 test('relaciones hijas de Cliente validan la empresa real del cliente',()=>{for(const table of ['client_addresses','client_contacts','client_credit_profiles','client_interactions']){assert.ok(closeout.includes(`c.company_id = ${table}.company_id`),`falta aislamiento multiempresa en ${table}`)}})
 test('historial CRM valida que oportunidad e historial pertenezcan a la misma empresa',()=>{assert.match(closeout,/o\.company_id = crm_opportunity_stage_history\.company_id/)})
 test('base de datos exige entitlement DTE y conserva acceso legacy controlado',()=>{assert.match(closeout,/saas_enforce_dte_entitlement/);assert.match(closeout,/SAAS_DTE_PLAN_REQUIRED/);assert.match(closeout,/DEMO_DTE_PRODUCTION_FORBIDDEN/);assert.match(closeout,/trg_saas_dte_entitlement_insert/);assert.match(closeout,/before update of company_id, environment/);assert.match(closeout,/revoke all on function public\.saas_enforce_dte_entitlement\(\) from public, anon, authenticated/)})
+test('wrapper móvil no conserva SECURITY DEFINER innecesario',()=>{assert.match(wrapperCleanup,/mobile_convert_quote_to_work_order/);assert.match(wrapperCleanup,/security invoker/)})
