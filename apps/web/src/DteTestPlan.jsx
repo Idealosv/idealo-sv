@@ -15,19 +15,10 @@ const DEFAULT_SCENARIOS = [
   { code: 'non_subject', label: 'Venta no sujeta', description: 'Solo cuando la operación sea legalmente no sujeta.' },
 ]
 
-function bodyItems(payload) {
-  return Array.isArray(payload?.cuerpoDocumento) ? payload.cuerpoDocumento : []
-}
-
-function payments(payload) {
-  return Array.isArray(payload?.resumen?.pagos) ? payload.resumen.pagos : []
-}
-
+function bodyItems(payload) { return Array.isArray(payload?.cuerpoDocumento) ? payload.cuerpoDocumento : [] }
+function payments(payload) { return Array.isArray(payload?.resumen?.pagos) ? payload.resumen.pagos : [] }
 function autoMatches(code, doc) {
-  const payload = doc.dte_payload || {}
-  const items = bodyItems(payload)
-  const pagos = payments(payload)
-  const receptor = payload.receptor
+  const payload = doc.dte_payload || {}; const items = bodyItems(payload); const pagos = payments(payload); const receptor = payload.receptor
   switch (code) {
     case 'consumer_no_id': return !receptor || !receptor.nombre
     case 'consumer_identified': return Boolean(receptor?.nombre)
@@ -45,14 +36,15 @@ function autoMatches(code, doc) {
   }
 }
 
-export default function DteTestPlan({ supabase, company }) {
+export default function DteTestPlan({ supabase, company, onPrepareCase }) {
   const [rows, setRows] = useState([])
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const load = async () => {
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
     try {
       const seedRows = DEFAULT_SCENARIOS.map((scenario, index) => ({
         company_id: company.id,
@@ -66,78 +58,91 @@ export default function DteTestPlan({ supabase, company }) {
 
       const [{ data: scenarioRows, error: scenarioError }, { data: processedDocs, error: docsError }] = await Promise.all([
         supabase.from('dte_test_scenarios').select('*').eq('company_id', company.id).order('sort_order'),
-        supabase.from('dte_documents').select('id, control_number, dte_payload, mh_processed_at, created_at').eq('company_id', company.id).eq('dte_type', '01').eq('status', 'PROCESSED').order('created_at', { ascending: false }).limit(100),
+        supabase.from('dte_documents').select('id, control_number, dte_payload, mh_processed_at, created_at').eq('company_id', company.id).eq('dte_type', '01').eq('environment', 'test').eq('status', 'PROCESSED').order('created_at', { ascending: false }).limit(100),
       ])
       if (scenarioError || docsError) throw scenarioError || docsError
-      setRows(scenarioRows || []); setDocs(processedDocs || [])
-    } catch (cause) { setError(cause.message) } finally { setLoading(false) }
+      setRows(scenarioRows || [])
+      setDocs(processedDocs || [])
+    } catch (cause) {
+      setError(cause.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [company.id])
 
   const enriched = useMemo(() => rows.map((row) => {
     const matched = docs.find((doc) => autoMatches(row.code, doc))
-    return { ...row, autoCompleted: Boolean(matched), matchedDocument: matched || null, effectiveCompleted: row.completed || Boolean(matched) }
+    return { ...row, matchedDocument: matched || null, effectiveCompleted: Boolean(matched) }
   }), [rows, docs])
 
   const completed = enriched.filter((row) => row.effectiveCompleted).length
   const next = enriched.find((row) => !row.effectiveCompleted)
   const progress = enriched.length ? Math.round((completed / enriched.length) * 100) : 0
 
-  const toggleManual = async (row) => {
-    const nextValue = !row.completed
-    const { error: updateError } = await supabase.from('dte_test_scenarios').update({
-      completed: nextValue,
-      completed_at: nextValue ? new Date().toISOString() : null,
-      completed_document_id: nextValue ? row.matchedDocument?.id || null : null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', row.id)
-    if (updateError) return setError(updateError.message)
-    await load()
+  const prepare = (row) => {
+    sessionStorage.setItem('idealo:dte-test-scenario', row.code)
+    if (typeof onPrepareCase === 'function') {
+      onPrepareCase(row.code)
+      return
+    }
+    window.dispatchEvent(new CustomEvent('idealo-open-module', {
+      detail: { target: 'billing', tab: 'emitir', dteTestScenario: row.code },
+    }))
   }
 
-  return (
-    <section style={styles.card}>
-      <div style={styles.head}>
-        <div>
-          <strong>Plan interno de pruebas DTE-01</strong>
-          <p style={styles.subtitle}>Cobertura técnica de IDEALO SV. No sustituye el contador ni los casos oficiales del portal de Hacienda.</p>
-        </div>
-        <button type="button" onClick={load} disabled={loading}>{loading ? 'Revisando…' : 'Actualizar plan'}</button>
+  return <section style={styles.card}>
+    <div style={styles.head}>
+      <div>
+        <strong style={styles.title}>Centro de Pruebas MH · DTE-01</strong>
+        <p style={styles.subtitle}>El ERP reconoce automáticamente cada caso únicamente cuando existe un DTE TEST aceptado por Hacienda.</p>
       </div>
-      {error && <p style={styles.error}>{error}</p>}
-      <div style={styles.summary}>
-        <div><small>Cobertura interna</small><strong>{completed}/{enriched.length}</strong></div>
-        <div><small>DTE aceptados por MH desde IDEALO</small><strong>{docs.length}</strong></div>
-        <div><small>Siguiente caso recomendado</small><strong>{next?.label || 'Cobertura base completa'}</strong></div>
+      <button type="button" onClick={load} disabled={loading}>{loading ? 'Actualizando…' : 'Actualizar'}</button>
+    </div>
+
+    <div style={styles.notice}><strong>Control automático:</strong> se eliminó el marcado manual. Un caso pasa a completado solo con evidencia de un DTE-01 en estado <strong>PROCESSED</strong> dentro del ambiente TEST. El contador oficial continúa siendo responsabilidad del portal de Hacienda.</div>
+    {error && <p style={styles.error}>{error}</p>}
+
+    <div style={styles.summary}>
+      <div><small>Casos con evidencia MH</small><strong>{completed}/{enriched.length}</strong></div>
+      <div><small>DTE-01 procesados por MH desde ERP</small><strong>{docs.length}</strong></div>
+      <div><small>Avance oficial portal MH</small><strong>Consultar portal</strong></div>
+      <div><small>Siguiente caso recomendado</small><strong>{next?.label || 'Cobertura interna completa'}</strong></div>
+    </div>
+
+    <div style={styles.progress}><span style={{ display: 'block', height: '100%', width: `${progress}%`, background: '#f97316', transition: 'width .2s ease' }} /></div>
+    <div style={styles.legend}><span>✓ PROCESSED con evidencia MH</span><span>○ Pendiente</span><span>No existe marcado manual</span></div>
+
+    <div style={styles.list}>{enriched.map((row) => <article key={row.id} style={styles.row}>
+      <span style={{ ...styles.status, ...(row.effectiveCompleted ? styles.done : styles.pending) }}>{row.effectiveCompleted ? '✓' : '○'}</span>
+      <div style={{ flex: 1 }}>
+        <strong>{row.label}</strong>
+        <p>{row.description}</p>
+        {row.matchedDocument ? <small>Evidencia MH: {row.matchedDocument.control_number}</small> : <small>Pendiente de una respuesta PROCESSED de Hacienda TEST.</small>}
       </div>
-      <div style={styles.progress}><span style={{ display: 'block', height: '100%', width: `${progress}%`, background: '#2563eb', transition: 'width .2s ease' }} /></div>
-      <div style={styles.list}>
-        {enriched.map((row) => (
-          <article key={row.id} style={styles.row}>
-            <span style={{ ...styles.status, ...(row.effectiveCompleted ? styles.done : styles.pending) }}>{row.effectiveCompleted ? '✓' : '○'}</span>
-            <div style={{ flex: 1 }}><strong>{row.label}</strong><p>{row.description}</p>{row.matchedDocument && <small>Detectado en {row.matchedDocument.control_number}</small>}</div>
-            <button type="button" style={styles.manual} onClick={() => toggleManual(row)}>{row.completed ? 'Desmarcar manual' : 'Marcar manual'}</button>
-          </article>
-        ))}
-      </div>
-      {next && <div style={styles.next}><strong>Próxima prueba sugerida:</strong> {next.label}. Prepará únicamente un caso real y válido para esa condición; no uses operaciones exentas o no sujetas si no corresponden legalmente.</div>}
-    </section>
-  )
+      {!row.effectiveCompleted && <div style={styles.actions}><button type="button" onClick={() => prepare(row)}>Preparar caso</button></div>}
+    </article>)}</div>
+
+    {next && <div style={styles.next}><strong>Siguiente paso:</strong> preparar “{next.label}”. El ERP no lo marcará como cubierto al guardarlo ni al firmarlo: esperará la respuesta <strong>PROCESSED</strong> de Hacienda TEST.</div>}
+  </section>
 }
 
 const styles = {
-  card: { marginBottom: 16, padding: 16, border: '1px solid #bfdbfe', borderRadius: 14, background: '#eff6ff', color: '#1e293b' },
+  card: { marginBottom: 16, padding: 16, border: '1px solid #cbd5e1', borderRadius: 14, background: '#f8fafc', color: '#1e293b' },
   head: { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' },
+  title: { fontSize: 17 },
   subtitle: { margin: '4px 0 0', color: '#64748b' },
+  notice: { marginTop: 14, padding: 12, borderLeft: '4px solid #f97316', background: '#fff7ed', color: '#9a3412' },
   error: { padding: 10, borderRadius: 8, background: '#fee2e2', color: '#991b1b' },
-  summary: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10, marginTop: 14 },
-  progress: { height: 8, background: '#dbeafe', borderRadius: 999, overflow: 'hidden', margin: '12px 0' },
+  summary: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginTop: 14 },
+  progress: { height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden', margin: '12px 0' },
+  legend: { display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: '#64748b', marginBottom: 10 },
   list: { display: 'grid', gap: 8 },
-  row: { display: 'flex', alignItems: 'center', gap: 10, background: '#fff', padding: 10, borderRadius: 10, border: '1px solid #dbeafe' },
+  row: { display: 'flex', alignItems: 'center', gap: 10, background: '#fff', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' },
   status: { width: 30, height: 30, borderRadius: 999, display: 'grid', placeItems: 'center', fontWeight: 900 },
   done: { background: '#dcfce7', color: '#166534' },
   pending: { background: '#f1f5f9', color: '#64748b' },
-  manual: { fontSize: 12, padding: '7px 9px' },
-  next: { marginTop: 12, padding: 12, borderRadius: 10, background: '#dbeafe', color: '#1e3a8a' },
+  actions: { display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  next: { marginTop: 12, padding: 12, borderRadius: 10, background: '#fff7ed', color: '#9a3412' },
 }

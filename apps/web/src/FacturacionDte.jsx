@@ -19,11 +19,45 @@ const ccfRequired = [['tax_id','NIT'],['nrc','NRC'],['name','nombre'],['activity
 const missingCcfData = (client) => client ? ccfRequired.filter(([key])=>!String(client[key]||'').trim()).map(([,label])=>label) : ['cliente']
 const clientSuggestsCcf = (client) => Boolean(client && (client.preferred_dte_type==='03' || (String(client.tax_id||'').trim() && String(client.nrc||'').trim())))
 const clampMoney = (value) => Math.max(0,Number(value||0))
+const roundMoney = (value) => Number(Number(value || 0).toFixed(2))
+const TAX_RATE = 0.13
 
-export default function FacturacionDte({session,supabase,company}){
+function itemAmounts(item,priceMode){
+  const gross=clampMoney(item.cantidad)*clampMoney(item.precioUni)
+  const discount=Math.min(clampMoney(item.montoDescu),gross)
+  const net=Math.max(0,gross-discount)
+  if(item.tipoVenta!=='gravada') return {base:roundMoney(net),iva:0,total:roundMoney(net),discount:roundMoney(discount)}
+  if(priceMode==='con_iva'){
+    const base=roundMoney(net/(1+TAX_RATE))
+    return {base,iva:roundMoney(net-base),total:roundMoney(net),discount:roundMoney(discount)}
+  }
+  const base=roundMoney(net)
+  const iva=roundMoney(base*TAX_RATE)
+  return {base,iva,total:roundMoney(base+iva),discount:roundMoney(discount)}
+}
+
+function itemTotal(item,priceMode){ return itemAmounts(item,priceMode).total }
+
+function toFiscalItems(items,dteType,priceMode){
+  return items.map(item=>{
+    if(item.tipoVenta!=='gravada') return item
+    const needsTaxIncluded=dteType==='01'
+    const enteredTaxIncluded=priceMode==='con_iva'
+    if(needsTaxIncluded===enteredTaxIncluded) return item
+    const factor=needsTaxIncluded ? (1+TAX_RATE) : 1/(1+TAX_RATE)
+    return {
+      ...item,
+      precioUni:roundMoney(clampMoney(item.precioUni)*factor).toFixed(2),
+      montoDescu:roundMoney(clampMoney(item.montoDescu)*factor).toFixed(2),
+    }
+  })
+}
+
+export default function FacturacionDte({session,supabase,company,initialClientId=''}){
   const [clients,setClients]=useState([])
-  const [clientId,setClientId]=useState('')
+  const [clientId,setClientId]=useState(initialClientId||'')
   const [dteType,setDteType]=useState('01')
+  const [priceMode,setPriceMode]=useState('sin_iva')
   const [items,setItems]=useState([emptyItem()])
   const [condicionOperacion,setCondicionOperacion]=useState('1')
   const [paymentCode,setPaymentCode]=useState('01')
@@ -45,14 +79,9 @@ export default function FacturacionDte({session,supabase,company}){
   const [busy,setBusy]=useState(false)
 
   useEffect(()=>{supabase.from('clients').select('*').eq('company_id',company.id).order('name').then(({data,error})=>{if(error){setMessage(error.message);setMessageType('error')}setClients(data||[])})},[company.id,supabase])
+  useEffect(()=>{if(initialClientId){setClientId(initialClientId);setMessage('')}},[initialClientId])
   const selectedClient=clients.find(client=>client.id===clientId)||null
   const ccfMissing=useMemo(()=>missingCcfData(selectedClient),[selectedClient])
-
-  useEffect(()=>{
-    if(!selectedClient){ if(dteType==='03') setDteType('01'); return }
-    const suggested=clientSuggestsCcf(selectedClient)?'03':'01'
-    if(dteType!==suggested)setDteType(suggested)
-  },[selectedClient])
 
   useEffect(()=>{
     if(condicionOperacion==='2'){
@@ -73,17 +102,28 @@ export default function FacturacionDte({session,supabase,company}){
   },[dteType])
 
   const totals=useMemo(()=>{
-    const result={gravada:0,exenta:0,noSujeta:0,descuentos:0,iva:0}
-    items.forEach(item=>{const gross=clampMoney(item.cantidad)*clampMoney(item.precioUni),discount=Math.min(clampMoney(item.montoDescu),gross),net=Math.max(0,gross-discount);result.descuentos+=discount;if(item.tipoVenta==='exenta')result.exenta+=net;else if(item.tipoVenta==='no_sujeta')result.noSujeta+=net;else result.gravada+=net})
-    result.iva=dteType==='03'?result.gravada*.13:result.gravada-result.gravada/1.13
-    result.operacion=dteType==='03'?result.gravada+result.exenta+result.noSujeta+result.iva+clampMoney(totalNoGravado):result.gravada+result.exenta+result.noSujeta+clampMoney(totalNoGravado)
-    result.pagar=Math.max(0,result.operacion+clampMoney(ivaPerci)-clampMoney(ivaRete)-clampMoney(reteRenta)-clampMoney(saldoFavor))
+    const result={gravada:0,exenta:0,noSujeta:0,descuentos:0,iva:0,subtotal:0}
+    items.forEach(item=>{
+      const amounts=itemAmounts(item,priceMode)
+      result.descuentos+=amounts.discount
+      if(item.tipoVenta==='exenta')result.exenta+=amounts.base
+      else if(item.tipoVenta==='no_sujeta')result.noSujeta+=amounts.base
+      else { result.gravada+=amounts.base; result.iva+=amounts.iva }
+    })
+    result.gravada=roundMoney(result.gravada)
+    result.exenta=roundMoney(result.exenta)
+    result.noSujeta=roundMoney(result.noSujeta)
+    result.descuentos=roundMoney(result.descuentos)
+    result.iva=roundMoney(result.iva)
+    result.subtotal=roundMoney(result.gravada+result.exenta+result.noSujeta+clampMoney(totalNoGravado))
+    result.operacion=roundMoney(result.subtotal+result.iva)
+    result.pagar=Math.max(0,roundMoney(result.operacion+clampMoney(ivaPerci)-clampMoney(ivaRete)-clampMoney(reteRenta)-clampMoney(saldoFavor)))
     return result
-  },[items,dteType,ivaRete,ivaPerci,reteRenta,saldoFavor,totalNoGravado])
+  },[items,priceMode,ivaRete,ivaPerci,reteRenta,saldoFavor,totalNoGravado])
   const totalLetras=useMemo(()=>moneyToWords(totals.pagar),[totals.pagar])
 
-  const chooseClient=(value)=>{setClientId(value);setMessage('');const client=clients.find(c=>c.id===value);if(client){setDteType(clientSuggestsCcf(client)?'03':'01')}}
-  const chooseDteType=(value)=>{if(value==='03'&&!selectedClient){setMessage('Selecciona primero un cliente contribuyente para Crédito Fiscal.');setMessageType('error');return}setMessage('');setDteType(value)}
+  const chooseClient=(value)=>{setClientId(value);setMessage('')}
+  const chooseDteType=(value)=>{setMessage('');setDteType(value)}
   const updateItem=(index,key,value)=>setItems(current=>current.map((item,i)=>{
     if(i!==index)return item
     const next={...item,[key]:value}
@@ -103,7 +143,32 @@ export default function FacturacionDte({session,supabase,company}){
 
   const validate=()=>{const errors=[...readiness];if(!(totals.pagar>0))errors.push('total a pagar');return errors}
 
-  const createInvoice=async(event)=>{event.preventDefault();const errors=validate();if(errors.length){setMessage(`Falta completar: ${errors.join(' · ')}.`);setMessageType('error');return}setBusy(true);setMessage('');try{const payload=await apiRequest('/api/dte/invoices',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({companyId:company.id,clientId:clientId||null,dteType,items,condicionOperacion:Number(condicionOperacion),totalLetras,observaciones:observaciones||null,payment:{codigo:paymentCode,montoPago:totals.pagar,referencia:paymentReference||null,periodo:paymentPeriod||null,plazo:paymentTerm||null},numPagoElectronico:numPagoElectronico||null,ivaRete:clampMoney(ivaRete),ivaPerci:clampMoney(ivaPerci),reteRenta:clampMoney(reteRenta),saldoFavor:clampMoney(saldoFavor),totalNoGravado:clampMoney(totalNoGravado),documentoRelacionado:related.numeroDocumento?[{...related,tipoDocumento:related.tipoDocumento||dteType,tipoGeneracion:Number(related.tipoGeneracion)}]:null,ventaTercero:thirdParty.nit?thirdParty:null,apendice:appendix.campo&&appendix.valor?[appendix]:null})});setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} guardado correctamente.`);setMessageType('success');setItems([emptyItem()]);setObservaciones('');setPaymentReference('');setClientId('');setDteType('01');setCondicionOperacion('1');setPaymentCode('01');setIvaRete('0');setIvaPerci('0');setReteRenta('0');setSaldoFavor('0');setTotalNoGravado('0')}catch(error){setMessage(error.message);setMessageType('error')}finally{setBusy(false)}}
+  const createInvoice=async(event)=>{
+    event.preventDefault()
+    const errors=validate()
+    if(errors.length){setMessage(`Falta completar: ${errors.join(' · ')}.`);setMessageType('error');return}
+    setBusy(true);setMessage('')
+    try{
+      const fiscalItems=toFiscalItems(items,dteType,priceMode)
+      const payload=await apiRequest('/api/dte/invoices',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},
+        body:JSON.stringify({
+          companyId:company.id,clientId:clientId||null,dteType,items:fiscalItems,condicionOperacion:Number(condicionOperacion),totalLetras,observaciones:observaciones||null,
+          payment:{codigo:paymentCode,montoPago:totals.pagar,referencia:paymentReference||null,periodo:paymentPeriod||null,plazo:paymentTerm||null},
+          numPagoElectronico:numPagoElectronico||null,ivaRete:clampMoney(ivaRete),ivaPerci:clampMoney(ivaPerci),reteRenta:clampMoney(reteRenta),saldoFavor:clampMoney(saldoFavor),totalNoGravado:clampMoney(totalNoGravado),
+          documentoRelacionado:related.numeroDocumento?[{...related,tipoDocumento:related.tipoDocumento||dteType,tipoGeneracion:Number(related.tipoGeneracion)}]:null,
+          ventaTercero:thirdParty.nit?thirdParty:null,apendice:appendix.campo&&appendix.valor?[appendix]:null,
+        }),
+      })
+      setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} guardado correctamente.`);setMessageType('success')
+      setItems([emptyItem()]);setObservaciones('');setPaymentReference('');setClientId('');setDteType('01');setPriceMode('sin_iva');setCondicionOperacion('1');setPaymentCode('01');setIvaRete('0');setIvaPerci('0');setReteRenta('0');setSaldoFavor('0');setTotalNoGravado('0')
+    }catch(error){setMessage(error.message);setMessageType('error')}finally{setBusy(false)}
+  }
+
+  const clientPlaceholder=dteType==='03'?'Seleccionar cliente contribuyente':'Consumidor final / seleccionar cliente'
+  const clientSummary=selectedClient?.name || (dteType==='03'?'Cliente contribuyente pendiente':'Consumidor final')
+  const enteredWithTax=priceMode==='con_iva'
 
   return <section className="facturacion-dte billing-simple-flow">
     {message&&<p className={`feedback ${messageType==='error'?'error':'success'}`} role="status">{message}</p>}
@@ -116,10 +181,10 @@ export default function FacturacionDte({session,supabase,company}){
       <div className="billing-classic-columns">
         <div className="billing-classic-main">
           <fieldset className="form-section"><legend>1. Cliente</legend>
-            <label className="field"><span>Cliente / receptor</span><select value={clientId} onChange={e=>chooseClient(e.target.value)}><option value="">Consumidor final / seleccionar cliente</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-            {!selectedClient&&<small className="billing-auto-note">Sin cliente seleccionado se prepara automáticamente una Factura DTE-01 de Consumidor Final.</small>}
+            <label className="field"><span>{dteType==='03'?'Cliente contribuyente / receptor':'Cliente / receptor'}</span><select value={clientId} onChange={e=>chooseClient(e.target.value)}><option value="">{clientPlaceholder}</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}{clientSuggestsCcf(c)?' · Contribuyente':''}</option>)}</select></label>
+            {!selectedClient&&<small className="billing-auto-note">{dteType==='03'?'Seleccioná un cliente contribuyente. El Crédito Fiscal no puede emitirse como consumidor final.':'Sin cliente seleccionado se prepara automáticamente una Factura DTE-01 de Consumidor Final.'}</small>}
             {selectedClient&&<div className="billing-client-record">
-              <div className="billing-client-record-head"><div><strong>{selectedClient.name}</strong><small>{selectedClient.trade_name||'Datos cargados automáticamente desde Clientes'}</small></div><span>{dteType==='03'?'Crédito Fiscal detectado':'Factura detectada'}</span></div>
+              <div className="billing-client-record-head"><div><strong>{selectedClient.name}</strong><small>{selectedClient.trade_name||'Datos cargados automáticamente desde Clientes'}</small></div><span>{dteType==='03'?'Receptor Crédito Fiscal':'Receptor Factura'}</span></div>
               <div className="billing-client-record-grid">
                 <Info label="NIT" value={selectedClient.tax_id||selectedClient.document_number}/><Info label="NRC" value={selectedClient.nrc}/><Info label="Documento" value={`${selectedClient.document_type||'—'} · ${selectedClient.document_number||'—'}`}/><Info label="Actividad" value={`${selectedClient.activity_code||'—'} · ${selectedClient.business_activity||'—'}`}/><Info label="Dirección" value={[selectedClient.address,selectedClient.district,selectedClient.municipality,selectedClient.department].filter(Boolean).join(', ')}/><Info label="Contacto" value={[selectedClient.phone,selectedClient.email].filter(Boolean).join(' · ')}/>
               </div>
@@ -128,15 +193,19 @@ export default function FacturacionDte({session,supabase,company}){
           </fieldset>
 
           <fieldset className="form-section"><legend>2. Productos o servicios</legend>
+            <div className="billing-tax-mode">
+              <div><strong>Forma de ingresar precios</strong><small>{enteredWithTax?'El precio escrito ya contiene IVA. El sistema separa automáticamente la base y el 13%.':'El precio escrito no contiene IVA. El sistema agrega automáticamente el 13% a las ventas gravadas.'}</small></div>
+              <label className="field"><span>IVA en el precio</span><select value={priceMode} onChange={e=>setPriceMode(e.target.value)}><option value="sin_iva">Precio sin IVA</option><option value="con_iva">Precio con IVA incluido</option></select></label>
+            </div>
             {items.map((item,index)=><article className="invoice-item billing-line-item" key={index}>
-              <div className="invoice-item-title"><strong>Línea {index+1}</strong><strong>${(Math.max(0,clampMoney(item.cantidad)*clampMoney(item.precioUni)-clampMoney(item.montoDescu))*(dteType==='03'&&item.tipoVenta==='gravada'?1.13:1)).toFixed(2)}</strong>{items.length>1&&<button type="button" className="secondary-button" onClick={()=>setItems(x=>x.filter((_,i)=>i!==index))}>Eliminar</button>}</div>
+              <div className="invoice-item-title"><strong>Línea {index+1}</strong><strong>${itemTotal(item,priceMode).toFixed(2)}</strong>{items.length>1&&<button type="button" className="secondary-button" onClick={()=>setItems(x=>x.filter((_,i)=>i!==index))}>Eliminar</button>}</div>
               <div className="form-grid four">
                 <label className="field form-span-2"><span>Descripción *</span><input value={item.descripcion} onChange={e=>updateItem(index,'descripcion',e.target.value)} placeholder="Producto o servicio"/></label>
                 <label className="field"><span>Cantidad *</span><input type="number" min="0.01" step="0.01" value={item.cantidad} onChange={e=>updateItem(index,'cantidad',e.target.value)}/></label>
-                <label className="field"><span>{dteType==='03'?'Precio sin IVA *':'Precio *'}</span><input type="number" min="0.01" step="0.01" value={item.precioUni} onChange={e=>updateItem(index,'precioUni',e.target.value)}/></label>
+                <label className="field"><span>{enteredWithTax?'Precio con IVA *':'Precio sin IVA *'}</span><input type="number" min="0.01" step="0.01" value={item.precioUni} onChange={e=>updateItem(index,'precioUni',e.target.value)}/></label>
                 <label className="field"><span>Tipo</span><select value={item.tipoItem} onChange={e=>updateItem(index,'tipoItem',e.target.value)}>{ITEM_TYPES.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
                 <label className="field"><span>Unidad</span><select value={item.uniMedida} onChange={e=>updateItem(index,'uniMedida',e.target.value)}>{UNIT_OPTIONS.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
-                <label className="field"><span>Descuento</span><input type="number" min="0" step="0.01" value={item.montoDescu} onChange={e=>updateItem(index,'montoDescu',e.target.value)}/></label>
+                <label className="field"><span>{enteredWithTax?'Descuento con IVA':'Descuento sin IVA'}</span><input type="number" min="0" step="0.01" value={item.montoDescu} onChange={e=>updateItem(index,'montoDescu',e.target.value)}/></label>
                 <label className="field"><span>Clasificación</span><select value={item.tipoVenta} onChange={e=>updateItem(index,'tipoVenta',e.target.value)}><option value="gravada">Gravada</option><option value="exenta">Exenta</option><option value="no_sujeta">No sujeta</option></select></label>
                 <label className="field form-span-2"><span>Código interno</span><input value={item.codigo} onChange={e=>updateItem(index,'codigo',e.target.value)} placeholder="Opcional"/></label>
               </div>
@@ -164,9 +233,17 @@ export default function FacturacionDte({session,supabase,company}){
 
         <aside className="billing-classic-summary">
           <div><span>Documento</span><strong>{dteType==='03'?'Comprobante de Crédito Fiscal':'Factura Consumidor Final'}</strong><small>DTE-{dteType} · {dteType==='03'?'Versión 3':'Versión 2'}</small></div>
-          <div className="billing-summary-lines"><p><span>Gravadas</span><strong>${totals.gravada.toFixed(2)}</strong></p><p><span>Exentas</span><strong>${totals.exenta.toFixed(2)}</strong></p><p><span>No sujetas</span><strong>${totals.noSujeta.toFixed(2)}</strong></p><p><span>Descuentos</span><strong>− ${totals.descuentos.toFixed(2)}</strong></p><p><span>{dteType==='03'?'IVA 13%':'IVA incluido'}</span><strong>${totals.iva.toFixed(2)}</strong></p>{clampMoney(ivaRete)>0&&<p><span>IVA retenido</span><strong>− ${clampMoney(ivaRete).toFixed(2)}</strong></p>}{dteType==='03'&&clampMoney(ivaPerci)>0&&<p><span>IVA percibido</span><strong>+ ${clampMoney(ivaPerci).toFixed(2)}</strong></p>}</div>
+          <div className="billing-summary-lines">
+            <p><span>Gravadas sin IVA</span><strong>${totals.gravada.toFixed(2)}</strong></p>
+            <p><span>Exentas</span><strong>${totals.exenta.toFixed(2)}</strong></p>
+            <p><span>No sujetas</span><strong>${totals.noSujeta.toFixed(2)}</strong></p>
+            <p><span>Descuentos {enteredWithTax?'(precio con IVA)':'(sin IVA)'}</span><strong>− ${totals.descuentos.toFixed(2)}</strong></p>
+            <p><span>IVA 13%</span><strong>+ ${totals.iva.toFixed(2)}</strong></p>
+            {clampMoney(ivaRete)>0&&<p><span>IVA retenido</span><strong>− ${clampMoney(ivaRete).toFixed(2)}</strong></p>}
+            {dteType==='03'&&clampMoney(ivaPerci)>0&&<p><span>IVA percibido</span><strong>+ ${clampMoney(ivaPerci).toFixed(2)}</strong></p>}
+          </div>
           <div className="billing-summary-total"><span>Total calculado automáticamente</span><strong>${totals.pagar.toFixed(2)}</strong><small>{totalLetras}</small></div>
-          <div className="billing-summary-client"><span>Cliente</span><strong>{selectedClient?.name||'Consumidor final'}</strong>{selectedClient&&<small>{dteType==='03'?`NIT ${selectedClient.tax_id||'—'} · NRC ${selectedClient.nrc||'—'}`:selectedClient.document_number||selectedClient.tax_id||''}</small>}</div>
+          <div className="billing-summary-client"><span>{dteType==='03'?'Cliente contribuyente':'Cliente'}</span><strong>{clientSummary}</strong>{selectedClient&&<small>{dteType==='03'?`NIT ${selectedClient.tax_id||'—'} · NRC ${selectedClient.nrc||'—'}`:selectedClient.document_number||selectedClient.tax_id||''}</small>}</div>
           <div className={readiness.length?'billing-client-warning':'feedback success'}>{readiness.length?`Pendiente: ${readiness.join(' · ')}`:'Documento listo para guardar.'}</div>
           <button type="submit" disabled={busy||readiness.length>0||!(totals.pagar>0)}>{busy?'Guardando…':dteType==='03'?'Guardar Crédito Fiscal':'Guardar factura'}</button>
         </aside>

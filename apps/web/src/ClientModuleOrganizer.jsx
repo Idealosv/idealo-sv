@@ -9,13 +9,6 @@ const TABS = [
   ['commercial', 'Comercial'],
 ]
 
-const VIEWS = [
-  ['directory', 'Directorio'],
-  ['new', 'Nuevo cliente'],
-  ['360', 'Cliente 360'],
-  ['crm', 'CRM'],
-]
-
 const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 const sectionFor = (fieldset, index) => {
@@ -27,15 +20,114 @@ const sectionFor = (fieldset, index) => {
   return index === 0 ? 'general' : 'general'
 }
 
+const nativeSet = (control, value) => {
+  if (!control || String(control.value ?? '') === String(value ?? '')) return
+  const prototype = control instanceof HTMLSelectElement
+    ? HTMLSelectElement.prototype
+    : control instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype
+  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(control, value)
+  control.dispatchEvent(new Event('input', { bubbles: true }))
+  control.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+const labelOf = (form, name) => form.querySelector(`[name="${name}"]`)?.closest('label') || null
+
+function normalizeVisibleClientFields(form) {
+  const clientType = form.querySelector('[name="client_type"]')?.value || 'company'
+  const preferredDte = form.querySelector('[name="preferred_dte_type"]')?.value || '01'
+  const documentType = form.querySelector('[name="document_type"]')?.value || (clientType === 'person' ? '13' : '36')
+  const isPerson = clientType === 'person'
+  const isCreditFiscal = preferredDte === '03'
+  const isHomologatedDui = isPerson && documentType === '13'
+
+  const taxpayer = form.querySelector('[name="taxpayer_type"]')
+  if (taxpayer) nativeSet(taxpayer, isPerson ? '1' : '2')
+
+  const contactName = labelOf(form, 'contact_name')
+  const contactPosition = labelOf(form, 'contact_position')
+  if (contactName) contactName.hidden = isPerson
+  if (contactPosition) contactPosition.hidden = isPerson
+
+  const documentNumber = form.querySelector('[name="document_number"]')
+  const taxId = form.querySelector('[name="tax_id"]')
+  const dui = form.querySelector('[name="dui"]')
+  const documentNumberLabel = labelOf(form, 'document_number')
+  const taxIdLabel = labelOf(form, 'tax_id')
+  const duiLabel = labelOf(form, 'dui')
+  const taxpayerLabel = labelOf(form, 'taxpayer_type')
+
+  if (taxpayerLabel) taxpayerLabel.hidden = true
+
+  if (!isPerson) {
+    nativeSet(form.querySelector('[name="document_type"]'), '36')
+    if (documentNumberLabel) documentNumberLabel.hidden = true
+    if (duiLabel) duiLabel.hidden = true
+    if (taxIdLabel) taxIdLabel.hidden = false
+    if (taxId?.value) nativeSet(documentNumber, taxId.value)
+  } else if (isHomologatedDui) {
+    if (documentNumberLabel) {
+      documentNumberLabel.hidden = false
+      const title = documentNumberLabel.querySelector('span')
+      if (title) title.textContent = 'DUI / NIT homologado *'
+    }
+    if (taxIdLabel) taxIdLabel.hidden = true
+    if (duiLabel) duiLabel.hidden = true
+    if (documentNumber?.value) {
+      nativeSet(dui, documentNumber.value)
+      if (isCreditFiscal) nativeSet(taxId, documentNumber.value)
+    }
+  } else {
+    if (documentNumberLabel) {
+      documentNumberLabel.hidden = false
+      const title = documentNumberLabel.querySelector('span')
+      if (title) title.textContent = 'Número de identificación *'
+    }
+    if (taxIdLabel) taxIdLabel.hidden = !isCreditFiscal
+    if (duiLabel) duiLabel.hidden = true
+  }
+
+  const payment = form.querySelector('[name="payment_terms"]')?.value || 'cash'
+  const creditLimitLabel = labelOf(form, 'credit_limit')
+  if (creditLimitLabel) creditLimitLabel.hidden = payment === 'cash'
+}
+
+function installClientFieldSync(form) {
+  const sync = () => window.setTimeout(() => normalizeVisibleClientFields(form), 0)
+  normalizeVisibleClientFields(form)
+  form.addEventListener('input', sync, true)
+  form.addEventListener('change', sync, true)
+
+  const fiscal = form.querySelector('[name="tax_id"]')
+  const document = form.querySelector('[name="document_number"]')
+  const syncIdentity = (event) => {
+    const clientType = form.querySelector('[name="client_type"]')?.value || 'company'
+    const preferredDte = form.querySelector('[name="preferred_dte_type"]')?.value || '01'
+    const documentType = form.querySelector('[name="document_type"]')?.value || ''
+    if (clientType === 'company' && event.target === fiscal) nativeSet(document, fiscal.value)
+    if (clientType === 'person' && documentType === '13' && event.target === document) {
+      nativeSet(form.querySelector('[name="dui"]'), document.value)
+      if (preferredDte === '03') nativeSet(fiscal, document.value)
+    }
+  }
+  form.addEventListener('input', syncIdentity, true)
+
+  return () => {
+    form.removeEventListener('input', sync, true)
+    form.removeEventListener('change', sync, true)
+    form.removeEventListener('input', syncIdentity, true)
+  }
+}
+
 export default function ClientModuleOrganizer() {
   const [active, setActive] = useState('general')
-  const [view, setView] = useState('directory')
   const [host, setHost] = useState(null)
   const [module, setModule] = useState(null)
   const [form, setForm] = useState(null)
-  const [counts, setCounts] = useState({})
 
   useEffect(() => {
+    let timers = []
     const refresh = () => {
       const isClients = document.querySelector('.erp-header h1')?.textContent?.trim() === 'Clientes'
       const nextModule = isClients ? document.querySelector('.clients-module') : null
@@ -43,127 +135,90 @@ export default function ClientModuleOrganizer() {
       setModule(nextModule)
       setHost(nextModule?.querySelector('.clients-titlebar') || null)
       setForm(nextForm)
+      nextModule?.classList.toggle('client-form-open', Boolean(nextForm))
     }
-    refresh()
-    const observer = new MutationObserver(refresh)
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!module) return undefined
-    const handleClick = (event) => {
-      const target = event.target?.closest?.('button')
-      if (!target) return
-      if (target.matches('.primary-action') || target.closest('.row-actions')?.querySelector('.secondary-button') === target) {
-        setView('new')
-      }
+    const schedule = () => {
+      timers.forEach(window.clearTimeout)
+      timers = [0, 60, 180, 400].map(delay => window.setTimeout(refresh, delay))
     }
-    module.addEventListener('click', handleClick, true)
-    return () => module.removeEventListener('click', handleClick, true)
+    const onModule = (event) => {
+      if (event.detail === 'Clientes') schedule()
+      else refresh()
+    }
+    const onClick = (event) => {
+      if (event.target.closest('.idealo-main-menu-item,.clients-module button,.clients-module [role="tab"]')) schedule()
+    }
+    schedule()
+    window.addEventListener('idealo-module-change', onModule)
+    document.addEventListener('click', onClick)
+    return () => {
+      timers.forEach(window.clearTimeout)
+      window.removeEventListener('idealo-module-change', onModule)
+      document.removeEventListener('click', onClick)
+      module?.classList.remove('client-form-open')
+    }
   }, [module])
 
   useEffect(() => {
-    if (!module) return
-    const applyVisibility = () => {
-      const stats = module.querySelector('.client-stats')
-      const directory = module.querySelector('.clients-directory')
-      const currentForm = module.querySelector('.client-form-full')
-      const client360 = document.querySelector('.client360')
-      const crm360 = document.querySelector('.crm360')
-
-      if (stats) stats.style.display = view === 'directory' ? '' : 'none'
-      if (directory) directory.style.display = view === 'directory' ? '' : 'none'
-      if (currentForm) currentForm.style.display = view === 'new' ? '' : 'none'
-      if (client360) client360.style.display = view === '360' ? '' : 'none'
-      if (crm360) crm360.style.display = view === 'crm' ? '' : 'none'
+    if (!form) {
+      setActive('general')
+      return undefined
     }
-    applyVisibility()
-    const observer = new MutationObserver(applyVisibility)
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [module, view])
-
-  useEffect(() => {
-    if (!form) return undefined
     const fieldsets = [...form.querySelectorAll(':scope > fieldset')]
     if (!fieldsets.length) return undefined
 
-    const nextCounts = {}
     fieldsets.forEach((fieldset, index) => {
       const section = sectionFor(fieldset, index)
       fieldset.dataset.clientSection = section
-      nextCounts[section] = (nextCounts[section] || 0) + 1
       fieldset.hidden = section !== active
     })
-    setCounts(nextCounts)
     form.classList.add('client-form-organized')
+    const cleanupSync = installClientFieldSync(form)
 
     const handleInvalid = (event) => {
       const fieldset = event.target?.closest?.('fieldset[data-client-section]')
       const section = fieldset?.dataset.clientSection
       if (!section) return
-      setView('new')
       setActive(section)
       fieldsets.forEach((item) => { item.hidden = item.dataset.clientSection !== section })
       window.setTimeout(() => event.target?.focus?.(), 0)
     }
     form.addEventListener('invalid', handleInvalid, true)
-    return () => form.removeEventListener('invalid', handleInvalid, true)
+    return () => {
+      cleanupSync()
+      form.removeEventListener('invalid', handleInvalid, true)
+    }
   }, [form, active])
 
   const currentIndex = useMemo(() => Math.max(0, TABS.findIndex(([key]) => key === active)), [active])
-  if (!host || !module) return null
-
-  const openView = (nextView) => {
-    if (nextView === 'new' && !module.querySelector('.client-form-full')) {
-      module.querySelector('.primary-action')?.click()
-    }
-    setView(nextView)
-    window.setTimeout(() => module.scrollIntoView({ behavior: 'smooth', block: 'start' }), 20)
-  }
+  if (!host || !module || !form) return null
 
   const go = (direction) => {
     const next = Math.min(TABS.length - 1, Math.max(0, currentIndex + direction))
     setActive(TABS[next][0])
-    form?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return createPortal(
     <div className="client-organizer">
-      <div className="client-view-tabs" role="tablist" aria-label="Áreas del módulo Clientes">
-        {VIEWS.map(([key, label]) => (
-          <button key={key} type="button" role="tab" aria-selected={view === key} className={view === key ? 'active' : ''} onClick={() => openView(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {view === 'new' && form && (
-        <div className="client-section-organizer">
-          <div className="client-organizer-head">
-            <div>
-              <small>EXPEDIENTE DEL CLIENTE</small>
-              <strong>Completa una sección a la vez</strong>
-            </div>
-            <span>{currentIndex + 1} de {TABS.length}</span>
-          </div>
-          <div className="client-organizer-tabs" role="tablist" aria-label="Secciones del cliente">
-            {TABS.map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={active === key} className={active === key ? 'active' : ''} onClick={() => setActive(key)}>
-                {label}{counts[key] ? <b>{counts[key]}</b> : null}
-              </button>
-            ))}
-          </div>
-          <div className="client-organizer-help">
-            <p>{active === 'general' ? 'Nombre, tipo de cliente, estado y datos básicos.' : active === 'fiscal' ? 'Datos fiscales y de facturación electrónica según el documento.' : active === 'contact' ? 'Correo, teléfono, WhatsApp y persona de contacto.' : active === 'address' ? 'Domicilio fiscal y ubicación del receptor.' : 'Clasificación, condiciones, notas y datos comerciales.'}</p>
-            <div>
-              <button type="button" disabled={currentIndex === 0} onClick={() => go(-1)}>← Anterior</button>
-              <button type="button" disabled={currentIndex === TABS.length - 1} onClick={() => go(1)}>Siguiente →</button>
-            </div>
+      <div className="client-section-organizer">
+        <div className="client-organizer-head">
+          <div><small>EXPEDIENTE DEL CLIENTE</small><strong>Un dato se captura una sola vez</strong></div>
+          <span>{currentIndex + 1} de {TABS.length}</span>
+        </div>
+        <div className="client-organizer-tabs" role="tablist" aria-label="Secciones del cliente">
+          {TABS.map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={active === key} className={active === key ? 'active' : ''} onClick={() => setActive(key)}>{label}</button>
+          ))}
+        </div>
+        <div className="client-organizer-help">
+          <p>{active === 'general' ? 'Identidad básica del cliente.' : active === 'fiscal' ? 'Solo los datos fiscales aplicables al tipo de cliente y DTE.' : active === 'contact' ? 'Un contacto principal; los contactos adicionales se administran después en la ficha 360.' : active === 'address' ? 'Un domicilio fiscal principal; ubicaciones adicionales se agregan después.' : 'Condición de pago, crédito cuando aplique, origen y notas internas.'}</p>
+          <div>
+            <button type="button" disabled={currentIndex === 0} onClick={() => go(-1)}>← Anterior</button>
+            <button type="button" disabled={currentIndex === TABS.length - 1} onClick={() => go(1)}>Siguiente →</button>
           </div>
         </div>
-      )}
+      </div>
     </div>,
     host,
   )

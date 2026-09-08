@@ -1,14 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
 import ErpApp from './ErpApp.jsx'
 import Workspace from './Workspace.jsx'
+import { supabase } from './lib/supabase.js'
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-const supabase =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
 
 export default function App() {
   const [serviceStatus, setServiceStatus] = useState({

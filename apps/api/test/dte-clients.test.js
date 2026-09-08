@@ -47,3 +47,18 @@ test('envía la contraseña del certificado únicamente al firmador privado', as
   assert.equal(request.headers['x-signer-token'], 'transport-secret')
   assert.equal(request.body.dteJson.identificacion.tipoDte, '01')
 })
+
+test('warmup despierta el servicio por actuator health sin enviar secretos', async () => {
+  let request
+  const fetchImpl = async (url, options) => {
+    request = { url, headers: options.headers }
+    return jsonResponse({ status: 'UP' })
+  }
+  const client = new DteSignerClient(config, { fetchImpl })
+  const result = await client.warmup({ timeoutMs: 45000 })
+
+  assert.equal(result.status, 'UP')
+  assert.equal(request.url, 'http://firmador:8113/actuator/health')
+  assert.equal(request.headers['x-signer-token'], undefined)
+  assert.equal(JSON.stringify(request).includes('signer-secret'), false)
+})

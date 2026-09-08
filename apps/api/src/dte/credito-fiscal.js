@@ -21,7 +21,6 @@ function address(value, owner) {
   return {
     departamento: String(required(value.departamento, `departamento de ${owner}`)),
     municipio: String(required(value.municipio, `municipio de ${owner}`)),
-    distrito: String(required(value.distrito, `distrito de ${owner}`)),
     complemento: String(required(value.complemento, `complemento de dirección de ${owner}`)),
   }
 }
@@ -80,6 +79,8 @@ export function validateCreditoFiscal(dte) {
   add(CONTROL_PATTERN.test(dte?.identificacion?.numeroControl || ''), 'numeroControl no cumple el formato oficial')
   add(UUID_PATTERN.test(dte?.identificacion?.codigoGeneracion || ''), 'codigoGeneracion no cumple el formato oficial')
   add(Boolean(dte?.receptor?.nit && dte?.receptor?.nrc && dte?.receptor?.nombre), 'DTE-03 requiere NIT, NRC y nombre del receptor')
+  add(!Object.hasOwn(dte?.emisor?.direccion || {}, 'distrito'), 'emisor.direccion no debe incluir distrito en DTE-03 v3')
+  add(!Object.hasOwn(dte?.receptor?.direccion || {}, 'distrito'), 'receptor.direccion no debe incluir distrito en DTE-03 v3')
   add(Array.isArray(dte?.cuerpoDocumento) && dte.cuerpoDocumento.length > 0, 'cuerpoDocumento debe contener partidas')
   add(typeof dte?.resumen?.totalPagar === 'number' && dte.resumen.totalPagar >= 0, 'totalPagar no es válido')
   if (errors.length) throw new Error(`DTE-03 inválido: ${errors.join('; ')}.`)
