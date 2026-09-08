@@ -66,6 +66,7 @@ import './mobile-platform-native.css'
 import './agency-demo.css'
 import './welcome-login-force.css'
 import './privacy-admin-header.css'
+import './persistent-sidebar.css'
 
 const DeferredRuntimeHosts=lazy(()=>import('./DeferredRuntimeHosts.jsx'))
 const nativeScrollIntoView=Element.prototype.scrollIntoView
