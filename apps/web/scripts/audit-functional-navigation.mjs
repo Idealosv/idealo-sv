@@ -9,12 +9,13 @@ const read = (name) => readFile(resolve(src, name), 'utf8')
 const [
   main, menu, navigation, eventBridge, workspaceBridge, runtimeBoundary, accessRuntime, access,
   billing, commercial, inventory, procurement, planning, financial, assistant, security, mobile,
+  menuCss, modalCss, persistentSidebarCss,
 ] = await Promise.all([
   read('main.jsx'), read('MainMenuController.jsx'), read('erp-navigation.js'), read('NavigationEventBridge.jsx'),
   read('WorkspaceNavigationBridge.jsx'), read('RuntimeBoundary.jsx'), read('AccessControlRuntime.jsx'), read('erp-access-control.js'),
   read('FacturacionLauncher.jsx'), read('CommercialLauncher.jsx'), read('InventoryCostLauncher.jsx'), read('OperationsFinanceLauncher.jsx'),
   read('ProductionCalendarLauncher.jsx'), read('FinancialDashboardLauncher.jsx'), read('AssistantLauncher.jsx'), read('SecurityLauncher.jsx'),
-  read('MobileAppHost.jsx'),
+  read('MobileAppHost.jsx'), read('main-menu.css'), read('modal-structure.css'), read('persistent-sidebar.css'),
 ])
 
 const failures=[]
@@ -49,10 +50,21 @@ for(const [name,target,tab] of routes){
 
 requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'El runtime secundario dejó de cargarse de forma diferida')
 requireText(main,"<Safe label=\"Navegación persistente\"><NavigationEventBridge/></Safe>",'El puente persistente de navegación no está montado en el arranque crítico')
+requireText(main,"import './persistent-sidebar.css'",'El tema de sidebar persistente no se carga en el ERP')
 requireText(menu,'requestModule(name','El menú principal no delega al núcleo de navegación')
 requireText(menu,'subscribeNavigation','El menú principal no refleja el estado confirmado del núcleo')
 if(menu.includes("dispatchEvent(new CustomEvent('idealo-open-module'"))failures.push('El menú volvió a emitir aperturas efímeras directamente')
 if(menu.includes('setActive(name)'))failures.push('El menú vuelve a marcar opciones antes de que la vista confirme apertura')
+
+requireText(persistentSidebarCss,'position:fixed!important','El menú lateral de escritorio dejó de ser fijo')
+requireText(persistentSidebarCss,'z-index:1200!important','El menú lateral puede volver a quedar detrás de los módulos')
+requireText(persistentSidebarCss,'margin-left:248px!important','El área de trabajo no reserva el ancho del menú fijo')
+requireText(persistentSidebarCss,'overflow-y:auto!important','El contenido principal no conserva desplazamiento funcional')
+requireText(persistentSidebarCss,'scrollbar-width:none!important','La barra visual de desplazamiento volvió a aparecer en el área principal')
+requireText(menuCss,'scrollbar-width:none','La lista de módulos volvió a mostrar una barra de desplazamiento')
+requireText(menuCss,'overflow-y:auto','La lista de módulos perdió desplazamiento aunque la barra esté oculta')
+requireText(modalCss,'inset:0 0 0 248px!important','Los módulos de escritorio vuelven a cubrir el menú lateral')
+requireText(modalCss,'.erp-modal-backdrop::-webkit-scrollbar','Las ventanas de módulo no ocultan su scrollbar visual')
 
 requireText(navigation,"new CustomEvent('idealo-navigation-request'",'Las solicitudes centrales no pasan por control de acceso')
 requireText(navigation,'cancelable: true','El control de acceso no puede cancelar una navegación')
@@ -102,4 +114,4 @@ if(failures.length){
   failures.forEach(failure=>console.error(`- ${failure}`))
   process.exit(1)
 }
-console.log('Auditoría funcional de navegación OK: 16 módulos, permisos, persistencia, confirmación real, errores visibles y compatibilidad verificados.')
+console.log('Auditoría funcional de navegación OK: 16 módulos, menú persistente, scrollbars ocultos, permisos, confirmación real, errores visibles y compatibilidad verificados.')
