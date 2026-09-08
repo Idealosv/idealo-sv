@@ -44,6 +44,12 @@ const publish = () => {
   }
 }
 
+const dispatchLegacyActive = (moduleName) => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: moduleName }))
+  }
+}
+
 export const getNavigationState = () => ({ ...state, context: { ...(state.context || {}) } })
 
 export function subscribeNavigation(listener, { replay = true } = {}) {
@@ -77,9 +83,26 @@ export function confirmModule(requestId, moduleName) {
   if (state.status === 'active' && state.activeModule === moduleName) return true
   state = { ...state, activeModule: moduleName, status: 'active', error: '' }
   publish()
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: moduleName }))
+  dispatchLegacyActive(moduleName)
+  return true
+}
+
+export function activateModule(moduleName, context = {}) {
+  const route = ERP_ROUTES[moduleName]
+  if (!route || !ERP_MODULES.includes(moduleName)) return false
+  const requestId = ++sequence
+  state = {
+    requestId,
+    requestedModule: moduleName,
+    activeModule: moduleName,
+    target: route.target,
+    tab: route.tab,
+    status: 'active',
+    error: '',
+    context: { ...context },
   }
+  publish()
+  dispatchLegacyActive(moduleName)
   return true
 }
 
