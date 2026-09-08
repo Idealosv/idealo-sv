@@ -13,7 +13,6 @@ import BillingUiRecovery from './BillingUiRecovery.jsx'
 import AssistantLauncher from './AssistantLauncher.jsx'
 import SecurityLauncher from './SecurityLauncher.jsx'
 import WorkspaceNavigationBridge from './WorkspaceNavigationBridge.jsx'
-import MainMenuController from './MainMenuController.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import FormAccordionManager from './FormAccordionManager.jsx'
 import FormSimplificationManager from './FormSimplificationManager.jsx'
@@ -73,7 +72,6 @@ export default function DeferredRuntimeHosts(){
   <Safe label="Asistente IA"><AssistantLauncher/></Safe>
   <Safe label="Seguridad"><SecurityLauncher/></Safe>
   <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge/></Safe>
-  <Safe label="Menú principal"><MainMenuController/></Safe>
   <Safe label="Coordinación UX"><ErpUxCoordinator/></Safe>
   <Safe label="Formularios"><FormAccordionManager/></Safe>
   <Safe label="Simplificación de formularios"><FormSimplificationManager/></Safe>
