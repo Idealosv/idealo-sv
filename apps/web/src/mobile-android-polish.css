@@ -1,0 +1,41 @@
+/* IDEALO SV · Correcciones finales de la experiencia Android.
+   Debe cargarse al final para aislar la App móvil de estilos globales del ERP. */
+html.idealo-mobile-runtime .mobile-app-shell{font-size:16px}
+html.idealo-mobile-runtime .mobile-hero h1{color:#fff!important;text-shadow:none!important;opacity:1!important}
+html.idealo-mobile-runtime .mobile-hero p{color:#f36c21!important}
+html.idealo-mobile-runtime .mobile-role{color:#b8c0c8!important}
+html.idealo-mobile-runtime .mobile-topbar>div:first-child{min-width:0;flex:1}
+html.idealo-mobile-runtime .mobile-topbar>div:first-child>div{min-width:0}
+html.idealo-mobile-runtime .mobile-topbar small{max-width:58vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* La barra inferior no debe cortar nombres aunque existan seis accesos. */
+html.idealo-mobile-runtime .mobile-bottom-nav button small{display:block!important;width:100%;max-width:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.05!important;font-size:.50rem!important;text-align:center}
+html.idealo-mobile-runtime .mobile-bottom-nav button{overflow:visible!important;padding:3px 1px!important}
+html.idealo-mobile-runtime .mobile-bottom-nav button span{flex:0 0 auto}
+
+/* El monitor técnico solo aparece cuando realmente requiere atención.
+   En estado Operativa no debe tapar navegación ni contenido. */
+html.idealo-mobile-runtime .mobile-health:not(.attention){display:none!important}
+html.idealo-mobile-runtime .mobile-health.attention{right:12px!important;bottom:calc(92px + env(safe-area-inset-bottom))!important;max-width:calc(100vw - 24px)!important;border-radius:16px!important;padding:10px 12px!important}
+
+/* DTE debe sentirse como una acción contextual y no competir con la navegación. */
+html.idealo-mobile-runtime .mobile-dte-fab{right:14px!important;bottom:calc(94px + env(safe-area-inset-bottom))!important;border-radius:16px!important;background:#171b20!important;color:#fff!important;min-width:58px;min-height:48px;padding:10px 14px!important;box-shadow:0 10px 24px rgba(0,0,0,.22)!important}
+html.idealo-mobile-runtime .mobile-dte-panel{max-height:calc(100dvh - env(safe-area-inset-top))!important}
+html.idealo-mobile-runtime .mobile-dte-panel>main{max-height:calc(100dvh - 78px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;padding-bottom:calc(22px + env(safe-area-inset-bottom))!important}
+html.idealo-mobile-runtime .mobile-dte-form input,
+html.idealo-mobile-runtime .mobile-dte-form select,
+html.idealo-mobile-runtime .mobile-dte-form textarea{font-size:16px!important;min-height:48px}
+
+/* Legibilidad y objetivos táctiles mínimos de Android. */
+html.idealo-mobile-runtime .mobile-row{min-height:68px}
+html.idealo-mobile-runtime .mobile-row-actions button,
+html.idealo-mobile-runtime .mobile-profile button{min-height:44px}
+html.idealo-mobile-runtime .mobile-error{line-height:1.35}
+html.idealo-mobile-runtime .mobile-empty{line-height:1.45}
+
+@media(max-width:380px){
+ html.idealo-mobile-runtime .mobile-topbar{padding-left:12px!important;padding-right:12px!important}
+ html.idealo-mobile-runtime .mobile-topbar small{max-width:52vw}
+ html.idealo-mobile-runtime .mobile-bottom-nav{left:6px!important;right:6px!important;padding:5px!important}
+ html.idealo-mobile-runtime .mobile-bottom-nav button small{font-size:.46rem!important}
+}

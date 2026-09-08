@@ -1,49 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-const MODULE_GROUPS = [
-  { label: 'Principal', modules: ['Dashboard','App móviles'] },
-  { label: 'Ventas', modules: ['Clientes','Productos','Cotizaciones','Facturación'] },
-  { label: 'Operación', modules: ['Producción','Inventario'] },
-  { label: 'Compras y caja', modules: ['Proveedores','Compras','Caja'] },
-  { label: 'Gestión', modules: ['Asistente IA','Agenda','Reportes'] },
-  { label: 'Administración', modules: ['Seguridad'] },
-]
+const MODULES = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
 
-const clickWorkspaceModule = (label) => {
-  const buttons = [...document.querySelectorAll('.erp-sidebar > nav:not(.idealo-main-menu) .nav-item')]
-  const button = buttons.find((item) => item.textContent.trim().endsWith(label))
-  if (!button) return false
-  button.click()
-  return true
-}
-
-const openLauncher = (selector, tabLabel) => {
-  const launcher = document.querySelector(selector)
-  if (!launcher) return false
-  launcher.click()
-  if (tabLabel) window.setTimeout(() => {
-    const panels = [...document.querySelectorAll('.erp-modal-panel')]
-    const panel = panels[panels.length - 1]
-    const tabs = panel ? [...panel.querySelectorAll('.erp-module-tab')] : []
-    tabs.find((button) => button.textContent.trim() === tabLabel)?.click()
-  }, 30)
+const openDirectModule = (target, tab) => {
+  window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target, tab } }))
   return true
 }
 
 export default function MainMenuController() {
   const [sidebar, setSidebar] = useState(null)
   const [active, setActive] = useState('Dashboard')
-  const [placeholder, setPlaceholder] = useState('')
   const [query, setQuery] = useState('')
   const searchRef = useRef(null)
 
   useEffect(() => {
-    const findSidebar = () => setSidebar(document.querySelector('.erp-sidebar'))
+    let cancelled = false
+    let attempts = 0
+    const findSidebar = () => {
+      if (cancelled) return
+      const node = document.querySelector('.erp-sidebar')
+      if (node) return setSidebar(node)
+      attempts += 1
+      if (attempts < 20) window.setTimeout(findSidebar, 100)
+    }
     findSidebar()
-    const observer = new MutationObserver(findSidebar)
-    observer.observe(document.body, { childList: true, subtree: true })
-    return () => observer.disconnect()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const syncActive = (event) => {
+      if (MODULES.includes(event.detail)) setActive(event.detail)
+    }
+    window.addEventListener('idealo-module-change', syncActive)
+    return () => window.removeEventListener('idealo-module-change', syncActive)
   }, [])
 
   useEffect(() => {
@@ -58,47 +48,46 @@ export default function MainMenuController() {
   }, [])
 
   const openModule = (name) => {
-    setActive(name); setPlaceholder(''); setQuery('')
-    window.dispatchEvent(new CustomEvent('idealo-module-change',{detail:name}))
-    if (name === 'Dashboard') return clickWorkspaceModule('Resumen')
+    setActive(name)
+    setQuery('')
+    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
+
+    if (name === 'Dashboard') return openDirectModule('workspace', 'Resumen')
     if (name === 'App móviles') return true
-    if (name === 'Clientes') return clickWorkspaceModule('Clientes')
-    if (name === 'Productos') return openLauncher('.sidebar-module-access.commercial', 'Productos y trabajos')
-    if (name === 'Cotizaciones') return openLauncher('.sidebar-module-access.commercial', 'Cotizaciones')
-    if (name === 'Producción') return openLauncher('.sidebar-module-access.commercial', 'Producción')
-    if (name === 'Inventario') return openLauncher('.sidebar-module-access.inventory')
-    if (name === 'Facturación') return openLauncher('.sidebar-module-access.billing')
-    if (name === 'Proveedores') return openLauncher('.sidebar-module-access.procurement', 'Proveedores')
-    if (name === 'Compras') return openLauncher('.sidebar-module-access.procurement', 'Compras y gastos')
-    if (name === 'Caja') return openLauncher('.sidebar-module-access.procurement', 'Caja')
-    if (name === 'Agenda') return openLauncher('.sidebar-module-access.planning')
-    if (name === 'Reportes') return openLauncher('.sidebar-module-access.financial')
-    if (name === 'Seguridad') return clickWorkspaceModule('Empresa')
-    setPlaceholder(name)
+    if (name === 'Clientes') return openDirectModule('workspace', 'Clientes')
+    if (name === 'Productos') return openDirectModule('commercial', 'Productos y trabajos')
+    if (name === 'Cotizaciones') return openDirectModule('commercial', 'Cotizaciones')
+    if (name === 'Producción') return openDirectModule('commercial', 'Producción')
+    if (name === 'Inventario') return openDirectModule('inventory', 'Inventario')
+    if (name === 'Facturación') return openDirectModule('billing', 'resumen')
+    if (name === 'Proveedores') return openDirectModule('procurement', 'Proveedores')
+    if (name === 'Compras') return openDirectModule('procurement', 'Compras y gastos')
+    if (name === 'Caja') return openDirectModule('procurement', 'Caja')
+    if (name === 'Asistente IA') return openDirectModule('assistant')
+    if (name === 'Agenda') return openDirectModule('planning')
+    if (name === 'Reportes') return openDirectModule('financial')
+    if (name === 'Seguridad') return openDirectModule('security')
+    return false
   }
 
-  const groups = useMemo(() => {
+  const filteredModules = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return MODULE_GROUPS
-    return MODULE_GROUPS.map((group) => ({
-      ...group,
-      modules: group.modules.filter((name) => name.toLowerCase().includes(normalized)),
-    })).filter((group) => group.modules.length)
+    return normalized ? MODULES.filter((name) => name.toLowerCase().includes(normalized)) : MODULES
   }, [query])
 
   if (!sidebar) return null
-  return createPortal(<>
+
+  return createPortal(
     <nav className="idealo-main-menu" aria-label="Módulos principales IDEALO SV">
       <div className="idealo-menu-search-wrap">
-        <input ref={searchRef} className="idealo-menu-search" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Buscar módulo…" aria-label="Buscar módulo" />
-        {query && <button type="button" className="idealo-menu-search-clear" onClick={()=>setQuery('')} aria-label="Limpiar búsqueda">×</button>}
+        <input ref={searchRef} className="idealo-menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar módulo…" aria-label="Buscar módulo" />
+        {query && <button type="button" className="idealo-menu-search-clear" onClick={() => setQuery('')} aria-label="Limpiar búsqueda">×</button>}
       </div>
-      {groups.map((group) => <section className="idealo-menu-group" key={group.label}>
-        <span className="idealo-menu-group-label">{group.label}</span>
-        {group.modules.map(name => <button type="button" key={name} className={active===name?'idealo-main-menu-item active':'idealo-main-menu-item'} onClick={()=>openModule(name)}>{name}</button>)}
-      </section>)}
-      {groups.length===0 && <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>}
-    </nav>
-    {placeholder && createPortal(<div className="erp-modal-backdrop" onMouseDown={()=>setPlaceholder('')}><section className="erp-modal-panel compact-module-placeholder" onMouseDown={e=>e.stopPropagation()}><header className="erp-modal-head"><div><strong>{placeholder}</strong><small>Módulo principal IDEALO SV</small></div><button type="button" className="erp-modal-close" onClick={()=>setPlaceholder('')}>×</button></header><div className="erp-modal-body"><section className="panel module-placeholder-card"><p className="form-kicker">ESTRUCTURA DEFINIDA</p><h2>{placeholder}</h2><p>Este módulo ya ocupa su posición definitiva en el menú principal y se desarrollará sobre esta misma estructura sin agregar accesos adicionales al lateral.</p></section></div></section></div>,document.body)}
-  </>,sidebar)
+      <div className="idealo-menu-list">
+        {filteredModules.map((name) => <button type="button" key={name} className={active === name ? 'idealo-main-menu-item active' : 'idealo-main-menu-item'} onClick={() => openModule(name)}>{name}</button>)}
+      </div>
+      {filteredModules.length === 0 && <div className="idealo-menu-empty">No hay módulos con ese nombre.</div>}
+    </nav>,
+    sidebar,
+  )
 }

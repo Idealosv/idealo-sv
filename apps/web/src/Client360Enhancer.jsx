@@ -1,9 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { supabase as s } from './lib/supabase.js'
 import Client360CrudPanel from './Client360CrudPanel.jsx'
 
-const s = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: true } })
 const usd = n => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(n || 0))
 const days = d => d ? Math.floor((Date.now() - new Date(d)) / 86400000) : null
 const pct = n => `${Number(n || 0).toFixed(1)}%`
@@ -22,8 +21,11 @@ export default function Client360Enhancer() {
   const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
-    const f = () => setShow(document.querySelector('.erp-header h1')?.textContent?.trim() === 'Clientes')
-    f(); const i = setInterval(f, 500); return () => clearInterval(i)
+    const sync = value => setShow((typeof value === 'string' ? value : document.querySelector('.erp-header h1')?.textContent?.trim()) === 'Clientes')
+    sync()
+    const onModule = event => sync(event.detail)
+    window.addEventListener('idealo-module-change', onModule)
+    return () => window.removeEventListener('idealo-module-change', onModule)
   }, [])
 
   useEffect(() => {

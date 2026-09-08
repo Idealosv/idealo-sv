@@ -28,6 +28,7 @@ const CCF_RECEIVER_FIELDS = [
 const digits = (value) => String(value || '').replace(/\D/g, '')
 const text = (value) => String(value || '').trim()
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value))
+const normalizedNrc = (value) => digits(value).replace(/^0+(?=\d)/, '')
 
 function validateIssuer(company = {}) {
   const errors = []
@@ -44,6 +45,16 @@ function validateIssuer(company = {}) {
   if (text(company.email) && !validEmail(company.email)) errors.push('correo inválido')
   if (text(company.establishment_code) && !/^[A-Z0-9]{4}$/i.test(text(company.establishment_code))) errors.push('código de establecimiento debe contener 4 caracteres alfanuméricos')
   if (text(company.point_of_sale_code) && !/^[A-Z0-9]{4}$/i.test(text(company.point_of_sale_code))) errors.push('código de punto de venta debe contener 4 caracteres alfanuméricos')
+  return errors
+}
+
+function validateDte01Receiver(client = {}) {
+  const errors = []
+  const type = text(client.document_type)
+  const number = type === '13' || type === '36' ? digits(client.document_number) : text(client.document_number)
+  if (type === '13' && number.length !== 9) errors.push('DUI del receptor debe contener 9 dígitos')
+  if (type === '36' && ![9, 14].includes(number.length)) errors.push('NIT del receptor debe contener 9 o 14 dígitos')
+  if (text(client.email) && !validEmail(client.email)) errors.push('correo del receptor inválido')
   return errors
 }
 
@@ -64,7 +75,7 @@ function readiness(record, fields, validator = null) {
 }
 
 export const getIssuerReadiness = (company) => readiness(company, ISSUER_FIELDS, validateIssuer)
-export const getReceiverReadiness = (client) => readiness(client, RECEIVER_FIELDS)
+export const getReceiverReadiness = (client) => readiness(client, RECEIVER_FIELDS, validateDte01Receiver)
 export const getCcfReceiverReadiness = (client) => readiness(client, CCF_RECEIVER_FIELDS, validateCcfReceiver)
 
 export function mapCompanyToDteIssuer(company) {
@@ -85,12 +96,24 @@ export function mapCompanyToDteIssuer(company) {
 
 export function mapClientToDteReceiver(client) {
   const status = getReceiverReadiness(client)
-  if (!status.ready) throw new Error(`Expediente fiscal del receptor incompleto: ${status.missing.join(', ')}.`)
+  if (!status.ready) {
+    const problems = [...status.missing, ...status.invalid]
+    throw new Error(`Expediente fiscal del receptor inválido o incompleto: ${problems.join(', ')}.`)
+  }
+  const tipoDocumento = text(client.document_type)
+  const numDocumento = ['13', '36'].includes(tipoDocumento) ? digits(client.document_number) : text(client.document_number)
+  // MH permite NRC en FE cuando corresponde al NIT informado. Con identificación 13-DUI se omite.
+  const nrc = tipoDocumento === '36' && client.nrc ? normalizedNrc(client.nrc) : null
   return {
-    tipoDocumento: client.document_type, numDocumento: client.document_number, nrc: client.nrc || null,
-    nombre: client.name, codActividad: client.activity_code, descActividad: client.business_activity,
-    direccion: { departamento: client.department_code, municipio: client.municipality_code, distrito: client.district_code, complemento: client.address },
-    telefono: client.phone, correo: client.email,
+    tipoDocumento,
+    numDocumento,
+    nrc,
+    nombre: text(client.name),
+    codActividad: text(client.activity_code) || null,
+    descActividad: text(client.business_activity) || null,
+    direccion: { departamento: text(client.department_code), municipio: text(client.municipality_code), distrito: text(client.district_code), complemento: text(client.address) },
+    telefono: digits(client.phone) || null,
+    correo: text(client.email).toLowerCase() || null,
   }
 }
 

@@ -1,0 +1,106 @@
+name: Generar APK Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/android-apk.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/android-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      VITE_ANDROID_BUILD_SHA: ${{ github.sha }}
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Validar configuración pública Android
+        shell: bash
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "Falta VITE_SUPABASE_URL en GitHub Actions"; exit 1; }
+          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "Falta VITE_SUPABASE_ANON_KEY en GitHub Actions"; exit 1; }
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Regresión móvil automática
+        run: npm --workspace apps/web run mobile:regression
+
+      - name: Compilar frontend
+        run: npm --workspace apps/web run build
+
+      - name: Crear proyecto Android
+        working-directory: apps/web
+        run: npx cap add android
+
+      - name: Sincronizar Capacitor
+        working-directory: apps/web
+        run: npx cap sync android
+
+      - name: Aplicar icono nativo IDEALO SV
+        working-directory: apps/web
+        shell: bash
+        run: |
+          for dir in android/app/src/main/res/mipmap-anydpi android/app/src/main/res/mipmap-anydpi-v26; do
+            mkdir -p "$dir"
+            cat > "$dir/ic_launcher.xml" <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#F36C21" android:pathData="M0,0H108V108H0Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M50,26C47.8,26 46,27.8 46,30V78C46,80.2 47.8,82 50,82H58C60.2,82 62,80.2 62,78V30C62,27.8 60.2,26 58,26Z"/>
+          </vector>
+          EOF
+            cp "$dir/ic_launcher.xml" "$dir/ic_launcher_round.xml"
+          done
+
+      - name: Compilar APK debug
+        working-directory: apps/web/android
+        run: ./gradlew assembleDebug
+
+      - name: Publicar APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: idealo-sv-android-debug
+          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publicar actualización Android más reciente
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release delete android-latest --cleanup-tag -y || true
+          gh release create android-latest \
+            apps/web/android/app/build/outputs/apk/debug/app-debug.apk#IDEALO-SV-Android.apk \
+            --target "$GITHUB_SHA" \
+            --title "IDEALO SV Android ${GITHUB_SHA::7}" \
+            --notes "build_sha=${GITHUB_SHA}"
