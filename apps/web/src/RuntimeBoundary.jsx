@@ -11,13 +11,27 @@ export default class RuntimeBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error(`[IDEALO SV] Error en ${this.props.label || 'módulo'}`, error, info)
+    const label=this.props.label||'módulo'
+    console.error(`[IDEALO SV] Error en ${label}`, error, info)
+    window.dispatchEvent(new CustomEvent('idealo-runtime-error', {
+      detail: { label, message: `No se pudo cargar ${label}.` },
+    }))
   }
+
+  retry=()=>this.setState({error:null})
 
   render() {
     if (!this.state.error) return this.props.children
 
-    if (!this.props.fatal) return null
+    if (!this.props.fatal) {
+      return (
+        <aside className="erp-runtime-module-error" role="alert">
+          <strong>No se pudo cargar {this.props.label || 'este módulo'}.</strong>
+          <span>El resto del ERP continúa protegido.</span>
+          <button type="button" onClick={this.retry}>Reintentar módulo</button>
+        </aside>
+      )
+    }
 
     return (
       <main className="erp-runtime-fallback" role="alert">
