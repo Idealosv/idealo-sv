@@ -137,6 +137,41 @@ export default function ClientModuleOrganizer() {
   }, [module])
 
   useEffect(() => {
+    if (!module) return undefined
+
+    const renameArchiveActions = () => {
+      module.querySelectorAll('.danger-button').forEach((button) => {
+        if (button.textContent?.trim() === 'Eliminar') {
+          button.textContent = 'Desactivar'
+          button.title = 'Conserva el historial y desactiva al cliente'
+        }
+      })
+    }
+
+    renameArchiveActions()
+    const observer = new MutationObserver(renameArchiveActions)
+    observer.observe(module, { childList: true, subtree: true })
+
+    const originalConfirm = window.confirm
+    const safeConfirm = (message) => {
+      const text = String(message || '')
+      if (text.startsWith('¿Eliminar a ') && text.includes('Esta acción no se puede deshacer.')) {
+        const safer = text
+          .replace('¿Eliminar a ', '¿Desactivar a ')
+          .replace('Esta acción no se puede deshacer.', 'El cliente y su historial se conservarán y podrá reactivarse después.')
+        return originalConfirm(safer)
+      }
+      return originalConfirm(message)
+    }
+    window.confirm = safeConfirm
+
+    return () => {
+      observer.disconnect()
+      if (window.confirm === safeConfirm) window.confirm = originalConfirm
+    }
+  }, [module])
+
+  useEffect(() => {
     if (!form) {
       setActive('general')
       return undefined
