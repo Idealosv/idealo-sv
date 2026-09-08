@@ -73,7 +73,8 @@ if (!source.menu.includes('requestModule(name') || !source.menu.includes('subscr
 if (source.menu.includes('setActive(name)')) failures.push('El menú vuelve a marcar módulos antes de confirmar su vista')
 for (const [key,label,target] of [['commercial','CommercialLauncher','commercial'],['inventory','InventoryCostLauncher','inventory'],['billing','FacturacionLauncher','billing'],['procurement','OperationsFinanceLauncher','procurement'],['planning','ProductionCalendarLauncher','planning'],['financial','FinancialDashboardLauncher','financial']]) {
   if (!source[key].includes('subscribeNavigation') || !source[key].includes('confirmModule')) failures.push(`${label} no confirma solicitudes persistentes`)
-  if (!source[key].includes(`navigation.target!=='${target}'`)) failures.push(`${label} no aísla el target ${target}`)
+  const isolated=source[key].includes(`navigation.target!=='${target}'`)||source[key].includes(`navigation.target !== '${target}'`)
+  if (!isolated) failures.push(`${label} no aísla el target ${target}`)
 }
 if (!source.workspaceBridge.includes('subscribeNavigation') || !source.workspaceBridge.includes("navigation.target !== 'workspace'") || !source.workspaceBridge.includes('confirmModule')) failures.push('WorkspaceNavigationBridge no confirma Dashboard/Clientes por target workspace')
 if (!source.navigationBridge.includes('assistant:') || !source.navigationBridge.includes('security:') || !source.navigationBridge.includes('.mobile-app-shell')) failures.push('Asistente, Seguridad o App móviles carecen de puente de confirmación real')
