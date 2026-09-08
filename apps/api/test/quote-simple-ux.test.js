@@ -23,7 +23,7 @@ test('el estado del editor rápido cambia mediante RPC con trazabilidad', () => 
 test('guardar una edición delega persistencia atómica y no borra partidas directamente', () => {
   assert.doesNotMatch(quickSource, /from\('quote_items'\)\.delete\(\)\.eq\('quote_id'/)
   assert.match(quickSource, /save_quote_quick/)
-  assert.match(quickSource, /p_items:items\.map\(itemPayload\)/)
+  assert.match(quickSource, /p_items\s*:\s*items\.map\(itemPayload\)/)
 })
 
 test('el módulo anterior sigue disponible como respaldo funcional', () => {

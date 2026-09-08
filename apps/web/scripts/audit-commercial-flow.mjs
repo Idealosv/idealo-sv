@@ -14,7 +14,8 @@ if (!quotes.includes('const chooseProduct=(idx,id)=>')) failures.push('Cotizacio
 for (const field of ['unit_price','minimum_price','taxable','tax_rate','unit_cost','labor_unit_cost','installation_unit_cost','requires_production']) if (!quotes.includes(field)) failures.push(`Cotizaciones no conserva ${field} del producto`)
 if (!/supabase\.from\('finished_products'\)\.insert\(payloadFromForm\(\)\)/.test(products)) failures.push('Productos debe permitir creación persistente')
 if (!products.includes("'Producto creado correctamente. Ya puede usarse en cotizaciones.'")) failures.push('Productos debe confirmar disponibilidad para cotizaciones')
-if (clients.includes('new MutationObserver')) failures.push('ClientModuleOrganizer no debe observar document.body continuamente')
+const globalObserver = /\.observe\(\s*(?:document\.body|document\.documentElement)\b/.test(clients)
+if (globalObserver) failures.push('ClientModuleOrganizer no debe observar document.body continuamente')
 
 if (failures.length) {
   console.error('\nAuditoría comercial falló:')
