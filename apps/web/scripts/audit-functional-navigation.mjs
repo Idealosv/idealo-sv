@@ -19,6 +19,7 @@ const [
 
 const failures=[]
 const requireText=(source,text,message)=>{if(!source.includes(text))failures.push(message)}
+const escapeRegExp=value=>String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
 
 const routes=[
   ['Dashboard','workspace','Resumen'],
@@ -40,8 +41,10 @@ const routes=[
 ]
 
 for(const [name,target,tab] of routes){
-  requireText(navigation,`${JSON.stringify(name)}: { target: ${JSON.stringify(target)}`,`${name} no está declarado en el núcleo de navegación`)
-  if(tab)requireText(navigation,`tab: ${JSON.stringify(tab)}`,`${name} perdió su destino interno ${tab}`)
+  const key=`(?:${escapeRegExp(name)}|['\"]${escapeRegExp(name)}['\"])`
+  const tabPart=tab?`[^}]*tab\\s*:\\s*['\"]${escapeRegExp(tab)}['\"]`:''
+  const pattern=new RegExp(`${key}\\s*:\\s*\\{\\s*target\\s*:\\s*['\"]${escapeRegExp(target)}['\"]${tabPart}`)
+  if(!pattern.test(navigation))failures.push(`${name} no está declarado con su destino correcto en el núcleo de navegación`)
 }
 
 requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'El runtime secundario dejó de cargarse de forma diferida')
@@ -67,7 +70,7 @@ for(const [label,source,target] of [
   ['Facturación/CxC',billing,'billing'],['Agenda',planning,'planning'],['Reportes',financial,'financial'],
 ]){
   requireText(source,'subscribeNavigation',`${label} no consume solicitudes persistentes`)
-  requireText(source,`navigation.target!==${JSON.stringify(target)}`,`${label} no aísla su destino`)
+  requireText(source,`navigation.target!=='${target}'`,`${label} no aísla su destino`)
   requireText(source,'confirmModule',`${label} no confirma que su vista quedó montada`)
   requireText(source,'setOpen(true)',`${label} no abre su vista principal`)
   requireText(source,'setOpen(false)',`${label} no conserva cierre funcional`)
