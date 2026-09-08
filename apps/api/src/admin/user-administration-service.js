@@ -16,6 +16,10 @@ async function memberContext({request,supabase,companyId}){
  return{user,role}
 }
 async function actorContext(args){const member=await memberContext(args);if(!['owner','admin'].includes(member.role))throw httpError('No tenés permisos para administrar usuarios.',403,'ADMIN_REQUIRED');return member}
+async function assertNotDemoAdminMutation(supabase,companyId){
+ const {data,error}=await supabase.from('companies').select('demo_mode').eq('id',companyId).maybeSingle();if(error)throw error
+ if(data?.demo_mode)throw httpError('ENTORNO DEMO: usuarios, roles y accesos están protegidos.',403,'DEMO_ADMIN_MUTATION_BLOCKED')
+}
 async function audit(supabase,{companyId,actorUserId,targetUserId=null,action,detail={}}){const {error}=await supabase.from('company_admin_audit').insert({company_id:companyId,actor_user_id:actorUserId,target_user_id:targetUserId,action,detail});if(error)throw error}
 async function ensureOwnerRule(supabase,{companyId,targetUserId,nextRole=null,remove=false}){
  const {data:target,error}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',targetUserId).maybeSingle();if(error)throw error
@@ -52,7 +56,7 @@ export async function registerCompanyActivity({request,supabase}){
 
 export async function inviteCompanyUser({request,supabase}){
  const companyId=String(request.body?.company_id||''),email=String(request.body?.email||'').trim().toLowerCase(),role=assertRole(request.body?.role),fullName=String(request.body?.full_name||'').trim(),jobTitle=String(request.body?.job_title||'').trim();if(!companyId||!email)throw httpError('Empresa y correo son obligatorios.')
- const actor=await actorContext({request,supabase,companyId});assertActorCanManage(actor.role,'',role)
+ const actor=await actorContext({request,supabase,companyId});await assertNotDemoAdminMutation(supabase,companyId);assertActorCanManage(actor.role,'',role)
  let user=await findUserByEmail(supabase,email)
  if(!user){const {data,error}=await supabase.auth.admin.inviteUserByEmail(email,{data:{full_name:fullName,job_title:jobTitle}});if(error)throw error;user=data.user}
  if(!user)throw httpError('No se pudo crear o localizar el usuario.',500)
@@ -66,7 +70,7 @@ export async function inviteCompanyUser({request,supabase}){
 
 export async function updateCompanyUserRole({request,supabase}){
  const companyId=String(request.body?.company_id||''),targetUserId=String(request.params.userId||''),nextRole=assertRole(request.body?.role);if(!companyId||!targetUserId)throw httpError('Empresa y usuario son obligatorios.')
- const actor=await actorContext({request,supabase,companyId});const {data:target,error}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',targetUserId).maybeSingle();if(error)throw error;if(!target)throw httpError('Usuario no encontrado en esta empresa.',404)
+ const actor=await actorContext({request,supabase,companyId});await assertNotDemoAdminMutation(supabase,companyId);const {data:target,error}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',targetUserId).maybeSingle();if(error)throw error;if(!target)throw httpError('Usuario no encontrado en esta empresa.',404)
  assertActorCanManage(actor.role,String(target.role).toLowerCase(),nextRole);await ensureOwnerRule(supabase,{companyId,targetUserId,nextRole})
  const {error:updateError}=await supabase.from('company_members').update({role:nextRole}).eq('company_id',companyId).eq('user_id',targetUserId);if(updateError)throw updateError
  await audit(supabase,{companyId,actorUserId:actor.user.id,targetUserId,action:'USER_ROLE_CHANGED',detail:{from:target.role,to:nextRole}});return{ok:true,role:nextRole}
@@ -74,7 +78,7 @@ export async function updateCompanyUserRole({request,supabase}){
 
 export async function revokeCompanyUser({request,supabase}){
  const companyId=String(request.query.company_id||''),targetUserId=String(request.params.userId||'');if(!companyId||!targetUserId)throw httpError('Empresa y usuario son obligatorios.')
- const actor=await actorContext({request,supabase,companyId});if(actor.user.id===targetUserId)throw httpError('No podés revocar tu propio acceso desde esta pantalla.',409,'SELF_REVOKE_BLOCKED')
+ const actor=await actorContext({request,supabase,companyId});await assertNotDemoAdminMutation(supabase,companyId);if(actor.user.id===targetUserId)throw httpError('No podés revocar tu propio acceso desde esta pantalla.',409,'SELF_REVOKE_BLOCKED')
  const {data:target,error}=await supabase.from('company_members').select('role').eq('company_id',companyId).eq('user_id',targetUserId).maybeSingle();if(error)throw error;if(!target)throw httpError('Usuario no encontrado en esta empresa.',404)
  assertActorCanManage(actor.role,String(target.role).toLowerCase(),'');await ensureOwnerRule(supabase,{companyId,targetUserId,remove:true})
  const {error:deleteError}=await supabase.from('company_members').delete().eq('company_id',companyId).eq('user_id',targetUserId);if(deleteError)throw deleteError
