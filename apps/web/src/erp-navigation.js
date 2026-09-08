@@ -19,6 +19,7 @@ export const ERP_ROUTES = Object.freeze({
   Seguridad: { target: 'security' },
 })
 
+const NAVIGATION_TIMEOUT_MS = 7000
 let sequence = 0
 let state = {
   requestId: 0,
@@ -50,6 +51,23 @@ const dispatchLegacyActive = (moduleName) => {
   }
 }
 
+const closeOtherModule = (nextTarget) => {
+  if (typeof document === 'undefined' || state.target === nextTarget) return
+  document.querySelectorAll('.erp-modal-backdrop .erp-modal-close').forEach((button) => {
+    try { button.click() } catch {}
+  })
+}
+
+const authorizeRequest = (moduleName, route, context) => {
+  if (typeof window === 'undefined') return true
+  const event = new CustomEvent('idealo-navigation-request', {
+    detail: { module: moduleName, target: route.target, tab: route.tab, context: { ...context } },
+    bubbles: false,
+    cancelable: true,
+  })
+  return window.dispatchEvent(event)
+}
+
 export const getNavigationState = () => ({ ...state, context: { ...(state.context || {}) } })
 
 export function subscribeNavigation(listener, { replay = true } = {}) {
@@ -63,6 +81,9 @@ export function subscribeNavigation(listener, { replay = true } = {}) {
 export function requestModule(moduleName, context = {}) {
   const route = ERP_ROUTES[moduleName]
   if (!route || !ERP_MODULES.includes(moduleName)) return 0
+  if (!authorizeRequest(moduleName, route, context)) return 0
+
+  closeOtherModule(route.target)
   const requestId = ++sequence
   state = {
     requestId,
@@ -75,6 +96,14 @@ export function requestModule(moduleName, context = {}) {
     context: { ...context },
   }
   publish()
+
+  if (typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      if (state.requestId === requestId && state.requestedModule === moduleName && state.status === 'requested') {
+        failModule(requestId, moduleName, `El módulo ${moduleName} no confirmó su apertura dentro del tiempo esperado.`)
+      }
+    }, NAVIGATION_TIMEOUT_MS)
+  }
   return requestId
 }
 
@@ -90,6 +119,7 @@ export function confirmModule(requestId, moduleName) {
 export function activateModule(moduleName, context = {}) {
   const route = ERP_ROUTES[moduleName]
   if (!route || !ERP_MODULES.includes(moduleName)) return false
+  if (!authorizeRequest(moduleName, route, context)) return false
   const requestId = ++sequence
   state = {
     requestId,
