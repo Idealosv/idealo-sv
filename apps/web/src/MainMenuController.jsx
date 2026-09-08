@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase.js'
 import { canAccessModule, ERP_MODULES, ROLE_LABEL } from './erp-access-control.js'
 
+const MODULE_RETRY_DELAYS = [0, 120, 350, 700, 1200, 2000, 3200, 5000]
+
 const openDirectModule = (target, tab) => {
   if (target === 'workspace' && tab) {
     const buttons = [...document.querySelectorAll('.erp-sidebar nav .nav-item')]
@@ -10,8 +12,21 @@ const openDirectModule = (target, tab) => {
     button?.click()
   }
   const detail = { target, tab }
-  ;[0, 120, 400, 800, 1400, 2200].forEach((delay) => {
+  MODULE_RETRY_DELAYS.forEach((delay) => {
     window.setTimeout(() => window.dispatchEvent(new CustomEvent('idealo-open-module', { detail })), delay)
+  })
+  return true
+}
+
+const openBillingModule = (tab = 'resumen') => {
+  const detail = { target: 'billing', tab }
+  MODULE_RETRY_DELAYS.forEach((delay) => {
+    window.setTimeout(() => {
+      const launcher = document.querySelector('.sidebar-module-access.billing')
+      const modalOpen = Boolean(document.querySelector('.erp-modal-panel.billing-modal'))
+      if (launcher && !modalOpen) launcher.click()
+      window.dispatchEvent(new CustomEvent('idealo-open-module', { detail }))
+    }, delay)
   })
   return true
 }
@@ -87,8 +102,8 @@ export default function MainMenuController() {
     if (name === 'Cotizaciones') { openDirectModule('commercial', 'Cotizaciones'); markActive(name); return true }
     if (name === 'Producción') { openDirectModule('commercial', 'Producción'); markActive(name); return true }
     if (name === 'Inventario') { openDirectModule('inventory', 'Inventario'); markActive(name); return true }
-    if (name === 'Facturación') { openDirectModule('billing', 'resumen'); markActive(name); return true }
-    if (name === 'Cuentas por cobrar') { openDirectModule('billing', 'cobros'); markActive(name); return true }
+    if (name === 'Facturación') { openBillingModule('resumen'); markActive(name); return true }
+    if (name === 'Cuentas por cobrar') { openBillingModule('cobros'); markActive(name); return true }
     if (name === 'Proveedores') { openDirectModule('procurement', 'Proveedores'); markActive(name); return true }
     if (name === 'Compras') { openDirectModule('procurement', 'Compras y gastos'); markActive(name); return true }
     if (name === 'Caja') { openDirectModule('procurement', 'Caja'); markActive(name); return true }
