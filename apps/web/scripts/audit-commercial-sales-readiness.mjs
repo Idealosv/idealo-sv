@@ -19,8 +19,8 @@ const files={
 }
 
 const checks=[
- ['cotizaciones usa cliente y productos reales por empresa',files.quotes.includes("from('clients')")&&files.quotes.includes("from('finished_products')")&&files.quotes.includes("eq('company_id',company.id)")],
- ['cotización aprobada se convierte en orden de trabajo por RPC atómico',files.quotes.includes("form.status!=='APPROVED'")&&files.quotes.includes("rpc('convert_quote_to_work_order'")],
+ ['cotizaciones usa cliente y productos reales por empresa',/from\('clients'\)/.test(files.quotes)&&/from\('finished_products'\)/.test(files.quotes)&&/\.eq\('company_id',\s*company\.id\)/.test(files.quotes)],
+ ['cotización aprobada se convierte en orden de trabajo por RPC atómico',/form\.status\s*!==\s*'APPROVED'/.test(files.quotes)&&/rpc\('convert_quote_to_work_order'/.test(files.quotes)],
  ['base impide más de una orden por cotización',files.migration.includes('create unique index if not exists work_orders_one_per_quote_idx')&&files.migration.includes('on public.work_orders(quote_id)')],
  ['producción muestra atrasos materiales calidad pérdida y carga', ['Atrasadas','Bloqueadas material','Calidad pendiente','Trabajos con pérdida','Carga pendiente'].every(x=>files.production.includes(x))],
  ['clientes 360 está disponible',files.clients.includes("from('clients')")||files.clients.includes('clients')],

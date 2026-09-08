@@ -1,10 +1,9 @@
 export const money=(value)=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 
 export function localIsoDate(date=new Date()){
-  const year=date.getFullYear()
-  const month=String(date.getMonth()+1).padStart(2,'0')
-  const day=String(date.getDate()).padStart(2,'0')
-  return `${year}-${month}-${day}`
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/El_Salvador',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date)
+  const map=Object.fromEntries(parts.filter(part=>part.type!=='literal').map(part=>[part.type,part.value]))
+  return `${map.year}-${map.month}-${map.day}`
 }
 
 export function addDays(date,days){

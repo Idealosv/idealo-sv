@@ -8,6 +8,8 @@ const guardSql=fs.readFileSync(new URL('../../../supabase/migrations/20260826210
 const reversalSql=fs.readFileSync(new URL('../../../supabase/migrations/20260826213000_customer_payment_reversals.sql',import.meta.url),'utf8')
 const reconciliationSql=fs.readFileSync(new URL('../../../supabase/migrations/20260823181000_cash_reconciliation_flow.sql',import.meta.url),'utf8')
 const cashUi=fs.readFileSync(new URL('../../web/src/CashControlCenter.jsx',import.meta.url),'utf8')
+const dateHelper=fs.readFileSync(new URL('../../web/src/billingReceivables.js',import.meta.url),'utf8')
+const hardeningSql=fs.readFileSync(new URL('../../../supabase/migrations/20260908102500_billing_cash_audit_hardening.sql',import.meta.url),'utf8')
 
 test('cobro usa llave idempotente y no duplica movimiento de caja',()=>{
   assert.match(paymentSql,/customer_payments_company_key_uidx/i)
@@ -56,8 +58,12 @@ test('conciliación calcula saldo hasta la fecha de corte',()=>{
   assert.match(reconciliationSql,/MATCHED.*DIFFERENCE/is)
 })
 
-test('tablero diario de caja usa fecha local y no UTC',()=>{
+test('tablero diario de caja usa fecha contable de El Salvador desde la fuente canónica',()=>{
   assert.doesNotMatch(cashUi,/toISOString\(\)\.slice\(0,10\)/)
-  assert.match(cashUi,/getFullYear\(\)/)
-  assert.match(cashUi,/day\(new Date\(x\.movement_date\)\)===t/)
+  assert.match(cashUi,/income_today/)
+  assert.match(cashUi,/expense_today/)
+  assert.match(dateHelper,/America\/El_Salvador/)
+  assert.match(hardeningSql,/movement_date at time zone 'America\/El_Salvador'/i)
+  assert.match(hardeningSql,/income_today/i)
+  assert.match(hardeningSql,/expense_today/i)
 })
