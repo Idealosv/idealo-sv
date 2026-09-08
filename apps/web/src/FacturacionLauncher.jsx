@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import FacturacionDte from './FacturacionDte.jsx'
 import PartialInvoiceFromQuote from './PartialInvoiceFromQuote.jsx'
@@ -12,6 +12,7 @@ import DteTestPlan from './DteTestPlan.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
 import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
 import DteFinancialIntegrityPanel from './DteFinancialIntegrityPanel.jsx'
+import { activateModule, confirmModule, subscribeNavigation } from './erp-navigation.js'
 
 const sections = [
   { id: 'resumen', label: 'Resumen', helper: 'Indicadores y control' },
@@ -30,6 +31,7 @@ export default function FacturacionLauncher() {
   const [projectContext, setProjectContext] = useState({ workOrderId: '', quoteId: '', workOrderNumber: '' })
   const [receivablesVersion, setReceivablesVersion] = useState(0)
   const [issueMode, setIssueMode] = useState('project')
+  const pendingNavigation = useRef(null)
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -39,6 +41,8 @@ export default function FacturacionLauncher() {
   }, [])
   useEffect(() => {
     if (!session || !supabase) { setCompany(null); return }
+    const resolved = window.__IDEALO_ACTIVE_COMPANY__
+    if (resolved?.id) { setCompany(resolved); return }
     supabase.rpc('get_my_companies').then(async ({ data }) => {
       const id = data?.[0]?.id
       if (!id) return setCompany(null)
@@ -60,43 +64,55 @@ export default function FacturacionLauncher() {
         window.setTimeout(() => {
           setReceivablesVersion((value) => value + 1)
           setActiveSection('cobros')
-          window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
+          activateModule('Cuentas por cobrar', { source: 'billing-dte-processed' })
         }, 350)
       }
     }).subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [company?.id, open, activeSection, projectContext.workOrderId, projectContext.quoteId])
 
-  const notifyBillingActive = () => window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: 'Facturación' }))
   const clearProjectContext = () => setProjectContext({ workOrderId: '', quoteId: '', workOrderNumber: '' })
   const resetIssueContext = () => { setContextClient({ id: '', name: '' }); clearProjectContext() }
   const openSection = (id) => {
     if (!sections.some((section) => section.id === id)) return
     if (id === 'emitir') setIssueMode('project')
     setActiveSection(id)
+    activateModule(id === 'cobros' ? 'Cuentas por cobrar' : 'Facturación', { source: 'billing-tabs' })
   }
-  const openNewInvoice = () => { resetIssueContext(); setIssueMode('project'); setActiveSection('emitir') }
-  const prepareMhTestCase = () => { resetIssueContext(); setIssueMode('manual'); setActiveSection('emitir'); notifyBillingActive() }
+  const openNewInvoice = () => { resetIssueContext(); setIssueMode('project'); setActiveSection('emitir'); activateModule('Facturación', { source: 'billing-new-invoice' }) }
+  const prepareMhTestCase = () => { resetIssueContext(); setIssueMode('manual'); setActiveSection('emitir'); activateModule('Facturación', { source: 'billing-test-case' }) }
   const openCash = () => { setOpen(false); window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target: 'procurement', tab: 'Caja' } })) }
   const openProjectMode = () => { setIssueMode('project') }
   const openManualMode = () => { setIssueMode('manual'); clearProjectContext() }
 
+  useEffect(() => subscribeNavigation((navigation) => {
+    if (navigation.status !== 'requested' || navigation.target !== 'billing') return
+    const context = navigation.context || {}
+    pendingNavigation.current = navigation
+    setContextClient({ id: context.clientId || '', name: context.clientName || '' })
+    setProjectContext({ workOrderId: context.workOrderId || '', quoteId: context.quoteId || '', workOrderNumber: context.workOrderNumber || '' })
+    const fromWorkOrder = Boolean(context.workOrderId || context.quoteId)
+    setIssueMode('project')
+    setActiveSection(fromWorkOrder ? 'emitir' : (sections.some((section) => section.id === navigation.tab) ? navigation.tab : 'resumen'))
+    setOpen(true)
+  }), [])
   useEffect(() => {
-    const openModule = (event) => {
-      const detail = event.detail || {}; if (detail.target !== 'billing') return
-      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' })
-      setProjectContext({ workOrderId: detail.workOrderId || '', quoteId: detail.quoteId || '', workOrderNumber: detail.workOrderNumber || '' })
-      const fromWorkOrder = Boolean(detail.workOrderId || detail.quoteId)
-      setIssueMode('project')
-      setActiveSection(fromWorkOrder ? 'emitir' : (sections.some((section) => section.id === detail.tab) ? detail.tab : 'resumen'))
-      setOpen(true); notifyBillingActive()
-    }
-    window.addEventListener('idealo-open-module', openModule); return () => window.removeEventListener('idealo-open-module', openModule)
-  }, [])
+    const navigation = pendingNavigation.current
+    if (!navigation || !open || !session || !company) return
+    const context = navigation.context || {}
+    const expected = (context.workOrderId || context.quoteId) ? 'emitir' : (sections.some((section) => section.id === navigation.tab) ? navigation.tab : 'resumen')
+    if (activeSection !== expected) return
+    window.requestAnimationFrame(() => {
+      if (pendingNavigation.current?.requestId === navigation.requestId) {
+        confirmModule(navigation.requestId, navigation.requestedModule)
+        pendingNavigation.current = null
+      }
+    })
+  }, [open, session, company, activeSection])
   useEffect(() => {
     const openClientContext = (event) => {
       const detail = event.detail || {}; if (detail.target !== 'billing') return
-      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' }); clearProjectContext(); setIssueMode('manual'); setActiveSection('emitir'); setOpen(true); notifyBillingActive()
+      setContextClient({ id: detail.clientId || '', name: detail.clientName || '' }); clearProjectContext(); setIssueMode('manual'); setActiveSection('emitir'); setOpen(true); activateModule('Facturación', { source: 'client-context' })
     }
     window.addEventListener('idealo-open-client-context', openClientContext); return () => window.removeEventListener('idealo-open-client-context', openClientContext)
   }, [])
@@ -108,7 +124,7 @@ export default function FacturacionLauncher() {
     : contextClient.id ? `Cliente seleccionado · ${contextClient.name || 'receptor seleccionado'}` : ''
 
   return <>
-    <button type="button" onClick={() => { resetIssueContext(); setIssueMode('project'); setActiveSection('resumen'); setOpen(true); notifyBillingActive() }} className="sidebar-module-access billing" aria-label="Abrir facturación"><span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span></button>
+    <button type="button" onClick={() => { resetIssueContext(); setIssueMode('project'); setActiveSection('resumen'); setOpen(true); activateModule('Facturación', { source: 'legacy-launcher' }) }} className="sidebar-module-access billing" aria-label="Abrir facturación"><span className="module-glyph">▤</span><span className="module-copy"><span>Facturación</span><small>Ventas y documentos electrónicos</small></span></button>
     {open && <div className="erp-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}><section className="erp-modal-panel billing-modal" role="dialog" aria-modal="true" aria-label="Módulo de facturación" onMouseDown={(event) => event.stopPropagation()}>
       <header className="erp-modal-head billing-module-head"><div><span className="billing-eyebrow">IDEALO SV</span><strong>Facturación</strong><small>Emitir · documentos · cobros</small></div><button type="button" onClick={() => setOpen(false)} className="erp-modal-close" aria-label="Cerrar">×</button></header>
       <div className="billing-workspace billing-workspace-organized"><nav className="billing-nav billing-nav-compact" aria-label="Secciones de facturación">{sections.map((section) => <button key={section.id} type="button" data-billing-section={section.id} className={`billing-nav-item ${activeSection === section.id ? 'active' : ''}`} onClick={() => openSection(section.id)} aria-current={activeSection === section.id ? 'page' : undefined}><span>{section.label}</span></button>)}</nav>
