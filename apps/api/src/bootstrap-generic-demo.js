@@ -78,7 +78,7 @@ async function run(){
   if(memberError)throw memberError
   const {error:subError}=await supabase.from('saas_company_subscriptions').insert({company_id:company.id,plan_id:plan.id,vertical_id:vertical.id,status:'trial',trial_ends_at:expiry,notes:'Entorno DEMO comercial compartido. No representa cliente activo ni facturación real.'})
   if(subError)throw subError
-  const {error:profileError}=await supabase.from('saas_company_demo_profiles').insert({company_id:company.id,is_demo:true,block_dte_production:true,block_external_email:true,resettable:true,seed_version:'sales-v1',notes:'Demo genérico para prospectos. Credenciales compartidas y DTE únicamente TEST.'})
+  const {error:profileError}=await supabase.from('saas_company_demo_profiles').insert({company_id:company.id,is_demo:true,block_dte_production:true,block_external_email:true,resettable:true,seed_version:1,notes:'Demo genérico para prospectos. Credenciales compartidas y DTE únicamente TEST.'})
   if(profileError)throw profileError
   await seedDemo(supabase,company.id)
   console.log('DEMO_GENERIC_CREATED',company.id,user.id,email)
