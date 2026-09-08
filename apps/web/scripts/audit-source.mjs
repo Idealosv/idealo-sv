@@ -6,6 +6,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const src = resolve(here, '../src')
 const paths = {
   main: resolve(src, 'main.jsx'), deferred: resolve(src, 'DeferredRuntimeHosts.jsx'), runtime: resolve(src, 'ModuleRuntime.jsx'), menu: resolve(src, 'MainMenuController.jsx'), accessControl: resolve(src, 'erp-access-control.js'), menuCss: resolve(src, 'main-menu.css'),
+  navigation: resolve(src, 'erp-navigation.js'), navigationBridge: resolve(src, 'NavigationEventBridge.jsx'), runtimeBoundary: resolve(src, 'RuntimeBoundary.jsx'), accessRuntime: resolve(src, 'AccessControlRuntime.jsx'),
   clientsOrganizer: resolve(src, 'ClientModuleOrganizer.jsx'), clientsCss: resolve(src, 'client-module-organizer.css'), dashboardCss: resolve(src, 'executive-dashboard-main.css'), dashboardHost: resolve(src, 'ExecutiveDashboardHost.jsx'),
   commercial: resolve(src, 'CommercialLauncher.jsx'), inventory: resolve(src, 'InventoryCostLauncher.jsx'), billing: resolve(src, 'FacturacionLauncher.jsx'), procurement: resolve(src, 'OperationsFinanceLauncher.jsx'),
   planning: resolve(src, 'ProductionCalendarLauncher.jsx'), financial: resolve(src, 'FinancialDashboardLauncher.jsx'), assistant: resolve(src, 'AssistantLauncher.jsx'), security: resolve(src, 'SecurityLauncher.jsx'), workspaceBridge: resolve(src, 'WorkspaceNavigationBridge.jsx'),
@@ -16,13 +17,14 @@ for (const [key,path] of Object.entries(paths)) source[key] = await readFile(pat
 const mountedRuntime = `${source.main}\n${source.deferred}`
 
 const importsFrom = (text) => [...text.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"](\.\/[^'\"]+)['\"]/g)].map((match) => match[1])
-const relativeImports = [...new Set([...importsFrom(source.main), ...importsFrom(source.deferred), ...importsFrom(source.runtime)])]
+const relativeImports = [...new Set([...importsFrom(source.main), ...importsFrom(source.deferred), ...importsFrom(source.runtime), ...importsFrom(source.navigationBridge)])]
 const missing = []
 for (const specifier of relativeImports) { try { await access(resolve(src, specifier.replace(/^\.\//, ''))) } catch { missing.push(specifier) } }
 
 const failures = []
 if (missing.length) failures.push(`Imports inexistentes: ${missing.join(', ')}`)
 if (!source.main.includes('RuntimeBoundary')) failures.push('Falta RuntimeBoundary en el arranque')
+if (!source.main.includes('NavigationEventBridge')) failures.push('Falta el puente persistente de navegación en el arranque crítico')
 if (!mountedRuntime.includes('FormAccordionManager')) failures.push('Falta el gestor seguro de formularios')
 if (!mountedRuntime.includes('FormSimplificationManager')) failures.push('Falta el gestor de simplificación de formularios')
 if (!source.main.includes("'./form-simplification.css'")) failures.push('Falta la capa visual de simplificación de formularios')
@@ -58,23 +60,33 @@ if (/\.erp-content:has\(\.executive-dashboard-host\)>:not\(\.executive-dashboard
 if (!source.dashboardCss.includes('>.welcome-strip') || !source.dashboardCss.includes('>.metric-grid') || !source.dashboardCss.includes('>.dashboard-grid')) failures.push('Dashboard debe ocultar únicamente los bloques básicos duplicados cuando está activo el ejecutivo')
 
 const directRoutes = [
-  ['Dashboard','workspace','Resumen'],['Clientes','workspace','Clientes'],['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Cuentas por cobrar','billing','cobros'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja'],['Agenda','planning',null],['Reportes','financial',null],['Asistente IA','assistant',null],['Seguridad','security',null],
+  ['Dashboard','workspace','Resumen'],['App móviles','mobile','Inicio'],['Clientes','workspace','Clientes'],['Productos','commercial','Productos y trabajos'],['Cotizaciones','commercial','Cotizaciones'],['Producción','commercial','Producción'],['Inventario','inventory','Inventario'],['Facturación','billing','resumen'],['Cuentas por cobrar','billing','cobros'],['Proveedores','procurement','Proveedores'],['Compras','procurement','Compras y gastos'],['Caja','procurement','Caja'],['Asistente IA','assistant',null],['Agenda','planning',null],['Reportes','financial',null],['Seguridad','security',null],
 ]
 const escapeRegExp = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 for (const [name,target,tab] of directRoutes) {
-  const pattern = tab
-    ? new RegExp(`openDirectModule\\(\\s*['\"]${escapeRegExp(target)}['\"]\\s*,\\s*['\"]${escapeRegExp(tab)}['\"]\\s*\\)`)
-    : new RegExp(`openDirectModule\\(\\s*['\"]${escapeRegExp(target)}['\"]\\s*\\)`)
-  if (!pattern.test(source.menu)) failures.push(`${name} debe abrirse por evento directo`)
+  const key=`(?:${escapeRegExp(name)}|['\"]${escapeRegExp(name)}['\"])`
+  const tabPart=tab?`[^}]*tab\\s*:\\s*['\"]${escapeRegExp(tab)}['\"]`:''
+  const pattern=new RegExp(`${key}\\s*:\\s*\\{\\s*target\\s*:\\s*['\"]${escapeRegExp(target)}['\"]${tabPart}`)
+  if (!pattern.test(source.navigation)) failures.push(`${name} no tiene ruta persistente en el núcleo de navegación`)
 }
-for (const [key,label] of [['commercial','CommercialLauncher'],['inventory','InventoryCostLauncher'],['billing','FacturacionLauncher'],['procurement','OperationsFinanceLauncher'],['planning','ProductionCalendarLauncher'],['financial','FinancialDashboardLauncher'],['assistant','AssistantLauncher'],['security','SecurityLauncher']]) { if (!source[key].includes("window.addEventListener('idealo-open-module'")) failures.push(`${label} no escucha apertura directa desde el menú`) }
-if (!source.workspaceBridge.includes("detail.target !== 'workspace'")) failures.push('WorkspaceNavigationBridge no está limitado al target workspace')
-if (!source.menu.includes("name==='App móviles'")) failures.push('App móviles debe conservar su acceso individual en el menú')
+if (!source.menu.includes('requestModule(name') || !source.menu.includes('subscribeNavigation')) failures.push('El menú principal no usa el núcleo persistente como fuente única')
+if (source.menu.includes('setActive(name)')) failures.push('El menú vuelve a marcar módulos antes de confirmar su vista')
+for (const [key,label,target] of [['commercial','CommercialLauncher','commercial'],['inventory','InventoryCostLauncher','inventory'],['billing','FacturacionLauncher','billing'],['procurement','OperationsFinanceLauncher','procurement'],['planning','ProductionCalendarLauncher','planning'],['financial','FinancialDashboardLauncher','financial']]) {
+  if (!source[key].includes('subscribeNavigation') || !source[key].includes('confirmModule')) failures.push(`${label} no confirma solicitudes persistentes`)
+  if (!source[key].includes(`navigation.target!=='${target}'`)) failures.push(`${label} no aísla el target ${target}`)
+}
+if (!source.workspaceBridge.includes('subscribeNavigation') || !source.workspaceBridge.includes("navigation.target !== 'workspace'") || !source.workspaceBridge.includes('confirmModule')) failures.push('WorkspaceNavigationBridge no confirma Dashboard/Clientes por target workspace')
+if (!source.navigationBridge.includes('assistant:') || !source.navigationBridge.includes('security:') || !source.navigationBridge.includes('.mobile-app-shell')) failures.push('Asistente, Seguridad o App móviles carecen de puente de confirmación real')
+if (!source.navigation.includes("new CustomEvent('idealo-navigation-request'") || !source.accessRuntime.includes("window.addEventListener('idealo-navigation-request'")) failures.push('La navegación persistente no está protegida por roles/plan')
+if (!source.navigation.includes('NAVIGATION_TIMEOUT_MS')) failures.push('La navegación puede quedar pendiente indefinidamente')
+if (!source.runtimeBoundary.includes("new CustomEvent('idealo-runtime-error'")) failures.push('Un fallo de runtime puede quedar silencioso')
+if (source.runtimeBoundary.includes('if (!this.props.fatal) return null')) failures.push('RuntimeBoundary sigue ocultando módulos fallidos sin aviso')
 if (!source.accessControl.includes("'Productos y trabajos':'Productos'") || !source.accessControl.includes("'Cotizaciones':'Cotizaciones'") || !source.accessControl.includes("'Producción':'Producción'")) failures.push('Comercial perdió compatibilidad con los accesos individuales restaurados')
 if (!source.accessControl.includes("'Proveedores':'Proveedores'") || !source.accessControl.includes("'Compras y gastos':'Compras'")) failures.push('Compras y Proveedores perdieron compatibilidad con los accesos individuales restaurados')
 if (!source.commercial.includes("step==='quote'") || !source.commercial.includes("step==='work-order'") || !source.commercial.includes("step==='production'") || !source.commercial.includes("step==='delivery'") || !source.commercial.includes("step==='collection'")) failures.push('El recorrido comercial simplificado está incompleto')
+if (!source.commercial.includes("activateModule('Cuentas por cobrar'")) failures.push('Cobro comercial debe activar Cuentas por cobrar y no Producción')
 if (!source.procurement.includes('menuForTab')) failures.push('Compras, Proveedores y Caja deben conservar sincronización interna')
-if (source.menu.includes('openLauncher(') || source.menu.includes('clickWorkspaceModule(')) failures.push('El menú principal volvió a usar navegación por clic simulado')
+if (source.menu.includes('openLauncher(') || source.menu.includes('clickWorkspaceModule(') || source.menu.includes('openDirectModule(')) failures.push('El menú principal volvió a usar navegación imperativa legacy')
 if (source.menu.includes('MÓDULO EN ESTRUCTURA') || source.menu.includes('module-placeholder-card')) failures.push('El menú principal no debe renderizar placeholders genéricos')
 
 const expectedModules = ['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Cuentas por cobrar','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
@@ -89,4 +101,4 @@ if (/\.idealo-main-menu-item\.active\s*\{[^}]*background\s*:\s*#f36c21/i.test(so
 if (!/\.idealo-main-menu-item\.active\s*\{[^}]*color\s*:\s*#f36c21/i.test(source.menuCss)) failures.push('El módulo activo debe marcarse con texto naranja')
 
 if (failures.length) { console.error('\nAuditoría frontend falló:'); failures.forEach((failure) => console.error(`- ${failure}`)); process.exit(1) }
-console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, formularios simplificados, jerarquía visual protegida, navegación individual restaurada, runtime crítico+diferido aislado y menú protegido.`)
+console.log(`Auditoría frontend OK: ${relativeImports.length} imports verificados, navegación persistente confirmada, permisos protegidos, formularios simplificados, jerarquía visual y runtime crítico+diferido aislados.`)
