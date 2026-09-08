@@ -45,6 +45,11 @@ const genericSeedProtected =
   seedRpcMigration.includes('revoke all on function public.seed_agency_demo_data(uuid,uuid) from authenticated') &&
   seedRpcMigration.includes('grant execute on function public.seed_agency_demo_data(uuid,uuid) to service_role')
 
+const demoMetricProtected =
+  masterApi.includes("accountType(company,plan)") &&
+  masterApi.includes("demos:rows.filter(x=>x.account_type==='demo').length") &&
+  masterApi.includes("billing_exempt:type!=='commercial'")
+
 const checks = [
   ['runtime diferido conectado', main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))")],
   ['guard demo montado', deferred.includes("import AgencyDemoGuard from './AgencyDemoGuard.jsx'") && deferred.includes('<AgencyDemoGuard/>')],
@@ -60,7 +65,7 @@ const checks = [
   ['Panel Maestro crea demo mediante precarga segura', masterCreatesDemo],
   ['seed comercial ficticio', seedRpcMigration.includes('[DEMO] Café Central') && seedRpcMigration.includes('[DEMO] Banner lona 13 oz')],
   ['seed cotización y producción', seedRpcMigration.includes('insert into public.quotes') && seedRpcMigration.includes('insert into public.work_orders')],
-  ['demo contabilizado', masterApi.includes('demos:rows.filter(x=>x.demo_mode).length')],
+  ['demo contabilizado y fuera de cartera comercial', demoMetricProtected],
 ]
 
 const failed = checks.filter(([, ok]) => !ok)
