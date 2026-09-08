@@ -21,6 +21,18 @@ const ROUTES = {
   Seguridad: { target: 'security' },
 }
 
+const PANEL_BY_TARGET = {
+  commercial: '.erp-modal-panel[aria-label="Gestión comercial y producción"]',
+  inventory: '.erp-modal-panel[aria-label="Inventario, costos y rentabilidad"]',
+  billing: '.erp-modal-panel[aria-label="Módulo de facturación"]',
+  procurement: '.erp-modal-panel[aria-label="Abastecimiento y finanzas"]',
+  planning: '.erp-modal-panel[aria-label="Planificación de producción"]',
+  financial: '.erp-modal-panel[aria-label="Reportes financieros"]',
+  assistant: '.erp-modal-panel[aria-label="Asistente Inteligente"]',
+  security: '.erp-modal-panel[aria-label="Usuarios y Administración"]',
+}
+
+const OPEN_RETRIES = [0, 120, 350, 700, 1200, 2000, 3500]
 const emitActive = (name) => window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
 
 export default function MainMenuController() {
@@ -29,6 +41,7 @@ export default function MainMenuController() {
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('')
   const searchRef = useRef(null)
+  const navigationRequest = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +94,11 @@ export default function MainMenuController() {
     return () => window.removeEventListener('keydown', shortcut)
   }, [])
 
+  const confirmActive = (name) => {
+    setActive(name)
+    emitActive(name)
+  }
+
   const openModule = (name) => {
     if (role && !canAccessModule(role, name)) {
       window.dispatchEvent(new CustomEvent('idealo-access-denied', { detail: { message: `${ROLE_LABEL[role] || role} no tiene permiso para ${name}.` } }))
@@ -88,10 +106,10 @@ export default function MainMenuController() {
     }
 
     setQuery('')
-    setActive(name)
+    const requestId = ++navigationRequest.current
 
     if (name === 'App móviles') {
-      emitActive(name)
+      confirmActive(name)
       return
     }
 
@@ -100,11 +118,33 @@ export default function MainMenuController() {
 
     if (route.target === 'workspace') {
       window.dispatchEvent(new CustomEvent('idealo-workspace-navigate', { detail: { tab: route.tab, module: name } }))
-    } else {
-      window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target: route.target, tab: route.tab, source: 'main-menu' } }))
+      window.setTimeout(() => {
+        if (navigationRequest.current === requestId) confirmActive(name)
+      }, 0)
+      return
     }
 
-    emitActive(name)
+    const selector = PANEL_BY_TARGET[route.target]
+    let confirmed = false
+
+    const confirmPanel = () => {
+      if (confirmed || navigationRequest.current !== requestId) return true
+      const panel = selector ? document.querySelector(selector) : null
+      if (!panel) return false
+      confirmed = true
+      confirmActive(name)
+      return true
+    }
+
+    OPEN_RETRIES.forEach((delay) => {
+      window.setTimeout(() => {
+        if (confirmed || navigationRequest.current !== requestId) return
+        window.dispatchEvent(new CustomEvent('idealo-open-module', {
+          detail: { target: route.target, tab: route.tab, source: 'main-menu' },
+        }))
+        window.setTimeout(confirmPanel, 40)
+      }, delay)
+    })
   }
 
   const filteredModules = useMemo(() => {
