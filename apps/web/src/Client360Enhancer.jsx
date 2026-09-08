@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase as s } from './lib/supabase.js'
 import Client360CrudPanel from './Client360CrudPanel.jsx'
+import { getClientDteReadiness } from './clientDteReadiness.js'
 
 const usd = n => new Intl.NumberFormat('es-SV', { style: 'currency', currency: 'USD' }).format(Number(n || 0))
 const days = d => d ? Math.floor((Date.now() - new Date(d)) / 86400000) : null
@@ -105,9 +106,7 @@ export default function Client360Enhancer() {
 
 function Card({ t, children }) { return <article className="c360card"><h3>{t}</h3>{children}</article> }
 function Dte({ client: c }) {
-  const required = c.preferred_dte_type === '03'
-    ? [['nombre', c.name], ['NIT', c.tax_id], ['NRC', c.nrc], ['actividad', c.activity_code], ['descripción actividad', c.business_activity], ['departamento', c.department_code], ['municipio', c.municipality_code], ['dirección fiscal', c.address]]
-    : [['nombre', c.name]]
-  const missing = required.filter(([, v]) => !String(v || '').trim()).map(([k]) => k)
-  return <div className={missing.length ? 'c360warn' : 'c360ready'}>{missing.length ? `⚠ Faltan para ${c.preferred_dte_type === '03' ? 'CCF DTE-03' : 'DTE-01'}: ${missing.join(', ')}` : '✓ Datos mínimos del tipo DTE completos'}{c.preferred_dte_type !== '03' && <small> DUI, correo, teléfono y dirección no se exigen indiscriminadamente al consumidor final.</small>}</div>
+  const readiness = getClientDteReadiness(c)
+  const label = readiness.dteType === '03' ? 'CCF DTE-03' : 'DTE-01'
+  return <div className={readiness.ready ? 'c360ready' : 'c360warn'}>{readiness.ready ? '✓ Datos mínimos del tipo DTE completos' : `⚠ Faltan para ${label}: ${readiness.missing.join(', ')}`}{readiness.dteType !== '03' && <small> DUI, correo, teléfono y dirección no se exigen indiscriminadamente al consumidor final.</small>}</div>
 }
