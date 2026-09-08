@@ -4,25 +4,56 @@ import { supabase } from './lib/supabase.js'
 import { canAccessModule, ERP_MODULES, ROLE_LABEL } from './erp-access-control.js'
 
 const MODULE_RETRY_DELAYS = [0, 120, 350, 700, 1200, 2000, 3200, 5000]
-
-const openDirectModule = (target, tab) => {
-  if (target === 'workspace' && tab) {
-    const buttons = [...document.querySelectorAll('.erp-sidebar nav .nav-item')]
-    const button = buttons.find((node) => node.textContent?.trim().endsWith(tab))
-    button?.click()
-  }
-  const detail = { target, tab }
-  MODULE_RETRY_DELAYS.forEach((delay) => {
-    window.setTimeout(() => window.dispatchEvent(new CustomEvent('idealo-open-module', { detail })), delay)
-  })
-  return true
+const LAUNCHER_BY_TARGET = {
+  commercial: '.sidebar-module-access.commercial',
+  inventory: '.sidebar-module-access.inventory',
+  billing: '.sidebar-module-access.billing',
+  procurement: '.sidebar-module-access.procurement',
+  planning: '.sidebar-module-access.planning',
+  financial: '.sidebar-module-access.financial',
+  assistant: '.sidebar-module-access.assistant',
+  security: '.sidebar-module-access.security',
 }
 
-const openBillingModule = (tab = 'resumen') => {
-  const detail = { target: 'billing', tab }
+const notifyActive = (name) => {
+  if (!name) return
+  window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
+}
+
+const openDirectModule = (target, tab, activeName) => {
+  const detail = { target, tab }
+  let opened = false
+
+  const attempt = () => {
+    if (target === 'workspace') {
+      const buttons = [...document.querySelectorAll('.erp-sidebar > nav:not(.idealo-main-menu) .nav-item')]
+      const button = buttons.find((node) => node.textContent?.trim().endsWith(tab || ''))
+      if (button) {
+        button.click()
+        notifyActive(activeName)
+        opened = true
+        return
+      }
+      window.dispatchEvent(new CustomEvent('idealo-open-module', { detail }))
+      return
+    }
+
+    const selector = LAUNCHER_BY_TARGET[target]
+    const launcher = selector ? document.querySelector(selector) : null
+    if (!launcher) {
+      window.dispatchEvent(new CustomEvent('idealo-open-module', { detail }))
+      return
+    }
+
+    launcher.click()
+    window.dispatchEvent(new CustomEvent('idealo-open-module', { detail }))
+    notifyActive(activeName)
+    opened = true
+  }
+
   MODULE_RETRY_DELAYS.forEach((delay) => {
     window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('idealo-open-module', { detail }))
+      if (!opened) attempt()
     }, delay)
   })
   return true
@@ -83,7 +114,7 @@ export default function MainMenuController() {
 
   const markActive = (name) => {
     setActive(name)
-    window.dispatchEvent(new CustomEvent('idealo-module-change', { detail: name }))
+    notifyActive(name)
   }
 
   const openModule = (name) => {
@@ -92,22 +123,22 @@ export default function MainMenuController() {
       return false
     }
     setQuery('')
-    if (name === 'Dashboard') { openDirectModule('workspace', 'Resumen'); markActive(name); return true }
-    if(name==='App móviles'){markActive(name);return true}
-    if (name === 'Clientes') { openDirectModule('workspace', 'Clientes'); markActive(name); return true }
-    if (name === 'Productos') { openDirectModule('commercial', 'Productos y trabajos'); markActive(name); return true }
-    if (name === 'Cotizaciones') { openDirectModule('commercial', 'Cotizaciones'); markActive(name); return true }
-    if (name === 'Producción') { openDirectModule('commercial', 'Producción'); markActive(name); return true }
-    if (name === 'Inventario') { openDirectModule('inventory', 'Inventario'); markActive(name); return true }
-    if (name === 'Facturación') { return openBillingModule('resumen') }
-    if (name === 'Cuentas por cobrar') { return openBillingModule('cobros') }
-    if (name === 'Proveedores') { openDirectModule('procurement', 'Proveedores'); markActive(name); return true }
-    if (name === 'Compras') { openDirectModule('procurement', 'Compras y gastos'); markActive(name); return true }
-    if (name === 'Caja') { openDirectModule('procurement', 'Caja'); markActive(name); return true }
-    if (name === 'Agenda') { openDirectModule('planning'); markActive(name); return true }
-    if (name === 'Reportes') { openDirectModule('financial'); markActive(name); return true }
-    if (name === 'Asistente IA') { openDirectModule('assistant'); markActive(name); return true }
-    if (name === 'Seguridad') { openDirectModule('security'); markActive(name); return true }
+    if (name === 'Dashboard') return openDirectModule('workspace', 'Resumen', name)
+    if (name === 'App móviles') { markActive(name); return true }
+    if (name === 'Clientes') return openDirectModule('workspace', 'Clientes', name)
+    if (name === 'Productos') return openDirectModule('commercial', 'Productos y trabajos', name)
+    if (name === 'Cotizaciones') return openDirectModule('commercial', 'Cotizaciones', name)
+    if (name === 'Producción') return openDirectModule('commercial', 'Producción', name)
+    if (name === 'Inventario') return openDirectModule('inventory', 'Inventario', name)
+    if (name === 'Facturación') return openDirectModule('billing', 'resumen', name)
+    if (name === 'Cuentas por cobrar') return openDirectModule('billing', 'cobros', name)
+    if (name === 'Proveedores') return openDirectModule('procurement', 'Proveedores', name)
+    if (name === 'Compras') return openDirectModule('procurement', 'Compras y gastos', name)
+    if (name === 'Caja') return openDirectModule('procurement', 'Caja', name)
+    if (name === 'Agenda') return openDirectModule('planning', undefined, name)
+    if (name === 'Reportes') return openDirectModule('financial', undefined, name)
+    if (name === 'Asistente IA') return openDirectModule('assistant', undefined, name)
+    if (name === 'Seguridad') return openDirectModule('security', undefined, name)
     return false
   }
 
