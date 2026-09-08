@@ -1,16 +1,21 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
-import MobileFieldTools from './MobileFieldTools.jsx'
-import MobileSalesFieldBlock from './MobileSalesFieldBlock.jsx'
-import MobileClient360 from './MobileClient360.jsx'
-import Client360Enhancer from './Client360Enhancer.jsx'
-import CommercialAutomationCenter from './CommercialAutomationCenter.jsx'
-import ClientCrmPipeline from './ClientCrmPipeline.jsx'
-import ClientModuleOrganizer from './ClientModuleOrganizer.jsx'
-import Client360TimelineHost from './Client360TimelineHost.jsx'
-import ClientVatCardScannerHost from './ClientVatCardScannerHost.jsx'
 
-const Safe = ({ label, children }) => <RuntimeBoundary label={label}>{children}</RuntimeBoundary>
+const MobileFieldTools = lazy(() => import('./MobileFieldTools.jsx'))
+const MobileSalesFieldBlock = lazy(() => import('./MobileSalesFieldBlock.jsx'))
+const MobileClient360 = lazy(() => import('./MobileClient360.jsx'))
+const Client360Enhancer = lazy(() => import('./Client360Enhancer.jsx'))
+const CommercialAutomationCenter = lazy(() => import('./CommercialAutomationCenter.jsx'))
+const ClientCrmPipeline = lazy(() => import('./ClientCrmPipeline.jsx'))
+const ClientModuleOrganizer = lazy(() => import('./ClientModuleOrganizer.jsx'))
+const Client360TimelineHost = lazy(() => import('./Client360TimelineHost.jsx'))
+const ClientVatCardScannerHost = lazy(() => import('./ClientVatCardScannerHost.jsx'))
+
+const Safe = ({ label, children }) => (
+  <RuntimeBoundary label={label} notify={false}>
+    <Suspense fallback={null}>{children}</Suspense>
+  </RuntimeBoundary>
+)
 
 export default function ModuleRuntime() {
   const [activeModule, setActiveModule] = useState('Dashboard')
