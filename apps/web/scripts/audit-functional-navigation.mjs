@@ -70,7 +70,8 @@ for(const [label,source,target] of [
   ['Facturación/CxC',billing,'billing'],['Agenda',planning,'planning'],['Reportes',financial,'financial'],
 ]){
   requireText(source,'subscribeNavigation',`${label} no consume solicitudes persistentes`)
-  requireText(source,`navigation.target!=='${target}'`,`${label} no aísla su destino`)
+  const isolated=source.includes(`navigation.target!=='${target}'`)||source.includes(`navigation.target !== '${target}'`)
+  if(!isolated)failures.push(`${label} no aísla su destino`)
   requireText(source,'confirmModule',`${label} no confirma que su vista quedó montada`)
   requireText(source,'setOpen(true)',`${label} no abre su vista principal`)
   requireText(source,'setOpen(false)',`${label} no conserva cierre funcional`)
