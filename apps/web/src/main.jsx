@@ -2,6 +2,7 @@ import { StrictMode, Suspense, lazy, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import AccessControlRuntime from './AccessControlRuntime.jsx'
+import MainMenuController from './MainMenuController.jsx'
 import MfaSessionGate from './MfaSessionGate.jsx'
 import NavigationEventBridge from './NavigationEventBridge.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
@@ -95,6 +96,7 @@ createRoot(document.getElementById('root')).render(
   <Safe label="Verificación 2FA"><MfaSessionGate/></Safe>
   <Safe label="Control de accesos"><AccessControlRuntime/></Safe>
   <Safe label="Navegación persistente"><NavigationEventBridge/></Safe>
+  <Safe label="Menú principal"><MainMenuController/></Safe>
   <DeferredRuntimeLoader/>
  </StrictMode>
 )
