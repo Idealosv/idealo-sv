@@ -5,74 +5,42 @@
   order:1;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:4px;
   margin-top:0;
-  padding:0 4px 14px;
+  padding:0 2px 6px;
   overflow-x:hidden;
   overflow-y:auto;
-  overscroll-behavior:contain;
   min-height:0;
-  flex:1;
+  flex:1 1 auto;
   scrollbar-width:none;
   -ms-overflow-style:none;
 }
 .idealo-main-menu::-webkit-scrollbar,.idealo-menu-list::-webkit-scrollbar{width:0;height:0;display:none}
 .sidebar-logout{order:2}
 
-.idealo-menu-search-wrap{
-  position:sticky;
-  top:0;
-  z-index:4;
+.idealo-menu-list{
   display:flex;
-  align-items:center;
-  gap:6px;
-  margin:0 0 5px;
-  padding:3px 0 7px;
-  background:linear-gradient(180deg,#17191c 76%,rgba(23,25,28,0));
+  flex:1 1 auto;
+  min-height:0;
+  flex-direction:column;
+  gap:1px;
+  padding:0;
+  overflow:hidden;
 }
-.idealo-menu-search{
-  width:100%;
-  min-height:38px!important;
-  padding:8px 34px 8px 11px!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  border-radius:8px!important;
-  outline:none!important;
-  background:#202327!important;
-  color:#fff!important;
-  font-size:.79rem!important;
-  box-shadow:none!important;
-}
-.idealo-menu-search::placeholder{color:#929aa3!important}
-.idealo-menu-search:focus{border-color:rgba(229,106,31,.9)!important;box-shadow:0 0 0 2px rgba(229,106,31,.12)!important}
-.idealo-menu-search-clear{
-  position:absolute;
-  right:5px;
-  top:6px;
-  width:28px;
-  min-height:28px!important;
-  padding:0!important;
-  display:grid;
-  place-items:center;
-  border:0!important;
-  border-radius:6px!important;
-  background:transparent!important;
-  color:#aeb5bd!important;
-  font-size:1.15rem!important;
-  line-height:1!important;
-}
-.idealo-menu-search-clear:hover{background:rgba(255,255,255,.06)!important;color:#fff!important}
-
-.idealo-menu-list{display:grid;gap:3px;padding:1px 0 4px}
 .idealo-main-menu-item{
   width:100%;
-  min-height:40px;
+  min-height:0!important;
+  max-height:34px;
+  flex:1 1 0;
   border:1px solid transparent!important;
   background:transparent!important;
   color:#e3e6e9!important;
   text-align:left;
-  padding:9px 11px;
-  border-radius:8px;
+  padding:4px 9px!important;
+  border-radius:6px;
   font:inherit;
+  font-size:.76rem!important;
+  line-height:1.1;
   font-weight:650;
   cursor:pointer;
   box-shadow:none!important;
@@ -80,16 +48,16 @@
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:8px;
+  gap:6px;
+  white-space:nowrap;
 }
 .idealo-main-menu-item:hover{background:rgba(255,255,255,.055)!important;border-color:rgba(255,255,255,.035)!important;color:#fff!important;transform:translateX(1px)}
 .idealo-main-menu-item.active{background:#292d32!important;border-color:rgba(255,255,255,.055)!important;color:#f36c21!important;box-shadow:inset 3px 0 0 #e56a1f!important}
-.idealo-main-menu-item.active::after{content:'•';color:#e56a1f;font-size:1rem;line-height:1}
+.idealo-main-menu-item.active::after{content:'•';color:#e56a1f;font-size:.88rem;line-height:1}
 .idealo-main-menu-item.pending:not(.active){background:rgba(255,255,255,.045)!important;opacity:.78}
 .idealo-main-menu-item.pending:not(.active)::after{content:'…';font-weight:900;letter-spacing:1px;color:#f36c21}
-.idealo-main-menu-item.locked{opacity:.42;cursor:not-allowed}.idealo-main-menu-item.locked small{font-size:.61rem;font-weight:800;color:#c7ccd2}
-.idealo-role-strip{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 1px 5px;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.035);color:#aeb5bd;font-size:.68rem}.idealo-role-strip strong{color:#f36c21;font-size:.7rem}
-.idealo-menu-empty{margin:8px 2px;padding:12px;border:1px dashed rgba(255,255,255,.12);border-radius:8px;color:#aeb5bd;font-size:.75rem;text-align:center}
+.idealo-main-menu-item.locked{opacity:.42;cursor:not-allowed}.idealo-main-menu-item.locked small{font-size:.55rem;font-weight:800;color:#c7ccd2}
+.idealo-role-strip{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 1px 3px;padding:4px 8px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:rgba(255,255,255,.035);color:#aeb5bd;font-size:.62rem;line-height:1.1}.idealo-role-strip strong{color:#f36c21;font-size:.64rem}
 
 #idealo-access-toast,#idealo-navigation-toast{position:fixed;right:22px;bottom:22px;z-index:2147483645;max-width:460px;padding:12px 15px;border-radius:10px;background:#24282d;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.26);font-size:.84rem;font-weight:750;opacity:0;transform:translateY(10px);pointer-events:none;transition:.18s ease;border-left:4px solid #f36c21}
 #idealo-access-toast.show,#idealo-navigation-toast.show{opacity:1;transform:translateY(0)}
@@ -101,4 +69,18 @@ html[data-erp-role="viewer"] .submit-button,html[data-erp-role="viewer"] .form-a
 .module-placeholder-card{min-height:220px;display:flex;flex-direction:column;justify-content:center}
 .module-placeholder-card h2{margin:6px 0 10px}
 .mfa-gate{position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;padding:20px;background:rgba(14,17,20,.86);backdrop-filter:blur(8px)}.mfa-gate section{width:min(440px,100%);background:#fff;border-radius:18px;padding:26px;box-shadow:0 28px 80px rgba(0,0,0,.38)}.mfa-gate h2{margin:5px 0 8px}.mfa-gate p{color:#606870;line-height:1.45}.mfa-gate label{display:grid;gap:6px;margin:18px 0 12px;font-weight:800}.mfa-gate input{min-height:48px;border:1px solid #ccd2d8;border-radius:11px;padding:0 13px;font:inherit;font-size:1.08rem;letter-spacing:.2em}.mfa-gate .btn{width:100%;margin-top:8px}
-@media(max-width:760px){.idealo-main-menu{max-height:none;padding-bottom:16px}#idealo-access-toast,#idealo-navigation-toast{left:14px;right:14px;bottom:14px}.erp-runtime-module-error{left:14px;right:14px;top:14px;width:auto}.mfa-gate section{padding:20px}}
+
+@media(min-width:761px) and (max-height:690px){
+  .idealo-main-menu{gap:2px;padding-bottom:3px}
+  .idealo-main-menu-item{font-size:.7rem!important;padding:2px 8px!important;border-radius:5px}
+  .idealo-role-strip{padding:3px 7px;font-size:.57rem}.idealo-role-strip strong{font-size:.59rem}
+}
+
+@media(max-width:760px){
+  .idealo-main-menu{max-height:none;padding-bottom:16px;overflow:visible}
+  .idealo-menu-list{display:grid;gap:3px;overflow:visible}
+  .idealo-main-menu-item{min-height:38px!important;max-height:none;flex:none;font-size:.76rem!important;padding:8px 9px!important}
+  #idealo-access-toast,#idealo-navigation-toast{left:14px;right:14px;bottom:14px}
+  .erp-runtime-module-error{left:14px;right:14px;top:14px;width:auto}
+  .mfa-gate section{padding:20px}
+}

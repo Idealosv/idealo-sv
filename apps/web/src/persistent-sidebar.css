@@ -17,6 +17,7 @@
     height:100dvh!important;
     min-height:100dvh!important;
     overflow:hidden!important;
+    padding:12px 12px 10px!important;
     background:linear-gradient(180deg,#191b1f 0%,#141619 100%)!important;
     border-right:1px solid rgba(255,255,255,.07)!important;
     box-shadow:10px 0 30px rgba(15,23,42,.08)!important;
@@ -44,11 +45,41 @@
 
   .erp-sidebar .brand{
     flex:0 0 auto;
+    min-height:40px!important;
+    padding:0 4px 9px!important;
+    font-size:.79rem!important;
+  }
+
+  .erp-sidebar .brand-mark{
+    width:32px!important;
+    height:32px!important;
+    border-radius:7px!important;
   }
 
   .erp-sidebar .company-badge{
     flex:0 0 auto;
-    margin-bottom:12px!important;
+    margin:8px 0 7px!important;
+    padding:6px 8px!important;
+    min-height:42px!important;
+    gap:8px!important;
+  }
+
+  .erp-sidebar .company-badge>span{
+    width:30px!important;
+    height:30px!important;
+    border-radius:6px!important;
+    font-size:.76rem!important;
+  }
+
+  .erp-sidebar .company-badge strong{
+    font-size:.73rem!important;
+    line-height:1.05!important;
+  }
+
+  .erp-sidebar .company-badge small{
+    margin-top:1px!important;
+    font-size:.58rem!important;
+    line-height:1!important;
   }
 
   .erp-sidebar .idealo-main-menu{
@@ -62,13 +93,26 @@
 
   .erp-sidebar .sidebar-logout{
     flex:0 0 auto;
-    margin-top:8px!important;
+    min-height:31px!important;
+    margin-top:5px!important;
+    padding:6px 9px!important;
+    font-size:.7rem!important;
   }
 }
 
 @media(min-width:761px) and (max-width:1000px){
   .erp-sidebar{width:220px!important}
   .erp-content{margin-left:220px!important}
+}
+
+@media(min-width:761px) and (max-height:690px){
+  .erp-sidebar{padding-top:8px!important;padding-bottom:7px!important}
+  .erp-sidebar .brand{min-height:34px!important;padding-bottom:5px!important}
+  .erp-sidebar .brand-mark{width:28px!important;height:28px!important}
+  .erp-sidebar .company-badge{margin:5px 0!important;padding:4px 7px!important;min-height:35px!important}
+  .erp-sidebar .company-badge>span{width:26px!important;height:26px!important}
+  .erp-sidebar .company-badge small{display:none!important}
+  .erp-sidebar .sidebar-logout{min-height:27px!important;margin-top:3px!important;padding:4px 8px!important}
 }
 
 /* En pantallas pequeñas se conserva el comportamiento móvil existente. */
