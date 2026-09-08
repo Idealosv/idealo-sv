@@ -56,6 +56,10 @@
     min-height:0!important;
   }
 
+  .erp-sidebar .idealo-main-menu-item.active{
+    color:#f36c21!important;
+  }
+
   .erp-sidebar .sidebar-logout{
     flex:0 0 auto;
     margin-top:8px!important;
