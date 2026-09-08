@@ -5,6 +5,7 @@ function bearer(request){const value=String(request.headers?.authorization||'');
 function configuredAdmins(){return new Set(String(process.env.IDEALO_PLATFORM_ADMIN_EMAILS||'').split(',').map(v=>v.trim().toLowerCase()).filter(Boolean))}
 async function platformActor({request,supabase}){const token=bearer(request);if(!token)throw httpError('Sesión requerida.',401,'AUTH_REQUIRED');const {data:{user},error}=await supabase.auth.getUser(token);if(error||!user)throw httpError('Sesión inválida o vencida.',401,'AUTH_INVALID');const admins=configuredAdmins();if(!admins.size)throw httpError('El Panel Maestro todavía no tiene administradores configurados.',503,'PLATFORM_ADMIN_NOT_CONFIGURED');if(!admins.has(String(user.email||'').toLowerCase()))throw httpError('Acceso reservado para administración de IDEALO.',403,'PLATFORM_ADMIN_REQUIRED');return user}
 async function findUserByEmail(supabase,email){let page=1;while(page<=10){const {data,error}=await supabase.auth.admin.listUsers({page,perPage:100});if(error)throw error;const found=(data?.users||[]).find(user=>String(user.email||'').toLowerCase()===email);if(found)return found;if((data?.users||[]).length<100)break;page++}return null}
+async function authUsersById(supabase){const map=new Map();let page=1;while(page<=10){const {data,error}=await supabase.auth.admin.listUsers({page,perPage:100});if(error)throw error;for(const user of data?.users||[])map.set(user.id,user);if((data?.users||[]).length<100)break;page++}return map}
 function slugify(value){return String(value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)}
 function accountType(company,plan){if(company?.demo_mode)return'demo';if(String(plan?.code||'').toUpperCase()==='OWNER_INTERNAL')return'internal';return'commercial'}
 function commercialPlans(plans=[]){return plans.filter(plan=>plan?.active!==false&&String(plan?.code||'').toUpperCase()!=='OWNER_INTERNAL')}
@@ -13,16 +14,17 @@ async function catalogs(supabase){const [{data:plans,error:planError},{data:vert
 
 export async function getSaasMasterDashboard({request,supabase}){
  const actor=await platformActor({request,supabase})
- const [{data:companies,error:companyError},{data:subscriptions,error:subscriptionError},{data:members,error:memberError},catalog]=await Promise.all([
+ const [{data:companies,error:companyError},{data:subscriptions,error:subscriptionError},{data:members,error:memberError},catalog,authUsers]=await Promise.all([
   supabase.from('companies').select('id,name,slug,created_at,updated_at,demo_mode,demo_label,demo_expires_at,demo_seeded_at').order('created_at',{ascending:false}),
   supabase.from('saas_company_subscriptions').select('*'),
   supabase.from('company_members').select('company_id,user_id,role'),
   catalogs(supabase),
+  authUsersById(supabase),
  ])
  if(companyError)throw companyError;if(subscriptionError)throw subscriptionError;if(memberError)throw memberError
- const planMap=new Map(catalog.plans.map(x=>[x.id,x]));const verticalMap=new Map(catalog.verticals.map(x=>[x.id,x]));const subMap=new Map((subscriptions||[]).map(x=>[x.company_id,x]));const memberCount=new Map()
- for(const row of members||[])memberCount.set(row.company_id,(memberCount.get(row.company_id)||0)+1)
- const rows=(companies||[]).map(company=>{const subscription=subMap.get(company.id)||null;const plan=subscription?planMap.get(subscription.plan_id)||null:null;const type=accountType(company,plan);return{...company,users:memberCount.get(company.id)||0,account_type:type,billing_exempt:type!=='commercial',subscription:subscription?{...subscription,plan,vertical:verticalMap.get(subscription.vertical_id)||null}:null}})
+ const planMap=new Map(catalog.plans.map(x=>[x.id,x]));const verticalMap=new Map(catalog.verticals.map(x=>[x.id,x]));const subMap=new Map((subscriptions||[]).map(x=>[x.company_id,x]));const memberCount=new Map(),ownerByCompany=new Map()
+ for(const row of members||[]){memberCount.set(row.company_id,(memberCount.get(row.company_id)||0)+1);if(row.role==='owner'&&!ownerByCompany.has(row.company_id))ownerByCompany.set(row.company_id,row.user_id)}
+ const rows=(companies||[]).map(company=>{const subscription=subMap.get(company.id)||null;const plan=subscription?planMap.get(subscription.plan_id)||null:null;const type=accountType(company,plan);const ownerUserId=ownerByCompany.get(company.id)||null;const owner=ownerUserId?authUsers.get(ownerUserId)||null:null;return{...company,users:memberCount.get(company.id)||0,owner_user_id:ownerUserId,owner_email:owner?.email||null,owner_confirmed_at:owner?.email_confirmed_at||owner?.confirmed_at||null,owner_last_sign_in_at:owner?.last_sign_in_at||null,account_type:type,billing_exempt:type!=='commercial',subscription:subscription?{...subscription,plan,vertical:verticalMap.get(subscription.vertical_id)||null}:null}})
  const commercial=rows.filter(row=>row.account_type==='commercial'),now=Date.now()
  const metrics={
   companies:commercial.length,
