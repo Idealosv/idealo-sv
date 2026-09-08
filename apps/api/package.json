@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/bootstrap-generic-demo.js && node src/index.js",
-    "test": "node --test"
+    "test": "node --check src/bootstrap-generic-demo.js && node --test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
