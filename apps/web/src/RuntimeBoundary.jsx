@@ -11,14 +11,17 @@ export default class RuntimeBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    const label=this.props.label||'módulo'
+    const label = this.props.label || 'módulo'
     console.error(`[IDEALO SV] Error en ${label}`, error, info)
-    window.dispatchEvent(new CustomEvent('idealo-runtime-error', {
-      detail: { label, message: `No se pudo cargar ${label}.` },
-    }))
+
+    if (this.props.notify !== false) {
+      window.dispatchEvent(new CustomEvent('idealo-runtime-error', {
+        detail: { label, message: `No se pudo cargar ${label}.` },
+      }))
+    }
   }
 
-  retry=()=>this.setState({error:null})
+  retry = () => this.setState({ error: null })
 
   render() {
     if (!this.state.error) return this.props.children
