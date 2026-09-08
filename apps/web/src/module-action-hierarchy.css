@@ -1,0 +1,119 @@
+/* Jerarquía visual transversal para módulos operativos.
+   La acción principal debe ser evidente; acciones secundarias y destructivas
+   quedan deliberadamente con menor peso visual. */
+
+.products360-savebar,
+.production-detail-actions,
+.billing-content .form-actions,
+.commercial-module .form-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.products360-savebar > button,
+.production-detail-actions > button,
+.billing-content .form-actions > button,
+.commercial-module .form-actions > button {
+  min-height:38px;
+  border-radius:8px!important;
+  box-shadow:none!important;
+  font-weight:750;
+}
+
+/* Acción primaria: último paso operativo de la barra. */
+.products360-savebar > button:last-child,
+.production-detail-actions > button:last-child:not(.secondary),
+.billing-content .form-actions > button[type='submit'],
+.commercial-module .form-actions > button[type='submit'] {
+  background:#f36c21!important;
+  color:#fff!important;
+  border:1px solid #f36c21!important;
+}
+
+/* Secundarias: negro/gris empresarial, sin competir con la acción principal. */
+.products360-savebar .secondary-action,
+.production-detail-actions .secondary,
+.billing-content .form-actions .secondary,
+.commercial-module .form-actions .secondary,
+.commercial-module .secondary-action {
+  background:#23282f!important;
+  color:#fff!important;
+  border:1px solid #23282f!important;
+}
+
+/* Destructivas: visibles, pero no como CTA principal. */
+.products360-savebar .danger-action,
+.commercial-module .danger-action,
+.billing-content .danger-action {
+  background:#fff!important;
+  color:#a12a2a!important;
+  border:1px solid #c9a2a2!important;
+}
+
+.products360-savebar .danger-action:hover,
+.commercial-module .danger-action:hover,
+.billing-content .danger-action:hover {
+  background:#fff5f5!important;
+  border-color:#a12a2a!important;
+}
+
+/* Los filtros no deben parecer botones de acción. */
+.products360-toolbar select,
+.products360-toolbar input,
+.production-toolbar select,
+.production-toolbar input,
+.commercial-module input,
+.commercial-module select,
+.billing-content input,
+.billing-content select,
+.billing-content textarea {
+  border-color:#9aa3ad!important;
+  box-shadow:none!important;
+}
+
+/* Separación visual entre búsqueda/filtros y contenido. */
+.products360-toolbar,
+.production-toolbar {
+  background:#f2f4f6!important;
+  border:1px solid #c7cdd4!important;
+  border-radius:10px!important;
+  padding:10px!important;
+}
+
+/* Pestañas internas: activo negro; naranja reservado para acción/estado. */
+.erp-module-tab.active,
+.segmented-control button.active {
+  background:#23282f!important;
+  color:#fff!important;
+  border-color:#23282f!important;
+  box-shadow:none!important;
+}
+
+/* Reducir ruido de tarjetas: borde claro y sin sombras acumuladas. */
+.products360 .panel,
+.production-suite .panel,
+.inventory360 .panel,
+.billing-content .billing-section-card,
+.commercial-module .panel {
+  box-shadow:none!important;
+  border-color:#c7cdd4!important;
+}
+
+/* En pantallas estrechas, las acciones se mantienen legibles sin convertirse
+   en una fila interminable. */
+@media(max-width:760px){
+  .products360-savebar,
+  .production-detail-actions,
+  .billing-content .form-actions,
+  .commercial-module .form-actions {
+    align-items:stretch;
+  }
+  .products360-savebar > button,
+  .production-detail-actions > button,
+  .billing-content .form-actions > button,
+  .commercial-module .form-actions > button {
+    flex:1 1 150px;
+  }
+}
