@@ -30,7 +30,6 @@ import SaasMasterPanelHost from './SaasMasterPanelHost.jsx'
 import SaasBillingCenterHost from './SaasBillingCenterHost.jsx'
 import SaasCommercialControlHost from './SaasCommercialControlHost.jsx'
 import SaasCustomerAccountHost from './SaasCustomerAccountHost.jsx'
-import MasterCompanyToolsRuntime from './MasterCompanyToolsRuntime.jsx'
 import AgencyDemoGuard from './AgencyDemoGuard.jsx'
 import PurchaseTaxAssistant from './PurchaseTaxAssistant.jsx'
 import ModuleRuntime from './ModuleRuntime.jsx'
@@ -86,7 +85,6 @@ export default function DeferredRuntimeHosts(){
   <Safe label="Integridad clientes"><ClientIntegrityCenter/></Safe>
   <Safe label="Giros adicionales clientes"><ClientAdditionalActivitiesHost/></Safe>
   <Safe label="Panel Maestro SaaS"><SaasMasterPanelHost/></Safe>
-  <Safe label="Herramientas Master empresa"><MasterCompanyToolsRuntime/></Safe>
   <Safe label="Centro de cobros SaaS"><SaasBillingCenterHost/></Safe>
   <Safe label="Control comercial SaaS"><SaasCommercialControlHost/></Safe>
   <Safe label="Cuenta SaaS"><SaasCustomerAccountHost/></Safe>
