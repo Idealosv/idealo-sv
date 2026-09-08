@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
 import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'
 import CommercialLauncher from './CommercialLauncher.jsx'
@@ -38,6 +39,26 @@ import ModuleRuntime from './ModuleRuntime.jsx'
 const Safe=({label,children})=><RuntimeBoundary label={label}>{children}</RuntimeBoundary>
 
 export default function DeferredRuntimeHosts(){
+ const [companyReady,setCompanyReady]=useState(()=>Boolean(typeof window!=='undefined'&&window.__IDEALO_ACTIVE_COMPANY__?.id))
+
+ useEffect(()=>{
+  const sync=event=>{
+   const company=event?.detail||window.__IDEALO_ACTIVE_COMPANY__
+   if(company?.id)setCompanyReady(true)
+  }
+  window.addEventListener('idealo-company-resolved',sync)
+  sync()
+  const timer=window.setInterval(()=>{
+   if(window.__IDEALO_ACTIVE_COMPANY__?.id){setCompanyReady(true);window.clearInterval(timer)}
+  },150)
+  return()=>{window.removeEventListener('idealo-company-resolved',sync);window.clearInterval(timer)}
+ },[])
+
+ // Los launchers operativos no deben inicializarse antes de que el ERP principal
+ // confirme qué empresa está activa. Así todos comparten exactamente la misma
+ // empresa y ningún clic del menú se pierde por una resolución paralela tardía.
+ if(!companyReady)return null
+
  return <>
   <Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost/></Safe>
   <Safe label="Comercial"><CommercialLauncher/></Safe>
