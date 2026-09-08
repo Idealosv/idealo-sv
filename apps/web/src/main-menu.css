@@ -83,7 +83,7 @@
   gap:8px;
 }
 .idealo-main-menu-item:hover{background:rgba(255,255,255,.055)!important;border-color:rgba(255,255,255,.035)!important;color:#fff!important;transform:translateX(1px)}
-.idealo-main-menu-item.active{background:#292d32!important;border-color:rgba(255,255,255,.055)!important;color:#fff!important;box-shadow:inset 3px 0 0 #e56a1f!important}
+.idealo-main-menu-item.active{background:#292d32!important;border-color:rgba(255,255,255,.055)!important;color:#f36c21!important;box-shadow:inset 3px 0 0 #e56a1f!important}
 .idealo-main-menu-item.active::after{content:'•';color:#e56a1f;font-size:1rem;line-height:1}
 .idealo-main-menu-item.pending:not(.active){background:rgba(255,255,255,.045)!important;opacity:.78}
 .idealo-main-menu-item.pending:not(.active)::after{content:'…';font-weight:900;letter-spacing:1px;color:#f36c21}
