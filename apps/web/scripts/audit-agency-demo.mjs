@@ -10,7 +10,9 @@ const api = read('../../api/src/dte/transmit-production-service.js')
 const runtime = read('../../api/src/dte/runtime-settings-service.js')
 const masterApi = read('../../api/src/admin/saas-master-service.js')
 const userAdmin = read('../../api/src/admin/user-administration-service.js')
+const genericSeed = read('../../api/src/admin/demo-seed-service.js')
 const migration = read('../../../supabase/migrations/20260831150000_agency_demo_mode.sql')
+const seedRpcMigration = read('../../../supabase/migrations/20260908152500_secure_demo_seed_rpc.sql')
 
 const demoRuntimeProtected =
   runtime.includes('assertCompanyIsNotDemo') &&
@@ -34,6 +36,14 @@ const sharedCredentialsProtected =
   security.includes('contraseña y 2FA están bloqueados') &&
   userAdmin.includes('assertNotDemoAdminMutation')
 
+const genericSeedProtected =
+  genericSeed.includes("rpc('seed_agency_demo_data'") &&
+  seedRpcMigration.includes('security definer') &&
+  seedRpcMigration.includes('DEMO_COMPANY_REQUIRED') &&
+  seedRpcMigration.includes('DEMO_MEMBER_REQUIRED') &&
+  seedRpcMigration.includes('revoke all on function public.seed_agency_demo_data(uuid,uuid) from authenticated') &&
+  seedRpcMigration.includes('grant execute on function public.seed_agency_demo_data(uuid,uuid) to service_role')
+
 const checks = [
   ['runtime diferido conectado', main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))")],
   ['guard demo montado', deferred.includes("import AgencyDemoGuard from './AgencyDemoGuard.jsx'") && deferred.includes('<AgencyDemoGuard/>')],
@@ -45,6 +55,7 @@ const checks = [
   ['bloqueo API producción', api.includes('DEMO_PRODUCTION_BLOCKED') && api.includes("select('demo_mode,demo_expires_at')")],
   ['configuración fiscal demo queda TEST', demoRuntimeProtected],
   ['credenciales demo compartidas protegidas', sharedCredentialsProtected],
+  ['precarga genérica usa RPC privilegiado', genericSeedProtected],
   ['Panel Maestro crea demo', masterCreatesDemo],
   ['seed comercial ficticio', masterApi.includes('[DEMO] Café Central') && masterApi.includes('[DEMO] Banner lona 13 oz')],
   ['seed cotización y producción', masterApi.includes("from('quotes').insert") && masterApi.includes("from('work_orders').insert")],
