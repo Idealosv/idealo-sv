@@ -1,9 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { supabase } from './lib/supabase.js'
 import Client360Timeline from './Client360Timeline.jsx'
-
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: true } })
 
 export default function Client360TimelineHost() {
   const [target, setTarget] = useState(null)
@@ -18,9 +16,15 @@ export default function Client360TimelineHost() {
       setTarget(root || null)
       setClientId(select?.value || '')
     }
+    const onChange = event => { if (event.target?.matches?.('.client360 header select')) sync() }
+    const onModule = () => queueMicrotask(sync)
     sync()
-    const timer = setInterval(sync, 400)
-    return () => clearInterval(timer)
+    document.addEventListener('change', onChange, true)
+    window.addEventListener('idealo-module-change', onModule)
+    return () => {
+      document.removeEventListener('change', onChange, true)
+      window.removeEventListener('idealo-module-change', onModule)
+    }
   }, [])
 
   useEffect(() => {
@@ -28,8 +32,7 @@ export default function Client360TimelineHost() {
     ;(async () => {
       const { data: companies } = await supabase.rpc('get_my_companies')
       const id = companies?.[0]?.id
-      if (!id) return
-      setCompanyId(id)
+      if (id) setCompanyId(id)
     })()
   }, [clientId])
 

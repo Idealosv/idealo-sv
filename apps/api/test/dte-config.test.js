@@ -34,6 +34,7 @@ test('el estado público nunca devuelve secretos', () => {
     configured: true,
     signerConfigured: true,
     productionEnabled: false,
+    productionApproved: false,
   })
   assert.equal(JSON.stringify(status).includes('secret'), false)
 })

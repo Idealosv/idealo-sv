@@ -26,6 +26,7 @@ export async function createInvoiceDraft({ request, supabase }) {
     companyId, clientId = null, dteType = '01', items, condicionOperacion = 1, totalLetras, observaciones = null,
     payment = null, numPagoElectronico = null, documentoRelacionado = null, ventaTercero = null,
     apendice = null, ivaRete = 0, ivaPerci = 0, reteRenta = 0, saldoFavor = 0, totalNoGravado = 0,
+    reissuedFromId = null, sourceQuoteId = null, sourceWorkOrderId = null,
   } = request.body || {}
   const type = String(dteType)
   if (!['01', '03'].includes(type)) { const error = new Error('Tipo DTE no soportado. Usa 01 o 03.'); error.statusCode = 400; throw error }
@@ -40,6 +41,32 @@ export async function createInvoiceDraft({ request, supabase }) {
   if (membershipError) throw membershipError
   if (!membership) { const error = new Error('No tienes permiso para facturar en esta empresa.'); error.statusCode = 403; throw error }
 
+  let rejectedSource = null
+  if (reissuedFromId) {
+    const { data, error } = await supabase.from('dte_documents')
+      .select('id, company_id, client_id, dte_type, status, control_number, source_quote_id, source_work_order_id')
+      .eq('id', reissuedFromId)
+      .eq('company_id', companyId)
+      .single()
+    if (error) throw error
+    if (data.status !== 'REJECTED') {
+      const reissueError = new Error('Solo se puede preparar una reemisión desde un DTE rechazado por Hacienda.')
+      reissueError.statusCode = 409
+      throw reissueError
+    }
+    if (String(data.dte_type) !== type) {
+      const reissueError = new Error('La reemisión debe conservar el mismo tipo de DTE del documento rechazado.')
+      reissueError.statusCode = 409
+      throw reissueError
+    }
+    if ((data.client_id || null) !== (clientId || null)) {
+      const reissueError = new Error('La reemisión debe conservar el mismo receptor del documento rechazado.')
+      reissueError.statusCode = 409
+      throw reissueError
+    }
+    rejectedSource = data
+  }
+
   const { data: company, error: companyError } = await supabase.from('companies').select('*').eq('id', companyId).single()
   if (companyError) throw companyError
 
@@ -50,10 +77,31 @@ export async function createInvoiceDraft({ request, supabase }) {
     client = data
   }
 
-  const { data: lastDocument, error: lastError } = await supabase.from('dte_documents').select('control_number').eq('company_id', companyId).eq('dte_type', type).order('created_at', { ascending: false }).limit(1).maybeSingle()
-  if (lastError) throw lastError
+  let sourceQuote = null
+  let sourceWorkOrder = null
+  const effectiveQuoteId = sourceQuoteId || rejectedSource?.source_quote_id || null
+  const effectiveWorkOrderId = sourceWorkOrderId || rejectedSource?.source_work_order_id || null
+  if (effectiveQuoteId) {
+    const { data, error } = await supabase.from('quotes').select('id, company_id, client_id').eq('id', effectiveQuoteId).eq('company_id', companyId).single()
+    if (error) throw error
+    if (clientId && data.client_id !== clientId) { const e = new Error('La cotización no pertenece al cliente seleccionado.'); e.statusCode = 409; throw e }
+    sourceQuote = data
+  }
+  if (effectiveWorkOrderId) {
+    const { data, error } = await supabase.from('work_orders').select('id, company_id, quote_id').eq('id', effectiveWorkOrderId).eq('company_id', companyId).single()
+    if (error) throw error
+    if (sourceQuote && data.quote_id !== sourceQuote.id) { const e = new Error('La orden de trabajo no corresponde a la cotización seleccionada.'); e.statusCode = 409; throw e }
+    sourceWorkOrder = data
+  }
 
-  const controlNumber = nextControlNumber(lastDocument?.control_number, type)
+  const { data: controlNumber, error: controlError } = await supabase.rpc('next_dte_control_number', {
+    p_company_id: companyId,
+    p_dte_type: type,
+    p_environment: 'test',
+  })
+  if (controlError) throw controlError
+  if (!controlNumber) { const error = new Error('No se pudo reservar un número de control DTE único.'); error.statusCode = 500; throw error }
+
   const testCompany = { ...company, establishment_code: TEST_ESTABLISHMENT_CODE, point_of_sale_code: TEST_POINT_OF_SALE_CODE }
   const normalizedItems = items.map((item) => ({
     descripcion: String(item.descripcion || '').trim(), cantidad: Number(item.cantidad), precioUni: Number(item.precioUni), montoDescu: Number(item.montoDescu || 0),
@@ -74,9 +122,10 @@ export async function createInvoiceDraft({ request, supabase }) {
   const { data: document, error: insertError } = await supabase.from('dte_documents').insert({
     company_id: companyId, client_id: client?.id || null, dte_type: type, generation_code: dte.identificacion.codigoGeneracion,
     control_number: dte.identificacion.numeroControl, environment: 'test', status: 'DRAFT', dte_payload: dte, created_by: userData.user.id,
-  }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload').single()
+    reissued_from_id: rejectedSource?.id || null, source_quote_id: sourceQuote?.id || null, source_work_order_id: sourceWorkOrder?.id || null,
+  }).select('id, client_id, dte_type, generation_code, control_number, environment, status, created_at, dte_payload, reissued_from_id, source_quote_id, source_work_order_id').single()
   if (insertError) throw insertError
-  return { ...document, transmissionAllowed: false, signingPrepared: true }
+  return { ...document, transmissionAllowed: false, signingPrepared: true, reissuePrepared: Boolean(rejectedSource) }
 }
 
 export const __test__ = { nextControlNumber }
