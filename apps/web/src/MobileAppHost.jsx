@@ -1,12 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect,useMemo,useState } from 'react'
 import { createPortal } from 'react-dom'
+import { supabase } from './lib/supabase.js'
 import MobileEvidenceSheet from './MobileEvidenceSheet.jsx'
 import { enqueueOffline,listOffline,removeOffline,offlineCount } from './mobileOffline.js'
 
-const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
-const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
-const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true}}):null
 const today=()=>new Date().toISOString().slice(0,10)
 const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(v||0))
 const closedOrder=s=>['DELIVERED','CANCELLED'].includes(s)
