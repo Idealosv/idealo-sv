@@ -1,29 +1,34 @@
 import { useEffect } from 'react'
+import { confirmModule, failModule, subscribeNavigation } from './erp-navigation.js'
+
+const RETRIES = [0, 60, 150, 300, 600, 1000, 1600]
 
 export default function WorkspaceNavigationBridge() {
-  useEffect(() => {
-    const navigate = (detail = {}) => {
-      const label = detail.tab
-      if (!label) return
+  useEffect(() => subscribeNavigation((navigation) => {
+    if (navigation.status !== 'requested' || navigation.target !== 'workspace') return
+    const { requestId, requestedModule, tab } = navigation
+    let done = false
+
+    const attempt = () => {
+      if (done) return
       const buttons = [...document.querySelectorAll('.erp-sidebar > nav:not(.idealo-main-menu) .nav-item')]
-      const button = buttons.find((item) => item.textContent.trim().endsWith(label))
-      button?.click()
+      const button = buttons.find((item) => item.textContent.trim().endsWith(tab || ''))
+      if (!button) return
+      button.click()
+      window.requestAnimationFrame(() => {
+        if (done) return
+        const title = document.querySelector('.erp-content .erp-header h1')?.textContent?.trim()
+        if (title === tab) {
+          done = true
+          confirmModule(requestId, requestedModule)
+        }
+      })
     }
 
-    const onOpen = (event) => {
-      const detail = event.detail || {}
-      if (detail.target !== 'workspace') return
-      navigate(detail)
-    }
-
-    const onNavigate = (event) => navigate(event.detail || {})
-
-    window.addEventListener('idealo-open-module', onOpen)
-    window.addEventListener('idealo-workspace-navigate', onNavigate)
-    return () => {
-      window.removeEventListener('idealo-open-module', onOpen)
-      window.removeEventListener('idealo-workspace-navigate', onNavigate)
-    }
-  }, [])
+    RETRIES.forEach((delay) => window.setTimeout(attempt, delay))
+    window.setTimeout(() => {
+      if (!done) failModule(requestId, requestedModule, `La vista ${tab} no confirmó su apertura.`)
+    }, 2400)
+  }), [])
   return null
 }
