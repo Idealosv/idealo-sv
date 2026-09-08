@@ -27,8 +27,9 @@ const masterCreatesDemo =
   master.includes('form.demo_mode') &&
   master.includes('Crear como DEMO comercial') &&
   master.includes("request('/api/admin/saas/companies'") &&
+  masterApi.includes("import { seedAgencyDemo } from './demo-seed-service.js'") &&
   masterApi.includes('demo_mode:demoMode') &&
-  masterApi.includes('if(demoMode)await seedAgencyDemo')
+  /if\s*\(demoMode\)\s*await\s+seedAgencyDemo\(\{\s*supabase\s*,\s*companyId\s*:\s*company\.id\s*,\s*createdBy\s*:\s*owner\.id\s*\}\)/.test(masterApi)
 
 const sharedCredentialsProtected =
   security.includes("company?.demo_mode===true") &&
@@ -56,9 +57,9 @@ const checks = [
   ['configuración fiscal demo queda TEST', demoRuntimeProtected],
   ['credenciales demo compartidas protegidas', sharedCredentialsProtected],
   ['precarga genérica usa RPC privilegiado', genericSeedProtected],
-  ['Panel Maestro crea demo', masterCreatesDemo],
-  ['seed comercial ficticio', masterApi.includes('[DEMO] Café Central') && masterApi.includes('[DEMO] Banner lona 13 oz')],
-  ['seed cotización y producción', masterApi.includes("from('quotes').insert") && masterApi.includes("from('work_orders').insert")],
+  ['Panel Maestro crea demo mediante precarga segura', masterCreatesDemo],
+  ['seed comercial ficticio', seedRpcMigration.includes('[DEMO] Café Central') && seedRpcMigration.includes('[DEMO] Banner lona 13 oz')],
+  ['seed cotización y producción', seedRpcMigration.includes('insert into public.quotes') && seedRpcMigration.includes('insert into public.work_orders')],
   ['demo contabilizado', masterApi.includes('demos:rows.filter(x=>x.demo_mode).length')],
 ]
 
