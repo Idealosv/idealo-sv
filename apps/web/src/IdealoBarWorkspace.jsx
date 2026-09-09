@@ -47,7 +47,7 @@ export default function IdealoBarWorkspace({company,supabase}){
  return <div style={{minHeight:'100%',background:'#0d1015'}}>
   <nav className="bar-workspace-nav" aria-label="Áreas principales de IDEALO BAR">
    {areas.map(area=><button key={area.id} type="button" className={section===area.id?'active':''} onClick={()=>setSection(area.id)}>{area.label}</button>)}
-   <button type="button" className="bar-workspace-role-chip" tabIndex="-1"><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></button>
+   <div className="bar-workspace-role-chip" aria-label={`Rol actual: ${roleLabel[access.role]||access.role}`}><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></div>
   </nav>
   {section==='operacion'&&has('operation.access')&&<IdealoBarOperationsV2 company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('catalogo')}/>} 
   {section==='catalogo'&&has('catalog.manage')&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
