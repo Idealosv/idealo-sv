@@ -68,6 +68,7 @@ import './agency-demo.css'
 import './welcome-login-force.css'
 import './privacy-admin-header.css'
 import './persistent-sidebar.css'
+import './idealo-bar.css'
 
 const DeferredRuntimeHosts=lazy(()=>import('./DeferredRuntimeHosts.jsx'))
 const nativeScrollIntoView=Element.prototype.scrollIntoView

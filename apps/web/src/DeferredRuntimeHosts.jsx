@@ -12,6 +12,7 @@ import FacturacionLauncher from './FacturacionLauncher.jsx'
 import BillingUiRecovery from './BillingUiRecovery.jsx'
 import AssistantLauncher from './AssistantLauncher.jsx'
 import SecurityLauncher from './SecurityLauncher.jsx'
+import IdealoBarLauncher from './IdealoBarLauncher.jsx'
 import WorkspaceNavigationBridge from './WorkspaceNavigationBridge.jsx'
 import ErpUxCoordinator from './ErpUxCoordinator.jsx'
 import FormAccordionManager from './FormAccordionManager.jsx'
@@ -70,6 +71,7 @@ export default function DeferredRuntimeHosts(){
   <Safe label="Recuperación UI Facturación"><BillingUiRecovery/></Safe>
   <Safe label="Asistente IA"><AssistantLauncher/></Safe>
   <Safe label="Seguridad"><SecurityLauncher/></Safe>
+  <Safe label="IDEALO BAR"><IdealoBarLauncher/></Safe>
   <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge/></Safe>
   <Safe label="Coordinación UX"><ErpUxCoordinator/></Safe>
   <Safe label="Formularios"><FormAccordionManager/></Safe>
