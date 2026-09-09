@@ -2,7 +2,7 @@ import { useState } from 'react'
 import IdealoBarOperations from './IdealoBarOperations.jsx'
 import IdealoBarCatalog from './IdealoBarCatalog.jsx'
 import IdealoBarInventory from './IdealoBarInventory.jsx'
-import IdealoBarControlCenter from './IdealoBarControlCenter.jsx'
+import IdealoBarManagementV2 from './IdealoBarManagementV2.jsx'
 import './idealo-bar-control-center.css'
 import './idealo-bar-structure.css'
 
@@ -18,6 +18,6 @@ export default function IdealoBarWorkspace({company,supabase}){
   {section==='operacion'&&<IdealoBarOperations company={company} supabase={supabase} onOpenCatalog={()=>setSection('catalogo')}/>} 
   {section==='catalogo'&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
   {section==='inventario'&&<IdealoBarInventory company={company} supabase={supabase}/>} 
-  {section==='control'&&<IdealoBarControlCenter company={company} supabase={supabase}/>} 
+  {section==='control'&&<IdealoBarManagementV2 company={company} supabase={supabase}/>} 
  </div>
 }
