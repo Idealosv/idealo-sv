@@ -175,7 +175,7 @@ export default function IdealoBar({company,supabase}){
   const {data:current,error:currentError}=await supabase.from('bar_order_items').select('status').eq('order_id',item.order_id).neq('status','cancelled')
   if(currentError)throw currentError
   const statuses=(current||[]).map(row=>row.status)
-  const orderStatus=statuses.length&&statuses.every(status=>['ready','served'].includes(status))?'ready':'preparing'
+  const orderStatus=statuses.length&&statuses.every(status=>status==='served')?'served':statuses.length&&statuses.every(status=>['ready','served'].includes(status))?'ready':'preparing'
   const {error:orderError}=await supabase.from('bar_orders').update({status:orderStatus}).eq('id',item.order_id).eq('company_id',companyId)
   if(orderError)throw orderError
   await load()
@@ -183,22 +183,11 @@ export default function IdealoBar({company,supabase}){
 
  const charge=method=>run(async()=>{
   if(!selectedOrder)throw new Error('No hay un pedido seleccionado.')
-  const total=Number(selectedOrder.total||0)
-  if(total<=0)throw new Error('El pedido no tiene saldo para cobrar.')
-  const {data:sessions,error:sessionError}=await supabase.from('cash_register_sessions').select('id').eq('company_id',companyId).eq('status','open').order('opened_at',{ascending:false}).limit(1)
-  if(sessionError)throw sessionError
-  const cashSession=sessions?.[0]
-  if(!cashSession)throw new Error('Abrí una caja en IDEALO SV antes de cobrar. IDEALO BAR siempre registra el cobro contra una sesión de caja activa.')
-  const {error:paymentError}=await supabase.from('bar_payments').insert({company_id:companyId,order_id:selectedOrder.id,cash_register_session_id:cashSession.id,method,amount:total})
-  if(paymentError)throw paymentError
-  const {data:userData}=await supabase.auth.getUser()
-  const {error:orderError}=await supabase.from('bar_orders').update({status:'paid',closed_at:new Date().toISOString(),closed_by:userData?.user?.id||null}).eq('id',selectedOrder.id).eq('company_id',companyId)
-  if(orderError)throw orderError
-  if(selectedOrder.table_id){
-   const {error:tableError}=await supabase.from('bar_tables').update({status:'available'}).eq('id',selectedOrder.table_id).eq('company_id',companyId)
-   if(tableError)throw tableError
-  }
-  setSelectedOrderId(null);await load()
+  if(Number(selectedOrder.total||0)<=0)throw new Error('El pedido no tiene saldo para cobrar.')
+  const {error:checkoutError}=await supabase.rpc('bar_checkout_order',{p_order_id:selectedOrder.id,p_method:method,p_reference:null})
+  if(checkoutError)throw checkoutError
+  setSelectedOrderId(null)
+  await load()
  })
 
  const stationBoard=station=>{
