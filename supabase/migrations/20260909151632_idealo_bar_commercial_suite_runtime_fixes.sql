@@ -1,0 +1,2 @@
+-- Alineación de historial: la corrección runtime ya está aplicada.
+-- Sin cambios adicionales de esquema ni datos.
