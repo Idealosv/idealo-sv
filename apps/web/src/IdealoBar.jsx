@@ -10,14 +10,15 @@ const orderStatusLabel={open:'Abierta',sent:'Enviada',preparing:'Preparando',rea
 
 const productProfile=name=>{
  const value=String(name||'').toLowerCase()
- if(/cerveza|pilsener|suprema|golden|corona|modelo|heineken|regia|stella|budweiser|cubeta/.test(value))return{category:'Cervezas',station:'bar',emoji:'🍺'}
+ if(/cerveza|pilsener|suprema|golden|corona|modelo|heineken|regia|stella|budweiser|balde|hielerazo|hielarazo/.test(value))return{category:'Cervezas',station:'bar',emoji:'🍺'}
  if(/bebida|soda|gaseosa|coca|pepsi|sprite|fanta|agua|jugo|limonada|michelada|coctel|té|te |café|cafe/.test(value))return{category:'Bebidas',station:'bar',emoji:'🥤'}
  if(/alita|boneless/.test(value))return{category:'Alitas',station:'kitchen',emoji:'🍗'}
  if(/hamburg|burger/.test(value))return{category:'Hamburguesas',station:'kitchen',emoji:'🍔'}
- if(/papa|frita/.test(value))return{category:'Papas',station:'kitchen',emoji:'🍟'}
- if(/hot dog|hotdog|perro/.test(value))return{category:'Hot Dogs',station:'kitchen',emoji:'🌭'}
+ if(/papas?|fritas?/.test(value))return{category:'Papas',station:'kitchen',emoji:'🍟'}
+ if(/hot dog|hotdog/.test(value))return{category:'Hot Dogs',station:'kitchen',emoji:'🌭'}
  if(/nacho/.test(value))return{category:'Nachos',station:'kitchen',emoji:'🧀'}
- return{category:'Comida',station:'kitchen',emoji:'🍽️'}
+ if(/taco/.test(value))return{category:'Tacos',station:'kitchen',emoji:'🌮'}
+ return{category:'Otros',station:'kitchen',emoji:'🍽️'}
 }
 
 const elapsed=createdAt=>{
@@ -27,7 +28,7 @@ const elapsed=createdAt=>{
  return`${Math.floor(minutes/60)} h ${minutes%60} min`
 }
 
-export default function IdealoBar({company,supabase}){
+export default function IdealoBar({company,supabase,onOpenCatalog}){
  const companyId=company?.id
  const [tab,setTab]=useState('Salón')
  const [tables,setTables]=useState([])
@@ -94,16 +95,6 @@ export default function IdealoBar({company,supabase}){
   await load()
  })
 
- const activateProducts=()=>run(async()=>{
-  const {data:products,error:productsError}=await supabase.from('finished_products').select('id,name,sale_price,active').eq('company_id',companyId).eq('active',true).order('name').limit(500)
-  if(productsError)throw productsError
-  if(!products?.length)throw new Error('Primero agregá productos activos en IDEALO SV > Productos.')
-  const payload=products.map((product,index)=>({company_id:companyId,product_id:product.id,...productProfile(product.name),sort_order:index+1}))
-  const {error:menuError}=await supabase.from('bar_menu_items').upsert(payload,{onConflict:'company_id,product_id',ignoreDuplicates:true})
-  if(menuError)throw menuError
-  await load()
- })
-
  const openTable=table=>run(async()=>{
   const existing=orderByTable.get(table.id)
   if(existing){setSelectedOrderId(existing.id);setTab('Salón');return}
@@ -123,7 +114,7 @@ export default function IdealoBar({company,supabase}){
  const addItem=menuItem=>run(async()=>{
   if(!selectedOrder)throw new Error('Seleccioná una mesa o creá un pedido para llevar antes de agregar productos.')
   const product=menuItem.product
-  if(!product)throw new Error('Este producto ya no está disponible en IDEALO SV.')
+  if(!product)throw new Error('Este producto ya no está disponible en la carta.')
   const price=Number(menuItem.sale_price_override??product.sale_price??0)
   const existing=selectedItems.find(item=>item.menu_item_id===menuItem.id&&item.status==='new'&&Number(item.unit_price)===price)
   if(existing){
@@ -209,19 +200,19 @@ export default function IdealoBar({company,supabase}){
 
  return <div className="idealo-bar-shell">
   <header className="bar-hero">
-   <div><span className="bar-kicker">IDEALO SV · Operación especializada</span><h2>IDEALO BAR</h2><p>{company?.name||'Empresa'} · Mesas, pedidos, cocina, barra y cobro</p></div>
+   <div><span className="bar-kicker">Operación diaria</span><h2>IDEALO BAR</h2><p>{company?.name||'Empresa'} · Mesas, pedidos, cocina, barra y cobro</p></div>
    <div className="bar-live"><i/> En línea</div>
   </header>
 
   {error&&<div className="bar-alert" role="alert"><span>!</span><p>{error}</p><button type="button" onClick={()=>setError('')}>×</button></div>}
 
-  <nav className="bar-tabs" aria-label="Secciones de IDEALO BAR">
+  <nav className="bar-tabs" aria-label="Secciones de operación">
    {['Salón','Pedidos','Cocina','Barra'].map(name=><button type="button" key={name} className={tab===name?'active':''} onClick={()=>setTab(name)}>{name==='Salón'?'▦':name==='Pedidos'?'≡':name==='Cocina'?'♨':'◉'} <span>{name}</span>{(name==='Cocina'||name==='Barra')&&<b>{items.filter(item=>item.station===(name==='Cocina'?'kitchen':'bar')&&PREP_STATUSES.includes(item.status)).length}</b>}</button>)}
   </nav>
 
   {(!tables.length||!menu.length)&&<section className="bar-setup">
-   <div><span>⚡</span><div><strong>Preparación inicial</strong><p>IDEALO BAR reutiliza los productos y la empresa de IDEALO SV. No crea un catálogo separado.</p></div></div>
-   <div className="bar-setup-actions">{!tables.length&&<button type="button" disabled={working} onClick={createTables}>Crear 12 mesas</button>}{!menu.length&&<button type="button" disabled={working} onClick={activateProducts}>Activar productos de IDEALO SV</button>}</div>
+   <div><span>⚡</span><div><strong>Configuración inicial del bar</strong><p>{!tables.length?'Creá las mesas para empezar a tomar pedidos. ':''}{!menu.length?'Después configurá una carta exclusiva con cerveza, bebidas, comida y combos.':''}</p></div></div>
+   <div className="bar-setup-actions">{!tables.length&&<button type="button" disabled={working} onClick={createTables}>Crear 12 mesas</button>}{!menu.length&&<button type="button" disabled={working} onClick={()=>onOpenCatalog?.()}>Configurar carta</button>}</div>
   </section>}
 
   {tab==='Salón'&&<div className="bar-pos-layout">
@@ -247,7 +238,7 @@ export default function IdealoBar({company,supabase}){
       <span className="bar-product-emoji">{item.emoji||productProfile(label).emoji}</span><strong>{label}</strong><small>{item.category} · {item.station==='bar'?'Barra':'Cocina'}</small><b>{money.format(price)}</b>
      </button>
     })}</div>
-    {!filteredMenu.length&&<div className="bar-empty-state"><span>⌕</span><strong>Sin productos</strong><p>Probá otra categoría o activá productos desde IDEALO SV.</p></div>}
+    {!filteredMenu.length&&<div className="bar-empty-state"><span>🍽️</span><strong>La carta está vacía</strong><p>Agregá únicamente productos del bar desde Carta y productos.</p><button type="button" onClick={()=>onOpenCatalog?.()}>Ir a la carta</button></div>}
    </main>
 
    <aside className="bar-ticket-panel">
@@ -260,7 +251,7 @@ export default function IdealoBar({company,supabase}){
      </div>):<div className="bar-ticket-empty"><span>＋</span><p>Tocá un producto para agregarlo al pedido.</p></div>}</div>
      <div className="bar-ticket-total"><div><span>Subtotal</span><b>{money.format(Number(selectedOrder.subtotal||0))}</b></div>{Number(selectedOrder.discount_total)>0&&<div><span>Descuento</span><b>−{money.format(Number(selectedOrder.discount_total))}</b></div>}{Number(selectedOrder.tip_total)>0&&<div><span>Propina</span><b>{money.format(Number(selectedOrder.tip_total))}</b></div>}<div className="grand"><span>Total</span><strong>{money.format(Number(selectedOrder.total||0))}</strong></div></div>
      <div className="bar-ticket-actions"><button type="button" className="primary" onClick={sendOrder} disabled={working||!selectedItems.some(item=>item.status==='new')}>Enviar a preparación</button>{selectedOrder.table_id&&<button type="button" onClick={requestBill} disabled={working}>Solicitar cuenta</button>}</div>
-     <div className="bar-payment"><span>Cobrar con caja IDEALO SV</span><div><button type="button" onClick={()=>charge('cash')} disabled={working||Number(selectedOrder.total)<=0}>Efectivo</button><button type="button" onClick={()=>charge('card')} disabled={working||Number(selectedOrder.total)<=0}>Tarjeta</button><button type="button" onClick={()=>charge('transfer')} disabled={working||Number(selectedOrder.total)<=0}>Transferencia</button></div></div>
+     <div className="bar-payment"><span>Cobrar pedido</span><div><button type="button" onClick={()=>charge('cash')} disabled={working||Number(selectedOrder.total)<=0}>Efectivo</button><button type="button" onClick={()=>charge('card')} disabled={working||Number(selectedOrder.total)<=0}>Tarjeta</button><button type="button" onClick={()=>charge('transfer')} disabled={working||Number(selectedOrder.total)<=0}>Transferencia</button></div></div>
     </>:<div className="bar-ticket-empty large"><span>▦</span><strong>Seleccioná una mesa</strong><p>O creá un pedido para llevar o delivery para comenzar.</p></div>}
    </aside>
   </div>}
