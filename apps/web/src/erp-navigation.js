@@ -13,6 +13,7 @@ export const ERP_ROUTES = Object.freeze({
   Proveedores: { target: 'procurement', tab: 'Proveedores' },
   Compras: { target: 'procurement', tab: 'Compras y gastos' },
   Caja: { target: 'procurement', tab: 'Caja' },
+  'IDEALO BAR': { target: 'bar', tab: 'Salón' },
   'Asistente IA': { target: 'assistant' },
   Agenda: { target: 'planning' },
   Reportes: { target: 'financial' },
