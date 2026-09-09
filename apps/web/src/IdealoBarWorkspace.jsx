@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import IdealoBar from './IdealoBar.jsx'
+import IdealoBarOperations from './IdealoBarOperations.jsx'
 import IdealoBarCatalog from './IdealoBarCatalog.jsx'
 import IdealoBarInventory from './IdealoBarInventory.jsx'
 import IdealoBarControlCenter from './IdealoBarControlCenter.jsx'
@@ -15,7 +15,7 @@ export default function IdealoBarWorkspace({company,supabase}){
    <button type="button" className={section==='inventario'?'active':''} onClick={()=>setSection('inventario')}>≡ Inventario y recetas</button>
    <button type="button" className={section==='control'?'active':''} onClick={()=>setSection('control')}>⚙ Administración</button>
   </nav>
-  {section==='operacion'&&<IdealoBar company={company} supabase={supabase} onOpenCatalog={()=>setSection('catalogo')}/>} 
+  {section==='operacion'&&<IdealoBarOperations company={company} supabase={supabase} onOpenCatalog={()=>setSection('catalogo')}/>} 
   {section==='catalogo'&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
   {section==='inventario'&&<IdealoBarInventory company={company} supabase={supabase}/>} 
   {section==='control'&&<IdealoBarControlCenter company={company} supabase={supabase}/>} 

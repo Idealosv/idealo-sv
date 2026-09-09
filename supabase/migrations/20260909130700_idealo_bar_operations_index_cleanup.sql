@@ -1,0 +1,1 @@
+create index if not exists bar_order_items_voided_by_idx on public.bar_order_items(voided_by) where voided_by is not null;
