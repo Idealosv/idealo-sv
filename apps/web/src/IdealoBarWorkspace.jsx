@@ -4,9 +4,11 @@ import IdealoBarCatalog from './IdealoBarCatalog.jsx'
 import IdealoBarInventory from './IdealoBarInventory.jsx'
 import IdealoBarManagementV2 from './IdealoBarManagementV2.jsx'
 import IdealoBarAdvancedCenter from './IdealoBarAdvancedCenter.jsx'
+import IdealoBarCommercialReady from './IdealoBarCommercialReady.jsx'
 import './idealo-bar-control-center.css'
 import './idealo-bar-structure.css'
 import './idealo-bar-role-permissions.css'
+import './idealo-bar-mobile.css'
 
 const roleLabel={owner:'Propietario',manager:'Gerente',cashier:'Cajero',waiter:'Mesero',kitchen:'Cocina',bar:'Barra',warehouse:'Bodega',none:'Sin rol'}
 
@@ -36,6 +38,7 @@ export default function IdealoBarWorkspace({company,supabase}){
   {id:'inventario',label:'≡ Inventario y recetas',allowed:has('inventory.view')||has('inventory.manage')},
   {id:'avanzado',label:'◆ Gestión del bar',allowed:advancedAllowed},
   {id:'control',label:'⚙ Administración',allowed:has('admin.view')},
+  {id:'listo',label:'🚀 Puesta en marcha',allowed:has('admin.manage')},
  ].filter(area=>area.allowed),[has,advancedAllowed])
 
  useEffect(()=>{
@@ -47,7 +50,7 @@ export default function IdealoBarWorkspace({company,supabase}){
  if(error)return <div className="bar-role-workspace-lock"><span>!</span><h2>No se pudo validar el acceso</h2><p>{error}</p></div>
  if(!access?.active||!areas.length)return <div className="bar-role-workspace-lock"><span>🔒</span><h2>Sin área habilitada</h2><p>Tu usuario pertenece a la empresa, pero su función dentro de IDEALO BAR está inactiva o no tiene un área asignada. Gerencia puede corregirlo en Personal y permisos.</p></div>
 
- return <div style={{minHeight:'100%',background:'#0d1015'}}>
+ return <div className="bar-workspace-root" style={{minHeight:'100%',background:'#0d1015'}}>
   <nav className="bar-workspace-nav" aria-label="Áreas principales de IDEALO BAR">
    {areas.map(area=><button key={area.id} type="button" className={section===area.id?'active':''} onClick={()=>setSection(area.id)}>{area.label}</button>)}
    <div className="bar-workspace-role-chip" aria-label={`Rol actual: ${roleLabel[access.role]||access.role}`}><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></div>
@@ -57,5 +60,6 @@ export default function IdealoBarWorkspace({company,supabase}){
   {section==='inventario'&&(has('inventory.view')||has('inventory.manage'))&&<IdealoBarInventory company={company} supabase={supabase}/>} 
   {section==='avanzado'&&advancedAllowed&&<IdealoBarAdvancedCenter company={company} supabase={supabase} access={access}/>} 
   {section==='control'&&has('admin.view')&&<IdealoBarManagementV2 company={company} supabase={supabase}/>} 
+  {section==='listo'&&has('admin.manage')&&<IdealoBarCommercialReady company={company} supabase={supabase} access={access} onOpenCatalog={()=>setSection('catalogo')} onOpenInventory={()=>setSection('inventario')} onOpenAdmin={()=>setSection('control')}/>} 
  </div>
 }
