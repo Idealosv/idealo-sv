@@ -140,7 +140,7 @@ export default function IdealoBarControlCenter({company,supabase}){
   <label>Forma de precio<select value={promo.pricingMode} onChange={e=>setPromo(c=>({...c,pricingMode:e.target.value}))}><option value="PERCENT_OFF">% descuento</option><option value="AMOUNT_OFF">$ descuento</option><option value="FIXED_PRICE">Precio fijo</option></select></label>
   <label>Valor<input type="number" min="0" step="0.01" value={promo.value} onChange={e=>setPromo(c=>({...c,value:e.target.value}))}/></label>
   <label>Cantidad mínima<input type="number" min="1" step="1" value={promo.minQuantity} onChange={e=>setPromo(c=>({...c,minQuantity:e.target.value}))}/></label>
-  {type==='HAPPY_HOUR'&&<><label>Desde<input type="time" value={promo.startTime} onChange={e=>setPromo(c=>({...c,startTime:e.target.value}))}/></label><label>Hasta<input type="time" value={promo.endTime} onChange={e=>setPromo(c=>({...c,endTime:e.target.value}))}/></>}
+  {type==='HAPPY_HOUR'&&<><label>Desde<input type="time" value={promo.startTime} onChange={e=>setPromo(c=>({...c,startTime:e.target.value}))}/></label><label>Hasta<input type="time" value={promo.endTime} onChange={e=>setPromo(c=>({...c,endTime:e.target.value}))}/></label></>}
   <div className="bar-admin-action"><button type="button" className="primary" disabled={working||!products.length} onClick={()=>savePromotion(type)}>Guardar {type==='HAPPY_HOUR'?'Happy Hour':'promoción'}</button></div>
  </div>
 
