@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase.js'
-import IdealoBar from './IdealoBar.jsx'
+import IdealoBarWorkspace from './IdealoBarWorkspace.jsx'
 import { confirmModule, subscribeNavigation } from './erp-navigation.js'
 
 export default function IdealoBarLauncher(){
@@ -48,7 +48,7 @@ export default function IdealoBarLauncher(){
  return open?<div className="erp-modal-backdrop idealo-bar-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}>
   <section className="erp-modal-panel idealo-bar-modal" role="dialog" aria-modal="true" aria-label="IDEALO BAR" onMouseDown={event=>event.stopPropagation()}>
    <button type="button" className="erp-modal-close idealo-bar-close" aria-label="Cerrar IDEALO BAR" onClick={()=>setOpen(false)}>×</button>
-   <IdealoBar company={company} supabase={supabase}/>
+   <IdealoBarWorkspace company={company} supabase={supabase}/>
   </section>
  </div>:null
 }
