@@ -34,7 +34,7 @@ export default function IdealoBarWorkspace({company,supabase}){
   {id:'operacion',label:'▦ Operación',allowed:has('operation.access')},
   {id:'catalogo',label:'🍽️ Carta y productos',allowed:has('catalog.manage')},
   {id:'inventario',label:'≡ Inventario y recetas',allowed:has('inventory.view')||has('inventory.manage')},
-  {id:'avanzado',label:'⚡ Control avanzado',allowed:advancedAllowed},
+  {id:'avanzado',label:'◆ Gestión del bar',allowed:advancedAllowed},
   {id:'control',label:'⚙ Administración',allowed:has('admin.view')},
  ].filter(area=>area.allowed),[has,advancedAllowed])
 
