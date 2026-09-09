@@ -1,19 +1,19 @@
-export const ERP_MODULES=['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Cuentas por cobrar','Proveedores','Compras','Caja','IDEALO BAR','Asistente IA','Agenda','Reportes','Seguridad']
+export const ERP_MODULES=['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Cuentas por cobrar','Proveedores','Compras','Caja','Asistente IA','Agenda','Reportes','Seguridad']
 
 export const ROLE_LABEL={owner:'Propietario',admin:'Administrador',staff:'Empleado',viewer:'Solo lectura'}
 
 const ACCESS={
  owner:new Set(ERP_MODULES),
  admin:new Set(ERP_MODULES),
- staff:new Set(['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Cuentas por cobrar','Proveedores','Compras','IDEALO BAR','Asistente IA','Agenda']),
+ staff:new Set(['Dashboard','App móviles','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Cuentas por cobrar','Proveedores','Compras','Asistente IA','Agenda']),
  viewer:new Set(['Dashboard','Clientes','Productos','Cotizaciones','Producción','Inventario','Facturación','Cuentas por cobrar','Proveedores','Compras','Caja','Agenda','Reportes'])
 }
 
-const TARGET_MODULE={workspace:'Dashboard',commercial:'Productos',inventory:'Inventario',billing:'Facturación',procurement:'Compras',bar:'IDEALO BAR',assistant:'Asistente IA',planning:'Agenda',financial:'Reportes',security:'Seguridad'}
+const TARGET_MODULE={workspace:'Dashboard',commercial:'Productos',inventory:'Inventario',billing:'Facturación',procurement:'Compras',assistant:'Asistente IA',planning:'Agenda',financial:'Reportes',security:'Seguridad'}
 const TAB_MODULE={
  'Resumen':'Dashboard','Clientes':'Clientes','Productos y trabajos':'Productos','Cotizaciones':'Cotizaciones','Operación':'Producción','Órdenes de trabajo':'Producción','Producción':'Producción','Entregas':'Producción','Cuentas por cobrar':'Cuentas por cobrar',
  'Inventario':'Inventario','resumen':'Facturación','emitir':'Facturación','documentos':'Facturación','cobros':'Cuentas por cobrar','hacienda':'Facturación',
- 'Control':'Compras','Proveedores':'Proveedores','Compras':'Compras','Compras y gastos':'Compras','Reposición':'Compras','Recepción':'Compras','Cuentas por pagar':'Compras','Caja':'Caja','Salón':'IDEALO BAR'
+ 'Control':'Compras','Proveedores':'Proveedores','Compras':'Compras','Compras y gastos':'Compras','Reposición':'Compras','Recepción':'Compras','Cuentas por pagar':'Compras','Caja':'Caja'
 }
 
 export function normalizeModule(module){return module}
