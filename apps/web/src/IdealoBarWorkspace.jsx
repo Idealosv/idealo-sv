@@ -3,6 +3,7 @@ import IdealoBarOperationsV2 from './IdealoBarOperationsV2.jsx'
 import IdealoBarCatalog from './IdealoBarCatalog.jsx'
 import IdealoBarInventory from './IdealoBarInventory.jsx'
 import IdealoBarManagementV2 from './IdealoBarManagementV2.jsx'
+import IdealoBarAdvancedCenter from './IdealoBarAdvancedCenter.jsx'
 import './idealo-bar-control-center.css'
 import './idealo-bar-structure.css'
 import './idealo-bar-role-permissions.css'
@@ -28,12 +29,14 @@ export default function IdealoBarWorkspace({company,supabase}){
 
  const permissions=useMemo(()=>Array.isArray(access?.permissions)?access.permissions:[],[access])
  const has=useCallback(permission=>permissions.includes('*')||permissions.includes(permission),[permissions])
+ const advancedAllowed=useMemo(()=>has('admin.manage')||has('payment.take')||has('bill.request')||has('inventory.view')||has('inventory.manage'),[has])
  const areas=useMemo(()=>[
   {id:'operacion',label:'▦ Operación',allowed:has('operation.access')},
   {id:'catalogo',label:'🍽️ Carta y productos',allowed:has('catalog.manage')},
   {id:'inventario',label:'≡ Inventario y recetas',allowed:has('inventory.view')||has('inventory.manage')},
+  {id:'avanzado',label:'◆ Gestión del bar',allowed:advancedAllowed},
   {id:'control',label:'⚙ Administración',allowed:has('admin.view')},
- ].filter(area=>area.allowed),[has])
+ ].filter(area=>area.allowed),[has,advancedAllowed])
 
  useEffect(()=>{
   if(!access||!areas.length)return
@@ -52,6 +55,7 @@ export default function IdealoBarWorkspace({company,supabase}){
   {section==='operacion'&&has('operation.access')&&<IdealoBarOperationsV2 company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('catalogo')}/>} 
   {section==='catalogo'&&has('catalog.manage')&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
   {section==='inventario'&&(has('inventory.view')||has('inventory.manage'))&&<IdealoBarInventory company={company} supabase={supabase}/>} 
+  {section==='avanzado'&&advancedAllowed&&<IdealoBarAdvancedCenter company={company} supabase={supabase} access={access}/>} 
   {section==='control'&&has('admin.view')&&<IdealoBarManagementV2 company={company} supabase={supabase}/>} 
  </div>
 }

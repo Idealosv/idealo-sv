@@ -1,0 +1,2 @@
+-- Alineación de historial de migraciones con Supabase.
+-- Esta migración no realiza cambios de esquema ni datos.
