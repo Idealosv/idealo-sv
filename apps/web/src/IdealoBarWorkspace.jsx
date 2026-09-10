@@ -8,6 +8,8 @@ import './idealo-bar-structure.css'
 import './idealo-bar-role-permissions.css'
 import './idealo-bar-mobile.css'
 import './idealo-bar-professional.css'
+import './idealo-bar-clean-light.css'
+import './idealo-bar-owner-simple.css'
 
 const roleLabel={owner:'Propietario',manager:'Gerente',cashier:'Cajero',waiter:'Mesero',kitchen:'Cocina',bar:'Barra',warehouse:'Bodega',none:'Sin rol'}
 
@@ -32,10 +34,10 @@ export default function IdealoBarWorkspace({company,supabase}){
  const has=useCallback(permission=>permissions.includes('*')||permissions.includes(permission),[permissions])
  const managementAllowed=useMemo(()=>has('admin.view')||has('admin.manage')||has('payment.take')||has('bill.request')||has('inventory.view')||has('inventory.manage'),[has])
  const areas=useMemo(()=>[
-  {id:'vender',label:'▦ Vender',allowed:has('operation.access')},
-  {id:'carta',label:'🍽 Carta',allowed:has('catalog.manage')},
-  {id:'inventario',label:'≡ Inventario',allowed:has('inventory.view')||has('inventory.manage')},
-  {id:'gestion',label:'⚙ Gestión',allowed:managementAllowed},
+  {id:'vender',label:'Vender',allowed:has('operation.access')},
+  {id:'carta',label:'Carta',allowed:has('catalog.manage')},
+  {id:'inventario',label:'Inventario',allowed:has('inventory.view')||has('inventory.manage')},
+  {id:'gestion',label:'Gestión',allowed:managementAllowed},
  ].filter(area=>area.allowed),[has,managementAllowed])
 
  useEffect(()=>{
@@ -47,7 +49,7 @@ export default function IdealoBarWorkspace({company,supabase}){
  if(error)return <div className="bar-role-workspace-lock"><span>!</span><h2>No se pudo validar el acceso</h2><p>{error}</p></div>
  if(!access?.active||!areas.length)return <div className="bar-role-workspace-lock"><span>🔒</span><h2>Sin área habilitada</h2><p>Tu acceso a IDEALO BAR está inactivo o no tiene una función asignada. Gerencia puede corregirlo en Personal y permisos.</p></div>
 
- return <div className="bar-workspace-root">
+ return <div className="bar-workspace-root" data-bar-role={access.role||'none'}>
   <nav className="bar-workspace-nav" aria-label="Áreas principales de IDEALO BAR">
    {areas.map(area=><button key={area.id} type="button" className={section===area.id?'active':''} onClick={()=>setSection(area.id)}>{area.label}</button>)}
    <div className="bar-workspace-role-chip" aria-label={`Rol actual: ${roleLabel[access.role]||access.role}`}><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></div>
