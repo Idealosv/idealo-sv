@@ -21,11 +21,14 @@ function reconcileModal(modal){
       .some(node=>normalizeText(node).includes('Origen cargado:'))
     const ready=[...modal.querySelectorAll('.feedback.success')]
       .some(node=>normalizeText(node).includes('Documento listo para guardar'))
-    const shouldHide=hasLoadedSource&&ready
 
-    banner.hidden=shouldHide
-    if(shouldHide) banner.setAttribute('aria-hidden','true')
-    else banner.removeAttribute('aria-hidden')
+    if(hasLoadedSource&&ready){
+      banner.hidden=true
+      banner.setAttribute('aria-hidden','true')
+    }else{
+      banner.hidden=false
+      banner.removeAttribute('aria-hidden')
+    }
   })
 }
 
