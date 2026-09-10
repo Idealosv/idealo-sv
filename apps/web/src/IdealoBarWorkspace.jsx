@@ -8,6 +8,7 @@ import './idealo-bar-structure.css'
 import './idealo-bar-role-permissions.css'
 import './idealo-bar-mobile.css'
 import './idealo-bar-professional.css'
+import './idealo-bar-clean-light.css'
 
 const roleLabel={owner:'Propietario',manager:'Gerente',cashier:'Cajero',waiter:'Mesero',kitchen:'Cocina',bar:'Barra',warehouse:'Bodega',none:'Sin rol'}
 
@@ -32,10 +33,10 @@ export default function IdealoBarWorkspace({company,supabase}){
  const has=useCallback(permission=>permissions.includes('*')||permissions.includes(permission),[permissions])
  const managementAllowed=useMemo(()=>has('admin.view')||has('admin.manage')||has('payment.take')||has('bill.request')||has('inventory.view')||has('inventory.manage'),[has])
  const areas=useMemo(()=>[
-  {id:'vender',label:'▦ Vender',allowed:has('operation.access')},
-  {id:'carta',label:'🍽 Carta',allowed:has('catalog.manage')},
-  {id:'inventario',label:'≡ Inventario',allowed:has('inventory.view')||has('inventory.manage')},
-  {id:'gestion',label:'⚙ Gestión',allowed:managementAllowed},
+  {id:'vender',label:'Vender',allowed:has('operation.access')},
+  {id:'carta',label:'Carta',allowed:has('catalog.manage')},
+  {id:'inventario',label:'Inventario',allowed:has('inventory.view')||has('inventory.manage')},
+  {id:'gestion',label:'Gestión',allowed:managementAllowed},
  ].filter(area=>area.allowed),[has,managementAllowed])
 
  useEffect(()=>{
