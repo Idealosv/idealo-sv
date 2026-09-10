@@ -1,0 +1,100 @@
+/* IDEALO BAR · corrección de contraste sobre reglas heredadas del tema claro.
+   Este archivo debe cargarse al final de la cadena visual. */
+
+/* Algunos selectores genéricos del tema claro tenían mayor especificidad y
+   dejaban paneles blancos con tipografía clara. Forzamos las superficies
+   operativas a la paleta lounge real. */
+.barops [class*="barops-"][class*="panel"],
+.barops-dashboard > .barops-panel,
+.barops .barops-panel,
+.barops .barops-floor,
+.barops .barops-menu,
+.barops .barops-ticket {
+  background:#263340!important;
+  color:#f2f5f8!important;
+  border-color:#3a4a5d!important;
+}
+
+.barops .barops-panel .barops-panel-head,
+.barops-dashboard > .barops-panel .barops-panel-head {
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+
+.barops .barops-panel-head h3,
+.barops .barops-panel-head strong,
+.barops .barops-feed article b,
+.barops .barops-feed article h4,
+.barops .barops-feed article p,
+.barops .barops-feed article span,
+.barops .barops-order-card b,
+.barops .barops-order-card strong {
+  color:#f4f7fa!important;
+  opacity:1!important;
+}
+
+.barops .barops-panel-head p,
+.barops .barops-panel-head small,
+.barops .barops-feed article small,
+.barops .barops-order-card small {
+  color:#aebac6!important;
+  opacity:1!important;
+}
+
+.barops .barops-feed article {
+  background:transparent!important;
+  color:#eef3f7!important;
+  border-bottom-color:#425366!important;
+}
+
+.barops .barops-feed article strong,
+.barops .barops-feed article .amount,
+.barops .barops-feed article [class*="price"],
+.barops .barops-feed article [class*="total"] {
+  color:#f0b45f!important;
+  opacity:1!important;
+  font-weight:850!important;
+}
+
+.barops .barops-panel-head button,
+.barops .barops-btn {
+  background:#314052!important;
+  border-color:#46596d!important;
+  color:#f2f5f8!important;
+}
+
+.barops-dashboard > .barops-panel:last-child,
+.barops-dashboard > .barops-panel:last-child [class*="barops-"][class*="panel"] {
+  background:#22303e!important;
+}
+
+/* Estado del turno: evita cualquier cabecera blanca residual. */
+.barops-dashboard > .barops-panel:last-child .barops-panel-head,
+.barops-dashboard > .barops-panel:last-child .barops-feed,
+.barops-dashboard > .barops-panel:last-child .barops-feed article {
+  background:transparent!important;
+}
+
+/* Legibilidad de estados y cifras. */
+.barops-dashboard > .barops-panel:last-child .barops-feed article b,
+.barops-dashboard > .barops-panel:last-child .barops-feed article strong {
+  color:#f5f7fa!important;
+}
+.barops-dashboard > .barops-panel:last-child .barops-feed article > strong:last-child {
+  color:#f0b45f!important;
+}
+
+/* Si algún módulo conserva una superficie blanca por estilos antiguos,
+   garantiza texto oscuro allí en vez de texto blanco sobre blanco. */
+.barops .barops-panel[style*="background: white"],
+.barops .barops-panel[style*="background:#fff"],
+.barops .barops-panel[style*="background: #fff"] {
+  color:#172033!important;
+}
+
+@media(max-width:760px){
+  .barops [class*="barops-"][class*="panel"],
+  .barops-dashboard > .barops-panel,
+  .barops .barops-panel {background:#263340!important;color:#f2f5f8!important}
+}
