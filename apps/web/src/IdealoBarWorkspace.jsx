@@ -10,6 +10,7 @@ import './idealo-bar-mobile.css'
 import './idealo-bar-professional.css'
 import './idealo-bar-clean-light.css'
 import './idealo-bar-owner-simple.css'
+import './idealo-bar-balanced-professional.css'
 
 const roleLabel={owner:'Propietario',manager:'Gerente',cashier:'Cajero',waiter:'Mesero',kitchen:'Cocina',bar:'Barra',warehouse:'Bodega',none:'Sin rol'}
 
