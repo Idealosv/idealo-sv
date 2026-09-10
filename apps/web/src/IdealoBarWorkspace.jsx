@@ -2,18 +2,17 @@ import {useCallback,useEffect,useMemo,useState} from 'react'
 import IdealoBarOperationsV2 from './IdealoBarOperationsV2.jsx'
 import IdealoBarCatalog from './IdealoBarCatalog.jsx'
 import IdealoBarInventory from './IdealoBarInventory.jsx'
-import IdealoBarManagementV2 from './IdealoBarManagementV2.jsx'
-import IdealoBarAdvancedCenter from './IdealoBarAdvancedCenter.jsx'
-import IdealoBarCommercialReady from './IdealoBarCommercialReady.jsx'
+import IdealoBarSimpleManagement from './IdealoBarSimpleManagement.jsx'
 import './idealo-bar-control-center.css'
 import './idealo-bar-structure.css'
 import './idealo-bar-role-permissions.css'
 import './idealo-bar-mobile.css'
+import './idealo-bar-professional.css'
 
 const roleLabel={owner:'Propietario',manager:'Gerente',cashier:'Cajero',waiter:'Mesero',kitchen:'Cocina',bar:'Barra',warehouse:'Bodega',none:'Sin rol'}
 
 export default function IdealoBarWorkspace({company,supabase}){
- const [section,setSection]=useState('operacion')
+ const [section,setSection]=useState('vender')
  const [access,setAccess]=useState(null)
  const [error,setError]=useState('')
  const [loading,setLoading]=useState(true)
@@ -31,35 +30,32 @@ export default function IdealoBarWorkspace({company,supabase}){
 
  const permissions=useMemo(()=>Array.isArray(access?.permissions)?access.permissions:[],[access])
  const has=useCallback(permission=>permissions.includes('*')||permissions.includes(permission),[permissions])
- const advancedAllowed=useMemo(()=>has('admin.manage')||has('payment.take')||has('bill.request')||has('inventory.view')||has('inventory.manage'),[has])
+ const managementAllowed=useMemo(()=>has('admin.view')||has('admin.manage')||has('payment.take')||has('bill.request')||has('inventory.view')||has('inventory.manage'),[has])
  const areas=useMemo(()=>[
-  {id:'operacion',label:'▦ Operación',allowed:has('operation.access')},
-  {id:'catalogo',label:'🍽️ Carta y productos',allowed:has('catalog.manage')},
-  {id:'inventario',label:'≡ Inventario y recetas',allowed:has('inventory.view')||has('inventory.manage')},
-  {id:'avanzado',label:'◆ Gestión del bar',allowed:advancedAllowed},
-  {id:'control',label:'⚙ Administración',allowed:has('admin.view')},
-  {id:'listo',label:'🚀 Puesta en marcha',allowed:has('admin.manage')},
- ].filter(area=>area.allowed),[has,advancedAllowed])
+  {id:'vender',label:'▦ Vender',allowed:has('operation.access')},
+  {id:'carta',label:'🍽 Carta',allowed:has('catalog.manage')},
+  {id:'inventario',label:'≡ Inventario',allowed:has('inventory.view')||has('inventory.manage')},
+  {id:'gestion',label:'⚙ Gestión',allowed:managementAllowed},
+ ].filter(area=>area.allowed),[has,managementAllowed])
 
  useEffect(()=>{
   if(!access||!areas.length)return
   if(!areas.some(area=>area.id===section))setSection(areas[0].id)
  },[access,areas,section])
 
- if(loading)return <div className="bar-role-workspace-loading"><b>IDEALO BAR</b><span>Validando tu función y permisos…</span></div>
+ if(loading)return <div className="bar-role-workspace-loading"><b>IDEALO BAR</b><span>Preparando tu espacio de trabajo…</span></div>
  if(error)return <div className="bar-role-workspace-lock"><span>!</span><h2>No se pudo validar el acceso</h2><p>{error}</p></div>
- if(!access?.active||!areas.length)return <div className="bar-role-workspace-lock"><span>🔒</span><h2>Sin área habilitada</h2><p>Tu usuario pertenece a la empresa, pero su función dentro de IDEALO BAR está inactiva o no tiene un área asignada. Gerencia puede corregirlo en Personal y permisos.</p></div>
+ if(!access?.active||!areas.length)return <div className="bar-role-workspace-lock"><span>🔒</span><h2>Sin área habilitada</h2><p>Tu acceso a IDEALO BAR está inactivo o no tiene una función asignada. Gerencia puede corregirlo en Personal y permisos.</p></div>
 
- return <div className="bar-workspace-root" style={{minHeight:'100%',background:'#0d1015'}}>
+ return <div className="bar-workspace-root">
   <nav className="bar-workspace-nav" aria-label="Áreas principales de IDEALO BAR">
    {areas.map(area=><button key={area.id} type="button" className={section===area.id?'active':''} onClick={()=>setSection(area.id)}>{area.label}</button>)}
    <div className="bar-workspace-role-chip" aria-label={`Rol actual: ${roleLabel[access.role]||access.role}`}><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></div>
   </nav>
-  {section==='operacion'&&has('operation.access')&&<IdealoBarOperationsV2 company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('catalogo')}/>} 
-  {section==='catalogo'&&has('catalog.manage')&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
+
+  {section==='vender'&&has('operation.access')&&<IdealoBarOperationsV2 company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('carta')}/>} 
+  {section==='carta'&&has('catalog.manage')&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
   {section==='inventario'&&(has('inventory.view')||has('inventory.manage'))&&<IdealoBarInventory company={company} supabase={supabase}/>} 
-  {section==='avanzado'&&advancedAllowed&&<IdealoBarAdvancedCenter company={company} supabase={supabase} access={access}/>} 
-  {section==='control'&&has('admin.view')&&<IdealoBarManagementV2 company={company} supabase={supabase}/>} 
-  {section==='listo'&&has('admin.manage')&&<IdealoBarCommercialReady company={company} supabase={supabase} access={access} onOpenCatalog={()=>setSection('catalogo')} onOpenInventory={()=>setSection('inventario')} onOpenAdmin={()=>setSection('control')}/>} 
+  {section==='gestion'&&managementAllowed&&<IdealoBarSimpleManagement company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('carta')} onOpenInventory={()=>setSection('inventario')}/>} 
  </div>
 }
