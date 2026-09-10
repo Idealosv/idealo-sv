@@ -48,7 +48,7 @@ export default function IdealoBarWorkspace({company,supabase}){
  if(error)return <div className="bar-role-workspace-lock"><span>!</span><h2>No se pudo validar el acceso</h2><p>{error}</p></div>
  if(!access?.active||!areas.length)return <div className="bar-role-workspace-lock"><span>🔒</span><h2>Sin área habilitada</h2><p>Tu acceso a IDEALO BAR está inactivo o no tiene una función asignada. Gerencia puede corregirlo en Personal y permisos.</p></div>
 
- return <div className="bar-workspace-root">
+ return <div className="bar-workspace-root" data-bar-role={access.role||'none'}>
   <nav className="bar-workspace-nav" aria-label="Áreas principales de IDEALO BAR">
    {areas.map(area=><button key={area.id} type="button" className={section===area.id?'active':''} onClick={()=>setSection(area.id)}>{area.label}</button>)}
    <div className="bar-workspace-role-chip" aria-label={`Rol actual: ${roleLabel[access.role]||access.role}`}><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></div>
