@@ -1,0 +1,61 @@
+/* IDEALO BAR · paneles claros sobre ambiente oscuro */
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel{
+  background:#f3f6f9!important;
+  border-color:#c9d3de!important;
+  color:#182332!important;
+  box-shadow:0 8px 20px rgba(5,12,20,.18)!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-panel-head h3,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-panel-head h3,
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-feed article b,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-feed article b{
+  color:#162131!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-panel-head p,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-panel-head p,
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-feed article small,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-feed article small{
+  color:#607084!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-feed article,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-feed article{
+  background:transparent!important;
+  border-bottom-color:#cbd5df!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-feed article strong,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-feed article strong{
+  color:#b86f16!important;
+  font-weight:900!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard .barops-panel-head button,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard .barops-panel-head button{
+  background:#ffffff!important;
+  border-color:#bec9d5!important;
+  color:#1f2c3d!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child{
+  background:#e9eef3!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child b,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child b,
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child strong,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child strong{
+  color:#172231!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child small,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child small{
+  color:#607084!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child article strong,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child article strong{
+  color:#b86f16!important;
+}
+@media(max-width:760px){
+  .bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel,
+  .bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel{
+    background:#f3f6f9!important;
+    color:#182332!important;
+  }
+}
