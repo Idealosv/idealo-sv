@@ -52,13 +52,13 @@ html body .bar-workspace-root .barops-pos .barops-floor .barops-mini-actions but
   border-color:#30363d!important;
 }
 
-/* Guía visible del flujo: no altera la lógica, solo explica el orden de trabajo. */
+/* Guía compacta del flujo de venta. */
 .bar-workspace-root .barops-pos{
   position:relative!important;
   padding-top:48px!important;
 }
 .bar-workspace-root .barops-pos::before{
-  content:"1  Seleccioná una mesa   →   2  Agregá productos   →   3  Enviá a Cocina/Barra   →   4  COBRAR   →   5  IMPRIMIR TICKET";
+  content:"MESA  →  PRODUCTOS  →  ENVIAR  →  COBRAR  →  TICKET";
   position:absolute;
   top:0;
   left:0;
@@ -72,9 +72,10 @@ html body .bar-workspace-root .barops-pos .barops-floor .barops-mini-actions but
   border-radius:10px;
   background:#0a0a0a;
   color:#f3c08e;
+  -webkit-text-fill-color:#f3c08e;
   font-size:11px;
   font-weight:850;
-  letter-spacing:.01em;
+  letter-spacing:.04em;
   z-index:2;
 }
 
@@ -121,12 +122,68 @@ html body .bar-workspace-root .barops-pos .barops-floor .barops-mini-actions but
   box-shadow:0 0 0 4px rgba(255,152,47,.10)!important;
 }
 
+/* Cambio y saldo: el cajero debe verlo antes de confirmar el cobro. */
+.bar-workspace-root .barops-change-preview{
+  grid-column:1/-1!important;
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:8px 12px!important;
+  border:1px solid #39414a!important;
+  border-radius:9px!important;
+  background:#050505!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  letter-spacing:.035em!important;
+  text-align:center!important;
+}
+.bar-workspace-root .barops-change-preview[hidden]{display:none!important}
+.bar-workspace-root .barops-change-preview.good{
+  border-color:#ff982f!important;
+  background:#171006!important;
+  color:#ffb464!important;
+  -webkit-text-fill-color:#ffb464!important;
+}
+.bar-workspace-root .barops-change-preview.partial{
+  border-color:#59636e!important;
+  color:#dce3ea!important;
+  -webkit-text-fill-color:#dce3ea!important;
+}
+.bar-workspace-root .barops-change-preview.warn{
+  border-color:#9f4040!important;
+  background:#1b0909!important;
+  color:#ffc0c0!important;
+  -webkit-text-fill-color:#ffc0c0!important;
+}
+
+/* Después de cobrar, el último ticket sigue disponible aunque el pedido se cierre. */
+.bar-workspace-root .barops-last-receipt{
+  width:calc(100% - 26px)!important;
+  min-height:48px!important;
+  margin:12px 13px 14px!important;
+  border:1px solid #ff982f!important;
+  border-radius:10px!important;
+  background:#0a0a0a!important;
+  color:#ffb464!important;
+  -webkit-text-fill-color:#ffb464!important;
+  font-size:12px!important;
+  font-weight:950!important;
+  letter-spacing:.02em!important;
+  cursor:pointer!important;
+}
+.bar-workspace-root .barops-last-receipt:hover{
+  background:#171006!important;
+}
+
 @media(max-width:850px){
-  .bar-workspace-root .barops-pos{padding-top:70px!important}
-  .bar-workspace-root .barops-pos::before{min-height:58px;line-height:1.45;padding:8px 10px}
+  .bar-workspace-root .barops-pos{padding-top:58px!important}
+  .bar-workspace-root .barops-pos::before{min-height:46px;line-height:1.45;padding:8px 10px}
 }
 @media(max-width:560px){
   .bar-workspace-root .barops-pay-shortcuts{grid-template-columns:1fr}
-  .bar-workspace-root .barops-pos{padding-top:88px!important}
-  .bar-workspace-root .barops-pos::before{min-height:76px;font-size:10px}
+  .bar-workspace-root .barops-pos{padding-top:70px!important}
+  .bar-workspace-root .barops-pos::before{min-height:58px;font-size:10px}
 }
