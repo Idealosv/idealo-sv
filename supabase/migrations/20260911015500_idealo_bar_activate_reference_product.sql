@@ -41,7 +41,7 @@ begin
       company_id,sku,name,category,subcategory,item_type,unit,current_stock,
       average_cost,last_cost,standard_cost,minimum_stock,reorder_point,target_stock,active,notes
     ) values (
-      v_product.company_id,v_inventory_sku,v_product.name,'BEVERAGE','BAR','MATERIAL','UNIT',0,
+      v_product.company_id,v_inventory_sku,v_product.name,'OTHER','BAR','MATERIAL','UNIT',0,
       coalesce(v_product.cost_estimate,0),coalesce(v_product.cost_estimate,0),coalesce(v_product.cost_estimate,0),0,0,0,true,
       'IDEALO BAR · referencia Super Selectos. Costo inicial es referencia de supermercado y debe confirmarse al comprar.'
     ) returning id into v_inventory_id;
