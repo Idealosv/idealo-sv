@@ -1,0 +1,11 @@
+.bar-standalone-app .barops-categories{overflow:visible;flex-wrap:wrap;padding-bottom:0}
+.bar-standalone-app .barops-categories-primary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0 0 9px}
+.bar-standalone-app .barops-categories-primary button{white-space:normal;min-height:42px;padding:8px 10px;border-radius:10px;text-align:center;line-height:1.15}
+.bar-standalone-app .barops-subcategory-wrap{margin:0 0 10px;padding:9px;border:1px solid #2f3944;background:#10151b;border-radius:12px}
+.bar-standalone-app .barops-subcategory-wrap>small{display:block;margin:0 0 7px;color:#ffad61;font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.bar-standalone-app .barops-categories-secondary{display:flex;gap:6px;flex-wrap:wrap}
+.bar-standalone-app .barops-categories-secondary button{white-space:normal;min-height:34px;padding:6px 9px;border-radius:9px}
+.bar-standalone-app .barops-search-global{align-items:center}
+.bar-standalone-app .barops-search-global span{flex:0 0 auto;border:1px solid #765026;background:#302316;color:#ffc27e;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:900;white-space:nowrap}
+@media(max-width:700px){.bar-standalone-app .barops-categories-primary{grid-template-columns:repeat(2,minmax(0,1fr))}.bar-standalone-app .barops-search-global{align-items:stretch;flex-direction:column}.bar-standalone-app .barops-search-global span{align-self:flex-start}}
+@media(max-width:420px){.bar-standalone-app .barops-categories-primary{grid-template-columns:1fr 1fr}.bar-standalone-app .barops-categories-primary button{font-size:11px}.bar-standalone-app .barops-categories-secondary button{flex:1 1 calc(50% - 6px);text-align:center}}
