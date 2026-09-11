@@ -6,6 +6,7 @@ import '../../web/src/idealo-bar.css'
 import './standalone.css'
 import './professional-theme.css'
 import './premium-tables.css'
+import './orders-dashboard.css'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
