@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import standaloneBarOrdersDashboard from './ordersDashboardPlugin.js'
 
 function standaloneBarMenuNavigation(){
   const target='/apps/web/src/IdealoBarOperationsV2.jsx'
@@ -63,7 +64,7 @@ function standaloneBarMenuNavigation(){
 }
 
 export default defineConfig({
-  plugins: [standaloneBarMenuNavigation(),react()],
+  plugins: [standaloneBarMenuNavigation(),standaloneBarOrdersDashboard(),react()],
   server: { host: '0.0.0.0' },
   preview: { host: '0.0.0.0' },
 })
