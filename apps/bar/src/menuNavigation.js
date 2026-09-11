@@ -3,7 +3,7 @@ export const TOP_LEVEL_GROUPS=['Todos','Cervezas','Licores','Bebidas','Comida','
 export const SUBGROUPS={
  Licores:['Whisky','Vodka','Ron','Tequila / Mezcal','Gin','Aguardiente','Licores / Digestivos','Vinos','Espumantes','Sangrías','RTD / Hard Seltzer'],
  Bebidas:['Energizantes','Gaseosas','Agua','Jugos','Mezcladores','Sin alcohol'],
- Comida:['Hamburguesas','Alitas','Boneless / Tenders','Hot Dogs','Nachos','Papas','Tacos','Pizzas','Quesadillas','Sándwiches','Parrilla','Entradas','Otros'],
+ Comida:['Hamburguesas','Alitas','Boneless / Tenders','Hot Dogs','Nachos','Papas','Tacos','Pizzas','Quesadillas','Mexicana','Mariscos / Ceviches','Sopas','Sándwiches','Parrilla / Churrascos','Entradas / Bocas','Otros'],
  'Combos / Promociones':['Baldes','Hielerazos','Combos','Happy Hour','Otros'],
 }
 
@@ -20,9 +20,12 @@ const classifyFood=name=>{
  if(has(name,/\btacos?\b/))return'Tacos'
  if(has(name,/\bpizzas?\b|pepperoni|cuatro\s+quesos/))return'Pizzas'
  if(has(name,/quesadillas?/))return'Quesadillas'
+ if(has(name,/\bsopa\b|\bsopon\b|\bcaldo\b|mariscada|mondongo/))return'Sopas'
+ if(has(name,/churrasco|costillas?|ribs?|parrill|asado\s+de\s+tira|carne\s+asada|lomito|lomo\s+de\s+aguja|ribeye|t[- ]?bone|mar\s+y\s+tierra|cielo\s+mar\s+y\s+tierra|chorizos?\s+argentinos?|cerdo\s+a\s+la\s+parrilla|carne\s+oreada|punta\s+jalapena/))return'Parrilla / Churrascos'
+ if(has(name,/\bburritos?\b|\btortas?\s+mexican|cochinita|\bgringas?\b|quesabirria|\bbirria\b|\bmulitas?\b|enchiladas?|chilaquiles?|flautas?|taquizas?|al\s+pastor/))return'Mexicana'
+ if(has(name,/ceviche|cebiche|coctel\s+de\s+camar|coctel\s+mixto|coctel\s+de\s+conch|cinco\s+mares|aguachile|camarones?|calamares?|langosta|\bpescado\b|curvina|\bconchas?\b|caracol|cangrejo|\bpulpo\b|jaiba|mejillon|almeja|paella/))return'Mariscos / Ceviches'
  if(has(name,/sandwich|sándwich|choripan|choripán|pulled\s+pork\s+pan/))return'Sándwiches'
- if(has(name,/costillas?|ribs?|parrill|pinchos?|chicharrones?|steak\s+bites|churrasco/))return'Parrilla'
- if(has(name,/mozzarella|mozarella|cheese\s+sticks?|jalapeno\s+poppers?|jalapeño\s+poppers?|camarones?\s+empanizados?|shrimp|dumplings?|gyoza|hummus|humus|tostones?/))return'Entradas'
+ if(has(name,/mozzarella|mozarella|cheese\s+sticks?|jalapeno\s+poppers?|jalapeño\s+poppers?|dumplings?|gyoza|hummus|humus|tostones?|yuca|pastelitos?|queso\s+frito|pescaditas?|\bbocas?\b|enredos?|chicharrones?/))return'Entradas / Bocas'
  return'Otros'
 }
 
@@ -65,7 +68,7 @@ export function classifyBarMenuItem(item){
  const category=normalize(item?.category)
  const name=normalize(item?.display_name||item?.product?.name)
  const comboCategory=has(category,/combo|promoc/)
- const foodCategory=has(category,/comida|hamburg|alitas?|boneless|tenders?|hot\s*dogs?|nachos?|papas?|tacos?|pizzas?|quesadillas?|sandwich|choripan|parrill|costillas?|ribs?|entradas?/)
+ const foodCategory=has(category,/comida|hamburg|alitas?|boneless|tenders?|hot\s*dogs?|nachos?|papas?|tacos?|pizzas?|quesadillas?|mexican|marisc|ceviche|cebiche|coctel|sopas?|caldos?|sandwich|choripan|parrill|churrasco|costillas?|ribs?|entradas?|bocas?/)
  const beerCategory=has(category,/cervezas?/)
  const beverageCategory=has(category,/bebidas?|energizantes?|gaseosas?|agua|jugos?|mezcladores?|sin\s+alcohol/)
  const liquorCategory=has(category,/licores?|whisk|vodka|\bron\b|tequila|mezcal|\bgin\b|aguardiente|vinos?|espumantes?|sangrias?|smirnoff|rtd/)
