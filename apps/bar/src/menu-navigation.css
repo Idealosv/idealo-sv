@@ -10,49 +10,126 @@
 .bar-standalone-app .barops-table-count{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-left:6px;padding:0 6px;border:1px solid #765026;background:#302316;color:#ffc27e;border-radius:999px;font-size:11px;vertical-align:middle}
 .bar-standalone-app .barops-floor .barops-table-grid{max-height:590px;overflow-y:auto;scrollbar-gutter:stable;padding-right:5px}
 
+/* Acabado profesional exclusivo de IDEALO BAR standalone. */
+.bar-standalone-app .barops{
+ --pos-bg:#0b1118;
+ --pos-surface:#141f2a;
+ --pos-surface-2:#192633;
+ --pos-surface-3:#203041;
+ --pos-border:#2b3b4d;
+ --pos-border-strong:#3c5066;
+ --pos-text:#f1f5f9;
+ --pos-muted:#8fa0b3;
+ --pos-muted-2:#6f8195;
+ --pos-accent:#d7a13d;
+ --pos-accent-hover:#e2b154;
+ --pos-accent-soft:rgba(215,161,61,.12);
+ --pos-success:#4fa476;
+ --pos-danger:#c96969;
+ background:transparent;
+ color:var(--pos-text);
+ padding-top:18px;
+}
+.bar-standalone-app .barops-head{border-color:var(--pos-border);background:linear-gradient(145deg,#172330,#101821);box-shadow:0 18px 45px rgba(0,0,0,.20)}
+.bar-standalone-app .barops-head small{color:#e3b45d}
+.bar-standalone-app .barops-head p{color:var(--pos-muted)}
+.bar-standalone-app .barops-tabs{padding:4px;border:1px solid var(--pos-border);background:#121c26;border-radius:14px;gap:4px}
+.bar-standalone-app .barops-tabs button{border-color:transparent;background:transparent;color:#9fafc0;border-radius:10px;min-height:42px;transition:background .18s ease,color .18s ease,box-shadow .18s ease,border-color .18s ease}
+.bar-standalone-app .barops-tabs button:hover{background:#1b2836;color:#eef3f8}
+.bar-standalone-app .barops-tabs button.active{background:#24364a;border-color:#36506a;color:#fff;box-shadow:inset 0 -2px 0 var(--pos-accent),0 5px 14px rgba(0,0,0,.14)}
+.bar-standalone-app .barops-tabs button.active b{background:var(--pos-accent);color:#17110a}
+.bar-standalone-app .barops-floor,.bar-standalone-app .barops-menu,.bar-standalone-app .barops-ticket,.bar-standalone-app .barops-panel{border-color:var(--pos-border);background:linear-gradient(180deg,#16222e 0%,#131e29 100%);box-shadow:0 16px 34px rgba(0,0,0,.16);border-radius:16px}
+.bar-standalone-app .barops-section-title{margin-bottom:12px}
+.bar-standalone-app .barops-section-title strong{font-size:17px;letter-spacing:-.01em}
+.bar-standalone-app .barops-section-title small{color:var(--pos-muted);font-size:11px}
+.bar-standalone-app .barops-mini-actions{gap:6px}
+.bar-standalone-app .barops-mini-actions button{border:1px solid var(--pos-border-strong);background:#1b2937;color:#e8eef5;border-radius:10px;padding:7px 10px;box-shadow:none;transition:all .18s ease}
+.bar-standalone-app .barops-mini-actions button:hover{background:#24364a;border-color:#5a7089;color:#fff;transform:translateY(-1px)}
+.bar-standalone-app .barops-table-grid{gap:8px}
+.bar-standalone-app .barops-table{border:1px solid #315044;background:linear-gradient(180deg,#1b332a,#192d26);color:#f5f7fa;border-radius:13px;min-height:78px;box-shadow:inset 0 1px 0 rgba(255,255,255,.02);transition:all .18s ease}
+.bar-standalone-app .barops-table:hover{border-color:#4e7967;background:linear-gradient(180deg,#203d32,#1c332a);transform:translateY(-1px);box-shadow:0 8px 18px rgba(0,0,0,.18)}
+.bar-standalone-app .barops-table span{color:#91aa9e}
+.bar-standalone-app .barops-table.selected{outline:none;border-color:var(--pos-accent);box-shadow:0 0 0 2px rgba(215,161,61,.18),0 10px 24px rgba(0,0,0,.24)}
+.bar-standalone-app .barops-table.occupied{border-color:#6d4642;background:linear-gradient(180deg,#342320,#2b1d1b)}
+.bar-standalone-app .barops-table.awaiting_payment{border-color:#755d34;background:linear-gradient(180deg,#342b1d,#2b2419)}
+.bar-standalone-app .barops-table.reserved{border-color:#594c78;background:linear-gradient(180deg,#29233b,#211d31)}
+.bar-standalone-app .barops-search{margin-bottom:10px}
+.bar-standalone-app .barops-search input,.bar-standalone-app .barops-field input,.bar-standalone-app .barops-field select,.bar-standalone-app .barops-field textarea,.bar-standalone-app .barops-ticket-tools input,.bar-standalone-app .barops-ticket-tools select,.bar-standalone-app .barops-res-form input,.bar-standalone-app .barops-res-form select,.bar-standalone-app .barops-res-form textarea,.bar-standalone-app .barops-cash-grid input,.bar-standalone-app .barops-cash-grid select{background:#0e1720;border:1px solid #34485c;color:#f7f9fb;border-radius:11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.015);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.bar-standalone-app .barops-search input{min-height:45px;padding:10px 13px;font-size:14px}
+.bar-standalone-app .barops-search input::placeholder{color:#72859a}
+.bar-standalone-app .barops-search input:focus,.bar-standalone-app .barops-field input:focus,.bar-standalone-app .barops-field select:focus,.bar-standalone-app .barops-field textarea:focus{outline:none;border-color:#a9813d;box-shadow:0 0 0 3px rgba(215,161,61,.10);background:#101b26}
+.bar-standalone-app .barops-categories-primary{gap:6px;margin-bottom:9px}
+.bar-standalone-app .barops-categories-primary button,.bar-standalone-app .barops-categories-secondary button{border:1px solid #33475a;background:#1b2937;color:#aebdcb;font-weight:800;box-shadow:none;transition:all .18s ease}
+.bar-standalone-app .barops-categories-primary button:hover,.bar-standalone-app .barops-categories-secondary button:hover{background:#223447;border-color:#496078;color:#f1f5f9;transform:translateY(-1px)}
+.bar-standalone-app .barops-categories-primary button.active,.bar-standalone-app .barops-categories-secondary button.active{background:var(--pos-accent-soft);border-color:#806431;color:#f1c66f;box-shadow:inset 0 0 0 1px rgba(215,161,61,.06)}
+.bar-standalone-app .barops-subcategory-wrap{border-color:#28394b;background:#0f1720;border-radius:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.bar-standalone-app .barops-subcategory-wrap>small{color:#d9aa51}
+.bar-standalone-app .barops-products{gap:8px;padding:1px 2px 3px 0}
+.bar-standalone-app .barops-product{position:relative;border:1px solid #304154;background:linear-gradient(180deg,#1d2b39,#192633);color:#f7f9fb;border-radius:14px;padding:11px 12px;min-height:108px;box-shadow:inset 0 1px 0 rgba(255,255,255,.018);transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}
+.bar-standalone-app .barops-product:hover{border-color:#5b6f86;background:linear-gradient(180deg,#223345,#1d2b3a);transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.20)}
+.bar-standalone-app .barops-product i{font-size:21px;filter:saturate(.9)}
+.bar-standalone-app .barops-product strong{margin-top:5px;font-size:13px;line-height:1.25;color:#f3f6fa}
+.bar-standalone-app .barops-product small{color:#7f91a5;font-size:10px;margin:4px 0 7px}
+.bar-standalone-app .barops-product b{color:#e2b154;font-size:15px;letter-spacing:-.01em}
+.bar-standalone-app .barops-ticket{background:linear-gradient(180deg,#15212c,#111a24);border-color:#2d3d4e}
+.bar-standalone-app .barops-ticket-head{border-bottom-color:#2b3b4b;background:#111a23;padding:14px 15px}
+.bar-standalone-app .barops-ticket-head strong{font-size:18px;color:#f4f7fa}
+.bar-standalone-app .barops-ticket-head small{color:#8294a8}
+.bar-standalone-app .barops-ticket-lines{padding:8px 13px}
+.bar-standalone-app .barops-line{border-bottom-color:#29394a;padding:10px 0}
+.bar-standalone-app .barops-line strong{color:#f0f4f8}
+.bar-standalone-app .barops-line small{color:#7e90a4}
+.bar-standalone-app .barops-line-qty button{border-color:#3a4b5e;background:#1a2836;color:#eef4f9}
+.bar-standalone-app .barops-totals{border-top-color:#2b3c4d;background:#111a23;padding:11px 14px}
+.bar-standalone-app .barops-totals div{color:#a7b5c4}
+.bar-standalone-app .barops-totals .grand{border-top-color:#3c4d60;color:#fff}
+.bar-standalone-app .barops-totals .grand strong{color:#e4b65d;font-size:22px}
+.bar-standalone-app .barops-ticket-actions{padding:11px 13px;gap:7px}
+.bar-standalone-app .barops-btn,.bar-standalone-app .barops-panel-head button{border-color:#3a4b5e;background:#1b2937;color:#dfe7ef;border-radius:10px;transition:all .18s ease}
+.bar-standalone-app .barops-btn:hover,.bar-standalone-app .barops-panel-head button:hover{border-color:#536b84;background:#223447;transform:translateY(-1px)}
+.bar-standalone-app .barops-btn.primary{background:#d7a13d;border-color:#d7a13d;color:#17110a;box-shadow:0 7px 18px rgba(215,161,61,.14)}
+.bar-standalone-app .barops-btn.primary:hover{background:#e2b154;border-color:#e2b154}
+.bar-standalone-app .barops-btn.warn{background:#2b2115;border-color:#6e542c;color:#eac174}
+.bar-standalone-app .barops-btn.danger{background:#2b1a1c;border-color:#684044;color:#eaa4a4}
+.bar-standalone-app .barops-ticket-tools{border-top-color:#293a4b;background:#0f1720}
+.bar-standalone-app .barops-tool-tabs button{border-color:#334557;background:#182531;color:#94a6b8}
+.bar-standalone-app .barops-tool-tabs button.active{background:rgba(215,161,61,.12);border-color:#72592f;color:#e7bc68}
+.bar-standalone-app .barops-empty{color:#7f91a5}
+.bar-standalone-app .barops-empty span{color:#d6a74e;opacity:.9}
+.bar-standalone-app .barops-empty strong{color:#dce5ee;font-size:15px}
+.bar-standalone-app .barops-alert{border-color:#694348;background:#2b1a1c;color:#f1b0b0}
+.bar-standalone-app .barops-search-global span{border-color:#6f562e;background:#2a2115;color:#eac174}
+.bar-standalone-app .barops-table-count{border-color:#6f562e;background:#2a2115;color:#eac174}
+
 /* Scrollbars compactas y acordes al tema oscuro de IDEALO BAR. */
 .bar-standalone-app .barops-floor .barops-table-grid,
 .bar-standalone-app .barops-products,
 .bar-standalone-app .barops-ticket-lines,
 .bar-standalone-app .barops-tool-tabs{
  scrollbar-width:thin;
- scrollbar-color:#566170 #151b22;
+ scrollbar-color:#586a7d #111923;
 }
 .bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar,
 .bar-standalone-app .barops-products::-webkit-scrollbar,
 .bar-standalone-app .barops-ticket-lines::-webkit-scrollbar,
-.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar{
- width:8px;
- height:8px;
-}
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar{width:7px;height:7px}
 .bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-track,
 .bar-standalone-app .barops-products::-webkit-scrollbar-track,
 .bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-track,
-.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-track{
- background:#151b22;
- border:1px solid #252f3a;
- border-radius:999px;
-}
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-track{background:#111923;border:1px solid #253444;border-radius:999px}
 .bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-thumb,
 .bar-standalone-app .barops-products::-webkit-scrollbar-thumb,
 .bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-thumb,
-.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-thumb{
- min-height:42px;
- background:#566170;
- border:2px solid #151b22;
- border-radius:999px;
-}
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-thumb{min-height:42px;background:#586a7d;border:2px solid #111923;border-radius:999px}
 .bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-thumb:hover,
 .bar-standalone-app .barops-products::-webkit-scrollbar-thumb:hover,
 .bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-thumb:hover,
-.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-thumb:hover{
- background:#d88931;
-}
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-thumb:hover{background:#c89338}
 .bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-corner,
 .bar-standalone-app .barops-products::-webkit-scrollbar-corner,
 .bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-corner,
 .bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-corner{background:transparent}
 
-@media(max-width:850px){.bar-standalone-app .barops-floor .barops-table-grid{max-height:none;overflow:visible;padding-right:0}}
+@media(max-width:850px){.bar-standalone-app .barops-floor .barops-table-grid{max-height:none;overflow:visible;padding-right:0}.bar-standalone-app .barops-floor,.bar-standalone-app .barops-menu,.bar-standalone-app .barops-ticket{box-shadow:none}}
 @media(max-width:700px){.bar-standalone-app .barops-categories-primary{grid-template-columns:repeat(2,minmax(0,1fr))}.bar-standalone-app .barops-search-global{align-items:stretch;flex-direction:column}.bar-standalone-app .barops-search-global span{align-self:flex-start}}
 @media(max-width:420px){.bar-standalone-app .barops-categories-primary{grid-template-columns:1fr 1fr}.bar-standalone-app .barops-categories-primary button{font-size:11px}.bar-standalone-app .barops-categories-secondary button{flex:1 1 calc(50% - 6px);text-align:center}}
