@@ -1,1 +1,137 @@
-placeholder
+.bar-standalone-app{
+ --bar-black:#171a1e!important;
+ --bar-black-2:#20242a!important;
+ --bar-graphite:#3a3f46!important;
+ --bar-graphite-2:#454b53!important;
+ --bar-graphite-3:#555c65!important;
+ --bar-white-muted:#dadde1!important;
+ background:linear-gradient(180deg,#26313d 0%,#202a34 100%)!important;
+ color:#f8fafc!important;
+}
+
+body{background:#202a34!important;color:#f8fafc!important;}
+.bar-standalone-content{background:linear-gradient(180deg,#26313d 0%,#202a34 100%)!important;}
+.bar-standalone-topbar{background:rgba(29,34,40,.98)!important;border-bottom-color:#555c65!important;box-shadow:0 10px 24px rgba(0,0,0,.18)!important;}
+.bar-company-tools select,.bar-company-tools button{background:#3b4149!important;border-color:#626a74!important;color:#fff!important;}
+.bar-company-tools button:hover{background:#49515a!important;}
+.bar-company-tools .bar-practice-reset{background:#272c32!important;}
+
+.idealo-bar-shell{
+ --bar-bg:#26313d!important;
+ --bar-panel:#343a42!important;
+ --bar-panel-2:#3d444d!important;
+ --bar-border:#59616b!important;
+ --bar-muted:#d1d6dc!important;
+ color:#f8fafc!important;
+ background:#26313d!important;
+}
+.bar-hero{background:linear-gradient(130deg,#38404a,#303740)!important;border-color:#5d6670!important;box-shadow:0 10px 24px rgba(0,0,0,.12)!important;}
+.bar-tabs button{background:#343a42!important;border-color:#59616b!important;color:#edf0f3!important;}
+.bar-tabs button:hover{background:#444b54!important;}
+.bar-floor-panel,.bar-catalog-panel,.bar-ticket-panel,.bar-orders-view,.bar-board-view{background:#343a42!important;border-color:#59616b!important;box-shadow:0 10px 24px rgba(0,0,0,.12)!important;}
+.bar-table,.bar-product-card,.bar-order-card,.bar-station-card{background:#414851!important;border-color:#606975!important;}
+.bar-table:hover,.bar-product-card:hover:not(:disabled),.bar-order-card:hover{background:#4b535d!important;}
+.bar-catalog-tools label{background:#30363d!important;border-color:#5c6570!important;}
+.bar-category-strip button{background:#3d444d!important;border-color:#5e6671!important;color:#eef1f4!important;}
+.bar-ticket-head button,.bar-ticket-qty button,.bar-ticket-actions button,.bar-payment button,.bar-station-card button{background:#414851!important;border-color:#626b76!important;}
+.bar-ticket-total{background:#30363d!important;}
+.bar-working{background:#3b424a!important;border-color:#69727c!important;}
+
+.bar-standalone-app .barops{color:#f8fafc!important;}
+.bar-standalone-app .barops-tabs{background:#252a30!important;border-color:#575f68!important;box-shadow:0 8px 20px rgba(0,0,0,.15)!important;}
+.bar-standalone-app .barops-tabs button{color:#f0f2f4!important;}
+.bar-standalone-app .barops-tabs button:hover{background:#424850!important;}
+.bar-standalone-app .barops-floor,
+.bar-standalone-app .barops-menu,
+.bar-standalone-app .barops-ticket,
+.bar-standalone-app .barops-panel,
+.bar-standalone-app .barops-kpi,
+.bar-standalone-app .barops-order-card,
+.bar-standalone-app .barops-station article,
+.bar-standalone-app .barops-res-card,
+.bar-standalone-app .barops-delivery-card{
+ background:linear-gradient(180deg,#424850 0%,#373d44 100%)!important;
+ border-color:#626a73!important;
+ box-shadow:0 10px 22px rgba(0,0,0,.12)!important;
+}
+.bar-standalone-app .barops-table{background:linear-gradient(180deg,#515861,#444b53)!important;border-color:#6c747d!important;}
+.bar-standalone-app .barops-table:hover{background:linear-gradient(180deg,#5a626c,#4d555e)!important;}
+.bar-standalone-app .barops-table.occupied{background:#3f4145!important;}
+.bar-standalone-app .barops-table.awaiting_payment{background:#4b4136!important;}
+.bar-standalone-app .barops-table.reserved{background:#44464d!important;}
+.bar-standalone-app .barops-product{background:linear-gradient(180deg,#525961 0%,#444a52 100%)!important;border-color:#68717a!important;}
+.bar-standalone-app .barops-product:hover{background:linear-gradient(180deg,#5b636c,#4d545d)!important;}
+.bar-standalone-app .barops-product i{background:#343940!important;}
+.bar-standalone-app .barops-product b,.bar-standalone-app .barops-table-count{background:#292e34!important;}
+.bar-standalone-app .barops-subcategory-wrap{background:#32373e!important;border-color:#5f6771!important;}
+.bar-standalone-app .barops-categories-primary button,
+.bar-standalone-app .barops-categories-secondary button,
+.bar-standalone-app .barops-tool-tabs button,
+.bar-standalone-app .barops-btn,
+.bar-standalone-app .barops-panel-head button{background:#484f57!important;border-color:#69717b!important;}
+.bar-standalone-app .barops-categories-primary button:hover,
+.bar-standalone-app .barops-categories-secondary button:hover,
+.bar-standalone-app .barops-tool-tabs button:hover,
+.bar-standalone-app .barops-btn:hover,
+.bar-standalone-app .barops-panel-head button:hover{background:#555d66!important;}
+.bar-standalone-app .barops-ticket-head{background:#393f46!important;border-bottom-color:#626a73!important;}
+.bar-standalone-app .barops-ticket-lines{background:#3d434b!important;}
+.bar-standalone-app .barops-totals{background:#363c43!important;border-top-color:#626a73!important;}
+.bar-standalone-app .barops-ticket-actions{background:#3b4148!important;}
+.bar-standalone-app .barops-ticket-tools{background:#353b42!important;border-top-color:#626a73!important;}
+.bar-standalone-app .barops-field input,
+.bar-standalone-app .barops-field select,
+.bar-standalone-app .barops-field textarea,
+.bar-standalone-app .barops-ticket-tools input,
+.bar-standalone-app .barops-ticket-tools select,
+.bar-standalone-app .barops-res-form input,
+.bar-standalone-app .barops-res-form select,
+.bar-standalone-app .barops-res-form textarea,
+.bar-standalone-app .barops-cash-grid input,
+.bar-standalone-app .barops-cash-grid select{background:#353b42!important;border-color:#68717b!important;color:#fff!important;}
+.bar-standalone-app .barops-section-title small,
+.bar-standalone-app .barops-product small,
+.bar-standalone-app .barops-ticket-head small,
+.bar-standalone-app .barops-line small,
+.bar-standalone-app .barops-panel small,
+.bar-standalone-app .barops-kpi small,
+.bar-standalone-app .barops-order-card small,
+.bar-standalone-app .barops-res-card small,
+.bar-standalone-app .barops-cash-card small{color:#d7dbe0!important;}
+
+.bar-standalone-app .barops-orders-dashboard,
+.bar-standalone-app .barops-reservations-dashboard,
+.bar-standalone-app .barops-home-dashboard{background:linear-gradient(180deg,#343a42 0%,#2e343b 100%)!important;border-color:#5d6670!important;box-shadow:0 14px 28px rgba(0,0,0,.14)!important;}
+.bar-standalone-app .barops-order-kpis button,
+.bar-standalone-app .barops-res-kpis button,
+.bar-standalone-app .barops-home-kpi,
+.bar-standalone-app .barops-home-card,
+.bar-standalone-app .barops-home-panel{background:linear-gradient(180deg,#4a515a 0%,#40474f 100%)!important;border-color:#67717b!important;}
+.bar-standalone-app .barops-orders-controls,
+.bar-standalone-app .barops-res-controls,
+.bar-standalone-app .barops-orders-empty,
+.bar-standalone-app .barops-res-empty{background:#30363c!important;border-color:#59616b!important;}
+.bar-standalone-app .barops-order-card-pro,
+.bar-standalone-app .barops-res-card-pro{background:linear-gradient(180deg,#494f57 0%,#3f464e 100%)!important;border-color:#68717b!important;}
+.bar-standalone-app .barops-res-create,
+.bar-standalone-app .barops-res-agenda{background:linear-gradient(180deg,#414850 0%,#383f46 100%)!important;border-color:#626b75!important;}
+.bar-standalone-app .barops-res-form-pro input,
+.bar-standalone-app .barops-res-form-pro select,
+.bar-standalone-app .barops-res-form-pro textarea,
+.bar-standalone-app .barops-res-manage select{background:#343a41!important;border-color:#68717b!important;}
+
+.bar-standalone-app .barops .barops-cash-card{
+ background:radial-gradient(circle at 100% 0%,rgba(242,140,40,.08),transparent 34%),linear-gradient(180deg,#3f454d 0%,#363c43 100%)!important;
+ border-color:#626a73!important;
+ box-shadow:0 14px 28px rgba(0,0,0,.14)!important;
+}
+.bar-standalone-app .barops .barops-cash-card:last-child{background:radial-gradient(circle at 100% 0%,rgba(255,255,255,.055),transparent 35%),linear-gradient(180deg,#3d434b 0%,#353b42 100%)!important;}
+.bar-standalone-app .barops .barops-cash-grid{background:#30363d!important;border-color:#59616b!important;}
+.bar-standalone-app .barops .barops-methods>div{background:linear-gradient(180deg,#4b525b 0%,#40474f 100%)!important;border-color:#68717b!important;}
+.bar-standalone-app .barops .barops-cash-card:last-child .barops-feed article{background:linear-gradient(180deg,#4a5159 0%,#40474c 100%)!important;border-color:#68717b!important;}
+
+.bar-standalone-app .barops *{text-shadow:none!important;}
+
+@media(max-width:850px){
+ .bar-standalone-app,.bar-standalone-content,.idealo-bar-shell{background:#26313d!important;}
+}
