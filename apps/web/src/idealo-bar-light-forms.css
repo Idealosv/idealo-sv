@@ -1,0 +1,292 @@
+/* IDEALO BAR · formularios claros sobre ambiente oscuro
+   Esta hoja se importa al final para eliminar conflictos de contraste
+   heredados de temas anteriores. */
+
+.bar-workspace-root{
+  --bar-form-bg:#f3f6f9;
+  --bar-form-surface:#ffffff;
+  --bar-form-soft:#e9eef3;
+  --bar-form-border:#b9c5d1;
+  --bar-form-border-strong:#9eacbb;
+  --bar-form-text:#172231;
+  --bar-form-muted:#5d6d7e;
+  --bar-form-accent:#b86f16;
+}
+
+/* Controles: siempre claros y con texto oscuro. */
+.bar-workspace-root input:not([type="checkbox"]):not([type="radio"]),
+.bar-workspace-root select,
+.bar-workspace-root textarea{
+  background:#ffffff!important;
+  background-image:none!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+  border-color:#aebbc8!important;
+  caret-color:#172231!important;
+  color-scheme:light!important;
+  box-shadow:none!important;
+}
+.bar-workspace-root input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.bar-workspace-root textarea::placeholder{
+  color:#7a8795!important;
+  -webkit-text-fill-color:#7a8795!important;
+  opacity:1!important;
+}
+.bar-workspace-root select option{
+  background:#ffffff!important;
+  color:#172231!important;
+}
+.bar-workspace-root input:not([type="checkbox"]):not([type="radio"]):focus,
+.bar-workspace-root select:focus,
+.bar-workspace-root textarea:focus{
+  border-color:#b86f16!important;
+  box-shadow:0 0 0 3px rgba(184,111,22,.14)!important;
+  outline:none!important;
+}
+.bar-workspace-root input:disabled,
+.bar-workspace-root select:disabled,
+.bar-workspace-root textarea:disabled{
+  background:#e4eaf0!important;
+  color:#667587!important;
+  -webkit-text-fill-color:#667587!important;
+  opacity:1!important;
+}
+
+/* RESERVAS: formulario y agenda claros para máxima legibilidad. */
+.bar-workspace-root .barops-res-layout>.barops-panel{
+  background:#f1f5f8!important;
+  border-color:#bdc9d5!important;
+  color:#172231!important;
+  box-shadow:0 8px 20px rgba(5,12,20,.16)!important;
+}
+.bar-workspace-root .barops-res-layout .barops-panel-head,
+.bar-workspace-root .barops-res-layout .barops-panel-head>div{
+  background:transparent!important;
+  color:#172231!important;
+}
+.bar-workspace-root .barops-res-layout .barops-panel-head h3,
+.bar-workspace-root .barops-res-layout .barops-panel-head strong,
+.bar-workspace-root .barops-res-layout .barops-res-card strong{
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .barops-res-layout .barops-panel-head p,
+.bar-workspace-root .barops-res-layout .barops-res-card small{
+  color:#607084!important;
+  -webkit-text-fill-color:#607084!important;
+}
+.bar-workspace-root .barops-res-form label,
+.bar-workspace-root .barops-res-layout .barops-field{
+  color:#394b5f!important;
+  -webkit-text-fill-color:#394b5f!important;
+  font-weight:850!important;
+}
+.bar-workspace-root .barops-res-card{
+  background:#ffffff!important;
+  border-color:#c6d0da!important;
+  color:#172231!important;
+}
+.bar-workspace-root .barops-res-actions button{
+  background:#253446!important;
+  border-color:#33485e!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+
+/* CAJA: áreas de captura y cierre en modo claro. */
+.bar-workspace-root .barops-cash-layout .barops-panel,
+.bar-workspace-root .barops-cash-card{
+  background:#f1f5f8!important;
+  border-color:#bdc9d5!important;
+  color:#172231!important;
+}
+.bar-workspace-root .barops-cash-layout h3,
+.bar-workspace-root .barops-cash-layout h4,
+.bar-workspace-root .barops-cash-card b,
+.bar-workspace-root .barops-cash-card strong{
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .barops-cash-layout p,
+.bar-workspace-root .barops-cash-card p,
+.bar-workspace-root .barops-cash-grid label{
+  color:#5d6d7e!important;
+  -webkit-text-fill-color:#5d6d7e!important;
+}
+.bar-workspace-root .barops-methods div{
+  background:#ffffff!important;
+  border-color:#c7d1db!important;
+  color:#172231!important;
+}
+.bar-workspace-root .barops-methods span{color:#607084!important}
+
+/* Herramientas del ticket: datos, propina, descuento y cobro claros. */
+.bar-workspace-root .barops-ticket-tools{
+  background:#edf2f6!important;
+  border-top-color:#bcc8d4!important;
+  color:#172231!important;
+}
+.bar-workspace-root .barops-ticket-tools .barops-field,
+.bar-workspace-root .barops-ticket-tools label,
+.bar-workspace-root .barops-payment-summary{
+  color:#4f6072!important;
+  -webkit-text-fill-color:#4f6072!important;
+}
+.bar-workspace-root .barops-tool-tabs button{
+  background:#ffffff!important;
+  color:#2d3c4e!important;
+  border-color:#bbc7d3!important;
+}
+.bar-workspace-root .barops-tool-tabs button.active{
+  background:#25384b!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  border-color:#25384b!important;
+}
+
+/* CARTA: los paneles de creación/importación/ofertas son formularios claros. */
+.bar-workspace-root .bar-catalog-panel.narrow{
+  background:#f1f5f8!important;
+  border-color:#bdc9d5!important;
+  color:#172231!important;
+  box-shadow:0 8px 20px rgba(5,12,20,.14)!important;
+}
+.bar-workspace-root .bar-catalog-panel.narrow .bar-panel-title h3,
+.bar-workspace-root .bar-catalog-panel.narrow b,
+.bar-workspace-root .bar-catalog-panel.narrow strong{
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .bar-catalog-panel.narrow .bar-panel-title p,
+.bar-workspace-root .bar-catalog-panel.narrow .bar-form-grid label,
+.bar-workspace-root .bar-catalog-panel.narrow .bar-search-label{
+  color:#4f6072!important;
+  -webkit-text-fill-color:#4f6072!important;
+}
+.bar-workspace-root .bar-existing-results button{
+  background:#ffffff!important;
+  border-color:#c5d0da!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .bar-existing-results button span{color:#657587!important}
+.bar-workspace-root .bar-existing-results button.selected{
+  background:#fff4e7!important;
+  border-color:#c17a2b!important;
+}
+
+/* INVENTARIO: edición de conteos, precios y recetas sobre superficies claras. */
+.bar-workspace-root .bar-real-count-card,
+.bar-workspace-root .bar-real-price-list>article,
+.bar-workspace-root .bar-real-recipe-layout aside,
+.bar-workspace-root .bar-real-recipe-lines{
+  background:#f1f5f8!important;
+  border-color:#bdc9d5!important;
+  color:#172231!important;
+}
+.bar-workspace-root .bar-real-count-card b,
+.bar-workspace-root .bar-real-price-list>article b,
+.bar-workspace-root .bar-real-recipe-layout b,
+.bar-workspace-root .bar-real-recipe-layout strong{
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .bar-real-item-title small,
+.bar-workspace-root .bar-real-price-list>article>div:first-child small,
+.bar-workspace-root .bar-real-recipe-lines article small,
+.bar-workspace-root .bar-real-selected span,
+.bar-workspace-root .bar-real-count-card footer{
+  color:#627284!important;
+  -webkit-text-fill-color:#627284!important;
+}
+.bar-workspace-root .bar-real-grid7 label,
+.bar-workspace-root .bar-real-price-list label,
+.bar-workspace-root .bar-real-add-line label,
+.bar-workspace-root .bar-real-recipe-layout aside>label{
+  color:#405164!important;
+  -webkit-text-fill-color:#405164!important;
+}
+.bar-workspace-root .bar-real-selected{
+  background:#ffffff!important;
+  border:1px solid #c8d2dc!important;
+  color:#172231!important;
+}
+.bar-workspace-root .bar-real-recipe-lines article{
+  border-bottom-color:#c7d1db!important;
+}
+.bar-workspace-root .bar-real-margin span{color:#657587!important}
+.bar-workspace-root .bar-real-margin strong{color:#26724a!important;-webkit-text-fill-color:#26724a!important}
+
+/* ADMINISTRACIÓN: configuraciones y cuadros de captura claros. */
+.bar-workspace-root .barm-form-grid,
+.bar-workspace-root .barm-form-grid.settings,
+.bar-workspace-root .barm-box,
+.bar-workspace-root .barm-single,
+.bar-workspace-root .barm-checks{
+  background:#f1f5f8!important;
+  border:1px solid #bdc9d5!important;
+  border-radius:12px!important;
+  color:#172231!important;
+}
+.bar-workspace-root .barm-form-grid,
+.bar-workspace-root .barm-form-grid.settings{padding:12px!important}
+.bar-workspace-root .barm-single{padding:10px!important}
+.bar-workspace-root .barm-form-grid label,
+.bar-workspace-root .barm-box label,
+.bar-workspace-root .barm-single,
+.bar-workspace-root .barm-checks label{
+  color:#405164!important;
+  -webkit-text-fill-color:#405164!important;
+}
+.bar-workspace-root .barm-box h4,
+.bar-workspace-root .barm-box b,
+.bar-workspace-root .barm-box strong,
+.bar-workspace-root .barm-checks b{
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .barm-head-actions input{
+  background:#ffffff!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .barm td select{
+  background:#ffffff!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+  border-color:#aebbc8!important;
+}
+
+/* Los botones primarios conservan el lenguaje del bar y no se vuelven blancos. */
+.bar-workspace-root .barops-btn.primary,
+.bar-workspace-root .bar-form-actions button.primary,
+.bar-workspace-root .bar-real-new button,
+.bar-workspace-root .bar-real-count-card footer button,
+.bar-workspace-root .bar-real-price-list button.primary,
+.bar-workspace-root .bar-real-save-recipe,
+.bar-workspace-root .barm button.primary,
+.bar-workspace-root .barm-form-action button.primary,
+.bar-workspace-root .barm-box>button.primary{
+  background:#b86f16!important;
+  border-color:#b86f16!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+
+/* Checkboxes/radios mantienen su tamaño nativo. */
+.bar-workspace-root input[type="checkbox"],
+.bar-workspace-root input[type="radio"]{
+  accent-color:#b86f16!important;
+}
+
+@media(max-width:760px){
+  .bar-workspace-root .barops-res-layout>.barops-panel,
+  .bar-workspace-root .barops-cash-layout .barops-panel,
+  .bar-workspace-root .bar-catalog-panel.narrow,
+  .bar-workspace-root .bar-real-count-card,
+  .bar-workspace-root .bar-real-price-list>article,
+  .bar-workspace-root .bar-real-recipe-layout aside,
+  .bar-workspace-root .bar-real-recipe-lines{
+    box-shadow:none!important;
+  }
+}
