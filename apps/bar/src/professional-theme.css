@@ -1,0 +1,307 @@
+.bar-standalone-app{
+ --pro-bg:#08111a;
+ --pro-panel:#111c27;
+ --pro-panel-2:#172432;
+ --pro-panel-3:#1d2d3e;
+ --pro-border:#2b3d50;
+ --pro-border-strong:#425a72;
+ --pro-text:#f4f7fb;
+ --pro-muted:#8fa1b4;
+ --pro-accent:#d7a13d;
+ --pro-accent-2:#efbd5f;
+ --pro-accent-soft:rgba(215,161,61,.14);
+ --pro-green:#4d9b73;
+ --pro-red:#bb6363;
+ --pro-purple:#7966a6;
+ background:radial-gradient(circle at 48% -10%,rgba(58,82,108,.18),transparent 31%),linear-gradient(180deg,#09121b 0%,#081018 100%)!important;
+}
+
+/* Hace que el cambio sea inequívoco: esta hoja se carga de último. */
+.bar-standalone-app .barops{
+ background:transparent!important;
+ color:var(--pro-text)!important;
+}
+
+.bar-standalone-app .barops-tabs{
+ background:#0d1721!important;
+ border:1px solid #314457!important;
+ border-radius:16px!important;
+ padding:5px!important;
+ box-shadow:0 12px 30px rgba(0,0,0,.18)!important;
+}
+.bar-standalone-app .barops-tabs button{
+ min-height:44px!important;
+ border:1px solid transparent!important;
+ border-radius:11px!important;
+ background:transparent!important;
+ color:#9eb0c2!important;
+ font-weight:800!important;
+ transition:.18s ease!important;
+}
+.bar-standalone-app .barops-tabs button:hover{
+ background:#182635!important;
+ color:#fff!important;
+}
+.bar-standalone-app .barops-tabs button.active{
+ background:linear-gradient(180deg,#e0aa45,#cb9131)!important;
+ border-color:#efc56f!important;
+ color:#181109!important;
+ box-shadow:0 7px 18px rgba(215,161,61,.22),inset 0 1px 0 rgba(255,255,255,.28)!important;
+}
+
+.bar-standalone-app .barops-pos{gap:14px!important;}
+.bar-standalone-app .barops-floor,
+.bar-standalone-app .barops-menu,
+.bar-standalone-app .barops-ticket{
+ background:linear-gradient(180deg,#121f2b 0%,#0f1923 100%)!important;
+ border:1px solid #304458!important;
+ border-radius:18px!important;
+ box-shadow:0 18px 42px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+.bar-standalone-app .barops-floor{border-top:3px solid #4f8c70!important;}
+.bar-standalone-app .barops-menu{border-top:3px solid var(--pro-accent)!important;}
+.bar-standalone-app .barops-ticket{border-top:3px solid #58799a!important;background:radial-gradient(circle at 50% 0,rgba(78,112,146,.11),transparent 32%),linear-gradient(180deg,#121f2b,#0d1720)!important;}
+
+.bar-standalone-app .barops-section-title{
+ padding-bottom:10px!important;
+ margin-bottom:12px!important;
+ border-bottom:1px solid rgba(92,116,141,.22)!important;
+}
+.bar-standalone-app .barops-section-title strong{
+ color:#f7f9fc!important;
+ font-size:18px!important;
+ letter-spacing:-.015em!important;
+}
+.bar-standalone-app .barops-section-title small{color:#8094a9!important;}
+.bar-standalone-app .barops-table-count{
+ background:#0d161f!important;
+ border:1px solid #745b2f!important;
+ color:#f0be60!important;
+ box-shadow:inset 0 0 0 1px rgba(215,161,61,.05)!important;
+}
+
+/* Llevar / Delivery dejan de verse como botones blancos del navegador. */
+.bar-standalone-app .barops-mini-actions button{
+ background:linear-gradient(180deg,#1c2b3a,#172432)!important;
+ border:1px solid #455c72!important;
+ color:#edf3f8!important;
+ border-radius:11px!important;
+ padding:8px 11px!important;
+ box-shadow:0 5px 12px rgba(0,0,0,.14)!important;
+}
+.bar-standalone-app .barops-mini-actions button:hover{
+ background:#24384b!important;
+ border-color:#b2863d!important;
+ color:#f4cb78!important;
+ transform:translateY(-1px)!important;
+}
+
+/* Mesas: menos bloque verde, más aspecto de POS profesional. */
+.bar-standalone-app .barops-table{
+ position:relative!important;
+ overflow:hidden!important;
+ min-height:78px!important;
+ padding:11px 9px 10px 13px!important;
+ border:1px solid #35495c!important;
+ border-radius:14px!important;
+ background:linear-gradient(180deg,#182632,#14212c)!important;
+ color:#f6f9fc!important;
+ box-shadow:inset 3px 0 0 #4c9870,inset 0 1px 0 rgba(255,255,255,.025)!important;
+ transition:.18s ease!important;
+}
+.bar-standalone-app .barops-table:hover{
+ background:linear-gradient(180deg,#1d3040,#172734)!important;
+ border-color:#506b82!important;
+ transform:translateY(-2px)!important;
+ box-shadow:inset 3px 0 0 #69b18a,0 10px 20px rgba(0,0,0,.2)!important;
+}
+.bar-standalone-app .barops-table strong{font-size:13px!important;}
+.bar-standalone-app .barops-table span{color:#78928a!important;font-size:9.5px!important;}
+.bar-standalone-app .barops-table.selected{
+ border-color:#d7a13d!important;
+ outline:none!important;
+ box-shadow:inset 4px 0 0 #d7a13d,0 0 0 2px rgba(215,161,61,.17),0 10px 24px rgba(0,0,0,.24)!important;
+}
+.bar-standalone-app .barops-table.occupied{background:#291d1f!important;border-color:#6f454a!important;box-shadow:inset 3px 0 0 var(--pro-red)!important;}
+.bar-standalone-app .barops-table.awaiting_payment{background:#2b2519!important;border-color:#735e35!important;box-shadow:inset 3px 0 0 var(--pro-accent)!important;}
+.bar-standalone-app .barops-table.reserved{background:#211d2d!important;border-color:#574a72!important;box-shadow:inset 3px 0 0 var(--pro-purple)!important;}
+
+/* Buscador claramente integrado al tema oscuro. */
+.bar-standalone-app .barops-search input{
+ min-height:48px!important;
+ background:#09131c!important;
+ border:1px solid #3a5065!important;
+ color:#f7f9fc!important;
+ border-radius:13px!important;
+ padding:0 15px!important;
+ font-size:14px!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+.bar-standalone-app .barops-search input::placeholder{color:#70859a!important;}
+.bar-standalone-app .barops-search input:focus{
+ outline:none!important;
+ border-color:#bd8e39!important;
+ box-shadow:0 0 0 3px rgba(215,161,61,.11),inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+
+/* Categorías: el activo se distingue de inmediato. */
+.bar-standalone-app .barops-categories-primary button,
+.bar-standalone-app .barops-categories-secondary button{
+ background:#172532!important;
+ border:1px solid #344a5e!important;
+ color:#aebdcb!important;
+ border-radius:11px!important;
+ font-weight:800!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.02)!important;
+}
+.bar-standalone-app .barops-categories-primary button:hover,
+.bar-standalone-app .barops-categories-secondary button:hover{
+ background:#203447!important;
+ border-color:#506b82!important;
+ color:#f4f7fa!important;
+}
+.bar-standalone-app .barops-categories-primary button.active,
+.bar-standalone-app .barops-categories-secondary button.active{
+ background:linear-gradient(180deg,#d9a443,#c58b2d)!important;
+ border-color:#edc46d!important;
+ color:#171109!important;
+ box-shadow:0 6px 14px rgba(215,161,61,.17),inset 0 1px 0 rgba(255,255,255,.25)!important;
+}
+.bar-standalone-app .barops-subcategory-wrap{
+ background:#0b151e!important;
+ border:1px solid #2f4356!important;
+ border-radius:14px!important;
+ padding:10px!important;
+}
+.bar-standalone-app .barops-subcategory-wrap>small{color:#e2b35c!important;}
+
+/* Productos con más jerarquía, icono en badge y precio tipo chip. */
+.bar-standalone-app .barops-products{gap:9px!important;padding:2px 3px 4px 0!important;}
+.bar-standalone-app .barops-product{
+ min-height:118px!important;
+ padding:12px!important;
+ border:1px solid #32485c!important;
+ border-radius:15px!important;
+ background:linear-gradient(155deg,#1b2b39 0%,#152330 100%)!important;
+ color:#f8fafc!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+ transition:.18s ease!important;
+}
+.bar-standalone-app .barops-product:hover{
+ background:linear-gradient(155deg,#23394b,#1b2d3d)!important;
+ border-color:#967640!important;
+ transform:translateY(-2px)!important;
+ box-shadow:0 12px 24px rgba(0,0,0,.24)!important;
+}
+.bar-standalone-app .barops-product i{
+ display:grid!important;
+ place-items:center!important;
+ width:34px!important;
+ height:34px!important;
+ margin-bottom:4px!important;
+ border:1px solid rgba(215,161,61,.22)!important;
+ border-radius:10px!important;
+ background:rgba(215,161,61,.09)!important;
+ font-size:20px!important;
+}
+.bar-standalone-app .barops-product strong{
+ color:#f5f8fb!important;
+ font-size:13px!important;
+ line-height:1.25!important;
+ font-weight:800!important;
+}
+.bar-standalone-app .barops-product small{color:#74899e!important;margin:4px 0 8px!important;}
+.bar-standalone-app .barops-product b{
+ display:inline-flex!important;
+ align-items:center!important;
+ width:max-content!important;
+ min-height:25px!important;
+ padding:3px 8px!important;
+ border-radius:999px!important;
+ background:rgba(215,161,61,.12)!important;
+ border:1px solid rgba(215,161,61,.22)!important;
+ color:#f0bd5c!important;
+ font-size:13px!important;
+ font-weight:900!important;
+}
+
+/* Ticket derecho con identidad propia. */
+.bar-standalone-app .barops-ticket-head{
+ background:linear-gradient(180deg,#132231,#0e1923)!important;
+ border-bottom:1px solid #30465a!important;
+ padding:15px!important;
+}
+.bar-standalone-app .barops-ticket-head strong{color:#f7f9fc!important;font-size:19px!important;}
+.bar-standalone-app .barops-ticket-head small{color:#7f94aa!important;}
+.bar-standalone-app .barops-empty{
+ min-height:300px!important;
+ color:#73879b!important;
+ padding:30px 24px!important;
+}
+.bar-standalone-app .barops-empty span{
+ display:grid!important;
+ place-items:center!important;
+ width:58px!important;
+ height:58px!important;
+ margin-bottom:12px!important;
+ border-radius:18px!important;
+ border:1px solid rgba(215,161,61,.22)!important;
+ background:rgba(215,161,61,.07)!important;
+ color:#dba84a!important;
+ font-size:27px!important;
+}
+.bar-standalone-app .barops-empty strong{color:#b8c5d2!important;font-size:15px!important;}
+.bar-standalone-app .barops-totals{
+ background:#0c161f!important;
+ border-top:1px solid #304356!important;
+}
+.bar-standalone-app .barops-totals .grand strong{color:#f0bc5a!important;font-size:23px!important;}
+.bar-standalone-app .barops-btn.primary{
+ background:linear-gradient(180deg,#dda844,#c98f30)!important;
+ border-color:#efc66f!important;
+ color:#171109!important;
+ box-shadow:0 8px 20px rgba(215,161,61,.18)!important;
+}
+
+/* Otros módulos conservan la misma identidad. */
+.bar-standalone-app .barops-panel,
+.bar-standalone-app .barops-kpi,
+.bar-standalone-app .barops-order-card,
+.bar-standalone-app .barops-station article,
+.bar-standalone-app .barops-res-card,
+.bar-standalone-app .barops-delivery-card,
+.bar-standalone-app .barops-cash-card{
+ background:linear-gradient(180deg,#14222e,#101a24)!important;
+ border-color:#304356!important;
+ box-shadow:0 12px 28px rgba(0,0,0,.16)!important;
+}
+
+/* Scrollbars más discretas. */
+.bar-standalone-app .barops-floor .barops-table-grid,
+.bar-standalone-app .barops-products,
+.bar-standalone-app .barops-ticket-lines,
+.bar-standalone-app .barops-tool-tabs{
+ scrollbar-color:#52687d #0d1721!important;
+ scrollbar-width:thin!important;
+}
+.bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar,
+.bar-standalone-app .barops-products::-webkit-scrollbar,
+.bar-standalone-app .barops-ticket-lines::-webkit-scrollbar,
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar{width:7px!important;height:7px!important;}
+.bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-track,
+.bar-standalone-app .barops-products::-webkit-scrollbar-track,
+.bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-track,
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-track{background:#0d1721!important;border-radius:999px!important;}
+.bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-thumb,
+.bar-standalone-app .barops-products::-webkit-scrollbar-thumb,
+.bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-thumb,
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-thumb{background:#52687d!important;border:2px solid #0d1721!important;border-radius:999px!important;}
+.bar-standalone-app .barops-floor .barops-table-grid::-webkit-scrollbar-thumb:hover,
+.bar-standalone-app .barops-products::-webkit-scrollbar-thumb:hover,
+.bar-standalone-app .barops-ticket-lines::-webkit-scrollbar-thumb:hover,
+.bar-standalone-app .barops-tool-tabs::-webkit-scrollbar-thumb:hover{background:#c79539!important;}
+
+@media(max-width:850px){
+ .bar-standalone-app .barops-floor,.bar-standalone-app .barops-menu,.bar-standalone-app .barops-ticket{border-top-width:2px!important;}
+ .bar-standalone-app .barops-empty{min-height:190px!important;}
+}
