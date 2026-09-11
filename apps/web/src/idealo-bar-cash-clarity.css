@@ -1,0 +1,78 @@
+/* IDEALO BAR · Caja: formularios blancos y contraste final
+   Capa final para Caja. Corrige text-fill heredado y deja los campos claros. */
+
+/* Los títulos y textos de Caja deben ser legibles sobre el panel oscuro. */
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card h3{
+  color:#f8fafc!important;
+  -webkit-text-fill-color:#f8fafc!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card>p{
+  color:#c3cfdb!important;
+  -webkit-text-fill-color:#c3cfdb!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-feed>article b{
+  color:#f8fafc!important;
+  -webkit-text-fill-color:#f8fafc!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-feed>article small{
+  color:#b6c3d0!important;
+  -webkit-text-fill-color:#b6c3d0!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-feed>article strong{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-feed>article:nth-child(3) strong{
+  color:#f0a65f!important;
+  -webkit-text-fill-color:#f0a65f!important;
+}
+
+/* Formularios de Caja blancos con texto oscuro y visible. */
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid select,
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid input,
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid .barops-select,
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid .barops-input{
+  min-height:44px!important;
+  background:#ffffff!important;
+  background-image:none!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+  caret-color:#172231!important;
+  border:1px solid #b8c4cf!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.06)!important;
+  color-scheme:light!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid input::placeholder{
+  color:#6f7d8c!important;
+  -webkit-text-fill-color:#6f7d8c!important;
+  opacity:1!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid select option{
+  background:#ffffff!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid select:focus,
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid input:focus{
+  border-color:#e48832!important;
+  box-shadow:0 0 0 3px rgba(228,136,50,.18)!important;
+  outline:none!important;
+}
+
+/* Un poco más de separación visual dentro del formulario sin aclarar todo el panel. */
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-grid{
+  background:#111922!important;
+  border-color:#354252!important;
+}
+
+/* Mantener legibles los indicadores aunque otras hojas usen text-fill oscuro. */
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-methods b,
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-methods strong{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-methods span,
+.bar-workspace-root .barops:has(.barops-cash-layout) .barops-cash-card .barops-methods small{
+  color:#b6c3d0!important;
+  -webkit-text-fill-color:#b6c3d0!important;
+}
