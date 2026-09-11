@@ -1,0 +1,139 @@
+/* IDEALO BAR · POS negro profesional
+   Convierte los paneles grises del área Vender en negro sin tocar la lógica. */
+
+.bar-workspace-root .barops-floor,
+.bar-workspace-root .barops-menu,
+.bar-workspace-root .barops-ticket,
+.bar-workspace-root .barops-panel,
+.bar-workspace-root .barops-order-card,
+.bar-workspace-root .barops-delivery-card,
+.bar-workspace-root .barops-station article,
+.bar-workspace-root .barops-res-card{
+  background:#000000!important;
+  border-color:#2a2f36!important;
+  color:#ffffff!important;
+  box-shadow:none!important;
+}
+
+.bar-workspace-root .barops-ticket-head,
+.bar-workspace-root .barops-ticket-tools,
+.bar-workspace-root .barops-feed article,
+.bar-workspace-root .barops-table,
+.bar-workspace-root .barops-product,
+.bar-workspace-root .barops-table-grid,
+.bar-workspace-root .barops-products{
+  background-color:#000000!important;
+}
+
+.bar-workspace-root .barops-ticket-head,
+.bar-workspace-root .barops-ticket-tools,
+.bar-workspace-root .barops-feed article,
+.bar-workspace-root .barops-table,
+.bar-workspace-root .barops-product{
+  border-color:#30363d!important;
+  color:#ffffff!important;
+}
+
+.bar-workspace-root .barops-floor .barops-section-title small,
+.bar-workspace-root .barops-menu .barops-section-title small,
+.bar-workspace-root .barops-ticket small,
+.bar-workspace-root .barops-product small,
+.bar-workspace-root .barops-table span,
+.bar-workspace-root .barops-panel p,
+.bar-workspace-root .barops-empty p{
+  color:#aeb8c3!important;
+  -webkit-text-fill-color:#aeb8c3!important;
+}
+
+.bar-workspace-root .barops-floor .barops-section-title strong,
+.bar-workspace-root .barops-menu .barops-section-title strong,
+.bar-workspace-root .barops-ticket strong,
+.bar-workspace-root .barops-product strong,
+.bar-workspace-root .barops-table strong,
+.bar-workspace-root .barops-empty strong,
+.bar-workspace-root .barops-panel h3,
+.bar-workspace-root .barops-order-card b,
+.bar-workspace-root .barops-delivery-card b{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+
+.bar-workspace-root .barops-product b,
+.bar-workspace-root .barops-table b,
+.bar-workspace-root .barops-order-card footer b{
+  color:#ff9a32!important;
+  -webkit-text-fill-color:#ff9a32!important;
+}
+
+.bar-workspace-root .barops-table.available{
+  background:#000000!important;
+  border-color:#353b43!important;
+}
+.bar-workspace-root .barops-table.occupied{
+  background:#150b0b!important;
+  border-color:#66302d!important;
+}
+.bar-workspace-root .barops-table.awaiting_payment{
+  background:#171108!important;
+  border-color:#7b5a24!important;
+}
+.bar-workspace-root .barops-table.reserved{
+  background:#0f0b18!important;
+  border-color:#4b3b70!important;
+}
+.bar-workspace-root .barops-table.selected{
+  outline:2px solid #ff922e!important;
+  outline-offset:1px!important;
+}
+
+.bar-workspace-root .barops-product:hover,
+.bar-workspace-root .barops-table:hover,
+.bar-workspace-root .barops-order-card:hover{
+  background:#0b0b0b!important;
+  border-color:#555d67!important;
+}
+
+.bar-workspace-root .barops-search input{
+  background:#ffffff!important;
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+  border-color:#c3ccd5!important;
+}
+.bar-workspace-root .barops-search input::placeholder{
+  color:#7b8794!important;
+  -webkit-text-fill-color:#7b8794!important;
+}
+
+.bar-workspace-root .barops-categories button{
+  background:#050505!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  border-color:#353b43!important;
+}
+.bar-workspace-root .barops-categories button:hover{
+  background:#111111!important;
+  border-color:#555d67!important;
+}
+.bar-workspace-root .barops-categories button.active{
+  background:#ff982f!important;
+  color:#111111!important;
+  -webkit-text-fill-color:#111111!important;
+  border-color:#ff982f!important;
+}
+
+.bar-workspace-root .barops-ticket-tools{
+  border-top-color:#30363d!important;
+}
+
+.bar-workspace-root .barops-empty,
+.bar-workspace-root .barops-empty span{
+  color:#dce3ea!important;
+  -webkit-text-fill-color:#dce3ea!important;
+}
+
+/* La caja conserva sus formularios blancos y su tema específico. */
+.bar-workspace-root .barops-cash-layout .barops-cash-card,
+.bar-workspace-root .barops-cash-layout input,
+.bar-workspace-root .barops-cash-layout select{
+  background-color:revert-layer;
+}
