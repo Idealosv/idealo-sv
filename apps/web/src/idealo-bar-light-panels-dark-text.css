@@ -52,6 +52,38 @@
 .bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child article strong{
   color:#b86f16!important;
 }
+
+/* Refuerzo de contraste del encabezado Estado del turno.
+   Algunas reglas antiguas del tema lounge aplicaban relleno de texto claro. */
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-panel-head h3,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-panel-head h3{
+  color:#111827!important;
+  -webkit-text-fill-color:#111827!important;
+  opacity:1!important;
+  visibility:visible!important;
+  text-shadow:none!important;
+  font-weight:900!important;
+  background:transparent!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-panel-head p,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-panel-head p{
+  color:#526273!important;
+  -webkit-text-fill-color:#526273!important;
+  opacity:1!important;
+  visibility:visible!important;
+  text-shadow:none!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-feed article b,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-feed article b{
+  color:#172231!important;
+  -webkit-text-fill-color:#172231!important;
+}
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-feed article small,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-feed article small{
+  color:#5f6f80!important;
+  -webkit-text-fill-color:#5f6f80!important;
+}
+
 @media(max-width:760px){
   .bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel,
   .bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel{
