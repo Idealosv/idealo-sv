@@ -1,0 +1,324 @@
+/* IDEALO BAR · Caja profesional
+   Capa visual aislada para la pantalla de caja. No modifica la lógica POS. */
+
+.barops:has(.barops-cash-layout){
+  max-width:1380px;
+  margin:0 auto;
+  padding:20px 28px 48px!important;
+}
+
+/* Encabezado: menos “caja dentro de caja”, más jerarquía de aplicación. */
+.barops:has(.barops-cash-layout) .barops-head{
+  padding:8px 0 16px!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid rgba(148,163,184,.16)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.barops:has(.barops-cash-layout) .barops-head small{
+  color:#e79a50!important;
+  font-size:10px!important;
+  letter-spacing:.1em!important;
+}
+.barops:has(.barops-cash-layout) .barops-head h2{
+  margin:4px 0 3px!important;
+  color:#f8fafc!important;
+  font-size:25px!important;
+  line-height:1.18!important;
+  letter-spacing:-.02em!important;
+}
+.barops:has(.barops-cash-layout) .barops-head p{
+  color:#95a5b8!important;
+  font-size:12px!important;
+}
+
+/* Navegación secundaria de la operación. */
+.bar-workspace-root[data-bar-role="owner"] .barops:has(.barops-cash-layout) .barops-tabs,
+.bar-workspace-root[data-bar-role="manager"] .barops:has(.barops-cash-layout) .barops-tabs,
+.barops:has(.barops-cash-layout) .barops-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(108px,1fr))!important;
+  width:min(100%,720px)!important;
+  max-width:720px!important;
+  gap:5px!important;
+  margin:14px 0 16px!important;
+  padding:4px!important;
+  border:1px solid rgba(148,163,184,.18)!important;
+  border-radius:13px!important;
+  background:#151d26!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.12)!important;
+}
+.barops:has(.barops-cash-layout) .barops-tabs button{
+  min-height:40px!important;
+  padding:8px 12px!important;
+  border:1px solid transparent!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  color:#b5c0cc!important;
+  box-shadow:none!important;
+  font-weight:800!important;
+  transition:background .16s ease,border-color .16s ease,color .16s ease!important;
+}
+.barops:has(.barops-cash-layout) .barops-tabs button:hover{
+  background:#1c2733!important;
+  color:#fff!important;
+}
+.barops:has(.barops-cash-layout) .barops-tabs button.active{
+  border-color:#e48832!important;
+  background:linear-gradient(180deg,#f49a40,#e9862b)!important;
+  color:#14181e!important;
+  box-shadow:0 5px 14px rgba(235,135,43,.18)!important;
+}
+
+/* Composición principal. */
+.barops-cash-layout{
+  grid-template-columns:minmax(0,1.12fr) minmax(360px,.88fr)!important;
+  gap:18px!important;
+  align-items:stretch!important;
+}
+.barops-cash-card{
+  position:relative!important;
+  min-height:280px!important;
+  padding:20px!important;
+  overflow:hidden!important;
+  border:1px solid rgba(148,163,184,.19)!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,#151e28 0%,#111922 100%)!important;
+  color:#f8fafc!important;
+  box-shadow:0 12px 32px rgba(0,0,0,.17)!important;
+}
+.barops-cash-card:first-child{
+  border-top-color:#e38a36!important;
+}
+.barops-cash-card h3{
+  margin:0 0 5px!important;
+  color:#f8fafc!important;
+  font-size:20px!important;
+  line-height:1.2!important;
+  letter-spacing:-.015em!important;
+}
+.barops-cash-card>p{
+  max-width:600px!important;
+  margin:0 0 16px!important;
+  color:#94a4b7!important;
+  font-size:12px!important;
+  line-height:1.5!important;
+}
+.barops-cash-card:first-child>h3::before{
+  content:"";
+  display:inline-block;
+  width:8px;
+  height:8px;
+  margin:0 9px 2px 0;
+  border-radius:50%;
+  background:#e38a36;
+  box-shadow:0 0 0 4px rgba(227,138,54,.10);
+}
+.barops-cash-card:nth-child(2)>h3::before{
+  content:"";
+  display:inline-block;
+  width:8px;
+  height:8px;
+  margin:0 9px 2px 0;
+  border-radius:2px;
+  background:#718096;
+}
+
+/* Apertura de turno. Los !important neutralizan la hoja clara cargada antes. */
+.barops-cash-grid{
+  grid-template-columns:minmax(0,1fr) minmax(190px,.58fr)!important;
+  gap:10px!important;
+  margin-top:14px!important;
+  padding:12px!important;
+  border:1px solid rgba(148,163,184,.16)!important;
+  border-radius:13px!important;
+  background:#0d141c!important;
+}
+.barops-cash-grid .barops-select,
+.barops-cash-grid .barops-input,
+.barops-cash-grid select,
+.barops-cash-grid input{
+  min-height:44px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  padding:0 12px!important;
+  border:1px solid #364453!important;
+  border-radius:9px!important;
+  background:#111a23!important;
+  color:#f8fafc!important;
+  -webkit-text-fill-color:#f8fafc!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02)!important;
+  font-size:13px!important;
+  outline:none!important;
+}
+.barops-cash-grid .barops-select:focus,
+.barops-cash-grid .barops-input:focus,
+.barops-cash-grid select:focus,
+.barops-cash-grid input:focus{
+  border-color:#db8432!important;
+  box-shadow:0 0 0 3px rgba(219,132,50,.13)!important;
+}
+.barops-cash-grid select option{
+  background:#111a23!important;
+  color:#f8fafc!important;
+}
+.barops-cash-grid .barops-btn.primary{
+  grid-column:1/-1!important;
+  min-height:46px!important;
+  margin-top:2px!important;
+  border:1px solid #ee963e!important;
+  border-radius:9px!important;
+  background:linear-gradient(180deg,#f59b41,#e9872d)!important;
+  color:#17191d!important;
+  box-shadow:0 7px 18px rgba(232,135,45,.17)!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  letter-spacing:.005em!important;
+}
+.barops-cash-grid .barops-btn.primary:hover{
+  background:linear-gradient(180deg,#ffa64e,#ef9135)!important;
+  transform:translateY(-1px);
+}
+
+/* Resumen de sesión abierta. */
+.barops-cash-card .barops-methods{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin:16px 0!important;
+}
+.barops-cash-card .barops-methods>span,
+.barops-cash-card .barops-methods>div{
+  display:flex!important;
+  min-height:76px!important;
+  padding:11px!important;
+  box-sizing:border-box!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  border:1px solid rgba(148,163,184,.15)!important;
+  border-radius:10px!important;
+  background:#0e151d!important;
+  color:#f8fafc!important;
+}
+.barops-cash-card .barops-methods strong,
+.barops-cash-card .barops-methods b{
+  display:block!important;
+  color:#f8fafc!important;
+  font-size:17px!important;
+  line-height:1.2!important;
+}
+.barops-cash-card .barops-methods small,
+.barops-cash-card .barops-methods span>small{
+  display:block!important;
+  margin-top:5px!important;
+  color:#8797aa!important;
+  font-size:10px!important;
+  font-weight:750!important;
+  text-transform:uppercase!important;
+  letter-spacing:.055em!important;
+}
+.barops-cash-card .barops-btn.danger{
+  min-height:42px!important;
+  border-color:#743e43!important;
+  background:#2a181c!important;
+  color:#f0b4ba!important;
+}
+
+/* Control del cajero: tablero de 4 indicadores legibles. */
+.barops-cash-card .barops-feed{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:9px!important;
+  margin-top:15px!important;
+}
+.barops-cash-card .barops-feed>article{
+  display:flex!important;
+  min-height:88px!important;
+  padding:12px 13px!important;
+  box-sizing:border-box!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  gap:5px!important;
+  border:1px solid rgba(148,163,184,.16)!important;
+  border-radius:11px!important;
+  background:#0e151d!important;
+  box-shadow:none!important;
+}
+.barops-cash-card .barops-feed>article small{
+  order:-1!important;
+  margin:0!important;
+  color:#8191a4!important;
+  font-size:9px!important;
+  font-weight:850!important;
+  line-height:1.25!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+}
+.barops-cash-card .barops-feed>article strong{
+  color:#f4f7fa!important;
+  font-size:19px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.barops-cash-card .barops-feed>article:first-child strong{
+  font-size:12px!important;
+  line-height:1.4!important;
+}
+.barops-cash-card .barops-feed>article:nth-child(3){
+  border-color:rgba(227,138,54,.62)!important;
+  background:linear-gradient(180deg,rgba(227,138,54,.08),#0e151d)!important;
+}
+.barops-cash-card .barops-feed>article:nth-child(3) strong{
+  color:#f0a65f!important;
+}
+
+/* Ayuda contextual, sin competir con la acción principal. */
+.barops:has(.barops-cash-layout) .barops-helper-note{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  margin-top:10px!important;
+  padding:10px 12px!important;
+  border:1px solid rgba(227,138,54,.25)!important;
+  border-radius:10px!important;
+  background:rgba(227,138,54,.055)!important;
+  color:#b7a28d!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+.barops:has(.barops-cash-layout) .barops-helper-note::before{
+  content:"";
+  flex:0 0 auto;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#df8938;
+}
+
+@media(max-width:980px){
+  .barops:has(.barops-cash-layout){padding:16px 18px 38px!important}
+  .barops-cash-layout{grid-template-columns:1fr!important}
+  .barops-cash-card{min-height:auto!important}
+}
+
+@media(max-width:680px){
+  .barops:has(.barops-cash-layout){padding:12px!important}
+  .bar-workspace-root[data-bar-role="owner"] .barops:has(.barops-cash-layout) .barops-tabs,
+  .bar-workspace-root[data-bar-role="manager"] .barops:has(.barops-cash-layout) .barops-tabs,
+  .barops:has(.barops-cash-layout) .barops-tabs{
+    grid-template-columns:repeat(3,1fr)!important;
+    width:100%!important;
+  }
+  .barops-cash-grid{grid-template-columns:1fr!important}
+  .barops-cash-grid .barops-btn.primary{grid-column:1!important}
+  .barops-cash-card{padding:15px!important}
+  .barops-cash-card .barops-feed{grid-template-columns:1fr 1fr!important}
+  .barops-cash-card .barops-methods{grid-template-columns:1fr 1fr!important}
+}
+
+@media(max-width:430px){
+  .barops-cash-card .barops-feed{grid-template-columns:1fr!important}
+}
