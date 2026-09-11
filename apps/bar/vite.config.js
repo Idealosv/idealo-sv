@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import standaloneBarOrdersDashboard from './ordersDashboardPlugin.js'
-import standaloneBarReservationsDashboard from './reservationsDashboardPlugin.js'
+import standaloneBarReservationsDashboard from './reservationsDashboardPluginV2.js'
 import standaloneBarOperationLoadSafety from './operationLoadSafetyPlugin.js'
 
 function standaloneBarReservationStyles(){
