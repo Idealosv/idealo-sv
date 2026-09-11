@@ -53,8 +53,18 @@
   color:#b86f16!important;
 }
 
-/* Refuerzo de contraste del encabezado Estado del turno.
-   Algunas reglas antiguas del tema lounge aplicaban relleno de texto claro. */
+/* Estado del turno: encabezado y contenido deben permanecer claros. */
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-panel-head,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-panel-head,
+.bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-panel-head>div,
+.bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-panel-head>div{
+  background:#e9eef3!important;
+  background-image:none!important;
+  color:#111827!important;
+  border:0!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
 .bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-panel-head h3,
 .bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-panel-head h3{
   color:#111827!important;
@@ -72,6 +82,7 @@
   opacity:1!important;
   visibility:visible!important;
   text-shadow:none!important;
+  background:transparent!important;
 }
 .bar-workspace-root[data-bar-role="owner"] .barops-dashboard>.barops-panel:last-child .barops-feed article b,
 .bar-workspace-root[data-bar-role="manager"] .barops-dashboard>.barops-panel:last-child .barops-feed article b{
