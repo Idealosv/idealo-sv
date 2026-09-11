@@ -1,0 +1,16 @@
+create index if not exists bar_cash_count_lines_created_by_idx on public.bar_cash_count_lines(created_by);
+create index if not exists bar_day_closures_closed_by_idx on public.bar_day_closures(closed_by);
+create index if not exists bar_refund_items_company_idx on public.bar_refund_items(company_id);
+create index if not exists bar_refunds_approved_by_idx on public.bar_refunds(approved_by);
+create index if not exists bar_refunds_cash_account_idx on public.bar_refunds(cash_account_id);
+create index if not exists bar_refunds_cash_movement_idx on public.bar_refunds(cash_movement_id);
+create index if not exists bar_refunds_cash_session_idx on public.bar_refunds(cash_register_session_id);
+create index if not exists bar_refunds_dte_idx on public.bar_refunds(dte_document_id);
+create index if not exists bar_refunds_requested_by_idx on public.bar_refunds(requested_by);
+create index if not exists bar_tip_payout_items_payout_idx on public.bar_tip_payout_items(payout_id);
+create index if not exists bar_tip_payouts_cash_account_idx on public.bar_tip_payouts(cash_account_id);
+create index if not exists bar_tip_payouts_cash_movement_idx on public.bar_tip_payouts(cash_movement_id);
+create index if not exists bar_tip_payouts_cash_session_idx on public.bar_tip_payouts(cash_register_session_id);
+create index if not exists bar_tip_payouts_paid_by_idx on public.bar_tip_payouts(paid_by);
+create index if not exists bar_tip_payouts_recipient_idx on public.bar_tip_payouts(recipient_user_id);
+drop index if exists public.bar_orders_company_status_opened_idx;
