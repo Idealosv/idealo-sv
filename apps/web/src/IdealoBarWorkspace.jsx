@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
-import IdealoBarOperationsV2 from './IdealoBarOperationsV2.jsx'
+import IdealoBarLiveOperations from './IdealoBarLiveOperations.jsx'
 import IdealoBarCatalog from './IdealoBarCatalog.jsx'
 import IdealoBarInventory from './IdealoBarInventory.jsx'
 import IdealoBarSimpleManagement from './IdealoBarSimpleManagement.jsx'
@@ -66,7 +66,7 @@ export default function IdealoBarWorkspace({company,supabase}){
    <div className="bar-workspace-role-chip" aria-label={`Rol actual: ${roleLabel[access.role]||access.role}`}><span>{roleLabel[access.role]||access.role}</span><small>{access.display_name||''}</small></div>
   </nav>
 
-  {section==='vender'&&has('operation.access')&&<IdealoBarOperationsV2 company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('carta')}/>} 
+  {section==='vender'&&has('operation.access')&&<IdealoBarLiveOperations company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('carta')}/>} 
   {section==='carta'&&has('catalog.manage')&&<IdealoBarCatalog company={company} supabase={supabase}/>} 
   {section==='inventario'&&(has('inventory.view')||has('inventory.manage'))&&<IdealoBarInventory company={company} supabase={supabase}/>} 
   {section==='gestion'&&managementAllowed&&<IdealoBarSimpleManagement company={company} supabase={supabase} access={access} onOpenCatalog={()=>has('catalog.manage')&&setSection('carta')} onOpenInventory={()=>setSection('inventario')}/>} 
