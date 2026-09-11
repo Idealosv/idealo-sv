@@ -4,7 +4,7 @@ export const SUBGROUPS={
  Licores:['Whisky','Vodka','Ron','Tequila / Mezcal','Gin','Aguardiente','Licores / Digestivos','Vinos','Espumantes','Sangrías','RTD / Hard Seltzer'],
  Bebidas:['Gaseosas','Agua / Mineral','Frescos Naturales','Limonadas / Naranjadas','Jugos','Té / Café','Licuados / Batidos','Frozen / Smoothies','Energizantes','Hidratantes','Mezcladores','Mocktails'],
  Comida:['Hamburguesas','Alitas','Boneless / Tenders','Hot Dogs','Nachos','Papas','Tacos','Pizzas','Quesadillas','Mexicana','Mariscos / Ceviches','Sopas','Sándwiches','Parrilla / Churrascos','Entradas / Bocas','Otros'],
- 'Combos / Promociones':['Baldes','Hielerazos','Combos','Happy Hour','Otros'],
+ 'Combos / Promociones':['Baldes','Hielerazos','Cerveza + Bocas','Comida + Bebida','Botellas + Mixers','Shots / Tragos','2x1 / 3x2','X + Gratis','Happy Hour','Promos por Día','Partido / Eventos','Cumpleaños','Barra Libre','Beneficios / Membresías','Otros'],
 }
 
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()
@@ -49,10 +49,20 @@ const classifyBeverage=(name,category)=>{
 }
 
 const classifyCombo=name=>{
+ if(has(name,/balde.*(boca|boquita|alitas)|cervezas?.*(boca|boquita)|boca.*cervezas?/))return'Cerveza + Bocas'
+ if(has(name,/(hamburg|alitas|pizza|nachos|tacos|papas).*(cerveza|gaseosa|bebida)|(?:cerveza|gaseosa|bebida).*(hamburg|alitas|pizza|nachos|tacos|papas)/))return'Comida + Bebida'
+ if(has(name,/(botella|smirnoff|flor\s+de\s+cana|jose\s+cuervo|ron|vodka|whisky|tequila).*(mixer|mezclador)|mixer.*(botella|ron|vodka|whisky|tequila)/))return'Botellas + Mixers'
+ if(has(name,/shots?|tragos?|tabla\s+de\s+shots?/))return'Shots / Tragos'
+ if(has(name,/2\s*x\s*1|3\s*x\s*2|dos\s+por\s+uno|tres\s+por\s+dos/))return'2x1 / 3x2'
+ if(has(name,/\b\d+\s*\+\s*\d+\b|\bgratis\b/))return'X + Gratis'
+ if(has(name,/happy\s*hour/))return'Happy Hour'
+ if(has(name,/lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo|promo\s+del\s+dia|promo\s+del\s+día/))return'Promos por Día'
+ if(has(name,/partido|90\s*minutos|evento|mundial|clasico|clásico|final\b/))return'Partido / Eventos'
+ if(has(name,/cumple|cumpleanos|cumpleaños/))return'Cumpleaños'
+ if(has(name,/barra\s+libre|open\s*bar/))return'Barra Libre'
+ if(has(name,/membres|socio|convenio|tarjeta|beneficio/))return'Beneficios / Membresías'
  if(has(name,/balde/))return'Baldes'
  if(has(name,/hielerazo/))return'Hielerazos'
- if(has(name,/happy\s*hour/))return'Happy Hour'
- if(has(name,/combo|promocion/))return'Combos'
  return'Otros'
 }
 
