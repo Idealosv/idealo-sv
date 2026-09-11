@@ -7,7 +7,7 @@ function standaloneBarMenuNavigation(){
     {
       label:'classification import',
       from:"import './idealo-bar-role-permissions.css'\n",
-      to:"import './idealo-bar-role-permissions.css'\nimport {TOP_LEVEL_GROUPS,getSubgroupsForGroup,filterStandaloneMenu} from '../../bar/src/menuNavigation.js'\nimport '../../bar/src/menu-navigation.css'\n",
+      to:"import './idealo-bar-role-permissions.css'\nimport {TOP_LEVEL_GROUPS,getSubgroupsForGroup,filterStandaloneMenu,buildMenuPopularity} from '../../bar/src/menuNavigation.js'\nimport '../../bar/src/menu-navigation.css'\n",
     },
     {
       label:'two-level state',
@@ -17,7 +17,7 @@ function standaloneBarMenuNavigation(){
     {
       label:'menu filtering',
       from:" const categories=useMemo(()=>['Todos',...new Set(menu.map(row=>row.category).filter(Boolean))],[menu])\n const filteredMenu=menu.filter(row=>{const label=(row.display_name||row.product?.name||'').toLowerCase();return(category==='Todos'||row.category===category)&&(!query.trim()||label.includes(query.trim().toLowerCase()))})",
-      to:" const categories=TOP_LEVEL_GROUPS\n const subcategories=getSubgroupsForGroup(category)\n const filteredMenu=useMemo(()=>filterStandaloneMenu(menu,category,subcategory,query),[menu,category,subcategory,query])",
+      to:" const categories=TOP_LEVEL_GROUPS\n const subcategories=getSubgroupsForGroup(category)\n const menuPopularity=useMemo(()=>buildMenuPopularity(items,orders),[items,orders])\n const filteredMenu=useMemo(()=>filterStandaloneMenu(menu,category,subcategory,query,menuPopularity),[menu,category,subcategory,query,menuPopularity])",
     },
     {
       label:'global search',
