@@ -1,0 +1,304 @@
+/* IDEALO BAR · contraste universal
+   Capa final de accesibilidad visual. Evita texto oscuro sobre fondos oscuros
+   y texto claro sobre formularios blancos en todos los módulos del workspace. */
+
+.bar-workspace-root{
+  --bar-contrast-bg:#050505;
+  --bar-contrast-surface:#0b0b0b;
+  --bar-contrast-surface-2:#111111;
+  --bar-contrast-border:#353b43;
+  --bar-contrast-text:#f8fafc;
+  --bar-contrast-muted:#cbd5e1;
+  --bar-contrast-accent:#ff982f;
+  --bar-contrast-input:#ffffff;
+  --bar-contrast-input-text:#111827;
+}
+
+/* Elimina conflictos heredados de -webkit-text-fill-color. */
+.bar-workspace-root *{
+  text-shadow:none!important;
+}
+.bar-workspace-root *:not(input):not(select):not(textarea){
+  -webkit-text-fill-color:currentColor!important;
+}
+
+/* Base de módulos oscuros. */
+.bar-workspace-root .barops,
+.bar-workspace-root .bar-catalog-shell,
+.bar-workspace-root .bar-real-shell,
+.bar-workspace-root .baradv,
+.bar-workspace-root .barm,
+.bar-workspace-root .barready,
+.bar-workspace-root .bar-commercial-ready,
+.bar-workspace-root .bar-simple-management-home,
+.bar-workspace-root .bar-simple-management-stage{
+  color:var(--bar-contrast-text)!important;
+}
+
+/* Superficies principales: todas oscuras y con texto legible. */
+.bar-workspace-root .barops-panel,
+.bar-workspace-root .barops-floor,
+.bar-workspace-root .barops-menu,
+.bar-workspace-root .barops-ticket,
+.bar-workspace-root .barops-cash-card,
+.bar-workspace-root .barops-order-card,
+.bar-workspace-root .barops-delivery-card,
+.bar-workspace-root .barops-res-card,
+.bar-workspace-root .barops-station article,
+.bar-workspace-root .bar-catalog-panel,
+.bar-workspace-root .bar-catalog-list article,
+.bar-workspace-root .bar-real-panel,
+.bar-workspace-root .bar-real-count-card,
+.bar-workspace-root .bar-real-price-list>article,
+.bar-workspace-root .bar-real-recipe-layout aside,
+.bar-workspace-root .bar-real-recipe-lines,
+.bar-workspace-root .baradv-panel,
+.bar-workspace-root .barm-panel,
+.bar-workspace-root .barready-panel,
+.bar-workspace-root .bar-admin-side,
+.bar-workspace-root .bar-admin-content>section,
+.bar-workspace-root .bar-simple-management-grid>button,
+.bar-workspace-root .bar-simple-help,
+.bar-workspace-root .barm-form-grid,
+.bar-workspace-root .barm-form-grid.settings,
+.bar-workspace-root .barm-box,
+.bar-workspace-root .barm-single,
+.bar-workspace-root .barm-checks{
+  background:var(--bar-contrast-surface)!important;
+  background-image:none!important;
+  border-color:var(--bar-contrast-border)!important;
+  color:var(--bar-contrast-text)!important;
+}
+
+/* Texto principal en superficies oscuras. */
+.bar-workspace-root :is(
+  .barops-panel,.barops-floor,.barops-menu,.barops-ticket,.barops-cash-card,
+  .barops-order-card,.barops-delivery-card,.barops-res-card,
+  .bar-catalog-panel,.bar-catalog-list article,.bar-real-panel,
+  .bar-real-count-card,.bar-real-price-list>article,.bar-real-recipe-layout aside,
+  .bar-real-recipe-lines,.baradv-panel,.barm-panel,.barready-panel,
+  .bar-admin-side,.bar-admin-content>section,.bar-simple-management-grid>button,
+  .bar-simple-help,.barm-form-grid,.barm-box,.barm-single,.barm-checks
+) :is(h1,h2,h3,h4,h5,h6,b,strong,label,legend,th,td,li){
+  color:var(--bar-contrast-text)!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+
+/* Texto secundario: suficientemente claro para leerse. */
+.bar-workspace-root :is(
+  .barops-panel,.barops-floor,.barops-menu,.barops-ticket,.barops-cash-card,
+  .barops-order-card,.barops-delivery-card,.barops-res-card,
+  .bar-catalog-panel,.bar-catalog-list article,.bar-real-panel,
+  .bar-real-count-card,.bar-real-price-list>article,.bar-real-recipe-layout aside,
+  .bar-real-recipe-lines,.baradv-panel,.barm-panel,.barready-panel,
+  .bar-admin-side,.bar-admin-content>section,.bar-simple-management-grid>button,
+  .bar-simple-help,.barm-form-grid,.barm-box,.barm-single,.barm-checks
+) :is(p,small,span,em){
+  color:var(--bar-contrast-muted)!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+
+/* Encabezados globales de cada módulo. */
+.bar-workspace-root .barops-head h2,
+.bar-workspace-root .bar-module-head h2,
+.bar-workspace-root .bar-real-head h2,
+.bar-workspace-root .baradv>header h2,
+.bar-workspace-root .barm>header h2,
+.bar-workspace-root .bar-simple-page-head h2,
+.bar-workspace-root .bar-simple-stage-head b{
+  color:#ffffff!important;
+}
+.bar-workspace-root .barops-head p,
+.bar-workspace-root .bar-module-head p,
+.bar-workspace-root .bar-real-head p,
+.bar-workspace-root .baradv>header p,
+.bar-workspace-root .barm>header p,
+.bar-workspace-root .bar-simple-page-head p,
+.bar-workspace-root .bar-simple-stage-head small{
+  color:#d3d9e0!important;
+}
+
+/* POS: refuerza textos de mesas, productos y ticket. */
+.bar-workspace-root .barops-table,
+.bar-workspace-root .barops-product,
+.bar-workspace-root .barops-ticket-head,
+.bar-workspace-root .barops-ticket-lines,
+.bar-workspace-root .barops-totals,
+.bar-workspace-root .barops-ticket-tools,
+.bar-workspace-root .barops-feed article{
+  color:#ffffff!important;
+}
+.bar-workspace-root .barops-table strong,
+.bar-workspace-root .barops-product strong,
+.bar-workspace-root .barops-ticket strong,
+.bar-workspace-root .barops-feed article b{
+  color:#ffffff!important;
+}
+.bar-workspace-root .barops-table span,
+.bar-workspace-root .barops-product small,
+.bar-workspace-root .barops-ticket small,
+.bar-workspace-root .barops-feed article small{
+  color:#d1d5db!important;
+}
+.bar-workspace-root .barops-product b,
+.bar-workspace-root .barops-order-card footer b,
+.bar-workspace-root .barops-totals .grand strong,
+.bar-workspace-root .bar-catalog-price,
+.bar-workspace-root .bar-real-item-title strong{
+  color:#ffad5c!important;
+}
+
+/* Tablas administrativas. */
+.bar-workspace-root .barm table,
+.bar-workspace-root .baradv table{
+  color:#f8fafc!important;
+}
+.bar-workspace-root .barm th,
+.bar-workspace-root .barm td,
+.bar-workspace-root .baradv th,
+.bar-workspace-root .baradv td{
+  color:#f3f4f6!important;
+  border-color:#343a40!important;
+}
+.bar-workspace-root .barm th,
+.bar-workspace-root .baradv th{
+  background:#111111!important;
+}
+
+/* Formularios siempre blancos con texto negro. */
+.bar-workspace-root input:not([type="checkbox"]):not([type="radio"]),
+.bar-workspace-root select,
+.bar-workspace-root textarea{
+  background:#ffffff!important;
+  background-image:none!important;
+  color:var(--bar-contrast-input-text)!important;
+  -webkit-text-fill-color:var(--bar-contrast-input-text)!important;
+  border-color:#aeb8c2!important;
+  caret-color:#111827!important;
+  color-scheme:light!important;
+  opacity:1!important;
+}
+.bar-workspace-root input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.bar-workspace-root textarea::placeholder{
+  color:#64748b!important;
+  -webkit-text-fill-color:#64748b!important;
+  opacity:1!important;
+}
+.bar-workspace-root select option{
+  background:#ffffff!important;
+  color:#111827!important;
+  -webkit-text-fill-color:#111827!important;
+}
+.bar-workspace-root input:disabled,
+.bar-workspace-root select:disabled,
+.bar-workspace-root textarea:disabled{
+  background:#e5e7eb!important;
+  color:#4b5563!important;
+  -webkit-text-fill-color:#4b5563!important;
+  opacity:1!important;
+}
+
+/* Botones comunes legibles. */
+.bar-workspace-root button,
+.bar-workspace-root .barops-btn{
+  opacity:1!important;
+}
+.bar-workspace-root .barops-btn:not(.primary):not(.danger):not(.warn),
+.bar-workspace-root .bar-subnav button,
+.bar-workspace-root .baradv>nav button,
+.bar-workspace-root .barm>nav button,
+.bar-workspace-root .bar-simple-stage-head>button{
+  background:#171717!important;
+  border-color:#3d444c!important;
+  color:#ffffff!important;
+}
+
+/* Naranja = acción/selección; texto oscuro para máximo contraste. */
+.bar-workspace-root .barops-btn.primary,
+.bar-workspace-root .barops-tabs button.active,
+.bar-workspace-root .barops-categories button.active,
+.bar-workspace-root .bar-workspace-nav>button.active,
+.bar-workspace-root .bar-subnav button.active,
+.bar-workspace-root .baradv>nav button.active,
+.bar-workspace-root .barm>nav button.active,
+.bar-workspace-root .bar-form-actions button.primary,
+.bar-workspace-root .bar-real-save-recipe,
+.bar-workspace-root .bar-real-new button,
+.bar-workspace-root .bar-real-count-card footer button{
+  background:#ff982f!important;
+  border-color:#ff982f!important;
+  color:#111111!important;
+  -webkit-text-fill-color:#111111!important;
+}
+.bar-workspace-root .barops-btn.primary *,
+.bar-workspace-root .barops-tabs button.active *,
+.bar-workspace-root .barops-categories button.active *,
+.bar-workspace-root .bar-workspace-nav>button.active *{
+  color:#111111!important;
+}
+
+/* Estados de peligro/advertencia. */
+.bar-workspace-root .barops-btn.danger{
+  background:#3a1115!important;
+  border-color:#8b3a42!important;
+  color:#ffd7da!important;
+}
+.bar-workspace-root .barops-btn.warn{
+  background:#2d210d!important;
+  border-color:#8a6423!important;
+  color:#ffe0a3!important;
+}
+
+/* Chips, etiquetas y navegación superior. */
+.bar-workspace-root .bar-workspace-nav,
+.bar-workspace-root .barops-tabs{
+  color:#f8fafc!important;
+}
+.bar-workspace-root .bar-workspace-nav>button,
+.bar-workspace-root .barops-tabs button{
+  color:#f3f4f6!important;
+}
+.bar-workspace-root .bar-workspace-role-chip,
+.bar-workspace-root .barops-role-badge{
+  color:#f8fafc!important;
+}
+.bar-workspace-root .bar-workspace-role-chip small,
+.bar-workspace-root .barops-role-badge small{
+  color:#cbd5e1!important;
+}
+
+/* Mensajes vacíos, ayudas y notas. */
+.bar-workspace-root .barops-empty,
+.bar-workspace-root .barops-empty strong,
+.bar-workspace-root .barops-empty p,
+.bar-workspace-root .barops-permission-note,
+.bar-workspace-root .bar-catalog-note,
+.bar-workspace-root .bar-real-note{
+  color:#e5e7eb!important;
+  opacity:1!important;
+}
+
+/* Alertas: fondo claro y texto fuerte para no perder mensajes importantes. */
+.bar-workspace-root .barops-alert{
+  background:#fff1f2!important;
+  border-color:#fecdd3!important;
+  color:#9f1239!important;
+}
+.bar-workspace-root .barops-alert.barops-alert-ok{
+  background:#ecfdf5!important;
+  border-color:#a7f3d0!important;
+  color:#065f46!important;
+}
+.bar-workspace-root .barops-alert span,
+.bar-workspace-root .barops-alert b,
+.bar-workspace-root .barops-alert button{
+  color:inherit!important;
+}
+
+@media(max-width:760px){
+  .bar-workspace-root :is(.barops-panel,.barops-floor,.barops-menu,.barops-ticket,.bar-catalog-panel,.bar-real-panel,.baradv-panel,.barm-panel){
+    color:#f8fafc!important;
+  }
+}
