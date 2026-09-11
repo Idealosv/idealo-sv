@@ -9,6 +9,13 @@ export default function standaloneBarOperationLoadSafety(){
 
       let next=code
 
+      // El dashboard de Pedidos se inyecta después del return temprano de loading.
+      // Un useMemo allí cambia el número de hooks entre renders y provoca React #310.
+      const unsafeOrderItemHook=" const orderItemCount=useMemo(()=>{const map=new Map();items.filter(item=>item.status!=='cancelled').forEach(item=>map.set(item.order_id,(map.get(item.order_id)||0)+Number(item.quantity||0)));return map},[items])"
+      const safeOrderItemCalculation=" const orderItemCount=(()=>{const map=new Map();items.filter(item=>item.status!=='cancelled').forEach(item=>map.set(item.order_id,(map.get(item.order_id)||0)+Number(item.quantity||0)));return map})()"
+      if(!next.includes(unsafeOrderItemHook))throw new Error('[IDEALO BAR] No se encontró el cálculo de productos de Pedidos')
+      next=next.replace(unsafeOrderItemHook,safeOrderItemCalculation)
+
       const coreMarker="   setTables(tablesRes.data||[]);setOrders(ordersRes.data||[]);setItems(itemsRes.data||[])"
       if(!next.includes(coreMarker))throw new Error('[IDEALO BAR] No se encontró el punto de carga de Mesas/Pedidos')
       next=next.replace(coreMarker,`${coreMarker}\n   // El POS ya puede operar; los datos secundarios continúan cargando después.\n   setLoading(false)`)
