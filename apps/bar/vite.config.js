@@ -20,6 +20,16 @@ function standaloneBarMenuNavigation(){
       to:"    let products=[]\n    if(productIds.length){\n     const batchSize=120\n     for(let start=0;start<productIds.length;start+=batchSize){\n      const batch=productIds.slice(start,start+batchSize)\n      const productRes=await supabase.from('finished_products').select('id,name,sale_price,sku,active').in('id',batch)\n      if(productRes.error)throw productRes.error\n      products.push(...(productRes.data||[]))\n     }\n    }",
     },
     {
+      label:'twenty table fallback',
+      from:"  const payload=Array.from({length:12},(_,i)=>({company_id:companyId,name:`Mesa ${String(i+1).padStart(2,'0')}`,area:'Salón',capacity:4,sort_order:i+1,status:'available'}))",
+      to:"  const payload=Array.from({length:20},(_,i)=>({company_id:companyId,name:`Mesa ${i+1}`,area:'Salón',capacity:4,sort_order:i+1,status:'available'}))",
+    },
+    {
+      label:'table count badge',
+      from:'<small>Salón</small><strong>Mesas</strong>',
+      to:'<small>Salón</small><strong>Mesas <span className="barops-table-count">{tables.length}</span></strong>',
+    },
+    {
       label:'menu filtering',
       from:" const categories=useMemo(()=>['Todos',...new Set(menu.map(row=>row.category).filter(Boolean))],[menu])\n const filteredMenu=menu.filter(row=>{const label=(row.display_name||row.product?.name||'').toLowerCase();return(category==='Todos'||row.category===category)&&(!query.trim()||label.includes(query.trim().toLowerCase()))})",
       to:" const categories=TOP_LEVEL_GROUPS\n const subcategories=getSubgroupsForGroup(category)\n const menuPopularity=useMemo(()=>buildMenuPopularity(items,orders),[items,orders])\n const filteredMenu=useMemo(()=>filterStandaloneMenu(menu,category,subcategory,query,menuPopularity),[menu,category,subcategory,query,menuPopularity])",
