@@ -1,0 +1,132 @@
+/* IDEALO BAR · UX de cobro y salón más oscuro */
+
+/* El sector de mesas queda realmente negro, con tarjetas apenas elevadas. */
+html body .bar-workspace-root .barops-pos .barops-floor{
+  background:#000!important;
+  background-image:none!important;
+  border-color:#1f252c!important;
+  box-shadow:none!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table-grid{
+  background:#000!important;
+  background-image:none!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table{
+  background:#050505!important;
+  background-image:none!important;
+  border-color:#242a30!important;
+  box-shadow:inset 3px 0 0 #333!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table:hover{
+  background:#0b0b0b!important;
+  border-color:#4b535c!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table.available{
+  background:#050505!important;
+  border-color:#242a30!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table.occupied{
+  background:#120707!important;
+  border-color:#6a2926!important;
+  box-shadow:inset 3px 0 0 #b84b42!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table.awaiting_payment{
+  background:#160f04!important;
+  border-color:#80551e!important;
+  box-shadow:inset 3px 0 0 #f29a32!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table.reserved{
+  background:#0c0814!important;
+  border-color:#4b376b!important;
+  box-shadow:inset 3px 0 0 #7450a8!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-table.selected{
+  outline:2px solid #ff982f!important;
+  outline-offset:1px!important;
+  border-color:#ff982f!important;
+}
+html body .bar-workspace-root .barops-pos .barops-floor .barops-mini-actions button{
+  background:#090909!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  border-color:#30363d!important;
+}
+
+/* Guía visible del flujo: no altera la lógica, solo explica el orden de trabajo. */
+.bar-workspace-root .barops-pos{
+  position:relative!important;
+  padding-top:48px!important;
+}
+.bar-workspace-root .barops-pos::before{
+  content:"1  Seleccioná una mesa   →   2  Agregá productos   →   3  Enviá a Cocina/Barra   →   4  COBRAR   →   5  IMPRIMIR TICKET";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  padding:0 13px;
+  box-sizing:border-box;
+  border:1px solid #3d2b18;
+  border-radius:10px;
+  background:#0a0a0a;
+  color:#f3c08e;
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.01em;
+  z-index:2;
+}
+
+/* Acciones directas añadidas al ticket para que Cobrar e Imprimir no estén escondidos. */
+.bar-workspace-root .barops-pay-shortcuts{
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  gap:7px;
+  padding:10px 13px;
+  border-top:1px solid #242a30;
+  border-bottom:1px solid #242a30;
+  background:#030303;
+}
+.bar-workspace-root .barops-pay-shortcuts button{
+  min-height:44px;
+  border-radius:9px;
+  border:1px solid #3b434c;
+  background:#111820;
+  color:#fff;
+  -webkit-text-fill-color:#fff;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.bar-workspace-root .barops-pay-shortcuts .barops-direct-pay{
+  background:#ff982f!important;
+  border-color:#ff982f!important;
+  color:#111!important;
+  -webkit-text-fill-color:#111!important;
+}
+.bar-workspace-root .barops-pay-shortcuts button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+/* El control de pago deja de verse como una herramienta secundaria. */
+.bar-workspace-root .barops-tool-tabs button[data-payment-shortcut="true"],
+.bar-workspace-root .barops-tool-tabs button:last-child{
+  font-weight:900!important;
+}
+.bar-workspace-root .barops-ticket-tools.payment-focus{
+  outline:2px solid rgba(255,152,47,.75)!important;
+  outline-offset:-2px!important;
+  box-shadow:0 0 0 4px rgba(255,152,47,.10)!important;
+}
+
+@media(max-width:850px){
+  .bar-workspace-root .barops-pos{padding-top:70px!important}
+  .bar-workspace-root .barops-pos::before{min-height:58px;line-height:1.45;padding:8px 10px}
+}
+@media(max-width:560px){
+  .bar-workspace-root .barops-pay-shortcuts{grid-template-columns:1fr}
+  .bar-workspace-root .barops-pos{padding-top:88px!important}
+  .bar-workspace-root .barops-pos::before{min-height:76px;font-size:10px}
+}
