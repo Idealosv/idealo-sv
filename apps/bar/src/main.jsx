@@ -2,10 +2,8 @@ import { StrictMode, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 import IdealoBarWorkspace from '../../web/src/IdealoBarWorkspace.jsx'
-import SuperSelectosCatalog from './SuperSelectosCatalog.jsx'
 import '../../web/src/idealo-bar.css'
 import './standalone.css'
-import './super-selectos-catalog.css'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -123,7 +121,6 @@ function StandaloneApp(){
    </div>
   </header>
   {company.demo_mode&&<div className="bar-practice-banner"><div><b>🧪 MODO PRÁCTICA</b><span>Todo lo que hagas aquí es entrenamiento. DTE PRODUCCIÓN está bloqueado y no afecta la empresa real.</span></div><strong>{practiceMessage||'Stock, precios y recetas son valores demo para practicar.'}</strong></div>}
-  {company.demo_mode&&<SuperSelectosCatalog company={company} supabase={supabase}/>} 
   <main className="bar-standalone-content"><IdealoBarWorkspace company={company} supabase={supabase}/></main>
  </div>
 }
