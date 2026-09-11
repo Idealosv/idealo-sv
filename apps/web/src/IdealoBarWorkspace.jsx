@@ -20,6 +20,7 @@ import './idealo-bar-cash-clarity.css'
 import './idealo-bar-black-panels.css'
 import './idealo-bar-pos-ux.css'
 import './idealo-bar-pos-assist.js'
+import './idealo-bar-universal-contrast.css'
 
 const roleLabel={owner:'Propietario',manager:'Gerente',cashier:'Cajero',waiter:'Mesero',kitchen:'Cocina',bar:'Barra',warehouse:'Bodega',none:'Sin rol'}
 
