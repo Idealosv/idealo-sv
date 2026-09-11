@@ -78,7 +78,35 @@ export function getSubgroupsForGroup(group){
  return groups?['Todos',...groups]:[]
 }
 
-export function filterStandaloneMenu(menu,group='Todos',subgroup='Todos',query=''){
+const popularityWeight=createdAt=>{
+ const time=createdAt?new Date(createdAt).getTime():0
+ if(!Number.isFinite(time)||time<=0)return 1
+ const ageDays=Math.max(0,(Date.now()-time)/86400000)
+ if(ageDays<=7)return 4
+ if(ageDays<=30)return 2
+ return 1
+}
+
+export function buildMenuPopularity(items=[],orders=[]){
+ const orderStatus=new Map((orders||[]).map(order=>[order.id,order.status]))
+ const scores=new Map()
+ for(const item of items||[]){
+  if(!item?.menu_item_id||item.status==='cancelled'||item.voided_at)continue
+  if(orderStatus.get(item.order_id)==='cancelled')continue
+  const quantity=Number(item.quantity||0)
+  if(!Number.isFinite(quantity)||quantity<=0)continue
+  const score=quantity*popularityWeight(item.created_at)
+  scores.set(item.menu_item_id,(scores.get(item.menu_item_id)||0)+score)
+ }
+ return scores
+}
+
+const popularityScore=(popularity,itemId)=>{
+ if(popularity instanceof Map)return Number(popularity.get(itemId)||0)
+ return Number(popularity?.[itemId]||0)
+}
+
+export function filterStandaloneMenu(menu,group='Todos',subgroup='Todos',query='',popularity=null){
  const search=normalize(query)
  return(menu||[]).filter(item=>{
   const classification=classifyBarMenuItem(item)
@@ -90,5 +118,11 @@ export function filterStandaloneMenu(menu,group='Todos',subgroup='Todos',query='
   if(group!=='Todos'&&classification.group!==group)return false
   if(subgroup&&subgroup!=='Todos'&&classification.subgroup!==subgroup)return false
   return true
+ }).sort((a,b)=>{
+  const scoreDiff=popularityScore(popularity,b.id)-popularityScore(popularity,a.id)
+  if(scoreDiff)return scoreDiff
+  const orderDiff=Number(a.sort_order??999999)-Number(b.sort_order??999999)
+  if(orderDiff)return orderDiff
+  return normalize(a.display_name||a.product?.name).localeCompare(normalize(b.display_name||b.product?.name),'es')
  })
 }
