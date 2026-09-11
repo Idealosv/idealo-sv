@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import standaloneBarHomeDashboard from './homeDashboardPlugin.js'
 import standaloneBarOrdersDashboard from './ordersDashboardPlugin.js'
 import standaloneBarReservationsDashboard from './reservationsDashboardPluginV2.js'
 import standaloneBarOperationLoadSafety from './operationLoadSafetyPlugin.js'
@@ -79,7 +80,7 @@ function standaloneBarMenuNavigation(){
 }
 
 export default defineConfig({
-  plugins: [standaloneBarReservationStyles(),standaloneBarMenuNavigation(),standaloneBarOrdersDashboard(),standaloneBarReservationsDashboard(),standaloneBarOperationLoadSafety(),react()],
+  plugins: [standaloneBarReservationStyles(),standaloneBarMenuNavigation(),standaloneBarHomeDashboard(),standaloneBarOrdersDashboard(),standaloneBarReservationsDashboard(),standaloneBarOperationLoadSafety(),react()],
   server: { host: '0.0.0.0' },
   preview: { host: '0.0.0.0' },
 })
