@@ -2,7 +2,7 @@ export const TOP_LEVEL_GROUPS=['Todos','Cervezas','Licores','Bebidas','Comida','
 
 export const SUBGROUPS={
  Licores:['Whisky','Vodka','Ron','Tequila / Mezcal','Gin','Aguardiente','Licores / Digestivos','Vinos','Espumantes','Sangrías','RTD / Hard Seltzer'],
- Bebidas:['Energizantes','Gaseosas','Agua','Jugos','Mezcladores','Sin alcohol'],
+ Bebidas:['Gaseosas','Agua / Mineral','Frescos Naturales','Limonadas / Naranjadas','Jugos','Té / Café','Licuados / Batidos','Frozen / Smoothies','Energizantes','Hidratantes','Mezcladores','Mocktails'],
  Comida:['Hamburguesas','Alitas','Boneless / Tenders','Hot Dogs','Nachos','Papas','Tacos','Pizzas','Quesadillas','Mexicana','Mariscos / Ceviches','Sopas','Sándwiches','Parrilla / Churrascos','Entradas / Bocas','Otros'],
  'Combos / Promociones':['Baldes','Hielerazos','Combos','Happy Hour','Otros'],
 }
@@ -30,15 +30,22 @@ const classifyFood=name=>{
 }
 
 const classifyBeverage=(name,category)=>{
- if(has(category,/mezcladores?/))return'Mezcladores'
  if(has(category,/energizantes?/))return'Energizantes'
- if(has(category,/sin\s+alcohol/))return'Sin alcohol'
- if(has(name,/red\s*bull|monster|volt|rockstar|energy|energizante/))return'Energizantes'
- if(has(name,/tonica|tonic|ginger\s*ale|club\s*soda|mezclador|mixer/))return'Mezcladores'
- if(has(name,/\bjugo\b|\bjugos\b|nectar/))return'Jugos'
- if(has(name,/\bagua\b|mineral/))return'Agua'
- if(has(name,/coca[ -]?cola|pepsi|sprite|fanta|7\s*up|seven\s*up|gaseosa|refresco/))return'Gaseosas'
- return'Sin alcohol'
+ if(has(category,/hidratantes?|deportivas?/))return'Hidratantes'
+ if(has(category,/mezcladores?/))return'Mezcladores'
+ if(has(name,/red\s*bull|monster|volt|rockstar|adrenaline|raptor|energy|energizante/))return'Energizantes'
+ if(has(name,/gatorade|powerade|electrolit|hidratante|bebida\s+deportiva/))return'Hidratantes'
+ if(has(name,/sin\s+(alcohol|licor)|virgin|mocktail|pi[nñ]a\s+colada\s+sin|conga\s+sin|mojito\s+sin|cimarrona|italian\s+soda|soda\s+italiana/))return'Mocktails'
+ if(has(name,/frozen|smoothie|detox|fitness|health/))return'Frozen / Smoothies'
+ if(has(name,/licuado|batido|malteada|milkshake/))return'Licuados / Batidos'
+ if(has(name,/\bte\b|té|lipton|cafe|café|americano|capuccino|cappuccino|latte|espresso|chocolate|infusion|infusión/))return'Té / Café'
+ if(has(name,/limonada|naranjada|toronjada|limon\s+con|limón\s+con|naranja\s+con\s+hierbabuena|naranja\s+con\s+zanahoria/))return'Limonadas / Naranjadas'
+ if(has(name,/\bjugo\b|\bjugos\b|nectar|néctar|del\s+valle|petit|cranberry/))return'Jugos'
+ if(has(name,/tonica|tónica|tonic|ginger\s*ale|club\s*soda|mezclador|mixer/))return'Mezcladores'
+ if(has(name,/\bagua\b|mineral|cristal|kinley/)&&!has(name,/agua\s+de\s+coco/))return'Agua / Mineral'
+ if(has(name,/horchata|cebada|jamaica|tamarindo|ensalada|\bchan\b|agua\s+de\s+coco|refresco\s+natural|fresco\s+natural|guanabana|guanábana|maracuya|maracuyá|sandia|sandía|melon|melón|papaya|mora/))return'Frescos Naturales'
+ if(has(name,/coca[ -]?cola|pepsi|sprite|fanta|fresca|grapette|mirinda|kolashampan|salutaris|7\s*up|seven\s*up|gaseosa|soda\s+(lata|botella|standard)/))return'Gaseosas'
+ return'Frescos Naturales'
 }
 
 const classifyCombo=name=>{
@@ -70,7 +77,7 @@ export function classifyBarMenuItem(item){
  const comboCategory=has(category,/combo|promoc/)
  const foodCategory=has(category,/comida|hamburg|alitas?|boneless|tenders?|hot\s*dogs?|nachos?|papas?|tacos?|pizzas?|quesadillas?|mexican|marisc|ceviche|cebiche|coctel|sopas?|caldos?|sandwich|choripan|parrill|churrasco|costillas?|ribs?|entradas?|bocas?/)
  const beerCategory=has(category,/cervezas?/)
- const beverageCategory=has(category,/bebidas?|energizantes?|gaseosas?|agua|jugos?|mezcladores?|sin\s+alcohol/)
+ const beverageCategory=has(category,/bebidas?|energizantes?|gaseosas?|agua|jugos?|mezcladores?|hidratantes?|deportivas?|frescos?|naturales?|limonadas?|naranjadas?|te|té|cafe|café|licuados?|batidos?|frozen|smoothies?|mocktails?|sin\s+alcohol/)
  const liquorCategory=has(category,/licores?|whisk|vodka|\bron\b|tequila|mezcal|\bgin\b|aguardiente|vinos?|espumantes?|sangrias?|smirnoff|rtd/)
 
  if(comboCategory||has(name,/\bbalde\b|hielerazo|happy\s*hour|\bcombo\b|promocion/))return{group:'Combos / Promociones',subgroup:classifyCombo(name)}
