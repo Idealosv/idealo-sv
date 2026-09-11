@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useState } from 'react'
+import { Component, StrictMode, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 import IdealoBarWorkspace from '../../web/src/IdealoBarWorkspace.jsx'
@@ -12,6 +12,17 @@ const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null
 const COMPANY_STORAGE_KEY='idealo-bar-company-id'
+
+class BarErrorBoundary extends Component{
+ constructor(props){super(props);this.state={error:null}}
+ static getDerivedStateFromError(error){return{error}}
+ componentDidCatch(error,info){console.error('[IDEALO BAR] Error de interfaz:',error,info)}
+ render(){
+  if(!this.state.error)return this.props.children
+  const message=String(this.state.error?.message||this.state.error||'Error inesperado de interfaz.')
+  return <div className="bar-loading-page"><div><b>IDEALO BAR encontró un error</b><span>{message}</span><button type="button" onClick={()=>window.location.reload()}>Recargar sistema</button></div></div>
+ }
+}
 
 function Login({onSignedIn}){
  const [email,setEmail]=useState('')
@@ -128,4 +139,4 @@ function StandaloneApp(){
  </div>
 }
 
-createRoot(document.getElementById('root')).render(<StrictMode><StandaloneApp/></StrictMode>)
+createRoot(document.getElementById('root')).render(<StrictMode><BarErrorBoundary><StandaloneApp/></BarErrorBoundary></StrictMode>)
