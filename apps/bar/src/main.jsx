@@ -7,6 +7,7 @@ import './standalone.css'
 import './professional-theme.css'
 import './premium-tables.css'
 import './orders-dashboard.css'
+import './light-balance.css'
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL
 const supabaseKey=import.meta.env.VITE_SUPABASE_ANON_KEY
