@@ -10,13 +10,12 @@ const ISSUER_FIELDS = [
   ['point_of_sale_code', 'código de punto de venta'],
 ]
 
-// DTE-01 (Factura / Consumidor Final): NRC y actividad económica del receptor
-// no son datos obligatorios. Si el cliente los tiene, se envían; si no, van como null.
+// DTE-01 (Factura / Consumidor Final): si se selecciona un cliente, únicamente
+// se valida su identificación básica. NRC, actividad económica, dirección,
+// teléfono y correo son opcionales y solo se envían cuando están disponibles.
 const RECEIVER_FIELDS = [
   ['name', 'nombre'], ['document_type', 'tipo de documento'],
-  ['document_number', 'número de documento'], ['department_code', 'departamento'],
-  ['municipality_code', 'municipio'], ['district_code', 'distrito'],
-  ['address', 'dirección'], ['phone', 'teléfono'], ['email', 'correo'],
+  ['document_number', 'número de documento'],
 ]
 
 const CCF_RECEIVER_FIELDS = [
@@ -75,6 +74,15 @@ function readiness(record, fields, validator = null) {
   return { ready: missing.length === 0 && invalid.length === 0, missing, invalid }
 }
 
+function optionalReceiverAddress(client = {}) {
+  const departamento = text(client.department_code)
+  const municipio = text(client.municipality_code)
+  const distrito = text(client.district_code)
+  const complemento = text(client.address)
+  if (!departamento || !municipio || !distrito || !complemento) return null
+  return { departamento, municipio, distrito, complemento }
+}
+
 export const getIssuerReadiness = (company) => readiness(company, ISSUER_FIELDS, validateIssuer)
 export const getReceiverReadiness = (client) => readiness(client, RECEIVER_FIELDS, validateDte01Receiver)
 export const getCcfReceiverReadiness = (client) => readiness(client, CCF_RECEIVER_FIELDS, validateCcfReceiver)
@@ -112,7 +120,7 @@ export function mapClientToDteReceiver(client) {
     nombre: text(client.name),
     codActividad: text(client.activity_code) || null,
     descActividad: text(client.business_activity) || null,
-    direccion: { departamento: text(client.department_code), municipio: text(client.municipality_code), distrito: text(client.district_code), complemento: text(client.address) },
+    direccion: optionalReceiverAddress(client),
     telefono: digits(client.phone) || null,
     correo: text(client.email).toLowerCase() || null,
   }
