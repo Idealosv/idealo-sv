@@ -10,10 +10,11 @@ const ISSUER_FIELDS = [
   ['point_of_sale_code', 'código de punto de venta'],
 ]
 
+// DTE-01 (Factura / Consumidor Final): NRC y actividad económica del receptor
+// no son datos obligatorios. Si el cliente los tiene, se envían; si no, van como null.
 const RECEIVER_FIELDS = [
   ['name', 'nombre'], ['document_type', 'tipo de documento'],
-  ['document_number', 'número de documento'], ['activity_code', 'código de actividad'],
-  ['business_activity', 'actividad económica'], ['department_code', 'departamento'],
+  ['document_number', 'número de documento'], ['department_code', 'departamento'],
   ['municipality_code', 'municipio'], ['district_code', 'distrito'],
   ['address', 'dirección'], ['phone', 'teléfono'], ['email', 'correo'],
 ]
