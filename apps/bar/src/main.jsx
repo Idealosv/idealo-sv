@@ -66,12 +66,33 @@ function StandaloneApp(){
    const {data:rows,error:companyError}=await supabase.from('companies').select('*').in('id',ids).order('name')
    if(cancelled)return
    if(companyError){setError(companyError.message);return}
-   const resolved=rows?.length?rows:(memberships||[])
+
+   const candidates=rows?.length?rows:(memberships||[])
+   const accessChecks=await Promise.all(candidates.map(async row=>{
+    const {data:barAccess,error:barAccessError}=await supabase.rpc('bar_my_access',{p_company_id:row.id})
+    return {row,barAccess,barAccessError}
+   }))
+   if(cancelled)return
+
+   const resolved=accessChecks
+    .filter(({barAccess,barAccessError})=>!barAccessError&&barAccess?.active===true)
+    .map(({row})=>row)
+
+   if(!resolved.length){
+    const accessError=accessChecks.find(({barAccessError})=>barAccessError)?.barAccessError
+    setCompanies([])
+    setCompanyId('')
+    if(typeof window!=='undefined')window.localStorage.removeItem(COMPANY_STORAGE_KEY)
+    setError(accessError?.message||'Tu usuario no tiene empresas habilitadas para IDEALO BAR.')
+    return
+   }
+
    setCompanies(resolved)
    setCompanyId(current=>{
     if(current&&resolved.some(row=>row.id===current))return current
     const remembered=typeof window!=='undefined'?window.localStorage.getItem(COMPANY_STORAGE_KEY):''
     if(remembered&&resolved.some(row=>row.id===remembered))return remembered
+    if(remembered&&typeof window!=='undefined')window.localStorage.removeItem(COMPANY_STORAGE_KEY)
     const practice=resolved.find(row=>row.demo_mode===true&&row.slug==='idealo-bar-practica')||resolved.find(row=>row.demo_mode===true)
     return practice?.id||resolved[0]?.id||''
    })
