@@ -4,9 +4,18 @@ import path from 'node:path'
 const file = path.resolve(process.cwd(), 'src/FacturacionDte.jsx')
 let source = fs.readFileSync(file, 'utf8')
 
+const shortTimeout = 'window.setTimeout(()=>controller.abort(),20000)'
+const longTimeout = 'window.setTimeout(()=>controller.abort(),60000)'
+if (source.includes(shortTimeout)) {
+  source = source.replace(shortTimeout, longTimeout)
+} else if (!source.includes(longTimeout)) {
+  throw new Error('No se encontró el timeout esperado de apiRequest en FacturacionDte.jsx')
+}
+
 const alreadyPatched = "body:JSON.stringify({documentId:payload.id})"
 if (source.includes(alreadyPatched)) {
-  console.log('Facturación: firma automática de DTE ya aplicada.')
+  fs.writeFileSync(file, source)
+  console.log('Facturación: firma automática de DTE y espera extendida ya aplicadas.')
   process.exit(0)
 }
 
@@ -26,4 +35,4 @@ if (!source.includes(marker)) {
 
 source = source.replace(marker, replacement)
 fs.writeFileSync(file, source)
-console.log('Facturación: los DTE nuevos se firman automáticamente después de crearse.')
+console.log('Facturación: los DTE nuevos se firman automáticamente y esperan hasta 60 s si el firmador está iniciando.')
