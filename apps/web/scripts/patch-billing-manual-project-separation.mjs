@@ -8,6 +8,14 @@ const signature="export default function FacturacionDte({session,supabase,compan
 const nextSignature="export default function FacturacionDte({session,supabase,company,initialClientId='',allowProjectSource=false}){"
 if(text.includes(signature)) text=text.replace(signature,nextSignature)
 
+const sourceEffect='  useEffect(()=>{\n    let cancelled=false\n    const loadSources=async()=>{'
+const guardedSourceEffect='  useEffect(()=>{\n    if(!allowProjectSource)return undefined\n    let cancelled=false\n    const loadSources=async()=>{'
+if(text.includes(sourceEffect)) text=text.replace(sourceEffect,guardedSourceEffect)
+
+const sourceEffectEnd='  },[company.id,supabase])\n\n  const selectedClient=clients.find(client=>client.id===clientId)||null'
+const guardedSourceEffectEnd='  },[allowProjectSource,company.id,supabase])\n\n  const selectedClient=clients.find(client=>client.id===clientId)||null'
+if(text.includes(sourceEffectEnd)) text=text.replace(sourceEffectEnd,guardedSourceEffectEnd)
+
 const start='    <div className="panel" style={{marginBottom:16}}>\n      <div className="form-grid two">'
 const nextStart='    {allowProjectSource&&<div className="panel" style={{marginBottom:16}}>\n      <div className="form-grid two">'
 if(text.includes(start)) text=text.replace(start,nextStart)
@@ -17,4 +25,4 @@ const nextEnd='    </div>}\n\n    <div className="billing-document-picker" role=
 if(text.includes(end)) text=text.replace(end,nextEnd)
 
 fs.writeFileSync(file,text)
-console.log('Facturación: venta manual separada del flujo desde proyecto.')
+console.log('Facturación: venta manual separada del flujo desde proyecto y sin consultas innecesarias.')
