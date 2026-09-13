@@ -89,5 +89,37 @@ if (!invoiceSource.includes("guidedScenario==='consumer_identified'")) invoiceSo
 const returnAnchor = `  return <section className="facturacion-dte billing-simple-flow">`
 const guidedBanner = `${returnAnchor}\n    {guidedScenario&&<div className="dte-note"><strong>Prueba MH guiada: {DTE_TEST_SCENARIO_LABELS[guidedScenario]}.</strong> {scenarioInstruction(guidedScenario)} La evidencia solo contará cuando Hacienda TEST responda PROCESSED.</div>}`
 if (!invoiceSource.includes('Prueba MH guiada:')) invoiceSource = invoiceSource.replace(returnAnchor, guidedBanner)
+
+// Crédito Fiscal DTE-03: un receptor contribuyente debe tener NRC registrado.
+// Para Factura DTE-01 se conserva el listado completo de clientes.
+const oldCcfHelper = `const clientSuggestsCcf = (client) => Boolean(client && (client.preferred_dte_type==='03' || (String(client.tax_id||'').trim() && String(client.nrc||'').trim())))`
+const newCcfHelper = `const clientHasNrc = (client) => Boolean(String(client?.nrc||'').trim())\nconst clientSuggestsCcf = (client) => clientHasNrc(client)`
+if (!invoiceSource.includes('const clientHasNrc =')) {
+  if (!invoiceSource.includes(oldCcfHelper)) throw new Error('No se encontró el helper histórico de clientes CCF.')
+  invoiceSource = invoiceSource.replace(oldCcfHelper, newCcfHelper)
+}
+
+const selectedClientAnchor = `  const selectedClient=clients.find(client=>client.id===clientId)||null\n  const ccfMissing=useMemo(()=>missingCcfData(selectedClient),[selectedClient])`
+const filteredClientsBlock = `${selectedClientAnchor}\n  const ccfClients=useMemo(()=>clients.filter(clientHasNrc),[clients])\n\n  useEffect(()=>{\n    if(dteType!=='03'||!clientId)return\n    const current=clients.find(client=>client.id===clientId)\n    if(current&&!clientHasNrc(current)){\n      setClientId('')\n      setMessage('Para Crédito Fiscal solo se pueden seleccionar clientes con NRC registrado.')\n      setMessageType('error')\n    }\n  },[dteType,clientId,clients])`
+if (!invoiceSource.includes('const ccfClients=useMemo')) {
+  if (!invoiceSource.includes(selectedClientAnchor)) throw new Error('No se encontró el ancla de receptor seleccionado para filtrar contribuyentes.')
+  invoiceSource = invoiceSource.replace(selectedClientAnchor, filteredClientsBlock)
+}
+
+const allClientsOptions = `{clients.map(c=><option key={c.id} value={c.id}>{c.name}{clientSuggestsCcf(c)?' · Contribuyente':''}</option>)}`
+const filteredClientsOptions = `{(dteType==='03'?ccfClients:clients).map(c=><option key={c.id} value={c.id}>{c.name}{clientSuggestsCcf(c)?' · Contribuyente':''}</option>)}`
+if (!invoiceSource.includes(filteredClientsOptions)) {
+  if (!invoiceSource.includes(allClientsOptions)) throw new Error('No se encontró el listado de clientes de Facturación.')
+  invoiceSource = invoiceSource.replace(allClientsOptions, filteredClientsOptions)
+}
+
+const oldQuoteCcf = `    if(client?.preferred_dte_type==='03' || (client?.tax_id&&client?.nrc))setDteType('03')\n    else setDteType('01')`
+const newQuoteCcf = `    if(clientHasNrc(client))setDteType('03')\n    else setDteType('01')`
+if (!invoiceSource.includes(newQuoteCcf) && invoiceSource.includes(oldQuoteCcf)) invoiceSource = invoiceSource.replace(oldQuoteCcf, newQuoteCcf)
+
+const oldPlaceholder = `  const clientPlaceholder=dteType==='03'?'Seleccionar cliente contribuyente':'Consumidor final / seleccionar cliente'`
+const newPlaceholder = `  const clientPlaceholder=dteType==='03'?(ccfClients.length?'Seleccionar cliente contribuyente':'No hay clientes con NRC registrado'):'Consumidor final / seleccionar cliente'`
+if (!invoiceSource.includes(newPlaceholder) && invoiceSource.includes(oldPlaceholder)) invoiceSource = invoiceSource.replace(oldPlaceholder, newPlaceholder)
+
 fs.writeFileSync(invoiceFile, invoiceSource)
-console.log('Facturación: escenarios MH pendientes se preparan automáticamente sin inventar datos fiscales.')
+console.log('Facturación: DTE-03 muestra únicamente receptores con NRC; DTE-01 conserva todos los clientes.')
