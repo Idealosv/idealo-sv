@@ -24,6 +24,7 @@ const clientSuggestsCcf = (client) => Boolean(client && (client.preferred_dte_ty
 const clampMoney = (value) => Math.max(0,Number(value||0))
 const roundMoney = (value) => Number(Number(value || 0).toFixed(2))
 const TAX_RATE = 0.13
+const normalizeCatalogText = (value) => String(value||'').trim().toLocaleLowerCase('es')
 
 function itemAmounts(item,priceMode){
   const gross=clampMoney(item.cantidad)*clampMoney(item.precioUni)
@@ -79,8 +80,27 @@ function quoteLineToInvoiceItem(line){
   }
 }
 
+function catalogProductToInvoiceItem(product,current){
+  const unit=normalizeCatalogText(product?.unit)
+  const category=normalizeCatalogText(product?.category)
+  const subcategory=normalizeCatalogText(product?.subcategory)
+  const isService=unit.includes('serv')||category.includes('serv')||subcategory.includes('serv')
+  const isUnit=!isService&&(unit==='unit'||unit==='unidad'||unit==='ud'||unit.includes('unidad'))
+  const price=Number(product?.sale_price||0)
+  return {
+    ...current,
+    descripcion:product?.name||current.descripcion,
+    codigo:product?.sku||'',
+    tipoItem:isService?'2':'1',
+    uniMedida:isService?'36':isUnit?'59':'99',
+    precioUni:Number.isFinite(price)?price.toFixed(2):'0.00',
+    tipoVenta:product?.taxable===false?'exenta':'gravada',
+  }
+}
+
 export default function FacturacionDte({session,supabase,company,initialClientId=''}){
   const [clients,setClients]=useState([])
+  const [catalogProducts,setCatalogProducts]=useState([])
   const [clientId,setClientId]=useState(initialClientId||'')
   const [dteType,setDteType]=useState('01')
   const [priceMode,setPriceMode]=useState('sin_iva')
@@ -109,6 +129,14 @@ export default function FacturacionDte({session,supabase,company,initialClientId
   const [sourceQuote,setSourceQuote]=useState(null)
 
   useEffect(()=>{supabase.from('clients').select('*').eq('company_id',company.id).order('name').then(({data,error})=>{if(error){setMessage(error.message);setMessageType('error')}setClients(data||[])})},[company.id,supabase])
+  useEffect(()=>{
+    let cancelled=false
+    supabase.from('finished_products').select('id,name,sku,unit,sale_price,taxable,tax_rate,category,subcategory').eq('company_id',company.id).eq('active',true).order('name').then(({data})=>{
+      if(cancelled)return
+      setCatalogProducts((data||[]).filter(product=>String(product.name||'').trim()))
+    })
+    return()=>{cancelled=true}
+  },[company.id,supabase])
   useEffect(()=>{if(initialClientId){setClientId(initialClientId);setMessage('')}},[initialClientId])
   useEffect(()=>{
     let cancelled=false
@@ -140,6 +168,14 @@ export default function FacturacionDte({session,supabase,company,initialClientId
 
   const selectedClient=clients.find(client=>client.id===clientId)||null
   const ccfMissing=useMemo(()=>missingCcfData(selectedClient),[selectedClient])
+  const catalogByName=useMemo(()=>{
+    const lookup=new Map()
+    catalogProducts.forEach(product=>{
+      const key=normalizeCatalogText(product.name)
+      if(key&&!lookup.has(key))lookup.set(key,product)
+    })
+    return lookup
+  },[catalogProducts])
 
   useEffect(()=>{
     if(condicionOperacion==='2'){
@@ -190,6 +226,11 @@ export default function FacturacionDte({session,supabase,company,initialClientId
     if(key==='cantidad'||key==='precioUni'){const gross=clampMoney(key==='cantidad'?value:next.cantidad)*clampMoney(key==='precioUni'?value:next.precioUni);if(clampMoney(next.montoDescu)>gross)next.montoDescu=String(gross)}
     return next
   }))
+  const updateDescriptionFromCatalog=(index,value)=>{
+    const product=catalogByName.get(normalizeCatalogText(value))
+    if(!product){updateItem(index,'descripcion',value);return}
+    setItems(current=>current.map((item,i)=>i===index?catalogProductToInvoiceItem(product,item):item))
+  }
 
   const loadQuoteIntoInvoice=async(id)=>{
     setSourceQuoteId(id)
@@ -300,7 +341,7 @@ export default function FacturacionDte({session,supabase,company,initialClientId
             {items.map((item,index)=><article className="invoice-item billing-line-item" key={index}>
               <div className="invoice-item-title"><strong>Línea {index+1}</strong><strong>${itemTotal(item,priceMode).toFixed(2)}</strong>{items.length>1&&<button type="button" className="secondary-button" onClick={()=>setItems(x=>x.filter((_,i)=>i!==index))}>Eliminar</button>}</div>
               <div className="form-grid four">
-                <label className="field form-span-2"><span>Descripción *</span><input value={item.descripcion} onChange={e=>updateItem(index,'descripcion',e.target.value)} placeholder="Producto o servicio"/></label>
+                <label className="field form-span-2"><span>Producto o servicio *</span><input list={`billing-product-options-${index}`} value={item.descripcion} onChange={e=>updateDescriptionFromCatalog(index,e.target.value)} placeholder="Seleccionar del catálogo o escribir uno nuevo" autoComplete="off"/><datalist id={`billing-product-options-${index}`}>{catalogProducts.map(product=><option key={product.id} value={product.name}>{`${product.sku?`${product.sku} · `:''}$${Number(product.sale_price||0).toFixed(2)}`}</option>)}</datalist><small className="billing-auto-note">Seleccioná un producto/servicio existente o escribí libremente si no aparece.</small></label>
                 <label className="field"><span>Cantidad *</span><input type="number" min="0.01" step="0.01" value={item.cantidad} onChange={e=>updateItem(index,'cantidad',e.target.value)}/></label>
                 <label className="field"><span>{enteredWithTax?'Precio con IVA *':'Precio sin IVA *'}</span><input type="number" min="0.01" step="0.01" value={item.precioUni} onChange={e=>updateItem(index,'precioUni',e.target.value)}/></label>
                 <label className="field"><span>Tipo</span><select value={item.tipoItem} onChange={e=>updateItem(index,'tipoItem',e.target.value)}>{ITEM_TYPES.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
@@ -325,9 +366,9 @@ export default function FacturacionDte({session,supabase,company,initialClientId
 
           <details className="billing-technical-details"><summary>Opciones fiscales especiales</summary><div className="billing-fiscal-options">
             <div className="form-grid three"><label className="field"><span>IVA retenido</span><input type="number" min="0" step="0.01" value={ivaRete} onChange={e=>setIvaRete(e.target.value)}/></label>{dteType==='03'&&<><label className="field"><span>IVA percibido</span><input type="number" min="0" step="0.01" value={ivaPerci} onChange={e=>setIvaPerci(e.target.value)}/></label><label className="field"><span>Renta retenida</span><input type="number" min="0" step="0.01" value={reteRenta} onChange={e=>setReteRenta(e.target.value)}/></label></>}<label className="field"><span>Saldo a favor</span><input type="number" min="0" step="0.01" value={saldoFavor} onChange={e=>setSaldoFavor(e.target.value)}/></label><label className="field"><span>No gravado adicional</span><input type="number" min="0" step="0.01" value={totalNoGravado} onChange={e=>setTotalNoGravado(e.target.value)}/></label><label className="field"><span>N.º pago electrónico</span><input value={numPagoElectronico} onChange={e=>setNumPagoElectronico(e.target.value)}/></label></div>
-            <details><summary>Documento relacionado</summary><div className="form-grid four"><label className="field"><span>Tipo DTE</span><input value={related.tipoDocumento} onChange={e=>setRelated({...related,tipoDocumento:e.target.value})}/></label><label className="field"><span>Generación</span><select value={related.tipoGeneracion} onChange={e=>setRelated({...related,tipoGeneracion:e.target.value})}><option value="1">Físico</option><option value="2">Electrónico</option></select></label><label className="field"><span>Número / código</span><input value={related.numeroDocumento} onChange={e=>setRelated({...related,numeroDocumento:e.target.value})}/></label><label className="field"><span>Fecha</span><input type="date" value={related.fechaEmision} onChange={e=>setRelated({...related,fechaEmision:e.target.value})}/></label></div></details>
-            <details><summary>Venta a cuenta de tercero</summary><div className="form-grid three"><label className="field"><span>NIT tercero</span><input value={thirdParty.nit} onChange={e=>setThirdParty({...thirdParty,nit:e.target.value})}/></label><label className="field form-span-2"><span>Nombre tercero</span><input value={thirdParty.nombre} onChange={e=>setThirdParty({...thirdParty,nombre:e.target.value})}/></label></div></details>
-            <details><summary>Apéndice</summary><div className="form-grid three"><label className="field"><span>Campo</span><input value={appendix.campo} onChange={e=>setAppendix({...appendix,campo:e.target.value})}/></label><label className="field"><span>Etiqueta</span><input value={appendix.etiqueta} onChange={e=>setAppendix({...appendix,etiqueta:e.target.value})}/></label><label className="field"><span>Valor</span><input value={appendix.valor} onChange={e=>setAppendix({...appendix,valor:e.target.value})}/></label></div></details>
+            <details><summary>Documento relacionado</summary><div className="form-grid four"><label className="field"><span>Tipo DTE</span><input value={related.tipoDocumento} onChange={e=>setRelated({...related,tipoDocumento:e.target.value})}/></label><label className="field"><span>Generación</span><select value={related.tipoGeneracion} onChange={e=>setRelated({...related,tipoGeneracion:e.target.value)}><option value="1">Físico</option><option value="2">Electrónico</option></select></label><label className="field"><span>Número / código</span><input value={related.numeroDocumento} onChange={e=>setRelated({...related,numeroDocumento:e.target.value)}/></label><label className="field"><span>Fecha</span><input type="date" value={related.fechaEmision} onChange={e=>setRelated({...related,fechaEmision:e.target.value)}/></label></div></details>
+            <details><summary>Venta a cuenta de tercero</summary><div className="form-grid three"><label className="field"><span>NIT tercero</span><input value={thirdParty.nit} onChange={e=>setThirdParty({...thirdParty,nit:e.target.value)}/></label><label className="field form-span-2"><span>Nombre tercero</span><input value={thirdParty.nombre} onChange={e=>setThirdParty({...thirdParty,nombre:e.target.value)}/></label></div></details>
+            <details><summary>Apéndice</summary><div className="form-grid three"><label className="field"><span>Campo</span><input value={appendix.campo} onChange={e=>setAppendix({...appendix,campo:e.target.value)}/></label><label className="field"><span>Etiqueta</span><input value={appendix.etiqueta} onChange={e=>setAppendix({...appendix,etiqueta:e.target.value)}/></label><label className="field"><span>Valor</span><input value={appendix.valor} onChange={e=>setAppendix({...appendix,valor:e.target.value)}/></label></div></details>
           </div></details>
         </div>
 
