@@ -15,13 +15,18 @@ function productionApprovalGranted(env) {
   return env.DTE_PRODUCTION_APPROVAL?.trim() === PRODUCTION_APPROVAL_PHRASE
 }
 
+function signerRequestTimeout(env) {
+  const configured = Number(env.DTE_REQUEST_TIMEOUT_MS || 45000)
+  return Number.isFinite(configured) ? Math.max(configured, 45000) : 45000
+}
+
 export function getDteSignerConfig(env = process.env) {
   return Object.freeze({
     signerUrl: required('DTE_SIGNER_URL', env).replace(/\/$/, ''),
     signerToken: required('DTE_SIGNER_TOKEN', env),
     nit: required('DTE_MH_NIT', env),
     signerPassword: required('DTE_SIGNER_PASSWORD', env),
-    requestTimeoutMs: Number(env.DTE_REQUEST_TIMEOUT_MS || 8000),
+    requestTimeoutMs: signerRequestTimeout(env),
   })
 }
 
