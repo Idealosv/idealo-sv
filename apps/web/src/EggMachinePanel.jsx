@@ -4,21 +4,25 @@ import { supabase } from './lib/supabase.js'
 const num=v=>new Intl.NumberFormat('es-SV').format(Number(v||0))
 const errorText=e=>String(e?.message||e||'No se pudo completar la operación.')
 
-function parseLine(line){
+function parseLine(line,device={}){
  const raw=String(line||'').trim()
  if(!raw)return null
- const parts=raw.split(/[;,\t]/).map(x=>x.trim()).filter(Boolean)
- const weight=Number(String(parts[0]||'').replace(',','.'))
+ const delimiter=device.delimiter==='TAB'?'\t':String(device.delimiter||',')
+ const parts=raw.split(delimiter).map(x=>x.trim())
+ const wi=Number(device.weight_column??0),qi=Number(device.quality_column??1),ui=Number(device.uv_column??2)
+ const decimal=String(device.decimal_separator||'.')
+ const weightRaw=String(parts[wi]||'').replace(decimal,'.')
+ const weight=Number(weightRaw)*Number(device.weight_multiplier||1)
  if(!Number.isFinite(weight)||weight<=0)return null
- let quality=String(parts[1]||'GOOD').toUpperCase()
- let uv=String(parts[2]||'UNKNOWN').toUpperCase()
+ let quality=String(parts[qi]||'GOOD').toUpperCase()
+ let uv=String(parts[ui]||'UNKNOWN').toUpperCase()
  if(['OK','PASS','GOOD','1'].includes(quality))quality='GOOD'
  if(['BAD','REJECT','DAMAGED','0'].includes(quality))quality='DAMAGED'
  if(!['GOOD','DAMAGED'].includes(quality))quality='GOOD'
  if(['OK','GOOD','1'].includes(uv))uv='PASS'
  if(['BAD','REJECT','0'].includes(uv))uv='FAIL'
  if(!['PASS','FAIL','UNKNOWN'].includes(uv))uv='UNKNOWN'
- return{weight_g:weight,quality,uv,raw}
+ return{weight_g:Number(weight.toFixed(2)),quality,uv,raw}
 }
 
 export default function EggMachinePanel({companyId}){
@@ -26,7 +30,7 @@ export default function EggMachinePanel({companyId}){
  const [batches,setBatches]=useState([])
  const [grades,setGrades]=useState([])
  const [imports,setImports]=useState([])
- const [deviceForm,setDeviceForm]=useState({name:'Clasificadora principal',protocol:'CSV',baud_rate:'9600',data_format:'WEIGHT,QUALITY,UV',notes:''})
+ const [deviceForm,setDeviceForm]=useState({name:'Clasificadora principal',protocol:'CSV',baud_rate:'9600',data_format:'WEIGHT,QUALITY,UV',adapter_name:'GENERIC',delimiter:',',decimal_separator:'.',weight_column:'0',quality_column:'1',uv_column:'2',weight_multiplier:'1',notes:''})
  const [batchId,setBatchId]=useState('')
  const [deviceId,setDeviceId]=useState('')
  const [source,setSource]=useState('CSV')
@@ -56,7 +60,8 @@ export default function EggMachinePanel({companyId}){
  useEffect(()=>{load().catch(e=>setError(errorText(e)))},[load])
  useEffect(()=>()=>{readerRef.current?.cancel?.().catch(()=>{});portRef.current?.close?.().catch(()=>{})},[])
 
- const entries=useMemo(()=>raw.split(/\r?\n/).map(parseLine).filter(Boolean),[raw])
+ const selectedDevice=devices.find(d=>d.id===deviceId)||deviceForm
+ const entries=useMemo(()=>raw.split(/\r?\n/).map(line=>parseLine(line,selectedDevice)).filter(Boolean),[raw,selectedDevice])
  const preview=useMemo(()=>{
   const counts=new Map()
   for(const entry of entries){
@@ -73,7 +78,7 @@ export default function EggMachinePanel({companyId}){
  const act=async(fn,message)=>{setSaving(true);setError('');setNotice('');try{await fn();setNotice(message);await load()}catch(e){setError(errorText(e))}finally{setSaving(false)}}
 
  const createDevice=e=>{e.preventDefault();return act(async()=>{
-  const {data,error}=await supabase.from('egg_machine_devices').insert({company_id:companyId,name:deviceForm.name,protocol:deviceForm.protocol,baud_rate:Number(deviceForm.baud_rate),data_format:deviceForm.data_format,notes:deviceForm.notes}).select('id').single()
+  const {data,error}=await supabase.from('egg_machine_devices').insert({company_id:companyId,name:deviceForm.name,protocol:deviceForm.protocol,baud_rate:Number(deviceForm.baud_rate),data_format:deviceForm.data_format,adapter_name:deviceForm.adapter_name,delimiter:deviceForm.delimiter,decimal_separator:deviceForm.decimal_separator,weight_column:Number(deviceForm.weight_column),quality_column:Number(deviceForm.quality_column),uv_column:Number(deviceForm.uv_column),weight_multiplier:Number(deviceForm.weight_multiplier),notes:deviceForm.notes}).select('id').single()
   if(error)throw error
   setDeviceId(data.id)
  },'Equipo guardado. Ya puede utilizarse para importar lecturas.')}
@@ -117,7 +122,7 @@ export default function EggMachinePanel({companyId}){
     serialBufferRef.current+=value
     const parts=serialBufferRef.current.split(/\r?\n/)
     serialBufferRef.current=parts.pop()||''
-    const valid=parts.map(x=>x.trim()).filter(x=>parseLine(x))
+    const valid=parts.map(x=>x.trim()).filter(x=>parseLine(x,selected))
     if(valid.length)setRaw(current=>current+(current&&!current.endsWith('\n')?'\n':'')+valid.join('\n')+'\n')
    }
   }catch(e){
@@ -143,6 +148,19 @@ export default function EggMachinePanel({companyId}){
      <label className="eggs-field"><span>Baud rate</span><input type="number" min="300" value={deviceForm.baud_rate} onChange={e=>setDeviceForm({...deviceForm,baud_rate:e.target.value})}/></label>
     </div>
     <label className="eggs-field"><span>Formato esperado</span><input value={deviceForm.data_format} onChange={e=>setDeviceForm({...deviceForm,data_format:e.target.value})}/><small>Formato genérico: peso, calidad, UV. Ejemplo: 62.4,GOOD,PASS</small></label>
+    <div className="eggs-form-grid">
+     <label className="eggs-field"><span>Adaptador</span><input value={deviceForm.adapter_name} onChange={e=>setDeviceForm({...deviceForm,adapter_name:e.target.value})} placeholder="Marca / modelo"/></label>
+     <label className="eggs-field"><span>Separador</span><select value={deviceForm.delimiter} onChange={e=>setDeviceForm({...deviceForm,delimiter:e.target.value})}><option value=",">Coma (,)</option><option value=";">Punto y coma (;)</option><option value="TAB">Tabulación</option><option value="|">Barra (|)</option></select></label>
+    </div>
+    <div className="eggs-form-grid">
+     <label className="eggs-field"><span>Columna peso</span><input type="number" min="0" value={deviceForm.weight_column} onChange={e=>setDeviceForm({...deviceForm,weight_column:e.target.value})}/></label>
+     <label className="eggs-field"><span>Multiplicador peso</span><input type="number" min="0.000001" step="0.000001" value={deviceForm.weight_multiplier} onChange={e=>setDeviceForm({...deviceForm,weight_multiplier:e.target.value})}/></label>
+    </div>
+    <div className="eggs-form-grid">
+     <label className="eggs-field"><span>Columna calidad</span><input type="number" min="0" value={deviceForm.quality_column} onChange={e=>setDeviceForm({...deviceForm,quality_column:e.target.value})}/></label>
+     <label className="eggs-field"><span>Columna UV</span><input type="number" min="0" value={deviceForm.uv_column} onChange={e=>setDeviceForm({...deviceForm,uv_column:e.target.value})}/></label>
+    </div>
+    <label className="eggs-field"><span>Separador decimal</span><select value={deviceForm.decimal_separator} onChange={e=>setDeviceForm({...deviceForm,decimal_separator:e.target.value})}><option value=".">Punto</option><option value=",">Coma</option></select></label>
     <label className="eggs-field"><span>Notas</span><textarea value={deviceForm.notes} onChange={e=>setDeviceForm({...deviceForm,notes:e.target.value})}/></label>
     <button className="eggs-primary" disabled={saving}>Guardar equipo</button>
    </form>
@@ -173,7 +191,7 @@ export default function EggMachinePanel({companyId}){
      {preview.map(([name,c])=><div key={name}><span><b>{name}</b><small>Según rango de peso configurado</small></span><span><b>{c.good}</b><small>buenos</small></span><span><b>{c.bad}</b><small>rechazo</small></span></div>)}
      {!preview.length&&<div className="eggs-empty">Cargá un archivo o conectá la clasificadora para ver la clasificación.</div>}
     </div>
-    <div className="eggs-note">La luz UV puede reportarse como PASS/FAIL. Un FAIL se registra como rechazo y no entra al inventario vendible.</div>
+    <div className="eggs-note">El adaptador permite cambiar separador, columnas y escala de peso según la marca/modelo. La luz UV puede reportarse como PASS/FAIL; un FAIL queda como rechazo.</div>
    </section>
   </section>
 
