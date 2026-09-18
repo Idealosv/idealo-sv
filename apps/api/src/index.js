@@ -31,6 +31,7 @@ import { getCustomerSaasAccount, requestPlanChange } from './saas/customer-porta
 import { recordSecurityAuditEvent } from './security/security-audit-service.js'
 import { requireCompanyAccess, COMPANY_ROLES } from './security/company-access.js'
 import { getAiStatus, getAiSnapshot, askAiAssistant } from './ai/assistant-service.js'
+import { createEggOrderDteDraft } from './eggs/egg-dte-service.js'
 
 const app=express();const port=Number(process.env.PORT||4000)
 const configuredOrigins=(process.env.CORS_ORIGIN||'').split(',').map(v=>v.trim()).filter(Boolean)
@@ -66,6 +67,7 @@ app.patch('/api/admin/saas/companies/:companyId/subscription',async(q,r,n)=>{try
 app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.status(201).json(await recordSaasPayment({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/access',async(q,r,n)=>{try{r.json(await grantMasterCompanyAccess({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/owner-access',async(q,r,n)=>{try{r.json(await sendMasterOwnerAccess({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/eggs/orders/:orderId/dte-draft',async(q,r,n)=>{try{r.status(201).json(await createEggOrderDteDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/status',async(q,r,n)=>{try{const companyId=await requireDteAdminRoute(q);const companyEnv=await buildCompanyDteEnv({companyId,supabase:db()});r.json(getDteConfigurationStatus(companyEnv))}catch(e){n(e)}})
 app.get('/api/dte/production-preflight',async(q,r,n)=>{try{const companyId=await requireDteAdminRoute(q);const companyEnv=await buildCompanyDteEnv({companyId,supabase:db()});r.json(getDteProductionPreflightStatus(companyEnv))}catch(e){n(e)}})
 app.get('/api/dte/runtime-settings',async(q,r,n)=>{try{await requireDteAdminRoute(q);r.json(await getRuntimeSettings({request:q,supabase:db()}))}catch(e){n(e)}})
