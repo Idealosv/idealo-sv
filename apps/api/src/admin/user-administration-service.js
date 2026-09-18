@@ -31,6 +31,14 @@ async function ensureOwnerRule(supabase,{companyId,targetUserId,nextRole=null,re
 function assertRole(role){const normalized=String(role||'').toLowerCase();if(!ROLES.includes(normalized))throw httpError('Rol inválido.');return normalized}
 function assertActorCanManage(actorRole,targetRole,nextRole){if(actorRole==='owner')return;if(targetRole==='owner'||nextRole==='owner'||nextRole==='admin')throw httpError('Un administrador no puede modificar propietarios ni conceder privilegios de propietario/administrador.',403,'OWNER_ONLY')}
 async function findUserByEmail(supabase,email){let page=1;while(page<=10){const {data,error}=await supabase.auth.admin.listUsers({page,perPage:100});if(error)throw error;const found=(data?.users||[]).find(user=>String(user.email||'').toLowerCase()===email);if(found)return found;if((data?.users||[]).length<100)break;page++}return null}
+async function assertPlanUserLimit(supabase,companyId){
+ const {data:subscription,error:subError}=await supabase.from('saas_company_subscriptions').select('plan_id,status').eq('company_id',companyId).maybeSingle();if(subError)throw subError
+ if(!subscription)return
+ const {data:plan,error:planError}=await supabase.from('saas_plans').select('name,max_users').eq('id',subscription.plan_id).maybeSingle();if(planError)throw planError
+ const max=Number(plan?.max_users||0);if(!max)return
+ const {count,error:countError}=await supabase.from('company_members').select('*',{count:'exact',head:true}).eq('company_id',companyId);if(countError)throw countError
+ if(Number(count||0)>=max)throw httpError(`El plan ${plan?.name||'actual'} permite hasta ${max} usuarios. Cambiá de plan para agregar otro usuario.`,409,'PLAN_USER_LIMIT_REACHED')
+}
 
 export async function listCompanyUsers({request,supabase}){
  const companyId=String(request.query.company_id||'');if(!companyId)throw httpError('company_id es obligatorio.')
@@ -56,7 +64,7 @@ export async function registerCompanyActivity({request,supabase}){
 
 export async function inviteCompanyUser({request,supabase}){
  const companyId=String(request.body?.company_id||''),email=String(request.body?.email||'').trim().toLowerCase(),role=assertRole(request.body?.role),fullName=String(request.body?.full_name||'').trim(),jobTitle=String(request.body?.job_title||'').trim();if(!companyId||!email)throw httpError('Empresa y correo son obligatorios.')
- const actor=await actorContext({request,supabase,companyId});await assertNotDemoAdminMutation(supabase,companyId);assertActorCanManage(actor.role,'',role)
+ const actor=await actorContext({request,supabase,companyId});await assertNotDemoAdminMutation(supabase,companyId);assertActorCanManage(actor.role,'',role);await assertPlanUserLimit(supabase,companyId)
  let user=await findUserByEmail(supabase,email)
  if(!user){const {data,error}=await supabase.auth.admin.inviteUserByEmail(email,{data:{full_name:fullName,job_title:jobTitle}});if(error)throw error;user=data.user}
  if(!user)throw httpError('No se pudo crear o localizar el usuario.',500)
