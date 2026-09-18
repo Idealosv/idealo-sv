@@ -61,7 +61,9 @@ export default function EggMachinePanel({companyId}){
  useEffect(()=>()=>{readerRef.current?.cancel?.().catch(()=>{});portRef.current?.close?.().catch(()=>{})},[])
 
  const selectedDevice=devices.find(d=>d.id===deviceId)||deviceForm
- const entries=useMemo(()=>raw.split(/\r?\n/).map(line=>parseLine(line,selectedDevice)).filter(Boolean),[raw,selectedDevice])
+ const rawLines=useMemo(()=>raw.split(/\r?\n/).map(line=>line.trim()).filter(Boolean),[raw])
+ const entries=useMemo(()=>rawLines.map(line=>parseLine(line,selectedDevice)).filter(Boolean),[rawLines,selectedDevice])
+ const invalidLines=Math.max(0,rawLines.length-entries.length)
  const preview=useMemo(()=>{
   const counts=new Map()
   for(const entry of entries){
@@ -175,6 +177,17 @@ export default function EggMachinePanel({companyId}){
     </div>
     <div className="eggs-machine-status"><span className={`eggs-pill ${serialConnected?'good':'neutral'}`}>{serialConnected?'Serial conectado':'Sin conexión serial'}</span><small>{entries.length} lecturas listas</small></div>
    </section>
+  </section>
+
+  <section className="eggs-card eggs-machine-diagnostic">
+   <div className="eggs-section-head"><div><small>DIAGNÓSTICO DE INTEGRACIÓN</small><h2>Preparación para máquina física</h2><p>Valida navegador, perfil de lectura y calidad del formato antes de importar al inventario.</p></div><button type="button" onClick={()=>setRaw('72.2,GOOD,PASS\n66.8,GOOD,PASS\n62.4,GOOD,PASS\n58.1,GOOD,PASS\n51.7,GOOD,UNKNOWN\n48.0,DAMAGED,FAIL\n')}>Cargar muestra</button></div>
+   <div className="eggs-machine-diagnostic-grid">
+    <div><span>Web Serial</span><b>{'serial'in navigator?'Compatible':'No disponible'}</b><small>{'serial'in navigator?'Chrome/Edge puede solicitar el puerto físico.':'Usá CSV/TXT o un navegador compatible.'}</small></div>
+    <div><span>Adaptador</span><b>{selectedDevice?.adapter_name||'GENERIC'}</b><small>{selectedDevice?.protocol||'CSV'} · {selectedDevice?.baud_rate||9600} baud</small></div>
+    <div><span>Líneas válidas</span><b>{entries.length}</b><small>{invalidLines} inválidas</small></div>
+    <div><span>UV</span><b>{entries.filter(x=>x.uv==='PASS').length} PASS</b><small>{entries.filter(x=>x.uv==='FAIL').length} FAIL · {entries.filter(x=>x.uv==='UNKNOWN').length} sin dato</small></div>
+   </div>
+   <div className="eggs-note">La validación física final depende de la máquina real. Cuando conectes el modelo seleccionado, este diagnóstico permite ajustar separador, columnas, escala y baud rate sin cambiar el resto del ERP.</div>
   </section>
 
   <section className="eggs-two-column">
