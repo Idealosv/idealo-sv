@@ -87,7 +87,6 @@ async function ensureErpClient({supabase,user,customer,dteType}){
   status:'active',
   source:'IDEALO_EGGS',
   notes:'Cliente sincronizado desde IDEALO Eggs para Facturación Electrónica DTE.',
-  created_by:user.id,
  }
  let clientId=customer.erp_client_id||null
  if(clientId){
@@ -96,7 +95,7 @@ async function ensureErpClient({supabase,user,customer,dteType}){
   if(!data)clientId=null
  }
  if(!clientId){
-  const {data,error}=await supabase.from('clients').insert(payload).select('id').single()
+  const {data,error}=await supabase.from('clients').insert({...payload,created_by:user.id}).select('id').single()
   if(error)throw error
   clientId=data.id
   const {error:linkError}=await supabase.from('egg_customers').update({erp_client_id:clientId,updated_at:new Date().toISOString()}).eq('id',customer.id).eq('company_id',customer.company_id)
@@ -129,6 +128,9 @@ export async function createEggOrderDteDraft({request,supabase}){
  const dteType=['01','03'].includes(requestedType)?requestedType:'01'
  const environment=String(request.body?.environment||'test').toLowerCase()
  if(!['test','production'].includes(environment))throw httpError('Ambiente DTE inválido.')
+ const {data:company,error:companyError}=await supabase.from('companies').select('id,demo_mode').eq('id',order.company_id).maybeSingle()
+ if(companyError)throw companyError
+ if(company?.demo_mode&&environment==='production')throw httpError('Este entorno está en modo DEMO/desarrollo. DTE PRODUCCIÓN permanece bloqueado.',409,'EGG_DEMO_PRODUCTION_DTE_BLOCKED')
  const clientId=customer?await ensureErpClient({supabase,user,customer,dteType}):null
  if(dteType==='03'&&!clientId)throw httpError('Crédito Fiscal requiere cliente fiscal sincronizado.',409)
 
