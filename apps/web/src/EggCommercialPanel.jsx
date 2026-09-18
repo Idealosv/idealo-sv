@@ -96,6 +96,29 @@ export default function EggCommercialPanel({companyId}){
    <div className="eggs-plan-grid">{plans.map(plan=><article key={plan.name}><span>{plan.name}</span><div className="eggs-plan-price"><b>{money(plan.activation)}</b><small>activación</small></div><div className="eggs-plan-price"><b>{money(plan.monthly)}</b><small>mensual</small></div><ul>{plan.items.map(i=><li key={i}>{i}</li>)}</ul></article>)}</div>
   </section>
 
+  <section className="eggs-two-column">
+   <article className="eggs-card">
+    <div className="eggs-section-head"><div><small>ACTIVACIÓN</small><h2>Procedimiento para un cliente nuevo</h2></div></div>
+    <div className="eggs-commercial-steps">
+     <div><span>1</span><p>Crear empresa desde Administrador de Membresías y seleccionar <b>Huevos por mayor</b>.</p></div>
+     <div><span>2</span><p>Asignar plan, activación, mensualidad, usuarios y correo del propietario.</p></div>
+     <div><span>3</span><p>Configurar proveedores, clasificaciones, precios, clientes y datos fiscales.</p></div>
+     <div><span>4</span><p>Si corresponde, configurar clasificadora, rutas y usuarios por rol.</p></div>
+     <div><span>5</span><p>Probar flujo completo y DTE en ambiente TEST antes de habilitar producción.</p></div>
+    </div>
+   </article>
+   <article className="eggs-card">
+    <div className="eggs-section-head"><div><small>MEMBRESÍA Y SOPORTE</small><h2>Condiciones comerciales base</h2></div></div>
+    <div className="eggs-commercial-terms">
+     <div><b>Activación</b><p>Pago único según plan para configuración inicial y puesta en marcha.</p></div>
+     <div><b>Membresía mensual</b><p>Mantiene acceso a los módulos contratados, actualizaciones y operación en la plataforma.</p></div>
+     <div><b>Usuarios</b><p>El límite se controla automáticamente según el plan configurado en IDEALO SV.</p></div>
+     <div><b>Soporte</b><p>Incidencias del sistema, actualización funcional y acompañamiento de configuración.</p></div>
+     <div><b>DTE</b><p>Producción solo se habilita después de configuración fiscal y validación en pruebas.</p></div>
+    </div>
+   </article>
+  </section>
+
   <section className="eggs-card">
    <div className="eggs-section-head"><div><small>HISTORIAL</small><h2>Últimas auditorías</h2></div></div>
    <div className="eggs-table-wrap"><table><thead><tr><th>Fecha</th><th>Puntaje</th><th>Estado</th><th>Hallazgos</th></tr></thead><tbody>
