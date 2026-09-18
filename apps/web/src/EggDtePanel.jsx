@@ -18,17 +18,20 @@ export default function EggDtePanel({companyId}){
  const [saving,setSaving]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
+ const [companyDemo,setCompanyDemo]=useState(false)
 
  const load=useCallback(async()=>{
   if(!companyId)return
-  const [o,c,l]=await Promise.all([
+  const [o,c,l,companyRes]=await Promise.all([
    supabase.from('egg_orders').select('id,order_number,total,paid_amount,status,payment_type,created_at,customer_id,egg_customers(name,preferred_dte_type)').eq('company_id',companyId).neq('status','CANCELLED').order('created_at',{ascending:false}).limit(200),
    supabase.from('egg_customers').select('*').eq('company_id',companyId).eq('active',true).order('name'),
-   supabase.from('egg_order_dte_links').select('*,egg_orders(order_number,egg_customers(name)),dte_documents(id,status,control_number,environment,dte_type,created_at)').eq('company_id',companyId).order('created_at',{ascending:false}).limit(100)
+   supabase.from('egg_order_dte_links').select('*,egg_orders(order_number,egg_customers(name)),dte_documents(id,status,control_number,environment,dte_type,created_at)').eq('company_id',companyId).order('created_at',{ascending:false}).limit(100),
+   supabase.from('companies').select('demo_mode').eq('id',companyId).maybeSingle()
   ])
-  for(const r of [o,c,l])if(r.error)throw r.error
-  setOrders(o.data||[]);setCustomers(c.data||[]);setLinks(l.data||[])
-  setSelectedOrder(current=>current||o.data?.[0]?.id||'')
+  for(const r of [o,c,l,companyRes])if(r.error)throw r.error
+  setOrders(o.data||[]);setCustomers(c.data||[]);setLinks(l.data||[]);setCompanyDemo(Boolean(companyRes.data?.demo_mode))
+  const linked=new Set((l.data||[]).filter(row=>!['REJECTED','INVALIDATED'].includes(String(row.dte_documents?.status||''))).map(row=>row.order_id))
+  setSelectedOrder(current=>current&&!linked.has(current)?current:(o.data||[]).find(row=>!linked.has(row.id))?.id||'')
   setSelectedCustomer(current=>current||c.data?.[0]?.id||'')
  },[companyId])
 
@@ -127,10 +130,10 @@ export default function EggDtePanel({companyId}){
     </div>
     <div className="eggs-form-grid">
      <label className="eggs-field"><span>Tipo DTE</span><select value={dteType} onChange={e=>setDteType(e.target.value)}><option value="01">01 · Factura</option><option value="03">03 · Crédito Fiscal</option></select></label>
-     <label className="eggs-field"><span>Ambiente</span><select value={environment} onChange={e=>{setEnvironment(e.target.value);setConfirmation('')}}><option value="test">Pruebas MH</option><option value="production">Producción</option></select></label>
+     <label className="eggs-field"><span>Ambiente</span><select value={environment} onChange={e=>{setEnvironment(e.target.value);setConfirmation('')}}><option value="test">Pruebas MH</option><option value="production" disabled={companyDemo}>Producción{companyDemo?' · bloqueado en DEMO':''}</option></select></label>
     </div>
     {environment==='production'&&<label className="eggs-field"><span>Confirmación de producción</span><input required value={confirmation} onChange={e=>setConfirmation(e.target.value)} placeholder={`PREPARAR PRODUCCION DTE-${dteType}`}/><small>Para proteger producción, escribí exactamente: PREPARAR PRODUCCION DTE-{dteType}</small></label>}
-    <div className="eggs-note">El sistema reutiliza el motor DTE de IDEALO SV. La firma y transmisión siguen bajo los controles de seguridad existentes.</div>
+    <div className="eggs-note">{companyDemo?'Este entorno es DEMO/desarrollo: DTE PRODUCCIÓN está bloqueado. Podés probar borradores en ambiente MH de pruebas.':'El sistema reutiliza el motor DTE de IDEALO SV. La firma y transmisión siguen bajo los controles de seguridad existentes.'}</div>
     <button className="eggs-primary" disabled={saving||!order}>Crear borrador DTE</button>
    </form>
   </section>
