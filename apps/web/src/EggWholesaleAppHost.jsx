@@ -132,7 +132,19 @@ export default function EggWholesaleAppHost(){
  },[enabled,companyId])
 
  const hasModule=code=>!entitlements||entitlements.legacy||entitlements.modules?.includes(code)
- const visibleTabs=TABS.filter(([, ,module])=>hasModule(module))
+ const canSeeTab=name=>{
+  if(!eggRole||['OWNER','MANAGER'].includes(eggRole))return true
+  const map={
+   SALES:['Inicio','Clientes','Ventas','Reportes','Precios'],
+   WAREHOUSE:['Inicio','Proveedores','Lotes','Inventario','Devoluciones','Reportes','Rutas','Despacho'],
+   CLASSIFIER:['Inicio','Lotes','Inventario','Máquina','Reportes'],
+   DRIVER:['Inicio','Móvil'],
+   CASHIER:['Inicio','Caja','Reportes'],
+   VIEWER:['Inicio','Inventario','Reportes']
+  }
+  return (map[eggRole]||['Inicio']).includes(name)
+ }
+ const visibleTabs=TABS.filter(([name,,module])=>hasModule(module)&&canSeeTab(name))
 
  useEffect(()=>{
   if(!companyId||!orderForm.customer_id||!orderForm.grade_id||!orderForm.quantity_units||!orderForm.eggs_per_unit)return
@@ -221,6 +233,8 @@ export default function EggWholesaleAppHost(){
  const lowStock=useMemo(()=>inventory.filter(row=>Number(row.stock_eggs||0)<=0),[inventory])
 
  if(!enabled)return null
+ if(mobileOnly&&entitlements&&!hasModule('EGG_MOBILE'))return <div className="egg-mobile-app"><div className="eggs-alert error">El plan actual no incluye Reparto Móvil.</div></div>
+ if(mobileOnly&&eggRole&&!['OWNER','MANAGER','DRIVER'].includes(eggRole))return <div className="egg-mobile-app"><div className="eggs-alert error">Tu rol no permite utilizar la app de reparto.</div></div>
  if(mobileOnly)return <EggMobileDeliveryPanel companyId={companyId} onExit={()=>{window.location.href='/eggs?company='+encodeURIComponent(companyId)}}/>
 
  const batchProgress=batch=>{
