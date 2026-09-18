@@ -169,6 +169,7 @@ export default function SaasMasterPanelHost() {
   }, [data, search, statusFilter])
 
   const selectedPlan = commercialPlans.find(x => x.id === form.plan_id) || null
+  const selectedVertical = data?.verticals?.find(x => x.id === form.vertical_id) || null
 
   if (!enabled) return null
 
@@ -335,7 +336,7 @@ export default function SaasMasterPanelHost() {
               <p>Creá un cliente o un entorno DEMO. Los planes internos no aparecen en este formulario.</p>
             </div>
             <label>Empresa<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required minLength="2" placeholder="Nombre comercial" /></label>
-            <label>Correo del propietario<input type="email" value={form.owner_email} onChange={e => setForm({ ...form, owner_email: e.target.value })} required placeholder="correo@empresa.com" /></label>
+            <label>Correo del propietario {form.demo_mode && <small>· opcional en DEMO</small>}<input type="email" value={form.owner_email} onChange={e => setForm({ ...form, owner_email: e.target.value })} required={!form.demo_mode} placeholder={form.demo_mode ? "Opcional: se usará tu cuenta administradora" : "correo@empresa.com"} /></label>
             <label>Rubro<select value={form.vertical_id} onChange={e => setForm({ ...form, vertical_id: e.target.value })}>{data.verticals.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
             <label>Plan<select value={form.plan_id} onChange={e => setForm({ ...form, plan_id: e.target.value })}>{commercialPlans.map(x => <option key={x.id} value={x.id}>{x.name} · activación {money(x.activation_fee)} · {money(x.monthly_price)}/mes</option>)}</select></label>
             {selectedPlan && <div className="saas-payment-plan saas-create-plan-summary">
@@ -344,7 +345,7 @@ export default function SaasMasterPanelHost() {
               <span>Beneficios</span><strong>{planBenefits(selectedPlan).join(' · ') || 'Plan estándar'}</strong>
             </div>}
             <label>Días de prueba<input type="number" min="0" max="90" value={form.trial_days} onChange={e => setForm({ ...form, trial_days: Number(e.target.value) })} /></label>
-            <label className="saas-demo-option"><input type="checkbox" checked={form.demo_mode} onChange={e => setForm({ ...form, demo_mode: e.target.checked })} /><span><strong>Crear como DEMO comercial</strong><small>Precarga datos ficticios, no genera cartera y mantiene DTE de producción protegido.</small></span></label>
+            <label className="saas-demo-option"><input type="checkbox" checked={form.demo_mode} onChange={e => setForm({ ...form, demo_mode: e.target.checked })} /><span><strong>Crear como DEMO / desarrollo</strong><small>{selectedVertical?.code === "ADVERTISING" ? "Precarga datos ficticios de agencia, no genera cartera y mantiene DTE de producción protegido." : "Crea un entorno de prueba sin cartera ni cobros. El correo puede quedar vacío y se usará tu cuenta administradora."}</small></span></label>
             <button disabled={saving}>{saving ? 'Procesando…' : 'Crear membresía'}</button>
           </form>
 
