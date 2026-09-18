@@ -10,6 +10,10 @@ import EggReportsPanel from './EggReportsPanel.jsx'
 import EggUsersPanel from './EggUsersPanel.jsx'
 import EggMobileDeliveryPanel from './EggMobileDeliveryPanel.jsx'
 import EggDispatchPanel from './EggDispatchPanel.jsx'
+import EggExecutiveDashboard from './EggExecutiveDashboard.jsx'
+import EggDocumentsPanel from './EggDocumentsPanel.jsx'
+import EggAiPanel from './EggAiPanel.jsx'
+import EggCommercialPanel from './EggCommercialPanel.jsx'
 
 const TABS=[
  ['Inicio','Resumen','EGG_OPERATIONS'],
@@ -28,6 +32,9 @@ const TABS=[
  ['Móvil','Reparto desde teléfono','EGG_MOBILE'],
  ['DTE','Facturación electrónica','DTE'],
  ['Usuarios','Roles y permisos','EGG_USERS'],
+ ['Documentos','PDF comerciales','EGG_OPERATIONS'],
+ ['IA','Asistente especializado','AI'],
+ ['Comercial','Auditoría y salida','EGG_REPORTS'],
 ]
 
 const today=()=>new Date().toISOString().slice(0,10)
@@ -135,12 +142,12 @@ export default function EggWholesaleAppHost(){
  const canSeeTab=name=>{
   if(!eggRole||['OWNER','MANAGER'].includes(eggRole))return true
   const map={
-   SALES:['Inicio','Clientes','Ventas','Reportes'],
-   WAREHOUSE:['Inicio','Proveedores','Lotes','Inventario','Devoluciones','Reportes','Rutas','Despacho'],
-   CLASSIFIER:['Inicio','Lotes','Inventario','Máquina','Reportes'],
-   DRIVER:['Inicio','Móvil'],
-   CASHIER:['Inicio','Caja','Reportes'],
-   VIEWER:['Inicio','Inventario','Reportes']
+   SALES:['Inicio','Clientes','Ventas','Reportes','Documentos','IA'],
+   WAREHOUSE:['Inicio','Proveedores','Lotes','Inventario','Devoluciones','Reportes','Rutas','Despacho','Documentos','IA'],
+   CLASSIFIER:['Inicio','Lotes','Inventario','Máquina','Reportes','IA'],
+   DRIVER:['Inicio','Móvil','Documentos','IA'],
+   CASHIER:['Inicio','Caja','Reportes','Documentos','IA'],
+   VIEWER:['Inicio','Inventario','Reportes','Documentos','IA']
   }
   return (map[eggRole]||['Inicio']).includes(name)
  }
@@ -268,6 +275,7 @@ export default function EggWholesaleAppHost(){
 
   <main className="eggs-main">
    {tab==='Inicio'&&<>
+    <EggExecutiveDashboard companyId={companyId} onGo={setTab}/>
     <section className="eggs-metrics">
      <Metric label="Huevos disponibles" value={number(stockTotal)} hint={`${number(Math.floor(stockTotal/30))} bandejas completas de 30`}/>
      <Metric label="Ventas registradas" value={money(salesTotal)} hint={`${orders.length} pedidos`}/>
@@ -439,6 +447,9 @@ export default function EggWholesaleAppHost(){
    {tab==='Móvil'&&hasModule('EGG_MOBILE')&&<EggMobileDeliveryPanel companyId={companyId} onExit={()=>setTab('Inicio')}/>}
    {tab==='DTE'&&hasModule('DTE')&&<EggDtePanel companyId={companyId}/>}
    {tab==='Usuarios'&&hasModule('EGG_USERS')&&<EggUsersPanel companyId={companyId}/>}
+   {tab==='Documentos'&&hasModule('EGG_OPERATIONS')&&<EggDocumentsPanel companyId={companyId}/>}
+   {tab==='IA'&&hasModule('AI')&&<EggAiPanel companyId={companyId}/>}
+   {tab==='Comercial'&&hasModule('EGG_REPORTS')&&['OWNER','MANAGER'].includes(eggRole)&&<EggCommercialPanel companyId={companyId}/>}
   </main>
  </div>
 }
