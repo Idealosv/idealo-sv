@@ -72,7 +72,7 @@ export default function EggWholesaleAppHost(){
     supabase.from('egg_inventory_stock').select('*').eq('company_id',companyId).order('name'),
     supabase.from('egg_customers').select('*').eq('company_id',companyId).order('name'),
     supabase.from('egg_orders').select('*,egg_customers(name),egg_order_items(*,egg_grades(code,name))').eq('company_id',companyId).order('created_at',{ascending:false}).limit(150),
-    supabase.from('egg_payments').select('*,egg_orders(order_number),egg_orders!egg_payments_order_id_fkey(egg_customers(name))').eq('company_id',companyId).order('paid_at',{ascending:false}).limit(150),
+    supabase.from('egg_payments').select('*,egg_orders(order_number,egg_customers(name))').eq('company_id',companyId).order('paid_at',{ascending:false}).limit(150),
    ])
    for(const result of [supplierRes,gradeRes,batchRes,classRes,inventoryRes,customerRes,orderRes,paymentRes])if(result.error)throw result.error
    setSuppliers(supplierRes.data||[])
@@ -111,7 +111,7 @@ export default function EggWholesaleAppHost(){
  },'Proveedor agregado correctamente.')}
 
  const receiveBatch=event=>{event.preventDefault();return act(async()=>{
-  const {data,e:errorRpc}=await supabase.rpc('egg_receive_batch',{
+  const {data,error:errorRpc}=await supabase.rpc('egg_receive_batch',{
    p_company_id:companyId,p_supplier_id:batchForm.supplier_id||null,p_total_eggs:Number(batchForm.total_eggs),
    p_total_cost:Number(batchForm.total_cost||0),p_received_at:batchForm.received_at,p_source_reference:batchForm.source_reference,p_notes:batchForm.notes
   })
