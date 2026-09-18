@@ -47,10 +47,12 @@ export async function getSaasMasterDashboard({request,supabase}){
 export async function createSaasCompany({request,supabase}){
  const actor=await platformActor({request,supabase})
  const name=String(request.body?.name||'').trim(),ownerEmail=String(request.body?.owner_email||'').trim().toLowerCase(),planId=String(request.body?.plan_id||''),verticalId=String(request.body?.vertical_id||''),trialDays=Math.max(0,Math.min(90,Number(request.body?.trial_days??14))),demoMode=request.body?.demo_mode===true
- if(name.length<2||!ownerEmail||!planId||!verticalId)throw httpError('Nombre, propietario, plan y rubro son obligatorios.')
+ if(name.length<2||!planId||!verticalId||(!demoMode&&!ownerEmail))throw httpError(demoMode?'Nombre, plan y rubro son obligatorios.':'Nombre, propietario, plan y rubro son obligatorios.')
  await requireCommercialPlan(supabase,planId)
- let owner=await findUserByEmail(supabase,ownerEmail)
- if(!owner){const {data,error}=await supabase.auth.admin.inviteUserByEmail(ownerEmail,{data:{full_name:name}});if(error)throw error;owner=data.user}
+ const {data:selectedVertical,error:verticalError}=await supabase.from('saas_verticals').select('id,code,name,active').eq('id',verticalId).maybeSingle();if(verticalError)throw verticalError;if(!selectedVertical||selectedVertical.active===false)throw httpError('Seleccioná un rubro activo.',400,'ACTIVE_VERTICAL_REQUIRED')
+ let owner=null
+ if(demoMode&&!ownerEmail)owner=actor
+ else{owner=await findUserByEmail(supabase,ownerEmail);if(!owner){const {data,error}=await supabase.auth.admin.inviteUserByEmail(ownerEmail,{data:{full_name:name}});if(error)throw error;owner=data.user}}
  if(!owner)throw httpError('No se pudo crear o localizar el propietario.',500)
  let slug=slugify(name)||'empresa'
  for(let i=0;i<5;i++){const candidate=i?`${slug}-${Date.now().toString().slice(-5)}-${i}`:slug;const {data:existing,error}=await supabase.from('companies').select('id').eq('slug',candidate).maybeSingle();if(error)throw error;if(!existing){slug=candidate;break}}
@@ -61,8 +63,9 @@ export async function createSaasCompany({request,supabase}){
   const {error:memberError}=await supabase.from('company_members').insert({company_id:company.id,user_id:owner.id,role:'owner'});if(memberError)throw memberError
   const status=trialDays?'trial':'active'
   const {error:subscriptionError}=await supabase.from('saas_company_subscriptions').insert({company_id:company.id,plan_id:planId,vertical_id:verticalId,status,trial_ends_at:trialEnd,current_period_start:trialDays?null:now.toISOString(),current_period_end:trialDays?null:new Date(now.getTime()+30*86400000).toISOString(),notes:`Creada desde Panel Maestro por ${actor.email}${demoMode?' · ENTORNO DEMO':''}`});if(subscriptionError)throw subscriptionError
-  if(demoMode)await seedAgencyDemo({supabase,companyId:company.id,createdBy:owner.id})
-  return{ok:true,company,demoSeeded:demoMode}
+  const agencyDemoSeeded=demoMode&&selectedVertical.code==='ADVERTISING'
+  if(agencyDemoSeeded)await seedAgencyDemo({supabase,companyId:company.id,createdBy:owner.id})
+  return{ok:true,company,demoSeeded:agencyDemoSeeded}
  }catch(error){await supabase.from('companies').delete().eq('id',company.id);throw error}
 }
 
