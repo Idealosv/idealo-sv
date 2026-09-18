@@ -34,6 +34,7 @@ const SaasCustomerAccountHost = lazy(() => import('./SaasCustomerAccountHost.jsx
 const AgencyDemoGuard = lazy(() => import('./AgencyDemoGuard.jsx'))
 const PurchaseTaxAssistant = lazy(() => import('./PurchaseTaxAssistant.jsx'))
 const ModuleRuntime = lazy(() => import('./ModuleRuntime.jsx'))
+const EggWholesaleAppHost = lazy(() => import('./EggWholesaleAppHost.jsx'))
 
 const Safe = ({ label, children }) => (
   <RuntimeBoundary label={label}>
@@ -83,6 +84,7 @@ export default function DeferredRuntimeHosts() {
   const isBilling = target === 'billing' || ['Facturación', 'Cuentas por cobrar'].includes(moduleName)
   const isMasterRoute = pathname === '/master' || pathname.startsWith('/master/')
   const isAccountRoute = pathname === '/cuenta' || pathname === '/mi-cuenta'
+  const isEggWholesaleRoute = pathname === '/eggs' || pathname.startsWith('/eggs/')
 
   return <>
     <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge /></Safe>
@@ -134,5 +136,6 @@ export default function DeferredRuntimeHosts() {
       <Safe label="Control comercial SaaS"><SaasCommercialControlHost /></Safe>
     </>}
     {isAccountRoute && <Safe label="Cuenta SaaS"><SaasCustomerAccountHost /></Safe>}
+    {isEggWholesaleRoute && <Safe label="IDEALO Eggs"><EggWholesaleAppHost /></Safe>}
   </>
 }
