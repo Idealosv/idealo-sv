@@ -19,6 +19,7 @@ export default function EggDtePanel({companyId}){
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [companyDemo,setCompanyDemo]=useState(false)
+ const [dteHealth,setDteHealth]=useState(null)
 
  const load=useCallback(async()=>{
   if(!companyId)return
@@ -64,6 +65,45 @@ export default function EggDtePanel({companyId}){
    setNotice('Datos fiscales guardados para facturación DTE.')
    await load();setSaving(false)
   })
+ }
+
+ const apiRequest=async(path,options={})=>{
+  const {data:{session}}=await supabase.auth.getSession()
+  if(!session?.access_token)throw new Error('La sesión expiró. Iniciá sesión nuevamente.')
+  const response=await fetch(apiUrl+path,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,...options.headers}})
+  const body=await response.json().catch(()=>({}))
+  if(!response.ok)throw new Error(body.message||'No se pudo completar la operación DTE.')
+  return body
+ }
+
+ const checkDte=async()=>{
+  setSaving(true);setError('');setNotice('')
+  try{
+   const body=await apiRequest('/api/dte/status?companyId='+encodeURIComponent(companyId))
+   setDteHealth(body)
+   setNotice('Configuración DTE verificada.')
+  }catch(e){setError(errorText(e))}
+  finally{setSaving(false)}
+ }
+
+ const signTest=async documentId=>{
+  setSaving(true);setError('');setNotice('')
+  try{
+   const body=await apiRequest('/api/dte/sign-test',{method:'POST',body:JSON.stringify({documentId})})
+   setNotice('DTE firmado en ambiente TEST: '+(body.control_number||documentId)+'.')
+   await load()
+  }catch(e){setError(errorText(e))}
+  finally{setSaving(false)}
+ }
+
+ const transmitTest=async documentId=>{
+  setSaving(true);setError('');setNotice('')
+  try{
+   const body=await apiRequest('/api/dte/transmit-test',{method:'POST',body:JSON.stringify({documentId})})
+   setNotice(body.status==='PROCESSED'?'Hacienda TEST procesó el DTE correctamente.':'Respuesta de Hacienda TEST recibida.')
+   await load()
+  }catch(e){setError(errorText(e))}
+  finally{setSaving(false)}
  }
 
  const createDte=async e=>{
@@ -139,10 +179,19 @@ export default function EggDtePanel({companyId}){
   </section>
 
   <section className="eggs-card">
+   <div className="eggs-section-head"><div><small>PRUEBA MH</small><h2>Estado de integración DTE</h2><p>Verificá configuración, firmá y transmití únicamente en ambiente TEST desde este entorno.</p></div><button type="button" onClick={checkDte} disabled={saving}>Verificar DTE</button></div>
+   {dteHealth&&<div className="eggs-dte-health">
+    <div><span>Configuración</span><b>{dteHealth.configurationReady===false?'Pendiente':'Disponible'}</b></div>
+    <div><span>Ambiente</span><b>{dteHealth.environment||dteHealth.mode||'TEST'}</b></div>
+    <div><span>Producción</span><b>{companyDemo?'Bloqueada por DEMO':'Protegida'}</b></div>
+   </div>}
+  </section>
+
+  <section className="eggs-card">
    <div className="eggs-section-head"><div><small>TRAZABILIDAD FISCAL</small><h2>DTE asociados a ventas de huevos</h2></div></div>
-   <div className="eggs-table-wrap"><table><thead><tr><th>Fecha</th><th>Pedido</th><th>Cliente</th><th>DTE</th><th>Control</th><th>Ambiente</th><th>Estado</th></tr></thead><tbody>
-    {links.map(link=><tr key={link.id}><td>{date(link.created_at)}</td><td>{link.egg_orders?.order_number||'—'}</td><td>{link.egg_orders?.egg_customers?.name||'—'}</td><td>DTE-{link.dte_type}</td><td><b>{link.dte_documents?.control_number||'—'}</b></td><td>{link.environment==='production'?'Producción':'Pruebas'}</td><td><span className={`eggs-pill ${link.dte_documents?.status==='PROCESSED'?'good':link.dte_documents?.status==='REJECTED'?'danger':'warn'}`}>{link.dte_documents?.status||'DRAFT'}</span></td></tr>)}
-    {!links.length&&<tr><td colSpan="7"><div className="eggs-empty">Todavía no hay DTE creados desde IDEALO Eggs.</div></td></tr>}
+   <div className="eggs-table-wrap"><table><thead><tr><th>Fecha</th><th>Pedido</th><th>Cliente</th><th>DTE</th><th>Control</th><th>Ambiente</th><th>Estado</th><th>Prueba MH</th></tr></thead><tbody>
+    {links.map(link=>{const doc=link.dte_documents||{};return <tr key={link.id}><td>{date(link.created_at)}</td><td>{link.egg_orders?.order_number||'—'}</td><td>{link.egg_orders?.egg_customers?.name||'—'}</td><td>DTE-{link.dte_type}</td><td><b>{doc.control_number||'—'}</b></td><td>{link.environment==='production'?'Producción':'Pruebas'}</td><td><span className={`eggs-pill ${doc.status==='PROCESSED'?'good':doc.status==='REJECTED'?'danger':'warn'}`}>{doc.status||'DRAFT'}</span></td><td><div className="eggs-dte-actions">{link.environment==='test'&&doc.status==='DRAFT'&&<button disabled={saving} onClick={()=>signTest(doc.id)}>Firmar TEST</button>}{link.environment==='test'&&doc.status==='SIGNED'&&<button disabled={saving} onClick={()=>transmitTest(doc.id)}>Enviar a MH TEST</button>}{doc.status==='PROCESSED'&&<span className="eggs-pill good">Procesado</span>}</div></td></tr>})}
+    {!links.length&&<tr><td colSpan="8"><div className="eggs-empty">Todavía no hay DTE creados desde IDEALO Eggs.</div></td></tr>}
    </tbody></table></div>
   </section>
  </div>

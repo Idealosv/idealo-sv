@@ -4,18 +4,30 @@ import './idealo-eggs.css'
 import EggRoutesPanel from './EggRoutesPanel.jsx'
 import EggMachinePanel from './EggMachinePanel.jsx'
 import EggDtePanel from './EggDtePanel.jsx'
+import EggPricingPanel from './EggPricingPanel.jsx'
+import EggReturnsPanel from './EggReturnsPanel.jsx'
+import EggReportsPanel from './EggReportsPanel.jsx'
+import EggUsersPanel from './EggUsersPanel.jsx'
+import EggMobileDeliveryPanel from './EggMobileDeliveryPanel.jsx'
+import EggDispatchPanel from './EggDispatchPanel.jsx'
 
 const TABS=[
- ['Inicio','Resumen'],
- ['Proveedores','Granjas y proveedores'],
- ['Lotes','Recepción y clasificación'],
- ['Inventario','Existencias'],
- ['Clientes','Clientes mayoristas'],
- ['Ventas','Pedidos y ventas'],
- ['Caja','Cobros y crédito'],
- ['Rutas','Despachos y entregas'],
- ['Máquina','Pesaje y clasificación'],
- ['DTE','Facturación electrónica'],
+ ['Inicio','Resumen','EGG_OPERATIONS'],
+ ['Proveedores','Granjas y proveedores','EGG_OPERATIONS'],
+ ['Lotes','Recepción y clasificación','EGG_OPERATIONS'],
+ ['Inventario','Existencias','EGG_OPERATIONS'],
+ ['Clientes','Clientes mayoristas','EGG_OPERATIONS'],
+ ['Ventas','Pedidos y ventas','EGG_OPERATIONS'],
+ ['Caja','Cobros y crédito','EGG_OPERATIONS'],
+ ['Precios','Mayorista y rentabilidad','EGG_PRICING'],
+ ['Devoluciones','Pérdidas y retornos','EGG_RETURNS'],
+ ['Reportes','Indicadores gerenciales','EGG_REPORTS'],
+ ['Rutas','Planificación de reparto','EGG_LOGISTICS'],
+ ['Despacho','Carga y retorno','EGG_LOGISTICS'],
+ ['Máquina','Pesaje y clasificación','EGG_MACHINE'],
+ ['Móvil','Reparto desde teléfono','EGG_MOBILE'],
+ ['DTE','Facturación electrónica','DTE'],
+ ['Usuarios','Roles y permisos','EGG_USERS'],
 ]
 
 const today=()=>new Date().toISOString().slice(0,10)
@@ -31,6 +43,7 @@ function Metric({label,value,hint}){return <article className="eggs-metric"><spa
 
 export default function EggWholesaleAppHost(){
  const enabled=window.location.pathname==='/eggs'||window.location.pathname.startsWith('/eggs/')
+ const mobileOnly=window.location.pathname.startsWith('/eggs/mobile')
  const queryCompany=enabled?new URLSearchParams(window.location.search).get('company'):''
  const [companyId,setCompanyId]=useState(queryCompany||window.__IDEALO_ACTIVE_COMPANY__?.id||'')
  const [companyName,setCompanyName]=useState(window.__IDEALO_ACTIVE_COMPANY__?.name||'Venta de Huevos')
@@ -53,6 +66,9 @@ export default function EggWholesaleAppHost(){
  const [customerForm,setCustomerForm]=useState({name:'',contact_name:'',phone:'',email:'',address:'',credit_limit:'0',credit_days:'0',notes:''})
  const [orderForm,setOrderForm]=useState({customer_id:'',grade_id:'',presentation:'Bandeja',quantity_units:'',eggs_per_unit:'30',unit_price:'',payment_type:'CREDIT',notes:''})
  const [paymentForm,setPaymentForm]=useState({order_id:'',amount:'',method:'CASH',reference:''})
+ const [entitlements,setEntitlements]=useState(null)
+ const [eggRole,setEggRole]=useState('')
+ const [suggestedPrice,setSuggestedPrice]=useState(null)
 
  useEffect(()=>{
   if(!enabled)return
@@ -94,6 +110,56 @@ export default function EggWholesaleAppHost(){
  },[enabled,companyId])
 
  useEffect(()=>{load()},[load])
+
+ useEffect(()=>{
+  if(!enabled||!companyId||!supabase)return
+  let cancelled=false
+  const run=async()=>{
+   try{
+    const {data:{session}}=await supabase.auth.getSession()
+    if(session?.access_token){
+     const apiUrl=import.meta.env.VITE_API_URL||'http://localhost:4000'
+     const response=await fetch(apiUrl+'/api/saas/access?company_id='+encodeURIComponent(companyId),{headers:{Authorization:'Bearer '+session.access_token}})
+     const body=await response.json().catch(()=>null)
+     if(response.ok&&!cancelled)setEntitlements(body)
+    }
+    const {data:role}=await supabase.rpc('egg_effective_role',{p_company_id:companyId})
+    if(!cancelled)setEggRole(role||'')
+   }catch{}
+  }
+  run()
+  return()=>{cancelled=true}
+ },[enabled,companyId])
+
+ const hasModule=code=>!entitlements||entitlements.legacy||entitlements.modules?.includes(code)
+ const canSeeTab=name=>{
+  if(!eggRole||['OWNER','MANAGER'].includes(eggRole))return true
+  const map={
+   SALES:['Inicio','Clientes','Ventas','Reportes'],
+   WAREHOUSE:['Inicio','Proveedores','Lotes','Inventario','Devoluciones','Reportes','Rutas','Despacho'],
+   CLASSIFIER:['Inicio','Lotes','Inventario','Máquina','Reportes'],
+   DRIVER:['Inicio','Móvil'],
+   CASHIER:['Inicio','Caja','Reportes'],
+   VIEWER:['Inicio','Inventario','Reportes']
+  }
+  return (map[eggRole]||['Inicio']).includes(name)
+ }
+ const visibleTabs=TABS.filter(([name,,module])=>hasModule(module)&&canSeeTab(name))
+
+ useEffect(()=>{
+  if(!companyId||!orderForm.customer_id||!orderForm.grade_id||!orderForm.quantity_units||!orderForm.eggs_per_unit)return
+  let cancelled=false
+  supabase.rpc('egg_resolve_price',{
+   p_company_id:companyId,p_customer_id:orderForm.customer_id,p_grade_id:orderForm.grade_id,
+   p_presentation:orderForm.presentation,p_quantity_units:Number(orderForm.quantity_units),p_eggs_per_unit:Number(orderForm.eggs_per_unit)
+  }).then(({data,error})=>{
+   if(cancelled||error)return
+   const value=Number(data||0)
+   setSuggestedPrice(value>0?value:null)
+   if(value>0)setOrderForm(current=>({...current,unit_price:String(value)}))
+  })
+  return()=>{cancelled=true}
+ },[companyId,orderForm.customer_id,orderForm.grade_id,orderForm.presentation,orderForm.quantity_units,orderForm.eggs_per_unit])
 
  useEffect(()=>{
   if(!batchForm.supplier_id&&suppliers[0])setBatchForm(current=>({...current,supplier_id:suppliers[0].id}))
@@ -167,6 +233,9 @@ export default function EggWholesaleAppHost(){
  const lowStock=useMemo(()=>inventory.filter(row=>Number(row.stock_eggs||0)<=0),[inventory])
 
  if(!enabled)return null
+ if(mobileOnly&&entitlements&&!hasModule('EGG_MOBILE'))return <div className="egg-mobile-app"><div className="eggs-alert error">El plan actual no incluye Reparto Móvil.</div></div>
+ if(mobileOnly&&eggRole&&!['OWNER','MANAGER','DRIVER'].includes(eggRole))return <div className="egg-mobile-app"><div className="eggs-alert error">Tu rol no permite utilizar la app de reparto.</div></div>
+ if(mobileOnly)return <EggMobileDeliveryPanel companyId={companyId} onExit={()=>{window.location.href='/eggs?company='+encodeURIComponent(companyId)}}/>
 
  const batchProgress=batch=>{
   const rows=classifications.filter(c=>c.batch_id===batch.id)
@@ -177,7 +246,7 @@ export default function EggWholesaleAppHost(){
  return <div className="eggs-app">
   <header className="eggs-header">
    <div>
-    <span className="eggs-brand">IDEALO SV · IDEALO EGGS</span>
+    <span className="eggs-brand">IDEALO SV · IDEALO EGGS{entitlements?.plan?.name?' · '+entitlements.plan.name:''}{eggRole?' · '+eggRole:''}</span>
     <h1>{companyName}</h1>
     <p>Control mayorista de lotes, clasificación, inventario, pedidos, crédito y cobros.</p>
    </div>
@@ -190,7 +259,7 @@ export default function EggWholesaleAppHost(){
   </header>
 
   <nav className="eggs-tabs">
-   {TABS.map(([name,description])=><button key={name} className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{description}</small></button>)}
+   {visibleTabs.map(([name,description])=><button key={name} className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{description}</small></button>)}
   </nav>
 
   {error&&<div className="eggs-alert error">{error}</div>}
@@ -312,10 +381,10 @@ export default function EggWholesaleAppHost(){
     <section className="eggs-two-column">
      <form className="eggs-card eggs-form" onSubmit={createOrder}>
       <div className="eggs-section-head"><div><small>NUEVO PEDIDO</small><h2>Registrar venta</h2></div></div>
-      <Field label="Cliente"><select required value={orderForm.customer_id} onChange={e=>setOrderForm({...orderForm,customer_id:e.target.value})}><option value="">Seleccionar</option>{customers.filter(c=>c.active).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-      <Field label="Clasificación"><select required value={orderForm.grade_id} onChange={e=>setOrderForm({...orderForm,grade_id:e.target.value})}><option value="">Seleccionar</option>{grades.map(g=>{const stock=inventory.find(i=>i.grade_id===g.id);return <option key={g.id} value={g.id}>{g.name} · {number(stock?.stock_eggs||0)} disponibles</option>})}</select></Field>
-      <div className="eggs-form-grid"><Field label="Presentación"><select value={orderForm.presentation} onChange={e=>{const eggs=e.target.value==='Docena'?12:e.target.value==='Bandeja'?30:e.target.value==='Caja'?360:1;setOrderForm({...orderForm,presentation:e.target.value,eggs_per_unit:String(eggs)})}}><option>Bandeja</option><option>Docena</option><option>Caja</option><option>Unidad</option></select></Field><Field label="Huevos por presentación"><input type="number" min="1" required value={orderForm.eggs_per_unit} onChange={e=>setOrderForm({...orderForm,eggs_per_unit:e.target.value})}/></Field></div>
-      <div className="eggs-form-grid"><Field label="Cantidad"><input type="number" min="0.01" step="0.01" required value={orderForm.quantity_units} onChange={e=>setOrderForm({...orderForm,quantity_units:e.target.value})}/></Field><Field label="Precio por presentación"><input type="number" min="0" step="0.01" required value={orderForm.unit_price} onChange={e=>setOrderForm({...orderForm,unit_price:e.target.value})}/></Field></div>
+      <Field label="Cliente"><select required value={orderForm.customer_id} onChange={e=>setOrderForm({...orderForm,customer_id:e.target.value,unit_price:''})}><option value="">Seleccionar</option>{customers.filter(c=>c.active).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+      <Field label="Clasificación"><select required value={orderForm.grade_id} onChange={e=>setOrderForm({...orderForm,grade_id:e.target.value,unit_price:''})}><option value="">Seleccionar</option>{grades.map(g=>{const stock=inventory.find(i=>i.grade_id===g.id);return <option key={g.id} value={g.id}>{g.name} · {number(stock?.stock_eggs||0)} disponibles</option>})}</select></Field>
+      <div className="eggs-form-grid"><Field label="Presentación"><select value={orderForm.presentation} onChange={e=>{const eggs=e.target.value==='Docena'?12:e.target.value==='Bandeja'?30:e.target.value==='Caja'?360:1;setOrderForm({...orderForm,presentation:e.target.value,eggs_per_unit:String(eggs),unit_price:''})}}><option>Bandeja</option><option>Docena</option><option>Caja</option><option>Unidad</option></select></Field><Field label="Huevos por presentación"><input type="number" min="1" required value={orderForm.eggs_per_unit} onChange={e=>setOrderForm({...orderForm,eggs_per_unit:e.target.value})}/></Field></div>
+      <div className="eggs-form-grid"><Field label="Cantidad"><input type="number" min="0.01" step="0.01" required value={orderForm.quantity_units} onChange={e=>setOrderForm({...orderForm,quantity_units:e.target.value,unit_price:''})}/></Field><Field label="Precio por presentación" hint={suggestedPrice?'Precio mayorista aplicado automáticamente: '+money(suggestedPrice):'Podés ingresarlo manualmente si no existe una regla.'}><input type="number" min="0" step="0.01" required value={orderForm.unit_price} onChange={e=>setOrderForm({...orderForm,unit_price:e.target.value})}/></Field></div>
       <Field label="Condición de pago"><select value={orderForm.payment_type} onChange={e=>setOrderForm({...orderForm,payment_type:e.target.value})}><option value="CASH">Contado</option><option value="CREDIT">Crédito</option></select></Field>
       <Field label="Notas"><textarea value={orderForm.notes} onChange={e=>setOrderForm({...orderForm,notes:e.target.value})}/></Field>
       {orderForm.quantity_units&&orderForm.unit_price&&<div className="eggs-order-preview"><span>Total estimado</span><strong>{money(Number(orderForm.quantity_units)*Number(orderForm.unit_price))}</strong><small>{number(Number(orderForm.quantity_units)*Number(orderForm.eggs_per_unit||0))} huevos</small></div>}
@@ -361,9 +430,15 @@ export default function EggWholesaleAppHost(){
     </section>
    </section>}
 
-   {tab==='Rutas'&&<EggRoutesPanel companyId={companyId}/>}
-   {tab==='Máquina'&&<EggMachinePanel companyId={companyId}/>}
-   {tab==='DTE'&&<EggDtePanel companyId={companyId}/>}
+   {tab==='Precios'&&hasModule('EGG_PRICING')&&<EggPricingPanel companyId={companyId}/>}
+   {tab==='Devoluciones'&&hasModule('EGG_RETURNS')&&<EggReturnsPanel companyId={companyId}/>}
+   {tab==='Reportes'&&hasModule('EGG_REPORTS')&&<EggReportsPanel companyId={companyId}/>}
+   {tab==='Rutas'&&hasModule('EGG_LOGISTICS')&&<EggRoutesPanel companyId={companyId}/>}
+   {tab==='Despacho'&&hasModule('EGG_LOGISTICS')&&<EggDispatchPanel companyId={companyId}/>}
+   {tab==='Máquina'&&hasModule('EGG_MACHINE')&&<EggMachinePanel companyId={companyId}/>}
+   {tab==='Móvil'&&hasModule('EGG_MOBILE')&&<EggMobileDeliveryPanel companyId={companyId} onExit={()=>setTab('Inicio')}/>}
+   {tab==='DTE'&&hasModule('DTE')&&<EggDtePanel companyId={companyId}/>}
+   {tab==='Usuarios'&&hasModule('EGG_USERS')&&<EggUsersPanel companyId={companyId}/>}
   </main>
  </div>
 }
