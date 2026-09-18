@@ -135,7 +135,7 @@ export default function EggWholesaleAppHost(){
  const canSeeTab=name=>{
   if(!eggRole||['OWNER','MANAGER'].includes(eggRole))return true
   const map={
-   SALES:['Inicio','Clientes','Ventas','Reportes','Precios'],
+   SALES:['Inicio','Clientes','Ventas','Reportes'],
    WAREHOUSE:['Inicio','Proveedores','Lotes','Inventario','Devoluciones','Reportes','Rutas','Despacho'],
    CLASSIFIER:['Inicio','Lotes','Inventario','Máquina','Reportes'],
    DRIVER:['Inicio','Móvil'],
