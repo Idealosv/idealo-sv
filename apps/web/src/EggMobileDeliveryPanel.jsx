@@ -31,7 +31,7 @@ export default function EggMobileDeliveryPanel({companyId,onExit}){
 
  const start=async()=>{
   setSaving(true);setError('');setNotice('')
-  const {error}=await supabase.rpc('egg_start_route',{p_route_id:routeId})
+  const {error}=await supabase.rpc('egg_start_route_mobile',{p_route_id:routeId})
   if(error)setError(errorText(error));else{setNotice('Ruta iniciada.');await load()}
   setSaving(false)
  }
@@ -39,7 +39,7 @@ export default function EggMobileDeliveryPanel({companyId,onExit}){
  const markFailed=async stop=>{
   const note=window.prompt('Motivo de entrega fallida:','Cliente ausente')||'Entrega fallida'
   setSaving(true);setError('');setNotice('')
-  const {error}=await supabase.rpc('egg_mark_route_stop_failed',{p_stop_id:stop.id,p_notes:note})
+  const {error}=await supabase.rpc('egg_mark_route_stop_failed_mobile',{p_stop_id:stop.id,p_notes:note})
   if(error)setError(errorText(error));else{setNotice('Entrega marcada como fallida.');await load()}
   setSaving(false)
  }
@@ -47,7 +47,7 @@ export default function EggMobileDeliveryPanel({companyId,onExit}){
  const confirm=async e=>{
   e.preventDefault();if(!delivery)return
   setSaving(true);setError('');setNotice('')
-  const {error}=await supabase.rpc('egg_deliver_route_stop',{
+  const {error}=await supabase.rpc('egg_deliver_route_stop_mobile',{
    p_stop_id:delivery.id,p_received_by:delivery.received_by,p_collected_amount:Number(delivery.collected_amount||0),
    p_collection_method:delivery.collection_method,p_collection_reference:delivery.collection_reference,p_notes:delivery.notes
   })
