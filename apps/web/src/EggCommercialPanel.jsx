@@ -3,9 +3,9 @@ import { supabase } from './lib/supabase.js'
 
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0))
 const plans=[
- {name:'Básico',activation:150,monthly:30,items:['Operación mayorista','Precios y rentabilidad','Devoluciones y pérdidas','Reportes','Usuarios y roles']},
- {name:'Profesional',activation:250,monthly:60,items:['Todo Básico','Rutas y logística','Facturación Electrónica DTE','Gestión de crédito y cobros']},
- {name:'Empresarial',activation:350,monthly:90,items:['Todo Profesional','Clasificadora/pesadora','Integración UV','Reparto móvil Android/iPhone','Suite completa']}
+ {name:'Básico',activation:150,monthly:30,items:['Hasta 3 usuarios','Operación mayorista','Precios y rentabilidad','Devoluciones y pérdidas','Reportes','Usuarios y roles']},
+ {name:'Profesional',activation:250,monthly:60,items:['Hasta 5 usuarios','Todo Básico','Rutas y logística','Facturación Electrónica DTE','Asistente IA','Gestión de crédito y cobros']},
+ {name:'Empresarial',activation:350,monthly:90,items:['Hasta 50 usuarios','Todo Profesional','Clasificadora/pesadora','Integración UV','Asistente IA','Reparto móvil Android/iPhone','Suite completa']}
 ]
 
 export default function EggCommercialPanel({companyId}){
