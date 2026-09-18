@@ -92,3 +92,7 @@
 @media(max-width:1180px){.eggs-exec-grid{grid-template-columns:repeat(3,1fr)}.eggs-exec-panels{grid-template-columns:1fr 1fr}.eggs-doc-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.eggs-ai-layout{grid-template-columns:1fr}.eggs-ai-side{position:relative;top:auto}.eggs-exec-panels,.eggs-plan-grid,.eggs-readiness-grid{grid-template-columns:1fr}.eggs-audit-result{grid-template-columns:1fr}.eggs-demo-summary{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:620px){.eggs-exec-head,.eggs-commercial-hero{flex-direction:column;align-items:flex-start}.eggs-commercial-score{text-align:left}.eggs-exec-grid{grid-template-columns:repeat(2,1fr)}.eggs-exec-panels,.eggs-doc-grid{grid-template-columns:1fr}.eggs-ai-input{grid-template-columns:1fr}.eggs-ai-input .eggs-primary{height:44px}.eggs-ai-message>div{max-width:94%}}
+
+.eggs-machine-diagnostic-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.eggs-machine-diagnostic-grid>div{padding:12px;border:1px solid #dde1e4;border-radius:10px;background:#fafafa}.eggs-machine-diagnostic-grid span{display:block;color:#777d83;font-size:8px;font-weight:900;text-transform:uppercase}.eggs-machine-diagnostic-grid b{display:block;margin-top:6px;font-size:13px}.eggs-machine-diagnostic-grid small{display:block;margin-top:4px;color:#7c8288;font-size:8px;line-height:1.35}
+@media(max-width:820px){.eggs-machine-diagnostic-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.eggs-machine-diagnostic-grid{grid-template-columns:1fr}}
