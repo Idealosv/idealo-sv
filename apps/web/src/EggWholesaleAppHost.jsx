@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import './idealo-eggs.css'
+import EggRoutesPanel from './EggRoutesPanel.jsx'
+import EggMachinePanel from './EggMachinePanel.jsx'
+import EggDtePanel from './EggDtePanel.jsx'
 
 const TABS=[
  ['Inicio','Resumen'],
@@ -10,6 +13,9 @@ const TABS=[
  ['Clientes','Clientes mayoristas'],
  ['Ventas','Pedidos y ventas'],
  ['Caja','Cobros y crédito'],
+ ['Rutas','Despachos y entregas'],
+ ['Máquina','Pesaje y clasificación'],
+ ['DTE','Facturación electrónica'],
 ]
 
 const today=()=>new Date().toISOString().slice(0,10)
@@ -354,6 +360,10 @@ export default function EggWholesaleAppHost(){
      </tbody></table></div>
     </section>
    </section>}
+
+   {tab==='Rutas'&&<EggRoutesPanel companyId={companyId}/>}
+   {tab==='Máquina'&&<EggMachinePanel companyId={companyId}/>}
+   {tab==='DTE'&&<EggDtePanel companyId={companyId}/>}
   </main>
  </div>
 }
