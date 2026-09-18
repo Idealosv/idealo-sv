@@ -47,7 +47,11 @@ export default function EggCommercialPanel({companyId}){
   if(!window.confirm('Esto cargará proveedores, clientes, lotes, inventario, precios, ventas y una ruta ficticia para demostración. ¿Continuar?'))return
   setLoading(true);setError('');setNotice('')
   const {data,error}=await supabase.rpc('egg_seed_commercial_demo',{p_company_id:companyId})
-  if(error)setError(String(error.message||error));else{setNotice(data?.message||'Demo profesional cargada.');await load();await runAudit()}
+  if(error)setError(String(error.message||error));else{
+   const {error:priceError}=await supabase.rpc('egg_complete_demo_prices',{p_company_id:companyId})
+   if(priceError)setError(String(priceError.message||priceError));else setNotice(data?.message||'Demo profesional cargada.')
+   await load();await runAudit()
+  }
   setLoading(false)
  }
 
