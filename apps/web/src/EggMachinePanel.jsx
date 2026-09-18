@@ -86,7 +86,7 @@ export default function EggMachinePanel({companyId}){
  const importReadings=e=>{e.preventDefault();if(!batchId) return setError('Seleccioná un lote abierto.')
   if(!entries.length)return setError('No hay lecturas válidas para importar.')
   return act(async()=>{
-   const {data,error}=await supabase.rpc('egg_import_weight_events',{p_company_id:companyId,p_batch_id:batchId,p_device_id:deviceId||null,p_entries:entries,p_source:source})
+   const {data,error}=await supabase.rpc('egg_import_weight_events_secure',{p_company_id:companyId,p_batch_id:batchId,p_device_id:deviceId||null,p_entries:entries,p_source:source})
    if(error)throw error
    setRaw('')
    setNotice(`Importación completada: ${data?.accepted||0} buenos, ${data?.rejected||0} rechazados.`)
