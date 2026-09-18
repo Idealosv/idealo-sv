@@ -103,7 +103,7 @@ export default function EggUsersPanel({companyId}){
     <div><b>Bodega</b><span>Proveedores, recepción, inventario, despachos y devoluciones.</span></div>
     <div><b>Clasificador</b><span>Clasificación, inventario y máquina.</span></div>
     <div><b>Motorista</b><span>Ruta móvil, entregas y cobros.</span></div>
-    <div><b>Caja</b><span>Cobros y preparación DTE.</span></div>
+    <div><b>Caja</b><span>Cobros y control de cartera.</span></div>
     <div><b>Solo lectura</b><span>Consulta y reportes sin modificaciones.</span></div>
    </div>
   </section>
