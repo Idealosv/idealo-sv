@@ -15,7 +15,9 @@ const checks=[
  ['src/EggUsersPanel.jsx',['MATRIZ DE ACCESO','Motorista','Clasificador']],
  ['src/EggDocumentsPanel.jsx',['Comprobante de pedido','Nota de entrega','Manifiesto de carga','Estado de cuenta','Liquidación de motorista']],
  ['src/EggAiPanel.jsx',['IDEALO EGGS INTELLIGENCE','Solo lectura']],
- ['src/EggCommercialPanel.jsx',['AUDITORÍA ALTA','DEMO PROFESIONAL','PLANES DE VENTA']]
+ ['src/EggCommercialPanel.jsx',['AUDITORÍA ALTA','DEMO PROFESIONAL','PLANES DE VENTA']],
+ ['src/EggSuppliersPanel.jsx',['Proveedores y granjas','Costo promedio','Recibir nuevo lote']],
+ ['src/EggLotsPanel.jsx',['RECEPCIÓN Y TRAZABILIDAD','PASO 1 · RECEPCIÓN','PASO 2 · CLASIFICACIÓN','Por clasificar','Dañados / rechazo']]
 ]
 const failures=[]
 for(const [rel,needles] of checks){
