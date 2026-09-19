@@ -17,7 +17,8 @@ const checks=[
  ['src/EggAiPanel.jsx',['IDEALO EGGS INTELLIGENCE','Solo lectura']],
  ['src/EggCommercialPanel.jsx',['AUDITORÍA ALTA','DEMO PROFESIONAL','PLANES DE VENTA']],
  ['src/EggSuppliersPanel.jsx',['Proveedores y granjas','Costo promedio','Recibir nuevo lote']],
- ['src/EggLotsPanel.jsx',['RECEPCIÓN Y TRAZABILIDAD','PASO 1 · RECEPCIÓN','PASO 2 · CLASIFICACIÓN','Por clasificar','Dañados / rechazo']]
+ ['src/EggLotsPanel.jsx',['RECEPCIÓN Y TRAZABILIDAD','PASO 1 · RECEPCIÓN','PASO 2 · CLASIFICACIÓN','Por clasificar','Dañados / rechazo']],
+ ['src/EggInventoryPanel.jsx',['INVENTARIO EN TIEMPO REAL','Valor del inventario','ORIGEN DEL INVENTARIO','KARDEX','Movimientos de inventario']]
 ]
 const failures=[]
 for(const [rel,needles] of checks){

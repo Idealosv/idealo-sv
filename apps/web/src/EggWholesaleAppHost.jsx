@@ -16,6 +16,7 @@ import EggAiPanel from './EggAiPanel.jsx'
 import EggCommercialPanel from './EggCommercialPanel.jsx'
 import EggSuppliersPanel from './EggSuppliersPanel.jsx'
 import EggLotsPanel from './EggLotsPanel.jsx'
+import EggInventoryPanel from './EggInventoryPanel.jsx'
 
 const TABS=[
  ['Inicio','Resumen ejecutivo','EGG_OPERATIONS'],
@@ -367,14 +368,8 @@ export default function EggWholesaleAppHost(){
     onGoMachine={()=>setTab('Máquina')}
    />}
 
-   {tab==='Inventario'&&<section className="eggs-card">
-    <div className="eggs-section-head"><div><small>INVENTARIO EN TIEMPO REAL</small><h2>Existencia por clasificación</h2><p>Las entradas se generan al clasificar lotes y las salidas al confirmar ventas.</p></div></div>
-    <div className="eggs-inventory-grid">
-     {grades.map(grade=>{const row=inventory.find(i=>i.grade_id===grade.id);const eggs=Number(row?.stock_eggs||0);return <article key={grade.id}><header><div><small>{grade.code}</small><h3>{grade.name}</h3></div><Pill tone={eggs>0?'good':'danger'}>{eggs>0?'Disponible':'Sin stock'}</Pill></header><strong>{number(eggs)}</strong><span>huevos</span><div><b>{number(Math.floor(eggs/30))}</b><small>bandejas de 30</small></div><footer><span>Peso</span><b>{grade.min_weight_g||'—'}–{grade.max_weight_g||'+'} g</b></footer></article>})}
-    </div>
-    {lowStock.length>0&&<div className="eggs-note">Hay {lowStock.length} clasificación{lowStock.length===1?'':'es'} sin existencia disponible.</div>}
-   </section>}
-
+   {tab==='Inventario'&&<EggInventoryPanel companyId={companyId} grades={grades}/>}
+   
    {tab==='Clientes'&&<section className="eggs-two-column">
     <form className="eggs-card eggs-form" onSubmit={createCustomer}>
      <div className="eggs-section-head"><div><small>NUEVO CLIENTE</small><h2>Cliente mayorista</h2></div></div>
