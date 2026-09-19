@@ -453,7 +453,7 @@ export default function EggWholesaleAppHost(){
    {tab==='Reportes'&&hasModule('EGG_REPORTS')&&<EggReportsPanel companyId={companyId}/>}
    {tab==='Rutas'&&hasModule('EGG_LOGISTICS')&&<EggRoutesPanel companyId={companyId}/>}
    {tab==='Despacho'&&hasModule('EGG_LOGISTICS')&&<EggDispatchPanel companyId={companyId}/>}
-   {tab==='Máquina'&&hasModule('EGG_MACHINE')&&<EggMachinePanel companyId={companyId}/>}
+   {tab==='Máquina'&&hasModule('EGG_MACHINE')&&<EggMachinePanel companyId={companyId} onGoLots={()=>setTab('Lotes')}/>}
    {tab==='Móvil'&&hasModule('EGG_MOBILE')&&<EggMobileDeliveryPanel companyId={companyId} onExit={()=>setTab('Inicio')}/>}
    {tab==='DTE'&&hasModule('DTE')&&<EggDtePanel companyId={companyId}/>}
    {tab==='Usuarios'&&hasModule('EGG_USERS')&&<EggUsersPanel companyId={companyId}/>}
