@@ -165,12 +165,6 @@ export default function EggWholesaleAppHost(){
  const visibleGroups=MODULE_GROUPS
   .map(group=>({...group,items:group.items.filter(name=>visibleTabNames.has(name))}))
   .filter(group=>group.items.length)
- const activeGroup=visibleGroups.find(group=>group.items.includes(tab))||visibleGroups[0]
- const activeGroupTabs=visibleTabs.filter(([name])=>activeGroup?.items.includes(name))
- const openGroup=group=>{
-  const first=group.items.find(name=>visibleTabNames.has(name))
-  if(first)setTab(first)
- }
 
  useEffect(()=>{
   if(!companyId||!orderForm.customer_id||!orderForm.grade_id||!orderForm.quantity_units||!orderForm.eggs_per_unit)return
@@ -284,27 +278,39 @@ export default function EggWholesaleAppHost(){
    </div>
   </header>
 
-  <nav className="eggs-module-nav" aria-label="Módulos IDEALO Eggs">
-   <div className="eggs-module-groups">
-    {visibleGroups.map(group=><button key={group.name} className={activeGroup?.name===group.name?'active':''} onClick={()=>openGroup(group)}>
-     <strong>{group.name}</strong><small>{group.description}</small>
-    </button>)}
-   </div>
-   <div className="eggs-module-tabs">
-    <span className="eggs-module-context">{activeGroup?.name}</span>
-    <div className="eggs-module-tabs-scroll">
-     {activeGroupTabs.map(([name,description])=><button key={name} className={tab===name?'active':''} onClick={()=>setTab(name)}>
-      <strong>{name}</strong><small>{description}</small>
-     </button>)}
+  <div className="eggs-layout">
+   <aside className="eggs-sidebar" aria-label="Módulos IDEALO Eggs">
+    <div className="eggs-sidebar-head">
+     <span>MÓDULOS</span>
+     <strong>IDEALO Eggs</strong>
+     <small>Todos los accesos visibles</small>
     </div>
-   </div>
-  </nav>
+    <div className="eggs-sidebar-scroll">
+     {visibleGroups.map(group=><section className="eggs-sidebar-group" key={group.name}>
+      <div className="eggs-sidebar-group-title">
+       <strong>{group.name}</strong>
+       <small>{group.description}</small>
+      </div>
+      <div className="eggs-sidebar-items">
+       {group.items.map(itemName=>{
+        const item=visibleTabs.find(([name])=>name===itemName)
+        const description=item?.[1]||''
+        return <button key={itemName} className={tab===itemName?'active':''} onClick={()=>setTab(itemName)}>
+         <span className="eggs-sidebar-dot" aria-hidden="true"></span>
+         <span><strong>{itemName}</strong><small>{description}</small></span>
+        </button>
+       })}
+      </div>
+     </section>)}
+    </div>
+   </aside>
 
-  {error&&<div className="eggs-alert error">{error}</div>}
-  {notice&&<div className="eggs-alert success">{notice}</div>}
-  {loading&&<div className="eggs-loading">Actualizando información…</div>}
+   <div className="eggs-workspace">
+    {error&&<div className="eggs-alert error">{error}</div>}
+    {notice&&<div className="eggs-alert success">{notice}</div>}
+    {loading&&<div className="eggs-loading">Actualizando información…</div>}
 
-  <main className="eggs-main">
+    <main className="eggs-main">
    {tab==='Inicio'&&<>
     <EggExecutiveDashboard companyId={companyId} onGo={setTab}/>
     <section className="eggs-metrics">
@@ -481,6 +487,8 @@ export default function EggWholesaleAppHost(){
    {tab==='Documentos'&&hasModule('EGG_OPERATIONS')&&<EggDocumentsPanel companyId={companyId}/>}
    {tab==='IA'&&hasModule('AI')&&<EggAiPanel companyId={companyId}/>}
    {tab==='Comercial'&&hasModule('EGG_REPORTS')&&['OWNER','MANAGER'].includes(eggRole)&&<EggCommercialPanel companyId={companyId}/>}
-  </main>
+    </main>
+   </div>
+  </div>
  </div>
 }
