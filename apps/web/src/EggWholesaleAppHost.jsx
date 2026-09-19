@@ -61,8 +61,9 @@ export default function EggWholesaleAppHost(){
  const enabled=window.location.pathname==='/eggs'||window.location.pathname.startsWith('/eggs/')
  const mobileOnly=window.location.pathname.startsWith('/eggs/mobile')
  const queryCompany=enabled?new URLSearchParams(window.location.search).get('company'):''
- const [companyId,setCompanyId]=useState(queryCompany||window.__IDEALO_ACTIVE_COMPANY__?.id||'')
- const [companyName,setCompanyName]=useState(window.__IDEALO_ACTIVE_COMPANY__?.name||'Venta de Huevos')
+ const [companyId,setCompanyId]=useState(queryCompany||'')
+ const [companyName,setCompanyName]=useState('Venta de Huevos')
+ const [contextReady,setContextReady]=useState(false)
  const [tab,setTab]=useState('Inicio')
  const [loading,setLoading]=useState(enabled)
  const [saving,setSaving]=useState(false)
@@ -87,19 +88,44 @@ export default function EggWholesaleAppHost(){
  const [suggestedPrice,setSuggestedPrice]=useState(null)
 
  useEffect(()=>{
-  if(!enabled)return
-  const sync=()=>{
-   const c=window.__IDEALO_ACTIVE_COMPANY__
-   if(!companyId&&c?.id)setCompanyId(c.id)
-   if(c?.name)setCompanyName(c.name)
+  if(!enabled||!supabase)return
+  let cancelled=false
+  const resolveContext=async()=>{
+   setLoading(true);setError('')
+   try{
+    const {data:{session}}=await supabase.auth.getSession()
+    if(!session?.access_token)throw new Error('Iniciá sesión para entrar a IDEALO Eggs.')
+    const preferred=queryCompany||window.__IDEALO_ACTIVE_COMPANY__?.id||''
+    const apiUrl=import.meta.env.VITE_API_URL||'http://localhost:4000'
+    const response=await fetch(apiUrl+'/api/eggs/context'+(preferred?'?company_id='+encodeURIComponent(preferred):''),{
+     headers:{Authorization:'Bearer '+session.access_token}
+    })
+    const body=await response.json().catch(()=>({}))
+    if(!response.ok)throw new Error(body.message||'No se pudo resolver la empresa de IDEALO Eggs.')
+    if(cancelled)return
+    const next=body.company
+    setCompanyId(next.id)
+    setCompanyName(next.name)
+    setContextReady(true)
+    window.__IDEALO_ACTIVE_COMPANY__={...(window.__IDEALO_ACTIVE_COMPANY__||{}),id:next.id,name:next.name,slug:next.slug}
+    window.dispatchEvent(new CustomEvent('idealo-company-resolved',{detail:window.__IDEALO_ACTIVE_COMPANY__}))
+    const url=new URL(window.location.href)
+    if(url.searchParams.get('company')!==next.id){
+     url.searchParams.set('company',next.id)
+     window.history.replaceState({},'',url.pathname+url.search+url.hash)
+    }
+   }catch(err){
+    if(!cancelled){setContextReady(false);setError(textError(err))}
+   }finally{
+    if(!cancelled)setLoading(false)
+   }
   }
-  window.addEventListener('idealo-company-resolved',sync)
-  sync()
-  return()=>window.removeEventListener('idealo-company-resolved',sync)
- },[enabled,companyId])
+  resolveContext()
+  return()=>{cancelled=true}
+ },[enabled,queryCompany])
 
  const load=useCallback(async()=>{
-  if(!enabled||!companyId||!supabase)return
+  if(!enabled||!contextReady||!companyId||!supabase)return
   setLoading(true);setError('')
   try{
    const [supplierRes,gradeRes,batchRes,classRes,inventoryRes,customerRes,orderRes,paymentRes]=await Promise.all([
@@ -123,7 +149,7 @@ export default function EggWholesaleAppHost(){
    setPayments(paymentRes.data||[])
   }catch(err){setError(textError(err))}
   finally{setLoading(false)}
- },[enabled,companyId])
+ },[enabled,contextReady,companyId])
 
  useEffect(()=>{load()},[load])
 
