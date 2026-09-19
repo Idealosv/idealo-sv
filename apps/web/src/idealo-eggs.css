@@ -582,3 +582,18 @@
  .eggs-lot-grades>div{grid-template-columns:1fr 70px}
  .eggs-lot-grades>div>span:nth-child(3){grid-column:2}
 }
+
+.eggs-lot-complete-state{
+ min-height:330px;display:grid;place-items:center;align-content:center;text-align:center;
+ padding:28px;border:1px dashed #cfd5da;border-radius:12px;background:linear-gradient(180deg,#fbfcfc,#f5f7f8)
+}
+.eggs-lot-complete-icon{
+ display:grid;place-items:center;width:54px;height:54px;margin-bottom:12px;border-radius:50%;
+ background:#e7f7ec;color:#2f7b49;font-size:24px;font-weight:950
+}
+.eggs-lot-complete-state strong{font-size:15px}
+.eggs-lot-complete-state p{max-width:390px;margin:7px auto 14px;color:#737a81;font-size:9.5px;line-height:1.45}
+.eggs-lot-complete-state button{
+ min-height:36px;padding:0 14px;border:1px solid #d47a21;border-radius:8px;background:var(--egg-orange);
+ color:#17120d;font:inherit;font-size:9.5px;font-weight:900;cursor:pointer
+}
