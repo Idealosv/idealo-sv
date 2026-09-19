@@ -15,6 +15,7 @@ import EggDocumentsPanel from './EggDocumentsPanel.jsx'
 import EggAiPanel from './EggAiPanel.jsx'
 import EggCommercialPanel from './EggCommercialPanel.jsx'
 import EggSuppliersPanel from './EggSuppliersPanel.jsx'
+import EggLotsPanel from './EggLotsPanel.jsx'
 
 const TABS=[
  ['Inicio','Resumen ejecutivo','EGG_OPERATIONS'],
@@ -78,8 +79,7 @@ export default function EggWholesaleAppHost(){
  const [customers,setCustomers]=useState([])
  const [orders,setOrders]=useState([])
  const [payments,setPayments]=useState([])
- const [batchForm,setBatchForm]=useState({supplier_id:'',received_at:today(),total_eggs:'',total_cost:'',source_reference:'',notes:''})
- const [classifyForm,setClassifyForm]=useState({batch_id:'',grade_id:'',quantity_eggs:'',damaged_eggs:'0',avg_weight_g:''})
+ const [lotSupplierId,setLotSupplierId]=useState('')
  const [customerForm,setCustomerForm]=useState({name:'',contact_name:'',phone:'',email:'',address:'',credit_limit:'0',credit_days:'0',notes:''})
  const [orderForm,setOrderForm]=useState({customer_id:'',grade_id:'',presentation:'Bandeja',quantity_units:'',eggs_per_unit:'30',unit_price:'',payment_type:'CREDIT',notes:''})
  const [paymentForm,setPaymentForm]=useState({order_id:'',amount:'',method:'CASH',reference:''})
@@ -208,12 +208,9 @@ export default function EggWholesaleAppHost(){
  },[companyId,orderForm.customer_id,orderForm.grade_id,orderForm.presentation,orderForm.quantity_units,orderForm.eggs_per_unit])
 
  useEffect(()=>{
-  if(!batchForm.supplier_id&&suppliers[0])setBatchForm(current=>({...current,supplier_id:suppliers[0].id}))
-  if(!classifyForm.batch_id&&batches[0])setClassifyForm(current=>({...current,batch_id:batches[0].id}))
-  if(!classifyForm.grade_id&&grades[0])setClassifyForm(current=>({...current,grade_id:grades[0].id}))
   if(!orderForm.customer_id&&customers[0])setOrderForm(current=>({...current,customer_id:customers[0].id}))
   if(!orderForm.grade_id&&grades[0])setOrderForm(current=>({...current,grade_id:grades[0].id}))
- },[suppliers,batches,grades,customers,batchForm.supplier_id,classifyForm.batch_id,classifyForm.grade_id,orderForm.customer_id,orderForm.grade_id])
+ },[grades,customers,orderForm.customer_id,orderForm.grade_id])
 
  const act=async(fn,success)=>{
   setSaving(true);setError('');setNotice('')
@@ -221,25 +218,6 @@ export default function EggWholesaleAppHost(){
   catch(err){setError(textError(err))}
   finally{setSaving(false)}
  }
-
- const receiveBatch=event=>{event.preventDefault();return act(async()=>{
-  const {data,error:errorRpc}=await supabase.rpc('egg_receive_batch',{
-   p_company_id:companyId,p_supplier_id:batchForm.supplier_id||null,p_total_eggs:Number(batchForm.total_eggs),
-   p_total_cost:Number(batchForm.total_cost||0),p_received_at:batchForm.received_at,p_source_reference:batchForm.source_reference,p_notes:batchForm.notes
-  })
-  if(errorRpc)throw errorRpc
-  setClassifyForm(current=>({...current,batch_id:data||current.batch_id}))
-  setBatchForm(current=>({...current,total_eggs:'',total_cost:'',source_reference:'',notes:''}))
- },'Lote recibido. Ya podés registrar su clasificación.')}
-
- const classifyBatch=event=>{event.preventDefault();return act(async()=>{
-  const {error:e}=await supabase.rpc('egg_classify_batch',{
-   p_batch_id:classifyForm.batch_id,p_grade_id:classifyForm.grade_id,p_quantity_eggs:Number(classifyForm.quantity_eggs),
-   p_damaged_eggs:Number(classifyForm.damaged_eggs||0),p_avg_weight_g:classifyForm.avg_weight_g?Number(classifyForm.avg_weight_g):null
-  })
-  if(e)throw e
-  setClassifyForm(current=>({...current,quantity_eggs:'',damaged_eggs:'0',avg_weight_g:''}))
- },'Clasificación registrada e inventario actualizado.')}
 
  const createCustomer=event=>{event.preventDefault();return act(async()=>{
   const payload={company_id:companyId,...customerForm,credit_limit:Number(customerForm.credit_limit||0),credit_days:Number(customerForm.credit_days||0)}
@@ -372,40 +350,22 @@ export default function EggWholesaleAppHost(){
     batches={batches}
     onRefresh={load}
     onReceiveSupplier={supplierId=>{
-     setBatchForm(current=>({...current,supplier_id:supplierId||current.supplier_id}))
+     setLotSupplierId(supplierId||'')
      setTab('Lotes')
     }}
    />}
 
-   {tab==='Lotes'&&<>
-    <section className="eggs-two-column">
-     <form className="eggs-card eggs-form" onSubmit={receiveBatch}>
-      <div className="eggs-section-head"><div><small>RECEPCIÓN</small><h2>Nuevo lote</h2></div></div>
-      <Field label="Proveedor"><select value={batchForm.supplier_id} onChange={e=>setBatchForm({...batchForm,supplier_id:e.target.value})}><option value="">Sin proveedor</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
-      <div className="eggs-form-grid"><Field label="Fecha"><input type="date" required value={batchForm.received_at} onChange={e=>setBatchForm({...batchForm,received_at:e.target.value})}/></Field><Field label="Huevos recibidos"><input type="number" min="1" required value={batchForm.total_eggs} onChange={e=>setBatchForm({...batchForm,total_eggs:e.target.value})} placeholder="12000"/></Field></div>
-      <div className="eggs-form-grid"><Field label="Costo total"><input type="number" min="0" step="0.01" required value={batchForm.total_cost} onChange={e=>setBatchForm({...batchForm,total_cost:e.target.value})} placeholder="1200.00"/></Field><Field label="Referencia"><input value={batchForm.source_reference} onChange={e=>setBatchForm({...batchForm,source_reference:e.target.value})} placeholder="Factura / entrega"/></Field></div>
-      <Field label="Notas"><textarea value={batchForm.notes} onChange={e=>setBatchForm({...batchForm,notes:e.target.value})}/></Field>
-      <button className="eggs-primary" disabled={saving}>Recibir lote</button>
-     </form>
-
-     <form className="eggs-card eggs-form" onSubmit={classifyBatch}>
-      <div className="eggs-section-head"><div><small>CLASIFICACIÓN</small><h2>Registrar tamaño y peso</h2></div></div>
-      <Field label="Lote"><select required value={classifyForm.batch_id} onChange={e=>setClassifyForm({...classifyForm,batch_id:e.target.value})}><option value="">Seleccionar</option>{batches.filter(b=>b.status==='OPEN').map(b=><option key={b.id} value={b.id}>{b.batch_code} · {number(b.total_eggs)} huevos</option>)}</select></Field>
-      <Field label="Clasificación"><select required value={classifyForm.grade_id} onChange={e=>setClassifyForm({...classifyForm,grade_id:e.target.value})}><option value="">Seleccionar</option>{grades.map(g=><option key={g.id} value={g.id}>{g.name} · {g.min_weight_g||'0'}–{g.max_weight_g||'+'} g</option>)}</select></Field>
-      <div className="eggs-form-grid"><Field label="Huevos buenos"><input type="number" min="0" required value={classifyForm.quantity_eggs} onChange={e=>setClassifyForm({...classifyForm,quantity_eggs:e.target.value})}/></Field><Field label="Dañados / rechazo"><input type="number" min="0" required value={classifyForm.damaged_eggs} onChange={e=>setClassifyForm({...classifyForm,damaged_eggs:e.target.value})}/></Field></div>
-      <Field label="Peso promedio (g)" hint="Opcional; útil para captura manual o integración futura con clasificadora."><input type="number" min="0" step="0.01" value={classifyForm.avg_weight_g} onChange={e=>setClassifyForm({...classifyForm,avg_weight_g:e.target.value})}/></Field>
-      <button className="eggs-primary" disabled={saving}>Guardar clasificación</button>
-     </form>
-    </section>
-
-    <section className="eggs-card">
-     <div className="eggs-section-head"><div><small>TRAZABILIDAD</small><h2>Lotes recibidos</h2></div><Pill>{batches.length}</Pill></div>
-     <div className="eggs-table-wrap"><table><thead><tr><th>Lote</th><th>Proveedor</th><th>Fecha</th><th>Recibidos</th><th>Clasificados</th><th>Costo</th><th>Estado</th></tr></thead><tbody>
-      {batches.map(batch=>{const p=batchProgress(batch);return <tr key={batch.id}><td><b>{batch.batch_code}</b><small>{batch.source_reference||'Sin referencia'}</small></td><td>{batch.egg_suppliers?.name||'—'}</td><td>{date(batch.received_at)}</td><td>{number(batch.total_eggs)}</td><td>{number(p.used)} <small>{p.pct}%</small></td><td>{money(batch.total_cost)}<small>{money(Number(batch.total_cost)/Number(batch.total_eggs))}/huevo</small></td><td><Pill tone={batch.status==='CLASSIFIED'?'good':'warn'}>{batch.status==='CLASSIFIED'?'Clasificado':'Abierto'}</Pill></td></tr>})}
-      {!batches.length&&<tr><td colSpan="7"><Empty>Aún no hay lotes.</Empty></td></tr>}
-     </tbody></table></div>
-    </section>
-   </>}
+   {tab==='Lotes'&&<EggLotsPanel
+    companyId={companyId}
+    suppliers={suppliers}
+    grades={grades}
+    batches={batches}
+    classifications={classifications}
+    onRefresh={load}
+    preferredSupplierId={lotSupplierId}
+    onPreferredSupplierUsed={()=>setLotSupplierId('')}
+    onGoMachine={()=>setTab('Máquina')}
+   />}
 
    {tab==='Inventario'&&<section className="eggs-card">
     <div className="eggs-section-head"><div><small>INVENTARIO EN TIEMPO REAL</small><h2>Existencia por clasificación</h2><p>Las entradas se generan al clasificar lotes y las salidas al confirmar ventas.</p></div></div>
