@@ -14,6 +14,7 @@ import EggExecutiveDashboard from './EggExecutiveDashboard.jsx'
 import EggDocumentsPanel from './EggDocumentsPanel.jsx'
 import EggAiPanel from './EggAiPanel.jsx'
 import EggCommercialPanel from './EggCommercialPanel.jsx'
+import EggSuppliersPanel from './EggSuppliersPanel.jsx'
 
 const TABS=[
  ['Inicio','Resumen ejecutivo','EGG_OPERATIONS'],
@@ -77,7 +78,6 @@ export default function EggWholesaleAppHost(){
  const [customers,setCustomers]=useState([])
  const [orders,setOrders]=useState([])
  const [payments,setPayments]=useState([])
- const [supplierForm,setSupplierForm]=useState({name:'',contact_name:'',phone:'',email:'',notes:''})
  const [batchForm,setBatchForm]=useState({supplier_id:'',received_at:today(),total_eggs:'',total_cost:'',source_reference:'',notes:''})
  const [classifyForm,setClassifyForm]=useState({batch_id:'',grade_id:'',quantity_eggs:'',damaged_eggs:'0',avg_weight_g:''})
  const [customerForm,setCustomerForm]=useState({name:'',contact_name:'',phone:'',email:'',address:'',credit_limit:'0',credit_days:'0',notes:''})
@@ -221,12 +221,6 @@ export default function EggWholesaleAppHost(){
   catch(err){setError(textError(err))}
   finally{setSaving(false)}
  }
-
- const createSupplier=event=>{event.preventDefault();return act(async()=>{
-  const payload={company_id:companyId,...supplierForm}
-  const {error:e}=await supabase.from('egg_suppliers').insert(payload);if(e)throw e
-  setSupplierForm({name:'',contact_name:'',phone:'',email:'',notes:''})
- },'Proveedor agregado correctamente.')}
 
  const receiveBatch=event=>{event.preventDefault();return act(async()=>{
   const {data,error:errorRpc}=await supabase.rpc('egg_receive_batch',{
@@ -372,23 +366,16 @@ export default function EggWholesaleAppHost(){
     </section>
    </>}
 
-   {tab==='Proveedores'&&<section className="eggs-two-column">
-    <form className="eggs-card eggs-form" onSubmit={createSupplier}>
-     <div className="eggs-section-head"><div><small>NUEVO PROVEEDOR</small><h2>Granja o distribuidor</h2></div></div>
-     <Field label="Nombre"><input required value={supplierForm.name} onChange={e=>setSupplierForm({...supplierForm,name:e.target.value})} placeholder="Granja San José"/></Field>
-     <Field label="Contacto"><input value={supplierForm.contact_name} onChange={e=>setSupplierForm({...supplierForm,contact_name:e.target.value})} placeholder="Persona de contacto"/></Field>
-     <div className="eggs-form-grid"><Field label="Teléfono"><input value={supplierForm.phone} onChange={e=>setSupplierForm({...supplierForm,phone:e.target.value})}/></Field><Field label="Correo"><input type="email" value={supplierForm.email} onChange={e=>setSupplierForm({...supplierForm,email:e.target.value})}/></Field></div>
-     <Field label="Notas"><textarea value={supplierForm.notes} onChange={e=>setSupplierForm({...supplierForm,notes:e.target.value})}/></Field>
-     <button className="eggs-primary" disabled={saving}>Guardar proveedor</button>
-    </form>
-    <section className="eggs-card">
-     <div className="eggs-section-head"><div><small>ABASTECIMIENTO</small><h2>Proveedores registrados</h2></div><Pill>{suppliers.length}</Pill></div>
-     <div className="eggs-list">
-      {suppliers.map(row=><article key={row.id}><div><b>{row.name}</b><small>{row.contact_name||'Sin contacto'}{row.phone?` · ${row.phone}`:''}</small></div><Pill tone={row.active?'good':'neutral'}>{row.active?'Activo':'Inactivo'}</Pill></article>)}
-      {!suppliers.length&&<Empty>Agregá la primera granja o proveedor.</Empty>}
-     </div>
-    </section>
-   </section>}
+   {tab==='Proveedores'&&<EggSuppliersPanel
+    companyId={companyId}
+    suppliers={suppliers}
+    batches={batches}
+    onRefresh={load}
+    onReceiveSupplier={supplierId=>{
+     setBatchForm(current=>({...current,supplier_id:supplierId||current.supplier_id}))
+     setTab('Lotes')
+    }}
+   />}
 
    {tab==='Lotes'&&<>
     <section className="eggs-two-column">
