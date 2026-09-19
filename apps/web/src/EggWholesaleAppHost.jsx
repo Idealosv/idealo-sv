@@ -16,25 +16,34 @@ import EggAiPanel from './EggAiPanel.jsx'
 import EggCommercialPanel from './EggCommercialPanel.jsx'
 
 const TABS=[
- ['Inicio','Resumen','EGG_OPERATIONS'],
- ['Proveedores','Granjas y proveedores','EGG_OPERATIONS'],
- ['Lotes','Recepción y clasificación','EGG_OPERATIONS'],
- ['Inventario','Existencias','EGG_OPERATIONS'],
+ ['Inicio','Resumen ejecutivo','EGG_OPERATIONS'],
+ ['Proveedores','Granjas y abastecimiento','EGG_OPERATIONS'],
+ ['Lotes','Recepción de producto','EGG_OPERATIONS'],
+ ['Máquina','Pesaje y clasificación','EGG_MACHINE'],
+ ['Inventario','Existencias por tamaño','EGG_OPERATIONS'],
  ['Clientes','Clientes mayoristas','EGG_OPERATIONS'],
+ ['Precios','Tarifas y rentabilidad','EGG_PRICING'],
  ['Ventas','Pedidos y ventas','EGG_OPERATIONS'],
  ['Caja','Cobros y crédito','EGG_OPERATIONS'],
- ['Precios','Mayorista y rentabilidad','EGG_PRICING'],
+ ['DTE','Facturación electrónica','DTE'],
+ ['Documentos','Comprobantes y PDF','EGG_OPERATIONS'],
  ['Devoluciones','Pérdidas y retornos','EGG_RETURNS'],
- ['Reportes','Indicadores gerenciales','EGG_REPORTS'],
  ['Rutas','Planificación de reparto','EGG_LOGISTICS'],
  ['Despacho','Carga y retorno','EGG_LOGISTICS'],
- ['Máquina','Pesaje y clasificación','EGG_MACHINE'],
- ['Móvil','Reparto desde teléfono','EGG_MOBILE'],
- ['DTE','Facturación electrónica','DTE'],
- ['Usuarios','Roles y permisos','EGG_USERS'],
- ['Documentos','PDF comerciales','EGG_OPERATIONS'],
+ ['Móvil','Entrega desde teléfono','EGG_MOBILE'],
+ ['Reportes','Indicadores gerenciales','EGG_REPORTS'],
  ['IA','Asistente especializado','AI'],
- ['Comercial','Auditoría y salida','EGG_REPORTS'],
+ ['Usuarios','Roles y permisos','EGG_USERS'],
+ ['Comercial','Auditoría y planes','EGG_REPORTS'],
+]
+
+const MODULE_GROUPS=[
+ {name:'Resumen',description:'Panel principal',items:['Inicio']},
+ {name:'Operación',description:'Compra, clasificación e inventario',items:['Proveedores','Lotes','Máquina','Inventario']},
+ {name:'Ventas',description:'Clientes, precios, cobros y facturación',items:['Clientes','Precios','Ventas','Caja','DTE','Documentos','Devoluciones']},
+ {name:'Logística',description:'Preparación y reparto',items:['Rutas','Despacho','Móvil']},
+ {name:'Control',description:'Reportes e inteligencia',items:['Reportes','IA']},
+ {name:'Administración',description:'Usuarios y producto',items:['Usuarios','Comercial']},
 ]
 
 const today=()=>new Date().toISOString().slice(0,10)
@@ -152,6 +161,16 @@ export default function EggWholesaleAppHost(){
   return (map[eggRole]||['Inicio']).includes(name)
  }
  const visibleTabs=TABS.filter(([name,,module])=>hasModule(module)&&canSeeTab(name))
+ const visibleTabNames=new Set(visibleTabs.map(([name])=>name))
+ const visibleGroups=MODULE_GROUPS
+  .map(group=>({...group,items:group.items.filter(name=>visibleTabNames.has(name))}))
+  .filter(group=>group.items.length)
+ const activeGroup=visibleGroups.find(group=>group.items.includes(tab))||visibleGroups[0]
+ const activeGroupTabs=visibleTabs.filter(([name])=>activeGroup?.items.includes(name))
+ const openGroup=group=>{
+  const first=group.items.find(name=>visibleTabNames.has(name))
+  if(first)setTab(first)
+ }
 
  useEffect(()=>{
   if(!companyId||!orderForm.customer_id||!orderForm.grade_id||!orderForm.quantity_units||!orderForm.eggs_per_unit)return
@@ -265,8 +284,20 @@ export default function EggWholesaleAppHost(){
    </div>
   </header>
 
-  <nav className="eggs-tabs">
-   {visibleTabs.map(([name,description])=><button key={name} className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{description}</small></button>)}
+  <nav className="eggs-module-nav" aria-label="Módulos IDEALO Eggs">
+   <div className="eggs-module-groups">
+    {visibleGroups.map(group=><button key={group.name} className={activeGroup?.name===group.name?'active':''} onClick={()=>openGroup(group)}>
+     <strong>{group.name}</strong><small>{group.description}</small>
+    </button>)}
+   </div>
+   <div className="eggs-module-tabs">
+    <span className="eggs-module-context">{activeGroup?.name}</span>
+    <div className="eggs-module-tabs-scroll">
+     {activeGroupTabs.map(([name,description])=><button key={name} className={tab===name?'active':''} onClick={()=>setTab(name)}>
+      <strong>{name}</strong><small>{description}</small>
+     </button>)}
+    </div>
+   </div>
   </nav>
 
   {error&&<div className="eggs-alert error">{error}</div>}
