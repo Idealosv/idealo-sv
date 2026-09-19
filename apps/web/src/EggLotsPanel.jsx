@@ -106,16 +106,19 @@ export default function EggLotsPanel({
  const run=async(fn,message)=>{
   setSaving(true);setError('');setNotice('')
   try{
-   await fn()
-   setNotice(message)
+   const result=await fn()
    await Promise.resolve(onRefresh?.())
-  }catch(e){setError(textError(e))}
-  finally{setSaving(false)}
+   setNotice(message)
+   return result
+  }catch(e){
+   setError(textError(e))
+   return null
+  }finally{setSaving(false)}
  }
 
- const receiveBatch=e=>{
+ const receiveBatch=async e=>{
   e.preventDefault()
-  return run(async()=>{
+  const newId=await run(async()=>{
    const {data,error}=await supabase.rpc('egg_receive_batch',{
     p_company_id:companyId,
     p_supplier_id:receive.supplier_id||null,
@@ -126,11 +129,13 @@ export default function EggLotsPanel({
     p_notes:receive.notes.trim()
    })
    if(error)throw error
-   const newId=data
+   setReceive(current=>({...emptyReceive,supplier_id:current.supplier_id,received_at:today()}))
+   return data
+  },'Lote recibido correctamente. Ya podés clasificarlo.')
+  if(newId){
    setSelectedId(newId)
    setClassify({...emptyClassify,batch_id:newId})
-   setReceive(current=>({...emptyReceive,supplier_id:current.supplier_id,received_at:today()}))
-  },'Lote recibido correctamente. Ya podés clasificarlo.')
+  }
  }
 
  const classifyBatch=e=>{
