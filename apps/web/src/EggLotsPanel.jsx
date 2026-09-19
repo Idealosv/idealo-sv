@@ -25,6 +25,7 @@ export default function EggLotsPanel({
  const [receive,setReceive]=useState(emptyReceive)
  const [classify,setClassify]=useState(emptyClassify)
  const [selectedId,setSelectedId]=useState('')
+ const [classificationBatchId,setClassificationBatchId]=useState('')
  const [query,setQuery]=useState('')
  const [filter,setFilter]=useState('ALL')
  const [saving,setSaving]=useState(false)
@@ -45,6 +46,12 @@ export default function EggLotsPanel({
   if(!selectedId&&batches[0])setSelectedId(batches[0].id)
   if(selectedId&&!batches.some(b=>b.id===selectedId))setSelectedId(batches[0]?.id||'')
  },[batches,selectedId])
+
+ useEffect(()=>{
+  const openBatches=batches.filter(b=>b.status==='OPEN')
+  const currentIsOpen=openBatches.some(b=>b.id===classificationBatchId)
+  if(!currentIsOpen)setClassificationBatchId(openBatches[0]?.id||'')
+ },[batches,classificationBatchId])
 
  const classificationMap=useMemo(()=>{
   const map=new Map()
@@ -77,18 +84,24 @@ export default function EggLotsPanel({
 
  const selected=batches.find(b=>b.id===selectedId)||null
  const selectedProgress=selected?progressOf(selected):null
- const usedGrades=new Set((selectedProgress?.rows||[]).map(x=>x.grade_id))
+ const classificationBatch=batches.find(b=>b.id===classificationBatchId&&b.status==='OPEN')||null
+ const classificationProgress=classificationBatch?progressOf(classificationBatch):null
+ const usedGrades=new Set((classificationProgress?.rows||[]).map(x=>x.grade_id))
  const availableGrades=grades.filter(g=>!usedGrades.has(g.id))
  const selectedGrade=grades.find(g=>g.id===classify.grade_id)||null
+ const openBatches=batches.filter(b=>b.status==='OPEN')
 
  useEffect(()=>{
-  if(selectedId&&classify.batch_id!==selectedId){
-   const rows=classificationMap.get(selectedId)||[]
+  if(classificationBatchId&&classify.batch_id!==classificationBatchId){
+   const rows=classificationMap.get(classificationBatchId)||[]
    const used=new Set(rows.map(x=>x.grade_id))
    const nextGrade=grades.find(g=>!used.has(g.id))
-   setClassify(current=>({...current,batch_id:selectedId,grade_id:nextGrade?.id||'',quantity_eggs:'',damaged_eggs:'0',avg_weight_g:''}))
+   setClassify(current=>({...current,batch_id:classificationBatchId,grade_id:nextGrade?.id||'',quantity_eggs:'',damaged_eggs:'0',avg_weight_g:''}))
   }
- },[selectedId,grades,classificationMap])
+  if(!classificationBatchId&&classify.batch_id){
+   setClassify(emptyClassify)
+  }
+ },[classificationBatchId,grades,classificationMap])
 
  const filtered=useMemo(()=>{
   const q=query.trim().toLowerCase()
@@ -134,28 +147,29 @@ export default function EggLotsPanel({
   },'Lote recibido correctamente. Ya podés clasificarlo.')
   if(newId){
    setSelectedId(newId)
+   setClassificationBatchId(newId)
    setClassify({...emptyClassify,batch_id:newId})
   }
  }
 
  const classifyBatch=e=>{
   e.preventDefault()
-  if(!selected) return
+  if(!classificationBatch) return
   const good=Number(classify.quantity_eggs||0)
   const damaged=Number(classify.damaged_eggs||0)
   const total=good+damaged
   if(total<=0){setError('Ingresá una cantidad a clasificar.');return}
-  if(total>selectedProgress.remaining){setError('La cantidad supera los huevos pendientes de este lote.');return}
+  if(total>classificationProgress.remaining){setError('La cantidad supera los huevos pendientes de este lote.');return}
   return run(async()=>{
    const {error}=await supabase.rpc('egg_classify_batch',{
-    p_batch_id:selected.id,
+    p_batch_id:classificationBatch.id,
     p_grade_id:classify.grade_id,
     p_quantity_eggs:good,
     p_damaged_eggs:damaged,
     p_avg_weight_g:classify.avg_weight_g?Number(classify.avg_weight_g):null
    })
    if(error)throw error
-   const nextUsed=new Set([...(selectedProgress.rows||[]).map(x=>x.grade_id),classify.grade_id])
+   const nextUsed=new Set([...(classificationProgress.rows||[]).map(x=>x.grade_id),classify.grade_id])
    const nextGrade=grades.find(g=>!nextUsed.has(g.id))
    setClassify(current=>({...current,grade_id:nextGrade?.id||'',quantity_eggs:'',damaged_eggs:'0',avg_weight_g:''}))
   },'Clasificación registrada e inventario actualizado.')
@@ -164,7 +178,7 @@ export default function EggLotsPanel({
  const liveCost=Number(receive.total_eggs||0)>0?Number(receive.total_cost||0)/Number(receive.total_eggs):0
  const liveReceiveTotal=Number(receive.total_eggs||0)
  const liveClassified=Number(classify.quantity_eggs||0)+Number(classify.damaged_eggs||0)
- const afterRemaining=selectedProgress?Math.max(0,selectedProgress.remaining-liveClassified):0
+ const afterRemaining=classificationProgress?Math.max(0,classificationProgress.remaining-liveClassified):0
 
  return <div className="eggs-lots-v2">
   {error&&<div className="eggs-alert error">{error}</div>}
@@ -209,29 +223,37 @@ export default function EggLotsPanel({
    </form>
 
    <form className="eggs-card eggs-form" onSubmit={classifyBatch}>
-    <div className="eggs-section-head"><div><small>PASO 2 · CLASIFICACIÓN</small><h2>Registrar tamaño y peso</h2><p>Solo podés clasificar lo que todavía queda pendiente en el lote.</p></div></div>
-    <label className="eggs-field"><span>Lote</span><select required value={selectedId} onChange={e=>setSelectedId(e.target.value)}><option value="">Seleccionar lote</option>{batches.filter(b=>b.status==='OPEN').map(b=>{const p=progressOf(b);return <option key={b.id} value={b.id}>{b.batch_code} · {number(p.remaining)} pendientes</option>})}</select></label>
+    <div className="eggs-section-head"><div><small>PASO 2 · CLASIFICACIÓN</small><h2>Registrar tamaño y peso</h2><p>Solo podés clasificar lotes que todavía tienen huevos pendientes.</p></div></div>
 
-    {selected&&<div className="eggs-lot-selected">
-     <div><span>Recibidos</span><b>{number(selected.total_eggs)}</b></div>
-     <div><span>Clasificados</span><b>{number(selectedProgress.used)}</b></div>
-     <div><span>Pendientes</span><b>{number(selectedProgress.remaining)}</b></div>
-     <div><span>Avance</span><b>{selectedProgress.pct}%</b></div>
-     <div className="eggs-lot-progress"><span style={{width:selectedProgress.pct+'%'}}></span></div>
-    </div>}
+    {!openBatches.length?<div className="eggs-lot-complete-state">
+     <div className="eggs-lot-complete-icon">✓</div>
+     <strong>No hay lotes por clasificar</strong>
+     <p>Todos los lotes recibidos están al 100%. Recibí un nuevo lote para continuar la operación.</p>
+     <button type="button" onClick={()=>document.querySelector('.eggs-lots-workflow')?.scrollIntoView({behavior:'smooth',block:'start'})}>Ir a recepción</button>
+    </div>:<>
+     <label className="eggs-field"><span>Lote pendiente</span><select required value={classificationBatchId} onChange={e=>setClassificationBatchId(e.target.value)}><option value="">Seleccionar lote</option>{openBatches.map(b=>{const p=progressOf(b);return <option key={b.id} value={b.id}>{b.batch_code} · {number(p.remaining)} pendientes</option>})}</select></label>
 
-    <label className="eggs-field"><span>Clasificación</span><select required value={classify.grade_id} onChange={e=>setClassify({...classify,grade_id:e.target.value})}><option value="">Seleccionar</option>{availableGrades.map(g=><option key={g.id} value={g.id}>{g.name} · {g.min_weight_g||'0'}–{g.max_weight_g||'+'} g</option>)}</select></label>
-    <div className="eggs-form-grid">
-     <label className="eggs-field"><span>Huevos buenos</span><input type="number" min="0" max={selectedProgress?.remaining||undefined} required value={classify.quantity_eggs} onChange={e=>setClassify({...classify,quantity_eggs:e.target.value})}/></label>
-     <label className="eggs-field"><span>Dañados / rechazo</span><input type="number" min="0" max={selectedProgress?.remaining||undefined} required value={classify.damaged_eggs} onChange={e=>setClassify({...classify,damaged_eggs:e.target.value})}/></label>
-    </div>
-    <label className="eggs-field"><span>Peso promedio (g)</span><input type="number" min="0" step="0.01" value={classify.avg_weight_g} onChange={e=>setClassify({...classify,avg_weight_g:e.target.value})}/><small>{selectedGrade?'Rango configurado: '+(selectedGrade.min_weight_g||'0')+'–'+(selectedGrade.max_weight_g||'+')+' g':'Opcional para captura manual o lectura de máquina.'}</small></label>
-    {selected&&<div className="eggs-lot-classify-preview">
-     <div><span>Registrarás</span><b>{number(liveClassified)}</b></div>
-     <div><span>Quedarán pendientes</span><b>{number(afterRemaining)}</b></div>
-     <div><span>Costo/huevo del lote</span><b>{cost(Number(selected.total_cost||0)/Math.max(1,Number(selected.total_eggs||0)))}</b></div>
-    </div>}
-    <button className="eggs-primary" disabled={saving||!selected||!classify.grade_id||selectedProgress?.remaining<=0}>Guardar clasificación</button>
+     {classificationBatch&&<div className="eggs-lot-selected">
+      <div><span>Recibidos</span><b>{number(classificationBatch.total_eggs)}</b></div>
+      <div><span>Clasificados</span><b>{number(classificationProgress.used)}</b></div>
+      <div><span>Pendientes</span><b>{number(classificationProgress.remaining)}</b></div>
+      <div><span>Avance</span><b>{classificationProgress.pct}%</b></div>
+      <div className="eggs-lot-progress"><span style={{width:classificationProgress.pct+'%'}}></span></div>
+     </div>}
+
+     <label className="eggs-field"><span>Clasificación</span><select required value={classify.grade_id} onChange={e=>setClassify({...classify,grade_id:e.target.value})}><option value="">Seleccionar</option>{availableGrades.map(g=><option key={g.id} value={g.id}>{g.name} · {g.min_weight_g||'0'}–{g.max_weight_g||'+'} g</option>)}</select></label>
+     <div className="eggs-form-grid">
+      <label className="eggs-field"><span>Huevos buenos</span><input type="number" min="0" max={classificationProgress?.remaining||undefined} required value={classify.quantity_eggs} onChange={e=>setClassify({...classify,quantity_eggs:e.target.value})}/></label>
+      <label className="eggs-field"><span>Dañados / rechazo</span><input type="number" min="0" max={classificationProgress?.remaining||undefined} required value={classify.damaged_eggs} onChange={e=>setClassify({...classify,damaged_eggs:e.target.value})}/></label>
+     </div>
+     <label className="eggs-field"><span>Peso promedio (g)</span><input type="number" min="0" step="0.01" value={classify.avg_weight_g} onChange={e=>setClassify({...classify,avg_weight_g:e.target.value})}/><small>{selectedGrade?'Rango configurado: '+(selectedGrade.min_weight_g||'0')+'–'+(selectedGrade.max_weight_g||'+')+' g':'Opcional para captura manual o lectura de máquina.'}</small></label>
+     {classificationBatch&&<div className="eggs-lot-classify-preview">
+      <div><span>Registrarás</span><b>{number(liveClassified)}</b></div>
+      <div><span>Quedarán pendientes</span><b>{number(afterRemaining)}</b></div>
+      <div><span>Costo/huevo del lote</span><b>{cost(Number(classificationBatch.total_cost||0)/Math.max(1,Number(classificationBatch.total_eggs||0)))}</b></div>
+     </div>}
+     <button className="eggs-primary" disabled={saving||!classificationBatch||!classify.grade_id||classificationProgress?.remaining<=0}>Guardar clasificación</button>
+    </>}
    </form>
   </section>
 
