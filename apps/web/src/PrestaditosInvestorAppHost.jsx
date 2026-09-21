@@ -5,6 +5,7 @@ import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
 import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
 import PrestaditosInvestmentsPanel from './PrestaditosInvestmentsPanel.jsx'
 import PrestaditosPaymentsPanel from './PrestaditosPaymentsPanel.jsx'
+import PrestaditosMaturitiesPanel from './PrestaditosMaturitiesPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -138,7 +139,7 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
     {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Vencimientos'&&<MaturitiesPanel investments={investments} investorMap={investorMap}/>}
+    {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={()=>setTab('Renovaciones')}/>}
     {tab==='Renovaciones'&&<RenewalsPanel investments={investments} investorMap={investorMap}/>}
     {tab==='Tesorería'&&<TreasuryPanel investments={investments} payments={payments}/>}
     {tab==='Documentos'&&<DocumentsPanel investors={investors}/>}
@@ -203,10 +204,6 @@ function BeneficiariesPanel({company,investors,beneficiaries,investorMap,saving,
    {!beneficiaries.length?<Empty title="Sin beneficiarios registrados"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Beneficiario</th><th>Relación</th><th>Porcentaje</th></tr></thead><tbody>{beneficiaries.map(x=><tr key={x.id}><td>{fullName(investorMap.get(x.investor_id))}</td><td><b>{x.full_name}</b><small>{x.dui||'Sin DUI'}</small></td><td>{x.relationship||'—'}</td><td><b>{Number(x.percentage).toFixed(2)}%</b></td></tr>)}</tbody></table></div>}
   </article>
  </section>}
-
-function MaturitiesPanel({investments,investorMap}){
- const rows=[...investments].filter(x=>x.maturity_date&&!['CLOSED','CANCELLED'].includes(x.status)).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date)))
- return <article className="prst-card"><div className="prst-card-head"><div><small>CONTROL</small><h2>Vencimientos</h2><p>Seguimiento de inversiones próximas a vencer.</p></div></div>{!rows.length?<Empty title="Sin vencimientos pendientes"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Capital</th><th>Vencimiento</th><th>Días restantes</th><th>Estado</th></tr></thead><tbody>{rows.map(x=>{const d=daysUntil(x.maturity_date);return <tr key={x.id}><td>{fullName(investorMap.get(x.investor_id))}</td><td>{money(x.principal)}</td><td>{date(x.maturity_date)}</td><td><b className={d<=30?'prst-danger-text':''}>{d}</b></td><td><Status value={d<0?'MATURED':d<=30?'MATURING':x.status}/></td></tr>})}</tbody></table></div>}</article>}
 
 function RenewalsPanel({investments,investorMap}){
  const rows=investments.filter(x=>['MATURING','MATURED','ACTIVE'].includes(x.status)&&daysUntil(x.maturity_date)<=30)
