@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería']
+const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos']
 
 const demo={
  investors:[
@@ -33,6 +33,11 @@ const demo={
  renewals:[
   {code:'REN-20260910-AB1234',name:'José Roberto Hernández',investment:'INVEST-20260310-G7H8I9',decision:'Renovar capital',amount:12000,term:12,status:'Registrada'},
  ],
+ documents:[
+  {code:'DOC-20260901-AA1010',title:'Contrato de inversión firmado',investor:'Carlos Ernesto Mejía',relation:'INVEST-20260901-A1B2C3',type:'Contrato',size:'1.8 MB',status:'Activo'},
+  {code:'DOC-20260905-BB2020',title:'Comprobante de transferencia',investor:'Carlos Ernesto Mejía',relation:'INVEST-20260901-A1B2C3',type:'Comprobante de pago',size:'462 KB',status:'Activo'},
+  {code:'DOC-20260915-CC3030',title:'Formulario de beneficiarios',investor:'María Elena López',relation:'Expediente general',type:'Formulario',size:'820 KB',status:'Activo'},
+ ],
 }
 
 function Status({children,tone='active'}){return <span className={`prst-status ${tone}`}>{children}</span>}
@@ -50,7 +55,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas'
+    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -66,7 +71,8 @@ export default function PrestaditosPreviewApp(){
     {tab==='Rendimientos'&&<Payments/>}
     {tab==='Vencimientos'&&<Maturities/>}
     {tab==='Renovaciones'&&<Renewals/>}
-    {tab==='Tesorería'&&<Treasury capital={capital} yieldPaid={yieldPaid}/>}
+    {tab==='Tesorería'&&<Treasury capital={capital} yieldPaid={yieldPaid}/>} 
+    {tab==='Documentos'&&<Documents/>}
    </section>
   </main>
  </div>
@@ -159,5 +165,13 @@ function Treasury({capital,yieldPaid}){return <>
    <tr key="t2"><td>05 sep 2026</td><td>Pago de rendimiento</td><td>Carlos Ernesto Mejía</td><td>INVEST-20260901-A1B2C3</td><td>—</td><td><b className="prst-money-out">{money(150)}</b></td><td><Status>Vigente</Status></td></tr>,
    <tr key="t3"><td>18 sep 2026</td><td>Devolución de capital</td><td>José Roberto Hernández</td><td>INVEST-20260310-G7H8I9</td><td>—</td><td><b className="prst-money-out">{money(12000)}</b></td><td><Status>Vigente</Status></td></tr>,
   ]}/>
+ </Card>
+ </>}
+
+
+function Documents(){return <>
+ <section className="prst-investor-summary"><article><span>Documentos activos</span><strong>3</strong><small>archivos vigentes</small></article><article><span>Contratos</span><strong>1</strong><small>documento contractual</small></article><article><span>Comprobantes</span><strong>1</strong><small>respaldo de pago</small></article><article><span>Inactivos</span><strong>0</strong><small>histórico conservado</small></article></section>
+ <Card title="Repositorio documental" kicker="EXPEDIENTE PRIVADO">
+  <Table headers={['Documento','Inversionista','Relación','Tipo','Archivo','Estado']} rows={demo.documents.map(x=><tr key={x.code}><td><b>{x.title}</b><small>{x.code}</small></td><td>{x.investor}</td><td>{x.relation}</td><td>{x.type}</td><td>{x.size}</td><td><Status>{x.status}</Status></td></tr>)}/>
  </Card>
  </>}
