@@ -41,8 +41,17 @@ security definer
 set search_path='public'
 as $$
   select exists(
-    select 1 from public.company_members cm
-    where cm.company_id=p_company_id and cm.user_id=auth.uid()
+    select 1
+    from public.company_members cm
+    join public.saas_company_subscriptions s on s.company_id=cm.company_id
+    join public.saas_verticals v on v.id=s.vertical_id
+    where cm.company_id=p_company_id
+      and cm.user_id=auth.uid()
+      and v.code='FINANCIAL_INVESTORS'
+      and (
+        s.status in ('trial','active')
+        or (s.status='past_due' and s.grace_ends_at is not null and s.grace_ends_at>now())
+      )
   )
 $$;
 
