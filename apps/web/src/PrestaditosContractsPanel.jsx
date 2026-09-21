@@ -112,9 +112,11 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
     await supabase.storage.from('investor-documents').remove([path]).catch(()=>null)
     throw docError
    }
+   const docRow=Array.isArray(doc)?doc[0]:doc
+   if(!docRow?.id)throw new Error('No se pudo identificar el documento firmado guardado.')
    const {error:signError}=await supabase.rpc('inv_mark_contract_signed',{
     p_contract_id:selectedContract.id,
-    p_document_id:doc.id,
+    p_document_id:docRow.id,
     p_signature_method:'SIGNED_DOCUMENT_UPLOAD',
    })
    if(signError)throw signError
