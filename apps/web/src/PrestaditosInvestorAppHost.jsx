@@ -9,6 +9,7 @@ import PrestaditosMaturitiesPanel from './PrestaditosMaturitiesPanel.jsx'
 import PrestaditosBeneficiariesPanel from './PrestaditosBeneficiariesPanel.jsx'
 import PrestaditosRenewalsPanel from './PrestaditosRenewalsPanel.jsx'
 import PrestaditosTreasuryPanel from './PrestaditosTreasuryPanel.jsx'
+import PrestaditosDocumentsPanel from './PrestaditosDocumentsPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -56,6 +57,7 @@ export default function PrestaditosInvestorAppHost(){
  const [payments,setPayments]=useState([])
  const [audit,setAudit]=useState([])
  const [renewals,setRenewals]=useState([])
+ const [documents,setDocuments]=useState([])
  const [query,setQuery]=useState('')
  const [applicationToFormalize,setApplicationToFormalize]=useState('')
  const [renewalToManage,setRenewalToManage]=useState('')
@@ -85,7 +87,7 @@ export default function PrestaditosInvestorAppHost(){
   if(!enabled||!company?.id||!supabase)return
   setLoading(true);setError('')
   try{
-   const [i,a,n,b,p,l,rn]=await Promise.all([
+   const [i,a,n,b,p,l,rn,d]=await Promise.all([
     supabase.from('inv_investors').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_applications').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_investments').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
@@ -93,9 +95,10 @@ export default function PrestaditosInvestorAppHost(){
     supabase.from('inv_payments').select('*').eq('company_id',company.id).order('payment_date',{ascending:false}).limit(250),
     supabase.from('inv_audit_log').select('*').eq('company_id',company.id).order('created_at',{ascending:false}).limit(250),
     supabase.from('inv_renewal_decisions').select('*').eq('company_id',company.id).order('decided_at',{ascending:false}),
+    supabase.from('inv_documents').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
    ])
-   for(const r of [i,a,n,b,p,l,rn])if(r.error)throw r.error
-   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[])
+   for(const r of [i,a,n,b,p,l,rn,d])if(r.error)throw r.error
+   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[])
   }catch(err){setError(safeText(err))}
   finally{setLoading(false)}
  },[enabled,company?.id])
@@ -148,7 +151,7 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={investmentId=>{setRenewalToManage(investmentId);setTab('Renovaciones')}}/>}
     {tab==='Renovaciones'&&<PrestaditosRenewalsPanel company={company} role={role} investments={investments} payments={payments} renewals={renewals} investorMap={investorMap} saving={saving} act={act} preselectedInvestmentId={renewalToManage} onHandled={()=>setRenewalToManage('')}/>}
     {tab==='Tesorería'&&<PrestaditosTreasuryPanel investments={investments} payments={payments} investorMap={investorMap}/>}
-    {tab==='Documentos'&&<DocumentsPanel investors={investors}/>}
+    {tab==='Documentos'&&<PrestaditosDocumentsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} documents={documents} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Reportes'&&<ReportsPanel investors={investors} applications={applications} investments={investments} payments={payments}/>}
     {tab==='Auditoría'&&<AuditPanel audit={audit} investorMap={investorMap}/>}
     {tab==='Configuración'&&<ConfigurationPanel/>}
@@ -185,9 +188,6 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
    </article>
   </section>
  </>}
-
-function DocumentsPanel({investors}){
- return <article className="prst-card"><div className="prst-card-head"><div><small>EXPEDIENTES</small><h2>Documentos del inversionista</h2></div></div>{!investors.length?<Empty title="Sin expedientes"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Rostro</th><th>DUI frente</th><th>DUI reverso</th></tr></thead><tbody>{investors.map(x=><tr key={x.id}><td><b>{fullName(x)}</b><small>{x.investor_code}</small></td><td>{x.face_photo_path?'✓ Guardado':'Pendiente'}</td><td>{x.dui_front_path?'✓ Guardado':'Pendiente'}</td><td>{x.dui_back_path?'✓ Guardado':'Pendiente'}</td></tr>)}</tbody></table></div>}</article>}
 
 function ReportsPanel({investors,applications,investments,payments}){
  const active=investments.filter(x=>['ACTIVE','MATURING'].includes(x.status))
