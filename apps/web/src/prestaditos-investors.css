@@ -76,3 +76,39 @@
 .prst-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:13px;border-top:1px solid #e5e8ea}.prst-modal-actions button{min-height:36px;padding:0 13px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px;font-weight:850;cursor:pointer}.prst-modal-actions .primary{border-color:#c71219;background:var(--prst-red);color:#fff}
 @media(max-width:1100px){.prst-investor-summary{grid-template-columns:repeat(2,1fr)}.prst-directory-tools{grid-template-columns:1fr 1fr}.prst-directory-tools .prst-search{grid-column:1/-1;max-width:none}.prst-directory-tools>span{text-align:left}.prst-profile-metrics{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.prst-investor-summary,.prst-profile-metrics,.prst-profile-grid,.prst-document-actions{grid-template-columns:1fr}.prst-directory-tools{grid-template-columns:1fr}.prst-directory-tools .prst-search{grid-column:auto}.prst-investor-modal{padding:15px}}
+
+
+.prst-application-module{display:grid;gap:15px}
+.prst-application-summary article:nth-child(2){border-top-color:#d99222}
+.prst-application-summary article:nth-child(3){border-top-color:#2f7b49}
+.prst-application-summary article:nth-child(4){border-top-color:var(--prst-red)}
+.prst-application-investor-check{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-1px 0 12px;padding:10px 11px;border:1px solid #e0e4e7;border-radius:9px;background:#fafafa}
+.prst-application-investor-check span{display:grid;gap:2px}.prst-application-investor-check b{font-size:9px}.prst-application-investor-check small{color:#777d83;font-size:8px}.prst-application-investor-check strong{font-size:8px}
+.prst-application-investor-check.complete{border-color:#b9dbc3;background:#f3faf5}.prst-application-investor-check.complete strong{color:#2c7043}
+.prst-application-investor-check.pending{border-color:#ecd09f;background:#fff9ef}.prst-application-investor-check.pending strong{color:#8b5a12}
+.prst-input-suffix{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+.prst-input-suffix input{border-radius:8px 0 0 8px!important}.prst-input-suffix>span{display:grid;place-items:center;padding:0 10px;border:1px solid #cfd4d8;border-left:0;border-radius:0 8px 8px 0;background:#f3f4f5;color:#656b71;font-size:8px;font-weight:850}
+.prst-application-tools{grid-template-columns:minmax(250px,1fr) 190px auto}
+.prst-application-table{min-width:1120px!important}
+.prst-row-actions button.approve{border-color:#9fcfb0;background:#f0faf3;color:#286b3f}
+.prst-application-modal{width:min(980px,100%)}
+.prst-application-progress{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.prst-application-progress>div{display:grid;justify-items:center;gap:5px;padding:8px 4px;border:1px solid #e0e3e6;border-radius:9px;background:#fafafa;color:#8a9096;text-align:center}
+.prst-application-progress>div b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e4e7e9;color:#6c7278;font-size:8px}.prst-application-progress>div span{font-size:7px;font-weight:850}
+.prst-application-progress>div.reached{border-color:#bfdcc7;background:#f4faf5;color:#2f7044}.prst-application-progress>div.reached b{background:#3a7d50;color:#fff}
+.prst-application-progress>div.current{box-shadow:0 0 0 2px rgba(58,125,80,.11)}
+.prst-application-progress>div.rejected{border-color:#e3aaa5;background:#fff3f2;color:#8c312a}.prst-application-progress>div.rejected b{background:#a33d35;color:#fff}
+.prst-timeline{display:grid;gap:0}
+.prst-timeline article{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;min-height:54px}
+.prst-timeline article>span{position:relative}
+.prst-timeline article>span:before{content:'';position:absolute;top:5px;left:5px;width:8px;height:8px;border-radius:50%;background:var(--prst-red)}
+.prst-timeline article>span:after{content:'';position:absolute;top:15px;bottom:-5px;left:8px;width:1px;background:#d8dde1}
+.prst-timeline article:last-child>span:after{display:none}
+.prst-timeline article>div{padding-bottom:12px}.prst-timeline b{display:block;font-size:9px}.prst-timeline small{display:block;margin-top:2px;color:#777d83;font-size:8px}.prst-timeline p{margin:5px 0 0;padding:7px 8px;border:1px solid #e2e5e8;border-radius:7px;background:#fafafa;color:#5e646a;font-size:8px;line-height:1.45}
+.prst-application-linked{display:grid;gap:3px;margin-top:12px;padding:12px;border:1px solid #acd6b9;border-radius:10px;background:#f1faf4}.prst-application-linked span{color:#2f7044;font-size:7px;font-weight:950;letter-spacing:.08em}.prst-application-linked strong{font-size:11px}.prst-application-linked small{color:#65726a;font-size:8px}
+.prst-application-modal-actions .danger,.prst-decision-modal .danger{border-color:#d79d97!important;background:#fff2f0!important;color:#8a2f29!important}
+.prst-decision-modal{width:min(560px,100%);max-height:90vh;overflow:auto;padding:20px;border:1px solid #393d41;border-radius:15px;background:#fff;box-shadow:0 26px 80px rgba(0,0,0,.34)}
+.prst-decision-modal>header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:15px;padding-bottom:13px;border-bottom:1px solid #e4e7e9}.prst-decision-modal>header small{display:block;color:var(--prst-red);font-size:8px;font-weight:950;letter-spacing:.08em}.prst-decision-modal>header h2{margin:3px 0 0;font-size:20px}.prst-decision-modal>header p{margin:4px 0 0;color:#757b81;font-size:9px}.prst-decision-modal>header>button{width:34px;height:34px;border:1px solid #d3d7db;border-radius:8px;background:#fff;font-size:19px;cursor:pointer}
+.prst-comparison-box{display:grid;grid-template-columns:110px minmax(0,1fr);gap:7px 10px;margin:4px 0 13px;padding:11px;border:1px solid #e0e4e7;border-radius:9px;background:#fafafa}.prst-comparison-box span{color:#777d83;font-size:8px;font-weight:850}.prst-comparison-box strong{font-size:9px}
+@media(max-width:900px){.prst-application-progress{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.prst-application-tools{grid-template-columns:1fr}.prst-application-progress{grid-template-columns:repeat(2,1fr)}.prst-comparison-box{grid-template-columns:1fr}.prst-decision-modal{padding:15px}}
