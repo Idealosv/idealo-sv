@@ -12,6 +12,7 @@ import PrestaditosTreasuryPanel from './PrestaditosTreasuryPanel.jsx'
 import PrestaditosDocumentsPanel from './PrestaditosDocumentsPanel.jsx'
 import PrestaditosReportsPanel from './PrestaditosReportsPanel.jsx'
 import PrestaditosAuditPanel from './PrestaditosAuditPanel.jsx'
+import PrestaditosConfigurationPanel from './PrestaditosConfigurationPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -60,6 +61,7 @@ export default function PrestaditosInvestorAppHost(){
  const [audit,setAudit]=useState([])
  const [renewals,setRenewals]=useState([])
  const [documents,setDocuments]=useState([])
+ const [settings,setSettings]=useState(null)
  const [query,setQuery]=useState('')
  const [applicationToFormalize,setApplicationToFormalize]=useState('')
  const [renewalToManage,setRenewalToManage]=useState('')
@@ -89,7 +91,7 @@ export default function PrestaditosInvestorAppHost(){
   if(!enabled||!company?.id||!supabase)return
   setLoading(true);setError('')
   try{
-   const [i,a,n,b,p,l,rn,d]=await Promise.all([
+   const [i,a,n,b,p,l,rn,d,s]=await Promise.all([
     supabase.from('inv_investors').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_applications').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_investments').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
@@ -98,9 +100,10 @@ export default function PrestaditosInvestorAppHost(){
     supabase.from('inv_audit_log').select('*').eq('company_id',company.id).order('created_at',{ascending:false}).limit(250),
     supabase.from('inv_renewal_decisions').select('*').eq('company_id',company.id).order('decided_at',{ascending:false}),
     supabase.from('inv_documents').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
+    supabase.from('inv_company_settings').select('*').eq('company_id',company.id).maybeSingle(),
    ])
-   for(const r of [i,a,n,b,p,l,rn,d])if(r.error)throw r.error
-   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[])
+   for(const r of [i,a,n,b,p,l,rn,d,s])if(r.error)throw r.error
+   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[]);setSettings(s.data||null)
   }catch(err){setError(safeText(err))}
   finally{setLoading(false)}
  },[enabled,company?.id])
@@ -146,7 +149,7 @@ export default function PrestaditosInvestorAppHost(){
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
-    {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
+    {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} settings={settings} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
     {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
     {tab==='Beneficiarios'&&<PrestaditosBeneficiariesPanel company={company} role={role} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
@@ -156,7 +159,7 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Documentos'&&<PrestaditosDocumentsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} documents={documents} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Reportes'&&<PrestaditosReportsPanel company={company} investors={investors} applications={applications} investments={investments} payments={payments} renewals={renewals} documents={documents} investorMap={investorMap}/>}
     {tab==='Auditoría'&&<PrestaditosAuditPanel company={company} audit={audit} investorMap={investorMap}/>}
-    {tab==='Configuración'&&<ConfigurationPanel/>}
+    {tab==='Configuración'&&<PrestaditosConfigurationPanel company={company} role={role} settings={settings} saving={saving} act={act}/>}
    </section>
   </main>
  </div>
@@ -191,5 +194,3 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
   </section>
  </>}
 
-function ConfigurationPanel(){
- return <section className="prst-grid two"><article className="prst-card"><div className="prst-card-head"><div><small>REGLAS</small><h2>Configuración financiera</h2></div></div><div className="prst-note"><strong>Rendimiento:</strong> todavía no se ha fijado una fórmula automática. El campo de ganancia proyectada queda manual hasta que Prestadito$ defina cómo calcula el rendimiento según monto y plazo.</div><div className="prst-note"><strong>Enfoque:</strong> este ERP contiene únicamente inversionistas e inversiones. No se habilitan módulos de clientes, préstamos o cartera.</div></article><article className="prst-card"><div className="prst-card-head"><div><small>SEGURIDAD</small><h2>Documentos privados</h2></div></div><p className="prst-copy">Las fotografías del rostro y DUI se almacenan en un bucket privado separado por empresa. El acceso depende de la membresía de IDEALO SV y de pertenecer a la empresa.</p></article></section>}
