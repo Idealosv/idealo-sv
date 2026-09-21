@@ -51,7 +51,7 @@ test('cierre mensual crea snapshots versionados sin modificar movimientos',()=>{
  assert.match(migration,/revoke insert,update,delete on public\.inv_monthly_closeouts from authenticated/)
  assert.match(closeout,/Snapshot/)
  assert.match(closeout,/nueva versión/)
- assert.match(closeout,/no alterar la contabilidad operativa/i)
+ assert.match(closeout,/sin alterar movimientos/i)
 })
 
 test('auditoría técnica revisa integridad financiera y documental del vertical',()=>{
