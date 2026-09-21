@@ -11,10 +11,13 @@ const outstandingFor=(investment,payments)=>{
  return Math.max(0,Number(investment.principal||0)-returned)
 }
 
-export default function PrestaditosInvestorStatementPanel({company,investors,investments,payments,beneficiaries,contracts}){
+export default function PrestaditosInvestorStatementPanel({company,investors,investments,payments,beneficiaries,contracts,selectedInvestorId=''}){
  const [investorId,setInvestorId]=useState('')
 
- useEffect(()=>{if(!investorId&&investors[0])setInvestorId(investors[0].id)},[investors,investorId])
+ useEffect(()=>{
+  if(selectedInvestorId&&investors.some(x=>x.id===selectedInvestorId)){setInvestorId(selectedInvestorId);return}
+  if(!investorId&&investors[0])setInvestorId(investors[0].id)
+ },[investors,investorId,selectedInvestorId])
 
  const investor=investors.find(x=>x.id===investorId)||null
  const investorInvestments=useMemo(()=>investments.filter(x=>x.investor_id===investorId).sort((a,b)=>String(b.granted_at||'').localeCompare(String(a.granted_at||''))),[investments,investorId])
