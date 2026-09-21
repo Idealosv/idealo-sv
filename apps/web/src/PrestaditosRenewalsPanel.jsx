@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
+import { RETURN_RATES, suggestedAnnualRate, annualReferenceGain } from './prestaditos-rate-rules.js'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const date=value=>value?new Date(String(value).includes('T')?value:`${value}T12:00:00`).toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}):'—'
@@ -7,7 +8,6 @@ const today=()=>new Date().toISOString().slice(0,10)
 const fullName=x=>[x?.first_names,x?.last_names].filter(Boolean).join(' ')||'—'
 const daysUntil=value=>value?Math.ceil((new Date(`${value}T12:00:00`).getTime()-new Date(`${today()}T12:00:00`).getTime())/86400000):null
 const normalized=value=>String(value||'').trim()
-const RETURN_RATES=[10,12,15]
 
 const DECISION_LABELS={
  RENEW_CAPITAL:'Renovar capital',
@@ -229,8 +229,8 @@ export default function PrestaditosRenewalsPanel({
 
     <Field label="Observaciones / instrucciones"><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} disabled={!canManage} placeholder="Condiciones conversadas con el inversionista."/></Field>
 
-    {form.decision_type==='RENEW_CAPITAL_YIELD'&&<div className="prst-note"><strong>Importante:</strong> el monto mostrado es solo una referencia basada en la proyección registrada. Como aún no hemos definido la fórmula real de rendimiento de Prestadito$, confirmá manualmente el monto antes de guardar.</div>}
-    <div className="prst-note"><strong>Esta etapa solo registra la decisión.</strong> No cierra la inversión anterior ni crea una nueva automáticamente. La ejecución final se habilitará cuando definamos las reglas exactas de renovación y rendimiento.</div>
+    {form.decision_type==='RENEW_CAPITAL_YIELD'&&<div className="prst-note"><strong>Importante:</strong> el monto mostrado es solo una referencia basada en la proyección registrada. Los porcentajes son anuales, pero todavía no hemos definido cómo prorratear el rendimiento para plazos distintos de 12 meses. Confirmá manualmente el monto antes de guardar.</div>}
+    <div className="prst-note"><strong>Esta etapa registra la decisión.</strong> Después del vencimiento, un propietario o administrador puede ejecutar la renovación. La nueva inversión usa 10%, 12% o 15% anual y no calcula automáticamente el rendimiento total para plazos distintos de 12 meses.</div>
     <button className="prst-primary" disabled={saving||!canManage||!selectedInvestment}>{saving?'Guardando…':selectedRenewal?'Actualizar decisión':'Guardar decisión'}</button>
    </form>
 
@@ -254,7 +254,7 @@ export default function PrestaditosRenewalsPanel({
        <td>{DECISION_LABELS[row.decision_type]||row.decision_type}</td>
        <td>{row.decision_type==='WITHDRAW'?<b>No aplica</b>:<><b>{money(row.renewal_amount)}</b><small>{row.renewal_term_months} meses</small></>}</td>
        <td><span className={`prst-status ${row.status==='RECORDED'?'review':row.status==='CANCELLED'?'rejected':'active'}`}>{row.status==='RECORDED'?'Registrada':row.status==='CANCELLED'?'Cancelada':'Ejecutada'}</span>{row.status==='CANCELLED'&&<small>{row.cancel_reason}</small>}</td>
-       <td><div className="prst-row-actions">{row.status==='RECORDED'&&canManage&&<><button type="button" onClick={()=>setSelectedInvestmentId(row.investment_id)}>Editar</button>{row.decision_type==='WITHDRAW'?<button type="button" className="approve" onClick={()=>setWithdraw({row,confirmed:false,note:''})}>Finalizar retiro</button>:<button type="button" className="approve" onClick={()=>setExecute({row,rate:'',contract_number:''})}>Ejecutar</button>}<button type="button" className="danger" onClick={()=>setCancel({row,reason:''})}>Cancelar</button></>}</div></td>
+       <td><div className="prst-row-actions">{row.status==='RECORDED'&&canManage&&<><button type="button" onClick={()=>setSelectedInvestmentId(row.investment_id)}>Editar</button>{row.decision_type==='WITHDRAW'?<button type="button" className="approve" onClick={()=>setWithdraw({row,confirmed:false,note:''})}>Finalizar retiro</button>:<button type="button" className="approve" onClick={()=>{const suggested=suggestedAnnualRate(row.renewal_amount);setExecute({row,rate:suggested?String(suggested):'',contract_number:''})}}>Ejecutar</button>}<button type="button" className="danger" onClick={()=>setCancel({row,reason:''})}>Cancelar</button></>}</div></td>
       </tr>
      })}</tbody>
     </table></div>}
@@ -264,9 +264,9 @@ export default function PrestaditosRenewalsPanel({
   {execute&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&!saving&&setExecute(null)}>
    <form className="prst-decision-modal" onSubmit={submitExecute}>
     <header><div><small>EJECUTAR RENOVACIÓN</small><h2>{execute.row.renewal_code}</h2><p>Se creará una nueva inversión usando el monto y plazo ya registrados.</p></div><button type="button" onClick={()=>setExecute(null)} disabled={saving}>×</button></header>
-    <Field label="Porcentaje acordado *" hint="Solo se conocen 10%, 12% y 15%; no se asume periodicidad."><select value={execute.rate} onChange={e=>setExecute({...execute,rate:e.target.value})} required><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}%</option>)}</select></Field>
-    <Field label="Número del nuevo contrato"><input value={execute.contract_number} onChange={e=>setExecute({...execute,contract_number:e.target.value})}/></Field>
-    <div className="prst-note"><strong>Control:</strong> la inversión anterior se marcará como renovada y se creará la sucesora de forma atómica. No se calcula ganancia automática porque la fórmula todavía no está definida.</div>
+    <Field label="Porcentaje anual acordado *" hint="10%, 12% o 15% anual. La sugerencia por monto usa ejemplos provisionales."><select value={execute.rate} onChange={e=>setExecute({...execute,rate:e.target.value})} required><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}% anual</option>)}</select></Field>
+    <Field label="Número del nuevo contrato"><input value={execute.contract_number} onChange={e=>setExecute({...execute,contract_number:e.target.value})}/></Field>{execute.rate&&<div className="prst-rate-reference"><span><b>Monto a renovar</b><strong>{money(execute.row.renewal_amount)}</strong></span><span><b>Referencia anual sobre el monto renovado</b><strong>{money(annualReferenceGain(execute.row.renewal_amount,Number(execute.rate)))}</strong></span><small>Referencia anual únicamente; el prorrateo para otros plazos todavía está pendiente de la regla definitiva.</small></div>}
+    <div className="prst-note"><strong>Control:</strong> la inversión anterior se marcará como renovada y se creará la sucesora de forma atómica. No se calcula automáticamente el rendimiento total para plazos distintos de 12 meses porque todavía falta la regla definitiva de prorrateo.</div>
     <div className="prst-modal-actions"><button type="button" onClick={()=>setExecute(null)}>Cancelar</button><button type="submit" className="primary" disabled={saving||!execute.rate}>Ejecutar renovación</button></div>
    </form>
   </div>}
