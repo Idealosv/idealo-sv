@@ -65,8 +65,9 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
   const investment=investments.find(x=>x.id===contract.investment_id)
   const investor=investorMap.get(contract.investor_id)
   const snapshot=contract.snapshot||{}
-  const popup=window.open('','_blank','noopener,noreferrer')
+  const popup=window.open('','_blank')
   if(!popup)return
+  try{popup.opener=null}catch{}
   const html='<!doctype html><html><head><meta charset="utf-8"><title>'+contract.contract_code+'</title><style>body{font-family:Arial,sans-serif;color:#111;padding:38px;line-height:1.45}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;font-size:12px;margin-bottom:24px}.box{border:1px solid #bbb;border-radius:8px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid div{padding:8px;border-bottom:1px solid #ddd}strong{display:block;font-size:12px}.value{font-size:14px}.warning{margin:18px 0;padding:12px;background:#fff7e8;border:1px solid #e8c986;font-size:12px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:70px}.line{border-top:1px solid #111;padding-top:6px;text-align:center;font-size:12px}@media print{button{display:none}body{padding:22px}}</style></head><body>'+
    '<h1>PRESTADITO$ EL SALVADOR</h1><div class="meta">Documento operativo de inversión · '+contract.contract_code+(contract.contract_number?' · Contrato '+contract.contract_number:'')+'</div>'+
    '<div class="box"><div class="grid">'+
