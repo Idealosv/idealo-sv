@@ -10,7 +10,7 @@ const normalized=value=>String(value||'').trim()
 function Field({label,children,hint,className=''}){return <label className={'prst-field '+className}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
 function Empty({title,children}){return <div className="prst-empty"><strong>{title}</strong>{children&&<p>{children}</p>}</div>}
 
-export default function PrestaditosContractsPanel({company,role,investments,contracts,investorMap,saving,act}){
+export default function PrestaditosContractsPanel({company,role,investments,contracts,investorMap,saving,act,preselectedInvestmentId=''}){
  const canManage=['owner','admin'].includes(String(role||'').toLowerCase())
  const [selectedInvestmentId,setSelectedInvestmentId]=useState('')
  const [rate,setRate]=useState('')
@@ -19,8 +19,9 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
  const [search,setSearch]=useState('')
 
  useEffect(()=>{
+  if(preselectedInvestmentId&&investments.some(x=>x.id===preselectedInvestmentId)){setSelectedInvestmentId(preselectedInvestmentId);return}
   if(!selectedInvestmentId&&investments[0])setSelectedInvestmentId(investments[0].id)
- },[investments,selectedInvestmentId])
+ },[investments,selectedInvestmentId,preselectedInvestmentId])
 
  const selectedInvestment=investments.find(x=>x.id===selectedInvestmentId)||null
  const selectedInvestor=selectedInvestment?investorMap.get(selectedInvestment.investor_id):null
