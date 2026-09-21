@@ -41,6 +41,7 @@ const ACTIONS={
  CONTRACT_SIGNED_RECORDED:'Contrato firmado registrado',
  RENEWAL_EXECUTED:'Renovación ejecutada',
  WITHDRAWAL_FINALIZED:'Retiro finalizado',
+ MONTHLY_CLOSEOUT_GENERATED:'Cierre mensual generado',
 }
 
 const categoryOf=action=>{
