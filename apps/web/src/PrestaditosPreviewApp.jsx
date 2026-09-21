@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría','Configuración']
+const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Contratos','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría','Configuración']
 
 const demo={
  investors:[
@@ -16,9 +16,13 @@ const demo={
   {code:'SOL-20260921-C9D184',name:'José Roberto Hernández',amount:20000,term:18,status:'Pendiente',place:'Transferencia bancaria'},
  ],
  investments:[
-  {code:'INVEST-20260901-A1B2C3',name:'Carlos Ernesto Mejía',capital:15000,term:12,granted:'01 sep 2026',maturity:'01 sep 2027',gain:1800,status:'Activa'},
-  {code:'INVEST-20260815-D4E5F6',name:'María Elena López',capital:10000,term:6,granted:'15 ago 2026',maturity:'15 feb 2027',gain:720,status:'Activa'},
-  {code:'INVEST-20260310-G7H8I9',name:'José Roberto Hernández',capital:12000,term:6,granted:'10 mar 2026',maturity:'10 sep 2026',gain:900,status:'Vencida'},
+  {code:'INVEST-20260901-A1B2C3',name:'Carlos Ernesto Mejía',capital:15000,term:12,granted:'01 sep 2026',maturity:'01 sep 2027',gain:1800,rate:12,status:'Activa'},
+  {code:'INVEST-20260815-D4E5F6',name:'María Elena López',capital:10000,term:6,granted:'15 ago 2026',maturity:'15 feb 2027',gain:720,rate:10,status:'Activa'},
+  {code:'INVEST-20260310-G7H8I9',name:'José Roberto Hernández',capital:12000,term:6,granted:'10 mar 2026',maturity:'10 sep 2026',gain:900,rate:15,status:'Vencida'},
+ ],
+ contracts:[
+  {code:'CTR-20260901-AB12CD',number:'PS-2026-001',investor:'Carlos Ernesto Mejía',investment:'INVEST-20260901-A1B2C3',capital:15000,rate:12,status:'Firmado'},
+  {code:'CTR-20260815-EF34GH',number:'PS-2026-002',investor:'María Elena López',investment:'INVEST-20260815-D4E5F6',capital:10000,rate:10,status:'Preparado'},
  ],
  beneficiaries:[
   {code:'BEN-20260901-11AB22',name:'Ana Mejía',investor:'Carlos Ernesto Mejía',relation:'Esposa',pct:60,status:'Activo'},
@@ -61,7 +65,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad',Configuración:'Reglas del vertical'
+    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad',Configuración:'Reglas del vertical'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -73,6 +77,7 @@ export default function PrestaditosPreviewApp(){
     {tab==='Inversionistas'&&<Investors/>}
     {tab==='Solicitudes'&&<Applications/>}
     {tab==='Inversiones'&&<Investments/>}
+    {tab==='Contratos'&&<Contracts/>}
     {tab==='Beneficiarios'&&<Beneficiaries/>}
     {tab==='Rendimientos'&&<Payments/>}
     {tab==='Vencimientos'&&<Maturities/>}
@@ -134,7 +139,7 @@ function Applications(){return <>
 function Investments(){return <>
  <section className="prst-investor-summary"><article><span>Inversiones activas</span><strong>2</strong><small>vigentes</small></article><article><span>Capital activo</span><strong>{money(25000)}</strong><small>formalizado</small></article><article><span>Ganancia proyectada</span><strong>{money(2520)}</strong><small>demostrativa</small></article><article><span>Vencidas</span><strong>1</strong><small>requiere gestión</small></article></section>
  <Card title="Portafolio de inversiones" kicker="INVERSIONES">
-  <Table headers={['Inversión','Inversionista','Capital','Plazo','Otorgada','Vence','Ganancia','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
+  <Table headers={['Inversión','Inversionista','Capital','Plazo','Porcentaje','Otorgada','Vence','Ganancia','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td><b>{x.rate}%</b><small>base pendiente</small></td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
  </Card>
  </>}
 
@@ -214,14 +219,14 @@ function Configuration(){return <>
   <article><span>Empresa</span><strong>Prestadito$ El Salvador</strong><small>vertical de inversionistas</small></article>
   <article><span>Tu rol</span><strong>owner</strong><small>permisos efectivos</small></article>
   <article><span>Plazos configurados</span><strong>3</strong><small>6, 12, 18 meses</small></article>
-  <article><span>Rendimiento</span><strong>Manual</strong><small>regla automática pendiente</small></article>
+  <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>regla automática pendiente</small></article>
  </section>
  <Card title="Reglas y catálogos de Prestadito$" kicker="CONFIGURACIÓN OPERATIVA">
   <div className="prst-config-sections">
    <section><div className="prst-section-title">Plazos disponibles</div><p className="prst-copy">Opciones sugeridas para solicitudes y renovaciones.</p><div className="prst-chip-list"><span>6 meses</span><span>12 meses</span><span>18 meses</span></div></section>
    <section><div className="prst-section-title">Formas de pago</div><p className="prst-copy">Catálogo de uso operativo.</p><div className="prst-chip-list"><span>Transferencia bancaria</span><span>Depósito</span><span>Efectivo</span></div></section>
    <section><div className="prst-section-title">Lugares de pago</div><p className="prst-copy">Nombres consistentes en el ERP.</p><div className="prst-chip-list"><span>Oficina central</span><span>Banco</span></div></section>
-   <section><div className="prst-section-title">Rendimiento financiero</div><div className="prst-config-locked"><div><span>Modo actual</span><strong>Manual · pendiente de regla real</strong></div><p>No se configura una fórmula automática hasta definir la política real de Prestadito$.</p></div></section>
+   <section><div className="prst-section-title">Rendimiento financiero</div><div className="prst-config-locked"><div><span>Porcentajes informados</span><strong>10% · 12% · 15%</strong></div><p>Ya se pueden registrar, pero todavía no se asume periodicidad ni relación automática con monto o plazo.</p></div></section>
   </div>
  </Card>
  <Card title="Matriz de acceso" kicker="PERMISOS EFECTIVOS">
@@ -233,5 +238,14 @@ function Configuration(){return <>
    ['Registrar / revertir pagos','Sí','Sí','No','No'],
    ['Modificar configuración','Sí','Sí','No','No'],
   ].map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{j===0?<b>{cell}</b>:cell}</td>)}</tr>)}/>
+ </Card>
+ </>}
+
+
+function Contracts(){return <>
+ <section className="prst-investor-summary prst-contracts-summary"><article><span>Contratos preparados</span><strong>2</strong><small>documentos operativos</small></article><article><span>Firmados</span><strong>1</strong><small>con documento archivado</small></article><article><span>Pendientes de firma</span><strong>1</strong><small>requieren seguimiento</small></article><article><span>Porcentajes disponibles</span><strong>10 · 12 · 15%</strong><small>sin periodicidad asumida</small></article></section>
+ <Card title="Control contractual" kicker="CONTRATOS / PDF / FIRMA">
+  <div className="prst-note"><strong>Por ahora:</strong> el contrato registra 10%, 12% o 15%, pero no supone si el porcentaje es mensual, anual o por todo el plazo.</div>
+  <Table headers={['Contrato','Inversionista','Inversión','Capital','Porcentaje','Estado']} rows={demo.contracts.map(x=><tr key={x.code}><td><b>{x.code}</b><small>{x.number}</small></td><td>{x.investor}</td><td>{x.investment}</td><td>{money(x.capital)}</td><td><b>{x.rate}%</b><small>base pendiente</small></td><td><Status tone={x.status==='Firmado'?'active':'review'}>{x.status}</Status></td></tr>)}/>
  </Card>
  </>}
