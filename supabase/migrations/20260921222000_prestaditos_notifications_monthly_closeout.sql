@@ -6,6 +6,13 @@ create table if not exists public.inv_notification_states (
   user_id uuid not null default auth.uid(),
   alert_key text not null,
   state text not null default 'READ' check(state in ('READ','DISMISSED')),
+  alert_title text not null default '',
+  alert_detail text not null default '',
+  alert_type text not null default '',
+  priority text not null default '',
+  target_tab text not null default '',
+  investor_id uuid,
+  investment_id uuid,
   note text not null default '',
   updated_at timestamptz not null default now(),
   primary key(company_id,user_id,alert_key)
@@ -28,6 +35,13 @@ create or replace function public.inv_set_notification_state(
   p_company_id uuid,
   p_alert_key text,
   p_state text,
+  p_alert_title text default '',
+  p_alert_detail text default '',
+  p_alert_type text default '',
+  p_priority text default '',
+  p_target_tab text default '',
+  p_investor_id uuid default null,
+  p_investment_id uuid default null,
   p_note text default ''
 )
 returns public.inv_notification_states
@@ -52,10 +66,26 @@ begin
     raise exception 'Estado de notificación no permitido.';
   end if;
 
-  insert into public.inv_notification_states(company_id,user_id,alert_key,state,note,updated_at)
-  values(p_company_id,auth.uid(),trim(p_alert_key),v_state,coalesce(trim(p_note),''),now())
+  insert into public.inv_notification_states(
+    company_id,user_id,alert_key,state,alert_title,alert_detail,alert_type,priority,
+    target_tab,investor_id,investment_id,note,updated_at
+  )
+  values(
+    p_company_id,auth.uid(),trim(p_alert_key),v_state,
+    coalesce(trim(p_alert_title),''),coalesce(trim(p_alert_detail),''),
+    coalesce(trim(p_alert_type),''),coalesce(trim(p_priority),''),
+    coalesce(trim(p_target_tab),''),p_investor_id,p_investment_id,
+    coalesce(trim(p_note),''),now()
+  )
   on conflict(company_id,user_id,alert_key) do update set
     state=excluded.state,
+    alert_title=excluded.alert_title,
+    alert_detail=excluded.alert_detail,
+    alert_type=excluded.alert_type,
+    priority=excluded.priority,
+    target_tab=excluded.target_tab,
+    investor_id=excluded.investor_id,
+    investment_id=excluded.investment_id,
     note=excluded.note,
     updated_at=now()
   returning * into v_result;
@@ -85,9 +115,9 @@ begin
 end;
 $$;
 
-revoke all on function public.inv_set_notification_state(uuid,text,text,text) from public;
+revoke all on function public.inv_set_notification_state(uuid,text,text,text,text,text,text,text,uuid,uuid,text) from public;
 revoke all on function public.inv_clear_notification_state(uuid,text) from public;
-grant execute on function public.inv_set_notification_state(uuid,text,text,text) to authenticated,service_role;
+grant execute on function public.inv_set_notification_state(uuid,text,text,text,text,text,text,text,uuid,uuid,text) to authenticated,service_role;
 grant execute on function public.inv_clear_notification_state(uuid,text) to authenticated,service_role;
 grant select on public.inv_notification_states to authenticated;
 grant all privileges on public.inv_notification_states to service_role;
