@@ -10,13 +10,18 @@ const renewals=read('apps/web/src/PrestaditosRenewalsPanel.jsx')
 const ocr=read('apps/web/src/PrestaditosDuiOcr.jsx')
 const investors=read('apps/web/src/PrestaditosInvestorsPanel.jsx')
 const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
+const rateRules=read('apps/web/src/prestaditos-rate-rules.js')
+const annualBasis=read('supabase/migrations/20260921214500_prestaditos_annual_rate_basis.sql')
 
-test('solo admite los porcentajes informados 10, 12 y 15 sin inventar periodicidad',()=>{
+test('solo admite 10, 12 y 15 como tasas anuales y usa rangos provisionales por monto',()=>{
  assert.match(closeout,/p_rate in \(10,12,15\)/)
- assert.match(closeout,/PENDING_DEFINITION/)
- assert.match(investments,/RETURN_RATES=\[10,12,15\]/)
- assert.match(investments,/Porcentaje acordado/)
- assert.match(investments,/no se asume periodicidad/i)
+ assert.match(closeout,/ANNUAL/)
+ assert.match(annualBasis,/set default 'ANNUAL'/)
+ assert.match(rateRules,/1000,max:4999\.99,rate:10/)
+ assert.match(rateRules,/5000,max:9999\.99,rate:12/)
+ assert.match(rateRules,/10000,max:null,rate:15/)
+ assert.match(investments,/Porcentaje anual acordado/)
+ assert.match(investments,/Sugerencia provisional por monto/)
 })
 
 test('formalización con porcentaje sigue siendo atómica',()=>{
@@ -33,7 +38,8 @@ test('contratos preparan borrador imprimible y registran documento firmado',()=>
  assert.match(contracts,/Imprimir \/ guardar PDF/)
  assert.match(contracts,/Registrar contrato firmado/)
  assert.match(contracts,/SIGNED_DOCUMENT_UPLOAD/)
- assert.match(contracts,/periodicidad específica/)
+ assert.match(contracts,/tasas anuales/i)
+ assert.match(contracts,/rangos de monto provisionales/i)
 })
 
 test('OCR del DUI exige confirmación humana y no aplica el nombre automáticamente',()=>{
