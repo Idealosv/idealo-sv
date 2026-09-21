@@ -209,8 +209,8 @@ declare t text;
 begin
   foreach t in array array['inv_investors','inv_beneficiaries','inv_applications','inv_investments']
   loop
-    execute format('drop trigger if exists trg_%I_updated_at on public.%I',t,t);
-    execute format('create trigger trg_%I_updated_at before update on public.%I for each row execute function public.inv_set_updated_at()',t,t);
+    execute format('drop trigger if exists %I on public.%I','trg_'||t||'_updated_at',t);
+    execute format('create trigger %I before update on public.%I for each row execute function public.inv_set_updated_at()','trg_'||t||'_updated_at',t);
   end loop;
 end $$;
 
