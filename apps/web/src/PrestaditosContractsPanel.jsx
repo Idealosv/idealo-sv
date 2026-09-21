@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
+import { ANNUAL_RATE_EXAMPLE_TIERS, RETURN_RATES, annualReferenceGain, suggestedAnnualRate } from './prestaditos-rate-rules.js'
 
-const RATES=[10,12,15]
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const date=value=>value?new Date(String(value).includes('T')?value:String(value)+'T12:00:00').toLocaleDateString('es-SV',{day:'2-digit',month:'long',year:'numeric'}):'—'
 const fullName=x=>[x?.first_names,x?.last_names].filter(Boolean).join(' ')||'—'
@@ -31,7 +31,8 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
    setRate(String(Number(selectedContract.return_rate_percent||0)))
    setContractNumber(selectedContract.contract_number||'')
   }else if(selectedInvestment){
-   setRate(selectedInvestment.agreed_return_rate?String(Number(selectedInvestment.agreed_return_rate)):'')
+   const suggested=suggestedAnnualRate(selectedInvestment.principal)
+   setRate(selectedInvestment.agreed_return_rate?String(Number(selectedInvestment.agreed_return_rate)):(suggested?String(suggested):''))
    setContractNumber(selectedInvestment.contract_number||'')
   }
  },[selectedInvestmentId,selectedContract?.id])
@@ -50,7 +51,7 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
   e.preventDefault()
   if(!canManage||!selectedInvestment)return
   const numericRate=Number(rate)
-  if(!RATES.includes(numericRate))return
+  if(!RETURN_RATES.includes(numericRate))return
   act(async()=>{
    const {error}=await supabase.rpc('inv_prepare_contract',{
     p_investment_id:selectedInvestment.id,
@@ -77,10 +78,10 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
    '<div><strong>Capital</strong><span class="value">'+money(investment?.principal||snapshot.principal)+'</span></div>'+
    '<div><strong>Plazo</strong><span class="value">'+(investment?.term_months||snapshot.term_months||'—')+' meses</span></div>'+
    '<div><strong>Vencimiento</strong><span class="value">'+date(investment?.maturity_date||snapshot.maturity_date)+'</span></div>'+
-   '<div><strong>Porcentaje acordado</strong><span class="value">'+Number(contract.return_rate_percent)+'%</span></div>'+
-   '<div><strong>Base / periodicidad</strong><span class="value">Pendiente de definición formal</span></div>'+
+   '<div><strong>Porcentaje anual acordado</strong><span class="value">'+Number(contract.return_rate_percent)+'% anual</span></div>'+
+   '<div><strong>Base</strong><span class="value">Anual</span></div>'+
    '</div></div>'+
-   '<div class="warning"><strong>Importante:</strong> Este documento no presume si el 10%, 12% o 15% corresponde a una periodicidad específica, interés simple, compuesto, mensual, anual o al plazo total. Esas condiciones deben completarse cuando Prestadito$ defina oficialmente la regla de rendimiento.</div>'+
+   '<div class="warning"><strong>Importante:</strong> Los porcentajes 10%, 12% y 15% son anuales. Los rangos por monto mostrados actualmente son ejemplos provisionales. Aún debe definirse cómo se prorratea el rendimiento en plazos distintos de 12 meses y si existe alguna regla adicional de cálculo.</div>'+
    '<p>Las demás condiciones y obligaciones aplicables deben corresponder al contrato aprobado por la empresa. Esta impresión funciona como borrador operativo y ficha de formalización dentro del ERP.</p>'+
    '<div class="sign"><div class="line">Firma del inversionista</div><div class="line">Representante autorizado</div></div>'+
    '<button onclick="window.print()">Imprimir / guardar PDF</button></body></html>'
@@ -130,7 +131,7 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
    <article><span>Contratos preparados</span><strong>{contracts.length}</strong><small>documentos operativos</small></article>
    <article><span>Firmados</span><strong>{contracts.filter(x=>x.status==='SIGNED').length}</strong><small>con documento archivado</small></article>
    <article><span>Pendientes de firma</span><strong>{contracts.filter(x=>x.status==='GENERATED').length}</strong><small>requieren seguimiento</small></article>
-   <article><span>Porcentajes disponibles</span><strong>10 · 12 · 15%</strong><small>sin periodicidad asumida</small></article>
+   <article><span>Porcentajes disponibles</span><strong>10 · 12 · 15%</strong><small>tasas anuales</small></article>
   </section>
 
   <section className="prst-grid form-list">
@@ -139,10 +140,12 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
     {!canManage&&<div className="prst-note">Solo propietario o administrador puede preparar o registrar contratos firmados.</div>}
     <Field label="Inversión *"><select value={selectedInvestmentId} onChange={e=>setSelectedInvestmentId(e.target.value)} disabled={!canManage}><option value="">Seleccionar</option>{investments.map(x=><option key={x.id} value={x.id}>{x.investment_code} · {fullName(investorMap.get(x.investor_id))} · {money(x.principal)}</option>)}</select></Field>
     <div className="prst-form-grid">
-     <Field label="Porcentaje acordado *"><select value={rate} onChange={e=>setRate(e.target.value)} required disabled={!canManage}><option value="">Seleccionar</option>{RATES.map(x=><option key={x} value={x}>{x}%</option>)}</select></Field>
+     <Field label="Porcentaje anual acordado *"><select value={rate} onChange={e=>setRate(e.target.value)} required disabled={!canManage}><option value="">Seleccionar</option>{RETURN_RATES.map(x=><option key={x} value={x}>{x}% anual</option>)}</select></Field>
      <Field label="Número de contrato"><input value={contractNumber} onChange={e=>setContractNumber(e.target.value)} disabled={!canManage}/></Field>
     </div>
-    <div className="prst-note"><strong>Sin suposiciones:</strong> 10%, 12% y 15% quedan registrados como porcentajes posibles, pero todavía no se define a qué plazo o periodicidad corresponde cada uno.</div>
+    <div className="prst-note"><strong>Tasas anuales confirmadas:</strong> 10%, 12% y 15%. Por ahora usamos rangos de monto provisionales solo como ejemplo; todavía falta definir los rangos reales y cómo se prorratea el rendimiento cuando el plazo no sea de 12 meses.</div>
+    <div className="prst-rate-tier-list"><strong>Ejemplos provisionales por monto</strong>{ANNUAL_RATE_EXAMPLE_TIERS.map(row=><span key={row.rate}>{row.label} → <b>{row.rate}% anual</b></span>)}</div>
+    {selectedInvestment&&rate&&<div className="prst-rate-reference"><span><b>Capital</b><strong>{money(selectedInvestment.principal)}</strong></span><span><b>Referencia anual</b><strong>{money(annualReferenceGain(selectedInvestment.principal,Number(rate)))}</strong></span><small>Esta referencia es capital × tasa anual. No se usa todavía para prorratear automáticamente plazos distintos de 12 meses.</small></div>}
     <button className="prst-primary" disabled={saving||!canManage||!selectedInvestment||!rate}>{saving?'Preparando…':selectedContract?'Actualizar contrato':'Preparar contrato'}</button>
 
     {selectedContract&&<div className="prst-contract-actions">
@@ -158,7 +161,7 @@ export default function PrestaditosContractsPanel({company,role,investments,cont
     {!filtered.length?<Empty title="Sin contratos preparados"/>:<div className="prst-table-wrap"><table className="prst-contract-table"><thead><tr><th>Contrato</th><th>Inversionista</th><th>Inversión</th><th>Capital</th><th>Porcentaje</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{filtered.map(row=>{
       const investment=investments.find(x=>x.id===row.investment_id)
       const investor=investorMap.get(row.investor_id)
-      return <tr key={row.id}><td><b>{row.contract_code}</b><small>{row.contract_number||'Sin número externo'}</small></td><td>{fullName(investor)}</td><td>{investment?.investment_code||'—'}</td><td>{money(investment?.principal)}</td><td><b>{Number(row.return_rate_percent)}%</b><small>Base pendiente</small></td><td><span className={'prst-status '+(row.status==='SIGNED'?'active':'review')}>{row.status==='SIGNED'?'Firmado':'Preparado'}</span></td><td><button type="button" onClick={()=>{setSelectedInvestmentId(row.investment_id);printContract(row)}}>Ver / imprimir</button></td></tr>
+      return <tr key={row.id}><td><b>{row.contract_code}</b><small>{row.contract_number||'Sin número externo'}</small></td><td>{fullName(investor)}</td><td>{investment?.investment_code||'—'}</td><td>{money(investment?.principal)}</td><td><b>{Number(row.return_rate_percent)}% anual</b><small>Base anual</small></td><td><span className={'prst-status '+(row.status==='SIGNED'?'active':'review')}>{row.status==='SIGNED'?'Firmado':'Preparado'}</span></td><td><button type="button" onClick={()=>{setSelectedInvestmentId(row.investment_id);printContract(row)}}>Ver / imprimir</button></td></tr>
      })}</tbody></table></div>}
    </article>
   </section>
