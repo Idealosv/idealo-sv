@@ -35,6 +35,12 @@ const ACTIONS={
  DOCUMENT_RECORDED:'Documento registrado',
  DOCUMENT_INACTIVATED:'Documento inactivado',
  DOCUMENT_REACTIVATED:'Documento reactivado',
+ INVESTMENT_RETURN_RATE_ASSIGNED:'Porcentaje de rendimiento asignado',
+ INVESTMENT_RETURN_RATE_UPDATED:'Porcentaje de rendimiento actualizado',
+ CONTRACT_PREPARED:'Contrato preparado',
+ CONTRACT_SIGNED_RECORDED:'Contrato firmado registrado',
+ RENEWAL_EXECUTED:'Renovación ejecutada',
+ WITHDRAWAL_FINALIZED:'Retiro finalizado',
 }
 
 const categoryOf=action=>{
@@ -44,7 +50,7 @@ const categoryOf=action=>{
  if(String(action).startsWith('BENEFICIARY_'))return 'BENEFICIARY'
  if(String(action).includes('PAYMENT'))return 'PAYMENT'
  if(String(action).startsWith('RENEWAL_'))return 'RENEWAL'
- if(String(action).startsWith('DOCUMENT_'))return 'DOCUMENT'
+ if(String(action).startsWith('DOCUMENT_')||String(action).startsWith('CONTRACT_'))return 'DOCUMENT'
  return 'OTHER'
 }
 
