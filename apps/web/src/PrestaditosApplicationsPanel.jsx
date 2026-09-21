@@ -25,6 +25,7 @@ function Status({value}){return <span className={`prst-status ${String(value||''
 export default function PrestaditosApplicationsPanel({
  company,
  role,
+ settings,
  investors,
  applications,
  investments,
@@ -34,6 +35,9 @@ export default function PrestaditosApplicationsPanel({
  onFormalize,
 }){
  const activeInvestors=useMemo(()=>investors.filter(x=>x.status==='ACTIVE'),[investors])
+ const termOptions=Array.isArray(settings?.allowed_term_months)?settings.allowed_term_months:[]
+ const paymentMethods=Array.isArray(settings?.payment_methods)?settings.payment_methods:[]
+ const paymentPlaces=Array.isArray(settings?.payment_places)?settings.payment_places:[]
  const emptyForm={investor_id:'',requested_amount:'',requested_term_months:'',requested_start_date:today(),payment_place:'',payment_method:'',observations:''}
  const [form,setForm]=useState(emptyForm)
  const [editingId,setEditingId]=useState('')
@@ -223,6 +227,9 @@ export default function PrestaditosApplicationsPanel({
  const docsCount=investor=>[investor?.face_photo_path,investor?.dui_front_path,investor?.dui_back_path].filter(Boolean).length
 
  return <section className="prst-application-module">
+  <datalist id="prst-application-term-options">{termOptions.map(value=><option key={value} value={value}/>)}</datalist>
+  <datalist id="prst-application-place-options">{paymentPlaces.map(value=><option key={value} value={value}/>)}</datalist>
+  <datalist id="prst-application-method-options">{paymentMethods.map(value=><option key={value} value={value}/>)}</datalist>
   <section className="prst-investor-summary prst-application-summary">
    <article><span>Solicitudes</span><strong>{applications.length}</strong><small>histórico total</small></article>
    <article><span>Pendientes / revisión</span><strong>{summary.open}</strong><small>{money(summary.requestedOpen)} solicitado</small></article>
@@ -261,10 +268,10 @@ export default function PrestaditosApplicationsPanel({
 
     <div className="prst-form-grid">
      <Field label="Monto que desea invertir *"><input type="number" min="0.01" step="0.01" inputMode="decimal" value={form.requested_amount} onChange={e=>setForm({...form,requested_amount:e.target.value})} required/></Field>
-     <Field label="Plazo solicitado *"><div className="prst-input-suffix"><input type="number" min="1" max="240" step="1" inputMode="numeric" value={form.requested_term_months} onChange={e=>setForm({...form,requested_term_months:e.target.value})} required/><span>meses</span></div></Field>
+     <Field label="Plazo solicitado *"><div className="prst-input-suffix"><input type="number" min="1" max="240" step="1" list="prst-application-term-options" inputMode="numeric" value={form.requested_term_months} onChange={e=>setForm({...form,requested_term_months:e.target.value})} required/><span>meses</span></div></Field>
      <Field label="Fecha deseada de inicio"><input type="date" value={form.requested_start_date||''} onChange={e=>setForm({...form,requested_start_date:e.target.value})}/></Field>
-     <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} placeholder="Sucursal, banco u otro"/></Field>
-     <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} placeholder="Transferencia, depósito, efectivo u otra"/></Field>
+     <Field label="Lugar de pago"><input list="prst-application-place-options" value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} placeholder="Sucursal, banco u otro"/></Field>
+     <Field label="Forma de pago" className="span-2"><input list="prst-application-method-options" value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} placeholder="Transferencia, depósito, efectivo u otra"/></Field>
     </div>
     <Field label="Observaciones de la solicitud"><textarea value={form.observations} onChange={e=>setForm({...form,observations:e.target.value})} placeholder="Indicaciones proporcionadas por el inversionista o notas de recepción."/></Field>
     <button className="prst-primary" disabled={saving||(!canSubmit&&!editingId)||!activeInvestors.length}>{saving?'Guardando…':editingId?'Guardar cambios':'Registrar solicitud'}</button>
