@@ -13,8 +13,10 @@ const TYPE_LABELS={YIELD:'Rendimiento',CAPITAL_RETURN:'Devolución de capital',A
 function Field({label,children,hint,className=''}){return <label className={`prst-field ${className}`.trim()}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
 function Empty({title,children}){return <div className="prst-empty"><strong>{title}</strong>{children&&<p>{children}</p>}</div>}
 
-export default function PrestaditosPaymentsPanel({company,role,investments,payments,investorMap,saving,act}){
+export default function PrestaditosPaymentsPanel({company,role,settings,investments,payments,investorMap,saving,act}){
  const normalizedRole=String(role||'').toLowerCase()
+ const paymentMethods=Array.isArray(settings?.payment_methods)?settings.payment_methods:[]
+ const paymentPlaces=Array.isArray(settings?.payment_places)?settings.payment_places:[]
  const canManage=['owner','admin'].includes(normalizedRole)
  const usableInvestments=useMemo(()=>investments.filter(x=>x.status!=='CANCELLED'),[investments])
  const [form,setForm]=useState({investment_id:'',payment_type:'YIELD',amount:'',payment_date:today(),payment_place:'',payment_method:'',reference:'',notes:''})
@@ -110,6 +112,8 @@ export default function PrestaditosPaymentsPanel({company,role,investments,payme
  const selectedLedgerInvestment=investments.find(x=>x.id===selectedInvestmentId)||null
 
  return <section className="prst-payment-module">
+  <datalist id="prst-payment-place-options">{paymentPlaces.map(value=><option key={value} value={value}/>)}</datalist>
+  <datalist id="prst-payment-method-options">{paymentMethods.map(value=><option key={value} value={value}/>)}</datalist>
   <section className="prst-investor-summary prst-payment-summary">
    <article><span>Rendimientos pagados</span><strong>{money(summary.yieldPaid)}</strong><small>pagos vigentes</small></article>
    <article><span>Capital devuelto</span><strong>{money(summary.capitalReturned)}</strong><small>devoluciones registradas</small></article>
@@ -134,8 +138,8 @@ export default function PrestaditosPaymentsPanel({company,role,investments,payme
      <Field label="Tipo de pago *"><select value={form.payment_type} onChange={e=>setForm({...form,payment_type:e.target.value})} disabled={!canManage}><option value="YIELD">Rendimiento</option><option value="CAPITAL_RETURN">Devolución de capital</option><option value="ADJUSTMENT">Ajuste autorizado</option></select></Field>
      <Field label="Monto *"><input type="number" min="0.01" step="0.01" inputMode="decimal" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} required disabled={!canManage}/></Field>
      <Field label="Fecha *"><input type="date" value={form.payment_date} onChange={e=>setForm({...form,payment_date:e.target.value})} required disabled={!canManage}/></Field>
-     <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
-     <Field label="Forma de pago"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
+     <Field label="Lugar de pago"><input list="prst-payment-place-options" value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
+     <Field label="Forma de pago"><input list="prst-payment-method-options" value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
      <Field label="Referencia"><input value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})} disabled={!canManage} placeholder="Transferencia, recibo, comprobante..."/></Field>
     </div>
     <Field label="Notas"><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} disabled={!canManage}/></Field>
