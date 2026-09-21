@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import './prestaditos-investors.css'
 import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
+import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -49,6 +50,7 @@ export default function PrestaditosInvestorAppHost(){
  const [payments,setPayments]=useState([])
  const [audit,setAudit]=useState([])
  const [query,setQuery]=useState('')
+ const [applicationToFormalize,setApplicationToFormalize]=useState('')
 
  const resolveContext=useCallback(async()=>{
   if(!enabled||!supabase)return
@@ -130,8 +132,8 @@ export default function PrestaditosInvestorAppHost(){
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
-    {tab==='Solicitudes'&&<ApplicationsPanel company={company} investors={investors} applications={applications} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Inversiones'&&<InvestmentsPanel company={company} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
+    {tab==='Inversiones'&&<InvestmentsPanel company={company} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
     {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Rendimientos'&&<PaymentsPanel company={company} investors={investors} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Vencimientos'&&<MaturitiesPanel investments={investments} investorMap={investorMap}/>}
@@ -261,11 +263,11 @@ function ApplicationsPanel({company,investors,applications,investorMap,saving,ac
   </article>
  </section>}
 
-function InvestmentsPanel({company,investors,applications,investments,investorMap,saving,act}){
+function InvestmentsPanel({company,investors,applications,investments,investorMap,saving,act,preselectedApplicationId='',onFormalized}){
  const eligible=applications.filter(x=>['APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status))
  const [form,setForm]=useState({application_id:'',principal:'',granted_at:today(),term_months:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
- useEffect(()=>{if(!form.application_id&&eligible[0]){const a=eligible[0];setForm(x=>({...x,application_id:a.id,principal:String(a.requested_amount),term_months:String(a.requested_term_months),payment_place:a.payment_place||'',payment_method:a.payment_method||''}))}},[eligible,form.application_id])
- const choose=id=>{const a=applications.find(x=>x.id===id);setForm({...form,application_id:id,principal:a?String(a.requested_amount):'',term_months:a?String(a.requested_term_months):'',payment_place:a?.payment_place||'',payment_method:a?.payment_method||''})}
+ useEffect(()=>{if(form.application_id)return;const preferred=eligible.find(x=>x.id===preselectedApplicationId)||eligible[0];if(preferred)setForm(x=>({...x,application_id:preferred.id,principal:String(preferred.approved_amount??preferred.requested_amount),term_months:String(preferred.approved_term_months??preferred.requested_term_months),payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))},[eligible,form.application_id,preselectedApplicationId])
+ const choose=id=>{const a=applications.find(x=>x.id===id);setForm({...form,application_id:id,principal:a?String(a.approved_amount??a.requested_amount):'',term_months:a?String(a.approved_term_months??a.requested_term_months):'',payment_place:a?.payment_place||'',payment_method:a?.payment_method||''})}
  const submit=e=>{e.preventDefault();act(async()=>{
   const a=applications.find(x=>x.id===form.application_id);if(!a)throw new Error('Seleccioná una solicitud aprobada.')
   const start=new Date(`${form.granted_at}T12:00:00`);const maturity=new Date(start);maturity.setMonth(maturity.getMonth()+Number(form.term_months))
@@ -275,6 +277,7 @@ function InvestmentsPanel({company,investors,applications,investments,investorMa
   const {error:appError}=await supabase.from('inv_applications').update({status:'ACTIVE'}).eq('id',a.id);if(appError)throw appError
   await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:a.investor_id,investment_id:data.id,action:'INVESTMENT_ACTIVATED',detail:{investment_code:code,principal:Number(form.principal),term_months:Number(form.term_months)}})
   setForm({application_id:'',principal:'',granted_at:today(),term_months:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
+  onFormalized?.()
  },'Inversión activada correctamente.')}
  return <section className="prst-grid form-list">
   <form className="prst-card prst-form" onSubmit={submit}>
