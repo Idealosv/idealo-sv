@@ -32,10 +32,11 @@ test('alertas no inventan calendario de pagos de rendimiento',()=>{
  assert.match(alertsEngine,/Revisar liquidación de rendimiento/)
 })
 
-test('dashboard y navegación exponen simulador y alertas',()=>{
- assert.match(host,/\['Alertas','Seguimiento operativo'\]/)
+test('dashboard y navegación exponen simulador y centro de notificaciones',()=>{
+ assert.match(host,/\['Notificaciones','Seguimiento operativo'\]/)
  assert.match(host,/\['Simulador','Tasas anuales por monto'\]/)
  assert.match(host,/PrestaditosAlertsPanel/)
+ assert.match(alertsPanel,/CENTRO DE NOTIFICACIONES/)
  assert.match(host,/PrestaditosSimulatorPanel/)
  assert.match(host,/Alertas abiertas/)
  assert.match(host,/Abrir simulador/)
