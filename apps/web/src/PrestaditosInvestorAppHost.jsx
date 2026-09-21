@@ -4,6 +4,7 @@ import './prestaditos-investors.css'
 import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
 import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
 import PrestaditosInvestmentsPanel from './PrestaditosInvestmentsPanel.jsx'
+import PrestaditosPaymentsPanel from './PrestaditosPaymentsPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -136,7 +137,7 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
     {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
     {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Rendimientos'&&<PaymentsPanel company={company} investors={investors} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Vencimientos'&&<MaturitiesPanel investments={investments} investorMap={investorMap}/>}
     {tab==='Renovaciones'&&<RenewalsPanel investments={investments} investorMap={investorMap}/>}
     {tab==='Tesorería'&&<TreasuryPanel investments={investments} payments={payments}/>}
@@ -200,33 +201,6 @@ function BeneficiariesPanel({company,investors,beneficiaries,investorMap,saving,
   <article className="prst-card">
    <div className="prst-card-head"><div><small>REGISTRO</small><h2>Beneficiarios</h2></div></div>
    {!beneficiaries.length?<Empty title="Sin beneficiarios registrados"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Beneficiario</th><th>Relación</th><th>Porcentaje</th></tr></thead><tbody>{beneficiaries.map(x=><tr key={x.id}><td>{fullName(investorMap.get(x.investor_id))}</td><td><b>{x.full_name}</b><small>{x.dui||'Sin DUI'}</small></td><td>{x.relationship||'—'}</td><td><b>{Number(x.percentage).toFixed(2)}%</b></td></tr>)}</tbody></table></div>}
-  </article>
- </section>}
-
-function PaymentsPanel({company,investors,investments,payments,investorMap,saving,act}){
- const [form,setForm]=useState({investment_id:'',payment_type:'YIELD',amount:'',payment_date:today(),payment_place:'',payment_method:'',reference:'',notes:''})
- const active=investments.filter(x=>!['CANCELLED','CLOSED'].includes(x.status))
- useEffect(()=>{if(!form.investment_id&&active[0])setForm(x=>({...x,investment_id:active[0].id,payment_place:active[0].payment_place||'',payment_method:active[0].payment_method||''}))},[active,form.investment_id])
- const choose=id=>{const inv=investments.find(x=>x.id===id);setForm({...form,investment_id:id,payment_place:inv?.payment_place||'',payment_method:inv?.payment_method||''})}
- const submit=e=>{e.preventDefault();act(async()=>{const inv=investments.find(x=>x.id===form.investment_id);if(!inv)throw new Error('Seleccioná una inversión.');const {data,error}=await supabase.from('inv_payments').insert({...form,company_id:company.id,investor_id:inv.investor_id,amount:Number(form.amount)}).select('id').single();if(error)throw error;await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:inv.investor_id,investment_id:inv.id,action:'INVESTOR_PAYMENT_RECORDED',detail:{payment_id:data.id,type:form.payment_type,amount:Number(form.amount)}});setForm({...form,amount:'',reference:'',notes:''})},'Pago registrado correctamente.')}
- return <section className="prst-grid form-list">
-  <form className="prst-card prst-form" onSubmit={submit}>
-   <div className="prst-card-head"><div><small>PAGO</small><h2>Registrar pago al inversionista</h2></div></div>
-   <Field label="Inversión *"><select value={form.investment_id} onChange={e=>choose(e.target.value)} required>{active.map(x=><option key={x.id} value={x.id}>{fullName(investorMap.get(x.investor_id))} · {x.investment_code} · {money(x.principal)}</option>)}</select></Field>
-   <div className="prst-form-grid">
-    <Field label="Tipo"><select value={form.payment_type} onChange={e=>setForm({...form,payment_type:e.target.value})}><option value="YIELD">Rendimiento</option><option value="CAPITAL_RETURN">Devolución de capital</option><option value="ADJUSTMENT">Ajuste autorizado</option></select></Field>
-    <Field label="Monto *"><input type="number" min="0.01" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} required/></Field>
-    <Field label="Fecha"><input type="date" value={form.payment_date} onChange={e=>setForm({...form,payment_date:e.target.value})}/></Field>
-    <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})}/></Field>
-    <Field label="Forma de pago"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})}/></Field>
-    <Field label="Referencia"><input value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})}/></Field>
-   </div>
-   <Field label="Notas"><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></Field>
-   <button className="prst-primary" disabled={saving||!active.length}>{saving?'Guardando…':'Registrar pago'}</button>
-  </form>
-  <article className="prst-card">
-   <div className="prst-card-head"><div><small>HISTORIAL</small><h2>Pagos registrados</h2></div></div>
-   {!payments.length?<Empty title="Sin pagos registrados"/>:<div className="prst-table-wrap"><table><thead><tr><th>Fecha</th><th>Inversionista</th><th>Tipo</th><th>Monto</th><th>Lugar / forma</th></tr></thead><tbody>{payments.map(x=><tr key={x.id}><td>{date(x.payment_date)}</td><td>{fullName(investorMap.get(x.investor_id))}</td><td>{x.payment_type==='YIELD'?'Rendimiento':x.payment_type==='CAPITAL_RETURN'?'Capital':'Ajuste'}</td><td><b>{money(x.amount)}</b></td><td><b>{x.payment_place||'—'}</b><small>{x.payment_method||'—'}</small></td></tr>)}</tbody></table></div>}
   </article>
  </section>}
 
