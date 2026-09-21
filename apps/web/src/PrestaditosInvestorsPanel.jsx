@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
+import PrestaditosDuiOcr from './PrestaditosDuiOcr.jsx'
 
 const EMPTY_FORM={
  first_names:'',last_names:'',birth_date:'',dui:'',nit:'',marital_status:'',profession:'',
@@ -36,6 +37,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
  const [face,setFace]=useState(null)
  const [duiFront,setDuiFront]=useState(null)
  const [duiBack,setDuiBack]=useState(null)
+ const [ocrApplied,setOcrApplied]=useState(false)
 
  const selected=investors.find(x=>x.id===selectedId)||null
  const filtered=useMemo(()=>{
@@ -51,7 +53,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
  },[investors,query,statusFilter,docsFilter])
 
  const reset=()=>{
-  setForm(EMPTY_FORM);setEditingId('');setFace(null);setDuiFront(null);setDuiBack(null)
+  setForm(EMPTY_FORM);setEditingId('');setFace(null);setDuiFront(null);setDuiBack(null);setOcrApplied(false)
  }
 
  const update=e=>setForm(current=>({...current,[e.target.name]:e.target.value}))
@@ -76,7 +78,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
   setEditingId(investor.id)
   setSelectedId(investor.id)
   setForm(Object.fromEntries(Object.keys(EMPTY_FORM).map(key=>[key,investor[key]??EMPTY_FORM[key]])))
-  setFace(null);setDuiFront(null);setDuiBack(null)
+  setFace(null);setDuiFront(null);setDuiBack(null);setOcrApplied(false)
   window.setTimeout(()=>document.querySelector('.prst-investor-form')?.scrollIntoView({behavior:'smooth',block:'start'}),30)
  }
 
@@ -217,9 +219,10 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
     <div className="prst-section-title">Documentos privados</div>
     <div className="prst-capture-grid">
      <Field label={editingId?'Reemplazar foto del rostro':'Foto del rostro'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="user" onChange={e=>setFace(e.target.files?.[0]||null)}/><small>{face?.name||'Cámara frontal o galería'}</small></Field>
-     <Field label={editingId?'Reemplazar DUI frente':'DUI frente'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>setDuiFront(e.target.files?.[0]||null)}/><small>{duiFront?.name||'Cámara trasera o galería'}</small></Field>
+     <Field label={editingId?'Reemplazar DUI frente':'DUI frente'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{setDuiFront(e.target.files?.[0]||null);setOcrApplied(false)}}/><small>{duiFront?.name||'Cámara trasera o galería'}</small></Field>
      <Field label={editingId?'Reemplazar DUI reverso':'DUI reverso'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>setDuiBack(e.target.files?.[0]||null)}/><small>{duiBack?.name||'Cámara trasera o galería'}</small></Field>
     </div>
+    <PrestaditosDuiOcr file={duiFront} onApply={({dui,birth_date})=>{setForm(current=>({...current,dui:dui||current.dui,birth_date:birth_date||current.birth_date}));setOcrApplied(true)}}/>
 
     <Field label="Observaciones internas"><textarea name="notes" value={form.notes} onChange={update}/></Field>
     <button className="prst-primary" disabled={saving}>{saving?'Guardando…':editingId?'Guardar cambios':'Guardar inversionista'}</button>
