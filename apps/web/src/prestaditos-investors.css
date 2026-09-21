@@ -191,3 +191,24 @@
  .prst-beneficiary-allocation,.prst-beneficiary-tools,.prst-renewal-tools{grid-template-columns:1fr}
  .prst-beneficiary-tools .prst-search,.prst-renewal-tools .prst-search{grid-column:auto}
 }
+
+
+.prst-treasury-module{display:grid;gap:15px}
+.prst-treasury-summary article:nth-child(1){border-top-color:#2f7b49}
+.prst-treasury-summary article:nth-child(2){border-top-color:#d99222}
+.prst-treasury-summary article:nth-child(3){border-top-color:var(--prst-red)}
+.prst-treasury-summary article:nth-child(4){border-top-color:#2b6f9f}
+.prst-treasury-tools{grid-template-columns:minmax(280px,1fr) 210px auto}
+.prst-treasury-table{min-width:1200px!important}
+.prst-money-in{color:#2c7043}
+.prst-money-out{color:#a33d35}
+.prst-treasury-note{border-left:4px solid #24272b}
+@media(max-width:900px){
+ .prst-treasury-tools{grid-template-columns:1fr 1fr}
+ .prst-treasury-tools .prst-search{grid-column:1/-1;max-width:none}
+ .prst-treasury-tools>span{text-align:left}
+}
+@media(max-width:680px){
+ .prst-treasury-tools{grid-template-columns:1fr}
+ .prst-treasury-tools .prst-search{grid-column:auto}
+}
