@@ -16,13 +16,13 @@ const demo={
   {code:'SOL-20260921-C9D184',name:'José Roberto Hernández',amount:20000,term:18,status:'Pendiente',place:'Transferencia bancaria'},
  ],
  investments:[
-  {code:'INVEST-20260901-A1B2C3',name:'Carlos Ernesto Mejía',capital:15000,term:12,granted:'01 sep 2026',maturity:'01 sep 2027',gain:1800,rate:12,status:'Activa'},
-  {code:'INVEST-20260815-D4E5F6',name:'María Elena López',capital:10000,term:6,granted:'15 ago 2026',maturity:'15 feb 2027',gain:720,rate:10,status:'Activa'},
-  {code:'INVEST-20260310-G7H8I9',name:'José Roberto Hernández',capital:12000,term:6,granted:'10 mar 2026',maturity:'10 sep 2026',gain:900,rate:15,status:'Vencida'},
+  {code:'INVEST-20260901-A1B2C3',name:'Carlos Ernesto Mejía',capital:4000,term:12,granted:'01 sep 2026',maturity:'01 sep 2027',gain:400,rate:10,status:'Activa'},
+  {code:'INVEST-20260815-D4E5F6',name:'María Elena López',capital:8000,term:6,granted:'15 ago 2026',maturity:'15 feb 2027',gain:960,rate:12,status:'Activa'},
+  {code:'INVEST-20260310-G7H8I9',name:'José Roberto Hernández',capital:12000,term:6,granted:'10 mar 2026',maturity:'10 sep 2026',gain:1800,rate:15,status:'Vencida'},
  ],
  contracts:[
-  {code:'CTR-20260901-AB12CD',number:'PS-2026-001',investor:'Carlos Ernesto Mejía',investment:'INVEST-20260901-A1B2C3',capital:15000,rate:12,status:'Firmado'},
-  {code:'CTR-20260815-EF34GH',number:'PS-2026-002',investor:'María Elena López',investment:'INVEST-20260815-D4E5F6',capital:10000,rate:10,status:'Preparado'},
+  {code:'CTR-20260901-AB12CD',number:'PS-2026-001',investor:'Carlos Ernesto Mejía',investment:'INVEST-20260901-A1B2C3',capital:4000,rate:10,status:'Firmado'},
+  {code:'CTR-20260815-EF34GH',number:'PS-2026-002',investor:'María Elena López',investment:'INVEST-20260815-D4E5F6',capital:8000,rate:12,status:'Preparado'},
  ],
  beneficiaries:[
   {code:'BEN-20260901-11AB22',name:'Ana Mejía',investor:'Carlos Ernesto Mejía',relation:'Esposa',pct:60,status:'Activo'},
@@ -98,7 +98,7 @@ function Dashboard({capital,projected,yieldPaid}){
    <Metric label="Inversionistas" value="3" hint="expedientes registrados"/>
    <Metric label="Capital activo" value={money(capital)} hint="2 inversiones activas" tone="money"/>
    <Metric label="Solicitudes pendientes" value="2" hint="por revisar o formalizar" tone="warn"/>
-   <Metric label="Ganancia proyectada" value={money(projected)} hint="proyección demostrativa" tone="money"/>
+   <Metric label="Referencia anual" value={money(projected)} hint="proyección demostrativa" tone="money"/>
    <Metric label="Rendimientos pagados" value={money(yieldPaid)} hint="pagos registrados"/>
    <Metric label="Próximo vencimiento" value="15 feb 2027" hint="seguimiento automático"/>
   </section>
@@ -137,9 +137,9 @@ function Applications(){return <>
  </>}
 
 function Investments(){return <>
- <section className="prst-investor-summary"><article><span>Inversiones activas</span><strong>2</strong><small>vigentes</small></article><article><span>Capital activo</span><strong>{money(25000)}</strong><small>formalizado</small></article><article><span>Ganancia proyectada</span><strong>{money(2520)}</strong><small>demostrativa</small></article><article><span>Vencidas</span><strong>1</strong><small>requiere gestión</small></article></section>
+ <section className="prst-investor-summary"><article><span>Inversiones activas</span><strong>2</strong><small>vigentes</small></article><article><span>Capital activo</span><strong>{money(12000)}</strong><small>formalizado</small></article><article><span>Referencia anual</span><strong>{money(1360)}</strong><small>demostrativa</small></article><article><span>Vencidas</span><strong>1</strong><small>requiere gestión</small></article></section>
  <Card title="Portafolio de inversiones" kicker="INVERSIONES">
-  <Table headers={['Inversión','Inversionista','Capital','Plazo','Porcentaje','Otorgada','Vence','Ganancia','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td><b>{x.rate}%</b><small>base pendiente</small></td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
+  <Table headers={['Inversión','Inversionista','Capital','Plazo','Tasa anual','Otorgada','Vence','Referencia anual','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td><b>{x.rate}% anual</b><small>según monto de ejemplo</small></td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
  </Card>
  </>}
 
@@ -172,10 +172,10 @@ function Renewals(){return <>
  </>}
 
 function Treasury({capital,yieldPaid}){return <>
- <section className="prst-investor-summary"><article><span>Capital recibido</span><strong>{money(37000)}</strong><small>formalizado</small></article><article><span>Rendimientos pagados</span><strong>{money(yieldPaid)}</strong><small>salidas vigentes</small></article><article><span>Capital devuelto</span><strong>{money(12000)}</strong><small>devoluciones</small></article><article><span>Posición neta</span><strong>{money(24730)}</strong><small>entradas menos salidas</small></article></section>
+ <section className="prst-investor-summary"><article><span>Capital recibido</span><strong>{money(24000)}</strong><small>formalizado</small></article><article><span>Rendimientos pagados</span><strong>{money(yieldPaid)}</strong><small>salidas vigentes</small></article><article><span>Capital devuelto</span><strong>{money(12000)}</strong><small>devoluciones</small></article><article><span>Posición neta</span><strong>{money(11730)}</strong><small>entradas menos salidas</small></article></section>
  <Card title="Libro consolidado de tesorería" kicker="MOVIMIENTOS">
   <Table headers={['Fecha','Movimiento','Inversionista','Inversión','Entrada','Salida','Estado']} rows={[
-   <tr key="t1"><td>01 sep 2026</td><td>Entrada de capital</td><td>Carlos Ernesto Mejía</td><td>INVEST-20260901-A1B2C3</td><td><b className="prst-money-in">{money(15000)}</b></td><td>—</td><td><Status>Vigente</Status></td></tr>,
+   <tr key="t1"><td>01 sep 2026</td><td>Entrada de capital</td><td>Carlos Ernesto Mejía</td><td>INVEST-20260901-A1B2C3</td><td><b className="prst-money-in">{money(4000)}</b></td><td>—</td><td><Status>Vigente</Status></td></tr>,
    <tr key="t2"><td>05 sep 2026</td><td>Pago de rendimiento</td><td>Carlos Ernesto Mejía</td><td>INVEST-20260901-A1B2C3</td><td>—</td><td><b className="prst-money-out">{money(150)}</b></td><td><Status>Vigente</Status></td></tr>,
    <tr key="t3"><td>18 sep 2026</td><td>Devolución de capital</td><td>José Roberto Hernández</td><td>INVEST-20260310-G7H8I9</td><td>—</td><td><b className="prst-money-out">{money(12000)}</b></td><td><Status>Vigente</Status></td></tr>,
   ]}/>
@@ -194,8 +194,8 @@ function Documents(){return <>
 function Reports(){return <>
  <section className="prst-metrics">
   <Metric label="Inversionistas activos" value="3" hint="expedientes habilitados"/>
-  <Metric label="Capital activo" value={money(25000)} hint="inversiones vigentes" tone="money"/>
-  <Metric label="Ganancia proyectada" value={money(2520)} hint="según datos formalizados" tone="money"/>
+  <Metric label="Capital activo" value={money(12000)} hint="inversiones vigentes" tone="money"/>
+  <Metric label="Referencia anual" value={money(1360)} hint="referencia anual" tone="money"/>
   <Metric label="Rendimientos pagados" value={money(270)} hint="pagos vigentes"/>
   <Metric label="Capital devuelto" value={money(12000)} hint="devoluciones"/>
   <Metric label="Vencidas" value="1" hint="requiere seguimiento" tone="warn"/>
@@ -219,14 +219,14 @@ function Configuration(){return <>
   <article><span>Empresa</span><strong>Prestadito$ El Salvador</strong><small>vertical de inversionistas</small></article>
   <article><span>Tu rol</span><strong>owner</strong><small>permisos efectivos</small></article>
   <article><span>Plazos configurados</span><strong>3</strong><small>6, 12, 18 meses</small></article>
-  <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>regla automática pendiente</small></article>
+  <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>tasas anuales por monto</small></article>
  </section>
  <Card title="Reglas y catálogos de Prestadito$" kicker="CONFIGURACIÓN OPERATIVA">
   <div className="prst-config-sections">
    <section><div className="prst-section-title">Plazos disponibles</div><p className="prst-copy">Opciones sugeridas para solicitudes y renovaciones.</p><div className="prst-chip-list"><span>6 meses</span><span>12 meses</span><span>18 meses</span></div></section>
    <section><div className="prst-section-title">Formas de pago</div><p className="prst-copy">Catálogo de uso operativo.</p><div className="prst-chip-list"><span>Transferencia bancaria</span><span>Depósito</span><span>Efectivo</span></div></section>
    <section><div className="prst-section-title">Lugares de pago</div><p className="prst-copy">Nombres consistentes en el ERP.</p><div className="prst-chip-list"><span>Oficina central</span><span>Banco</span></div></section>
-   <section><div className="prst-section-title">Rendimiento financiero</div><div className="prst-config-locked"><div><span>Porcentajes informados</span><strong>10% · 12% · 15%</strong></div><p>Ya se pueden registrar, pero todavía no se asume periodicidad ni relación automática con monto o plazo.</p></div></section>
+   <section><div className="prst-section-title">Rendimiento financiero</div><div className="prst-config-locked"><div><span>Tasas anuales</span><strong>10% · 12% · 15% anual</strong></div><p>Ejemplos provisionales por monto hasta recibir la tabla real.</p><div className="prst-rate-tier-list"><span>$1,000 a $4,999.99 → <b>10% anual</b></span><span>$5,000 a $9,999.99 → <b>12% anual</b></span><span>$10,000 en adelante → <b>15% anual</b></span></div></div></section>
   </div>
  </Card>
  <Card title="Matriz de acceso" kicker="PERMISOS EFECTIVOS">
@@ -243,9 +243,9 @@ function Configuration(){return <>
 
 
 function Contracts(){return <>
- <section className="prst-investor-summary prst-contracts-summary"><article><span>Contratos preparados</span><strong>2</strong><small>documentos operativos</small></article><article><span>Firmados</span><strong>1</strong><small>con documento archivado</small></article><article><span>Pendientes de firma</span><strong>1</strong><small>requieren seguimiento</small></article><article><span>Porcentajes disponibles</span><strong>10 · 12 · 15%</strong><small>sin periodicidad asumida</small></article></section>
+ <section className="prst-investor-summary prst-contracts-summary"><article><span>Contratos preparados</span><strong>2</strong><small>documentos operativos</small></article><article><span>Firmados</span><strong>1</strong><small>con documento archivado</small></article><article><span>Pendientes de firma</span><strong>1</strong><small>requieren seguimiento</small></article><article><span>Porcentajes disponibles</span><strong>10 · 12 · 15%</strong><small>tasas anuales</small></article></section>
  <Card title="Control contractual" kicker="CONTRATOS / PDF / FIRMA">
-  <div className="prst-note"><strong>Por ahora:</strong> el contrato registra 10%, 12% o 15%, pero no supone si el porcentaje es mensual, anual o por todo el plazo.</div>
-  <Table headers={['Contrato','Inversionista','Inversión','Capital','Porcentaje','Estado']} rows={demo.contracts.map(x=><tr key={x.code}><td><b>{x.code}</b><small>{x.number}</small></td><td>{x.investor}</td><td>{x.investment}</td><td>{money(x.capital)}</td><td><b>{x.rate}%</b><small>base pendiente</small></td><td><Status tone={x.status==='Firmado'?'active':'review'}>{x.status}</Status></td></tr>)}/>
+  <div className="prst-note"><strong>Confirmado:</strong> 10%, 12% y 15% son tasas anuales. Por ahora usamos como ejemplo: $1,000–$4,999.99 = 10%, $5,000–$9,999.99 = 12% y $10,000+ = 15%.</div>
+  <Table headers={['Contrato','Inversionista','Inversión','Capital','Porcentaje','Estado']} rows={demo.contracts.map(x=><tr key={x.code}><td><b>{x.code}</b><small>{x.number}</small></td><td>{x.investor}</td><td>{x.investment}</td><td>{money(x.capital)}</td><td><b>{x.rate}% anual</b><small>según monto de ejemplo</small></td><td><Status tone={x.status==='Firmado'?'active':'review'}>{x.status}</Status></td></tr>)}/>
  </Card>
  </>}
