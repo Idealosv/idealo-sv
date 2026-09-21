@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Notificaciones','Inversionistas','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Configuración']
+const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Configuración']
 
 const demo={
  investors:[
@@ -56,26 +56,36 @@ function Table({headers,rows}){return <div className="prst-table-wrap"><table><t
 
 export default function PrestaditosPreviewApp(){
  const [tab,setTab]=useState('Dashboard')
+ const [mobileNavOpen,setMobileNavOpen]=useState(false)
  const capital=useMemo(()=>demo.investments.filter(x=>x.status==='Activa').reduce((s,x)=>s+x.capital,0),[])
  const projected=useMemo(()=>demo.investments.filter(x=>x.status==='Activa').reduce((s,x)=>s+x.gain,0),[])
  const yieldPaid=useMemo(()=>demo.payments.filter(x=>x.type==='Rendimiento').reduce((s,x)=>s+x.amount,0),[])
 
+ const selectTab=name=>{setTab(name);setMobileNavOpen(false)}
  return <div className="prst-app">
-  <aside className="prst-sidebar">
+  {mobileNavOpen&&<button type="button" className="prst-mobile-overlay" aria-label="Cerrar menú" onClick={()=>setMobileNavOpen(false)}/>}
+  <aside className={`prst-sidebar ${mobileNavOpen?'mobile-open':''}`}>
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
-   <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Configuración:'Reglas del vertical'
+   <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{({
+    Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Agenda:'Vencimientos y tareas',Inversionistas:'Expedientes y documentos','Perfil 360':'Vista integral del inversionista',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Configuración:'Reglas del vertical'
    })[name]}</small></button>)}</nav>
   </aside>
 
   <main className="prst-main">
-   <header className="prst-topbar"><div><span>IDEALO SV · FINANCIERA / INVERSIONISTAS</span><h1>{tab}</h1><p>Vista previa con datos demostrativos. No modifica información real.</p></div><div className="prst-top-actions"><button type="button" onClick={()=>setTab('Dashboard')}>Inicio</button></div></header>
+   <header className="prst-topbar">
+    <button type="button" className="prst-mobile-menu" onClick={()=>setMobileNavOpen(true)} aria-label="Abrir menú">☰</button>
+    <div className="prst-top-title"><span>IDEALO SV · FINANCIERA / INVERSIONISTAS</span><h1>{tab}</h1><p>Vista previa con datos demostrativos. No modifica información real.</p></div>
+    <PreviewSearch onOpen={()=>selectTab('Perfil 360')}/>
+    <div className="prst-top-actions"><button type="button" onClick={()=>selectTab('Dashboard')}>Inicio</button></div>
+   </header>
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard capital={capital} projected={projected} yieldPaid={yieldPaid}/>}
     {tab==='Notificaciones'&&<Notifications/>}
+    {tab==='Agenda'&&<Agenda/>}
     {tab==='Inversionistas'&&<Investors/>}
+    {tab==='Perfil 360'&&<Profile360/>}
     {tab==='Solicitudes'&&<Applications/>}
     {tab==='Simulador'&&<Simulator/>}
     {tab==='Inversiones'&&<Investments/>}
@@ -337,4 +347,48 @@ function Notifications(){return <>
    <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><div className="prst-notification-actions"><button>Abrir</button><button>Revisada</button><button>Archivar</button></div></article>
   </div>
  </Card>
+ </>}
+
+
+function PreviewSearch({onOpen}){
+ const [query,setQuery]=useState('')
+ const rows=useMemo(()=>{
+  const q=query.trim().toLowerCase()
+  if(q.length<2)return []
+  const results=[]
+  demo.investors.forEach(x=>{if((x.name+' '+x.dui+' '+x.code).toLowerCase().includes(q))results.push({type:'Inversionista',title:x.name,sub:x.code+' · '+x.dui})})
+  demo.investments.forEach(x=>{if((x.code+' '+x.name).toLowerCase().includes(q))results.push({type:'Inversión',title:x.code,sub:x.name+' · '+money(x.capital)})})
+  demo.contracts.forEach(x=>{if((x.code+' '+x.number+' '+x.investor).toLowerCase().includes(q))results.push({type:'Contrato',title:x.code,sub:x.investor+' · '+x.number})})
+  demo.payments.forEach(x=>{if((x.code+' '+x.name+' '+x.investment).toLowerCase().includes(q))results.push({type:'Pago',title:x.code,sub:x.name+' · '+money(x.amount)})})
+  demo.documents.forEach(x=>{if((x.code+' '+x.title+' '+x.investor).toLowerCase().includes(q))results.push({type:'Documento',title:x.code,sub:x.investor+' · '+x.title})})
+  return results.slice(0,8)
+ },[query])
+ return <div className="prst-global-search">
+  <div className="prst-global-search-input"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nombre, DUI, inversión, contrato, pago o documento"/>{query?<button type="button" onClick={()=>setQuery('')}>×</button>:<span/>}</div>
+  {query.trim().length>=2&&<div className="prst-global-search-results"><div className="prst-global-search-head"><b>{rows.length} resultados</b><span>Vista previa</span></div>{rows.length?rows.map((row,i)=><button type="button" key={i} onClick={()=>{onOpen();setQuery('')}}><span className="prst-search-icon">{row.type[0]}</span><span className="prst-search-copy"><b>{row.title}</b><small>{row.sub}</small></span><span className="prst-search-type">{row.type}</span></button>):<div className="prst-global-search-empty">Sin coincidencias.</div>}</div>}
+ </div>
+}
+
+function Agenda(){return <>
+ <section className="prst-investor-summary prst-agenda-summary"><article><span>Vencidos</span><strong>1</strong><small>fechas anteriores a hoy</small></article><article><span>Para hoy</span><strong>2</strong><small>seguimientos sin fecha límite</small></article><article><span>Próximos 7 días</span><strong>3</strong><small>agenda operativa</small></article><article><span>Total activos</span><strong>5</strong><small>eventos derivados del ERP</small></article></section>
+ <Card title="Seguimiento diario y semanal" kicker="AGENDA OPERATIVA">
+  <div className="prst-agenda-view-tabs"><button>Hoy / vencidos</button><button className="active">7 días</button><button>30 días</button></div>
+  <div className="prst-agenda-list">
+   <article className="overdue"><div className="prst-agenda-date"><b>10 sep</b><small>Vencido</small></div><div className="prst-agenda-copy"><div><span>Vencimiento</span><b>Crítica</b></div><strong>Vencimiento de inversión</strong><small>José Roberto Hernández · INVEST-20260310-G7H8I9</small></div><button>Abrir</button></article>
+   <article className="high"><div className="prst-agenda-date"><b>Hoy</b><small>Seguimiento sin fecha límite</small></div><div className="prst-agenda-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><button>Abrir</button></article>
+   <article className="medium"><div className="prst-agenda-date"><b>Hoy</b><small>Seguimiento sin fecha límite</small></div><div className="prst-agenda-copy"><div><span>Documentación</span><b>Media</b></div><strong>Completar expediente</strong><small>José Roberto Hernández · falta DUI reverso</small></div><button>Abrir</button></article>
+  </div>
+ </Card>
+ </>}
+
+function Profile360(){return <>
+ <Card title="Carlos Ernesto Mejía" kicker="PERFIL 360">
+  <div className="prst-profile360-actions"><button><b>Estado de cuenta</b><small>Resumen y PDF</small></button><button><b>Contrato</b><small>INVEST-20260901-A1B2C3</small></button><button><b>Registrar pago</b><small>Rendimiento o capital</small></button><button><b>Renovación</b><small>Gestionar vencimiento</small></button><button><b>Documentos</b><small>Expediente privado</small></button></div>
+ </Card>
+ <section className="prst-investor-summary prst-profile360-summary"><article><span>Capital vigente</span><strong>{money(4000)}</strong><small>1 inversión vigente</small></article><article><span>Rendimientos pagados</span><strong>{money(150)}</strong><small>pagos vigentes</small></article><article><span>Capital devuelto</span><strong>{money(0)}</strong><small>histórico</small></article><article><span>Próximo vencimiento</span><strong>01 sep 2027</strong><small>INVEST-20260901-A1B2C3</small></article></section>
+ <section className="prst-grid two">
+  <Card title="Expediente del inversionista" kicker="DATOS PERSONALES"><div className="prst-profile-grid"><article><small>Nombre</small><b>Carlos Ernesto Mejía</b><span>DUI 01234567-8</span></article><article><small>Contacto</small><b>7788-1122</b><span>carlos@ejemplo.com</span></article><article><small>Documentación</small><b>Completa</b><span>Rostro + DUI frente/reverso</span></article><article><small>Estado</small><b>Activo</b><span>INV-2026-001284</span></article></div></Card>
+  <Card title="Expediente relacionado" kicker="RESUMEN"><div className="prst-profile360-counters"><div><span>Solicitudes</span><strong>1</strong></div><div><span>Contratos</span><strong>1</strong></div><div><span>Beneficiarios</span><strong>2</strong></div><div><span>Documentos</span><strong>2</strong></div><div><span>Pagos</span><strong>1</strong></div><div><span>Renovaciones</span><strong>0</strong></div></div></Card>
+ </section>
+ <Card title="Capital y vigencias" kicker="INVERSIONES"><Table headers={['Inversión','Capital','Tasa anual','Inicio','Vence','Capital pendiente','Contrato','Estado']} rows={[<tr key="p360"><td><b>INVEST-20260901-A1B2C3</b></td><td>{money(4000)}</td><td>10% anual</td><td>01 sep 2026</td><td>01 sep 2027</td><td><b>{money(4000)}</b></td><td>Firmado</td><td><Status>Activa</Status></td></tr>]}/></Card>
  </>}
