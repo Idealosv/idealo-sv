@@ -57,7 +57,8 @@ export default function PrestaditosMonthlyCloseoutPanel({company,role,closeouts,
    '<div><small>Capital devuelto</small><strong>'+money(m.capital_returned)+'</strong></div>'+
    '<div><small>Ajustes</small><strong>'+money(m.adjustments)+'</strong></div>'+
    '<div><small>Vencimientos</small><strong>'+(m.maturities??0)+'</strong></div>'+
-   '<div><small>Renovaciones ejecutadas</small><strong>'+(m.renewals_executed??0)+'</strong></div>'+
+   '<div><small>Renovaciones ejecutadas</small><strong>'+(m.renewals_executed??0)+'</strong></div>'+ 
+   '<div><small>Retiros finalizados</small><strong>'+(m.withdrawals_finalized??0)+'</strong></div>'+
    '<div><small>Contratos firmados</small><strong>'+(m.contracts_signed??0)+'</strong></div>'+
    '</div>'+
    '<div class="note"><strong>Alcance:</strong> este cierre es un snapshot de actividad del mes. No bloquea, modifica ni elimina inversiones, pagos, contratos o renovaciones.</div>'+
@@ -100,6 +101,7 @@ export default function PrestaditosMonthlyCloseoutPanel({company,role,closeouts,
     <article><span>Capital devuelto</span><strong>{money(metrics.capital_returned)}</strong><small>pagos vigentes</small></article>
     <article><span>Vencimientos</span><strong>{metrics.maturities??0}</strong><small>fechas del período</small></article>
     <article><span>Renovaciones</span><strong>{metrics.renewals_executed??0}</strong><small>ejecutadas</small></article>
+    <article><span>Retiros</span><strong>{metrics.withdrawals_finalized??0}</strong><small>finalizados</small></article>
    </section>
    {selected.notes&&<div className="prst-note"><strong>Notas:</strong> {selected.notes}</div>}
   </article>}
