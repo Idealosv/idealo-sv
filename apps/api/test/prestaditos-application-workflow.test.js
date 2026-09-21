@@ -12,6 +12,10 @@ const investmentControls=read('supabase/migrations/20260921181000_prestaditos_in
 const paymentsPanel=read('apps/web/src/PrestaditosPaymentsPanel.jsx')
 const paymentLedger=read('supabase/migrations/20260921184500_prestaditos_payment_ledger.sql')
 const maturitiesPanel=read('apps/web/src/PrestaditosMaturitiesPanel.jsx')
+const beneficiariesPanel=read('apps/web/src/PrestaditosBeneficiariesPanel.jsx')
+const beneficiaryControls=read('supabase/migrations/20260921192000_prestaditos_beneficiaries_advanced.sql')
+const renewalsPanel=read('apps/web/src/PrestaditosRenewalsPanel.jsx')
+const renewalControls=read('supabase/migrations/20260921194500_prestaditos_renewal_decisions.sql')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -106,4 +110,27 @@ test('control de vencimientos clasifica ventanas críticas sin alterar contratos
  assert.match(maturitiesPanel,/Próximos 90 días/)
  assert.match(maturitiesPanel,/llegar a la fecha de vencimiento no renueva ni cierra la inversión automáticamente/)
  assert.match(maturitiesPanel,/Gestionar vencimiento/)
+})
+
+
+test('beneficiarios avanzados conservan historial y control de porcentaje',()=>{
+ assert.match(beneficiaryControls,/beneficiary_code text/)
+ assert.match(beneficiaryControls,/BENEFICIARY_UPDATED/)
+ assert.match(beneficiaryControls,/BENEFICIARY_DEACTIVATED/)
+ assert.match(beneficiaryControls,/El porcentaje total de beneficiarios activos no puede superar 100/)
+ assert.match(beneficiaryControls,/revoke insert,update,delete on public\.inv_beneficiaries from authenticated/)
+ assert.match(beneficiariesPanel,/no obliga a completar 100%/)
+ assert.match(beneficiariesPanel,/supabase\.rpc\('inv_save_beneficiary'/)
+ assert.match(beneficiariesPanel,/supabase\.rpc\('inv_set_beneficiary_active'/)
+})
+
+test('renovaciones registran decisión sin ejecutar automáticamente una inversión',()=>{
+ assert.match(renewalControls,/create table if not exists public\.inv_renewal_decisions/)
+ assert.match(renewalControls,/RENEW_CAPITAL_YIELD/)
+ assert.match(renewalControls,/WITHDRAW/)
+ assert.match(renewalControls,/v_days>30/)
+ assert.match(renewalsPanel,/Esta etapa solo registra la decisión/)
+ assert.match(renewalsPanel,/No cierra la inversión anterior ni crea una nueva automáticamente/)
+ assert.match(renewalsPanel,/supabase\.rpc\('inv_save_renewal_decision'/)
+ assert.match(renewalsPanel,/supabase\.rpc\('inv_cancel_renewal_decision'/)
 })
