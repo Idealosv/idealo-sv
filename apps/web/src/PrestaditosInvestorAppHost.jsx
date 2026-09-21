@@ -14,12 +14,17 @@ import PrestaditosDocumentsPanel from './PrestaditosDocumentsPanel.jsx'
 import PrestaditosReportsPanel from './PrestaditosReportsPanel.jsx'
 import PrestaditosAuditPanel from './PrestaditosAuditPanel.jsx'
 import PrestaditosConfigurationPanel from './PrestaditosConfigurationPanel.jsx'
+import PrestaditosSimulatorPanel from './PrestaditosSimulatorPanel.jsx'
+import PrestaditosAlertsPanel from './PrestaditosAlertsPanel.jsx'
+import { buildPrestaditosAlerts } from './prestaditos-alerts.js'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
  ['Dashboard','Resumen de inversiones'],
+ ['Alertas','Seguimiento operativo'],
  ['Inversionistas','Expedientes y documentos'],
  ['Solicitudes','Solicitudes de inversión'],
+ ['Simulador','Tasas anuales por monto'],
  ['Inversiones','Capital y vigencias'],
  ['Contratos','PDF y firma'],
  ['Beneficiarios','Beneficiarios registrados'],
