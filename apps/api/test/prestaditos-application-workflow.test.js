@@ -16,6 +16,7 @@ const beneficiariesPanel=read('apps/web/src/PrestaditosBeneficiariesPanel.jsx')
 const beneficiaryControls=read('supabase/migrations/20260921192000_prestaditos_beneficiaries_advanced.sql')
 const renewalsPanel=read('apps/web/src/PrestaditosRenewalsPanel.jsx')
 const renewalControls=read('supabase/migrations/20260921194500_prestaditos_renewal_decisions.sql')
+const treasuryPanel=read('apps/web/src/PrestaditosTreasuryPanel.jsx')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -133,4 +134,14 @@ test('renovaciones registran decisión sin ejecutar automáticamente una inversi
  assert.match(renewalsPanel,/No cierra la inversión anterior ni crea una nueva automáticamente/)
  assert.match(renewalsPanel,/supabase\.rpc\('inv_save_renewal_decision'/)
  assert.match(renewalsPanel,/supabase\.rpc\('inv_cancel_renewal_decision'/)
+})
+
+
+test('tesorería consolida únicamente movimientos de inversionistas',()=>{
+ assert.match(treasuryPanel,/Entrada de capital/)
+ assert.match(treasuryPanel,/Pago de rendimiento/)
+ assert.match(treasuryPanel,/Devolución de capital/)
+ assert.match(treasuryPanel,/Solo movimientos de inversionistas/)
+ assert.match(treasuryPanel,/Una entrada de capital nace de una inversión formalizada/)
+ assert.match(treasuryPanel,/row\.status==='REVERSED'/)
 })
