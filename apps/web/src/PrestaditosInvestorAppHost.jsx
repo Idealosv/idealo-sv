@@ -4,6 +4,7 @@ import './prestaditos-investors.css'
 import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
 import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
 import PrestaditosInvestmentsPanel from './PrestaditosInvestmentsPanel.jsx'
+import PrestaditosContractsPanel from './PrestaditosContractsPanel.jsx'
 import PrestaditosPaymentsPanel from './PrestaditosPaymentsPanel.jsx'
 import PrestaditosMaturitiesPanel from './PrestaditosMaturitiesPanel.jsx'
 import PrestaditosBeneficiariesPanel from './PrestaditosBeneficiariesPanel.jsx'
@@ -19,7 +20,8 @@ const TABS=[
  ['Dashboard','Resumen de inversiones'],
  ['Inversionistas','Expedientes y documentos'],
  ['Solicitudes','Solicitudes de inversión'],
- ['Inversiones','Contratos y vigencias'],
+ ['Inversiones','Capital y vigencias'],
+ ['Contratos','PDF y firma'],
  ['Beneficiarios','Beneficiarios registrados'],
  ['Rendimientos','Pagos al inversionista'],
  ['Vencimientos','Próximas fechas'],
@@ -62,6 +64,7 @@ export default function PrestaditosInvestorAppHost(){
  const [renewals,setRenewals]=useState([])
  const [documents,setDocuments]=useState([])
  const [settings,setSettings]=useState(null)
+ const [contracts,setContracts]=useState([])
  const [query,setQuery]=useState('')
  const [applicationToFormalize,setApplicationToFormalize]=useState('')
  const [renewalToManage,setRenewalToManage]=useState('')
@@ -91,7 +94,7 @@ export default function PrestaditosInvestorAppHost(){
   if(!enabled||!company?.id||!supabase)return
   setLoading(true);setError('')
   try{
-   const [i,a,n,b,p,l,rn,d,s]=await Promise.all([
+   const [i,a,n,b,p,l,rn,d,s,c]=await Promise.all([
     supabase.from('inv_investors').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_applications').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_investments').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
@@ -101,9 +104,10 @@ export default function PrestaditosInvestorAppHost(){
     supabase.from('inv_renewal_decisions').select('*').eq('company_id',company.id).order('decided_at',{ascending:false}),
     supabase.from('inv_documents').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_company_settings').select('*').eq('company_id',company.id).maybeSingle(),
+    supabase.from('inv_contracts').select('*').eq('company_id',company.id).order('generated_at',{ascending:false}),
    ])
-   for(const r of [i,a,n,b,p,l,rn,d,s])if(r.error)throw r.error
-   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[]);setSettings(s.data||null)
+   for(const r of [i,a,n,b,p,l,rn,d,s,c])if(r.error)throw r.error
+   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[]);setSettings(s.data||null);setContracts(c.data||[])
   }catch(err){setError(safeText(err))}
   finally{setLoading(false)}
  },[enabled,company?.id])
@@ -150,7 +154,8 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
     {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} settings={settings} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
-    {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} settings={settings} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
+    {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} settings={settings} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>} 
+    {tab==='Contratos'&&<PrestaditosContractsPanel company={company} role={role} investments={investments} contracts={contracts} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Beneficiarios'&&<PrestaditosBeneficiariesPanel company={company} role={role} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} settings={settings} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={investmentId=>{setRenewalToManage(investmentId);setTab('Renovaciones')}}/>}
