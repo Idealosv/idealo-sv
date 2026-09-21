@@ -62,7 +62,7 @@ export default function PrestaditosExecutiveAnalytics({investments,payments,appl
  const maxTier=Math.max(1,...tierRows.map(x=>x.capital))
  const maxMaturity=Math.max(1,...maturity.map(x=>x.capital))
  const maxFlow=Math.max(1,...cashflow.flatMap(x=>[x.incoming,x.outgoing]))
- const approvedPending=applications.filter(x=>['APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status)).reduce((s,x)=>s+Number(x.approved_amount??x.requested_amount||0),0)
+ const approvedPending=applications.filter(x=>['APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status)).reduce((s,x)=>s+Number((x.approved_amount??x.requested_amount)||0),0)
 
  return <section className="prst-executive-analytics">
   <div className="prst-grid two">
