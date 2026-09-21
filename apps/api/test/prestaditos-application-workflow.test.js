@@ -59,10 +59,10 @@ test('interfaz de solicitudes usa RPC controlada y exige motivo de rechazo',()=>
 })
 
 test('interfaz de inversiones formaliza por RPC sin insertar inversión directamente',()=>{
- assert.match(host,/supabase\.rpc\('inv_formalize_application'/)
- assert.doesNotMatch(host,/from\('inv_investments'\)\.insert/)
- assert.match(host,/x\.status==='FUNDS_RECEIVED'/)
- assert.match(host,/capital y el plazo se toman de la aprobación/)
+ assert.match(investmentsPanel,/supabase\.rpc\('inv_formalize_application_with_rate'/)
+ assert.doesNotMatch(investmentsPanel,/from\('inv_investments'\)\.insert/)
+ assert.match(investmentsPanel,/x\.status==='FUNDS_RECEIVED'/)
+ assert.match(investmentsPanel,/capital y el plazo vienen de la aprobación/)
 })
 
 
@@ -70,7 +70,7 @@ test('módulo de inversiones conserva capital y plazo formalizados',()=>{
  assert.match(investmentsPanel,/Capital aprobado/)
  assert.match(investmentsPanel,/Plazo aprobado/)
  assert.match(investmentsPanel,/No editable/)
- assert.match(investmentsPanel,/supabase\.rpc\('inv_formalize_application'/)
+ assert.match(investmentsPanel,/supabase\.rpc\('inv_formalize_application_with_rate'/)
  assert.doesNotMatch(investmentsPanel,/from\('inv_investments'\)\.insert/)
 })
 
@@ -193,8 +193,8 @@ test('configuración operativa no inventa fórmula financiera',()=>{
  assert.match(companySettings,/payment_methods/)
  assert.match(companySettings,/payment_places/)
  assert.match(companySettings,/CONFIGURATION_UPDATED/)
- assert.match(configurationPanel,/Manual · pendiente de regla real/)
- assert.match(configurationPanel,/no se habilita ninguna tasa/i)
+ assert.match(configurationPanel,/10% · 12% · 15%/)
+ assert.match(configurationPanel,/no se asume qué porcentaje corresponde/i)
 })
 
 test('configuración restringe cambios y expone permisos efectivos',()=>{
