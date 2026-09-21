@@ -1,12 +1,12 @@
 -- PRESTADITO$ / IDEALO SV
--- Base segura para porcentajes informados (10%, 12%, 15%), contratos y ejecución de renovaciones.
--- No se asume periodicidad, monto mínimo, relación plazo/tasa ni interés simple/compuesto.
+-- Base segura para porcentajes informados (10%, 12%, 15%) ANUALES, contratos y ejecución de renovaciones.
+-- Los rangos por monto usados en la interfaz son ejemplos provisionales; aún no se define interés simple/compuesto ni prorrateo para plazos distintos de 12 meses.
 
 alter table public.inv_investments
-  add column if not exists return_rate_basis text not null default 'PENDING_DEFINITION';
+  add column if not exists return_rate_basis text not null default 'ANNUAL';
 
 update public.inv_investments
-set return_rate_basis='PENDING_DEFINITION'
+set return_rate_basis='ANNUAL'
 where coalesce(trim(return_rate_basis),'')='';
 
 create or replace function public.inv_rate_allowed(p_rate numeric)
@@ -54,7 +54,7 @@ begin
   update public.inv_investments
   set
     agreed_return_rate=p_return_rate,
-    return_rate_basis='PENDING_DEFINITION',
+    return_rate_basis='ANNUAL',
     updated_at=now()
   where id=v_result.id
   returning * into v_result;
@@ -66,8 +66,8 @@ begin
     v_result.company_id,v_result.investor_id,v_result.id,'INVESTMENT_RETURN_RATE_ASSIGNED',
     jsonb_build_object(
       'return_rate_percent',p_return_rate,
-      'rate_basis','PENDING_DEFINITION',
-      'note','Porcentaje informado por Prestadito$. Periodicidad y fórmula aún no definidas.'
+      'rate_basis','ANNUAL',
+      'note','Porcentaje anual informado por Prestadito$. Los rangos por monto son provisionales y la fórmula exacta para plazos distintos de 12 meses sigue pendiente.'
     ),
     auth.uid()
   );
@@ -112,7 +112,7 @@ begin
   update public.inv_investments
   set
     agreed_return_rate=p_return_rate,
-    return_rate_basis='PENDING_DEFINITION',
+    return_rate_basis='ANNUAL',
     updated_at=now()
   where id=p_investment_id
   returning * into v_row;
@@ -123,7 +123,7 @@ begin
     jsonb_build_object(
       'from',v_old,
       'to',p_return_rate,
-      'rate_basis','PENDING_DEFINITION',
+      'rate_basis','ANNUAL',
       'note',coalesce(trim(p_note),'')
     ),
     auth.uid()
@@ -146,7 +146,7 @@ create table if not exists public.inv_contracts (
   contract_code text not null,
   contract_number text not null default '',
   return_rate_percent numeric(9,4) not null,
-  rate_basis text not null default 'PENDING_DEFINITION',
+  rate_basis text not null default 'ANNUAL',
   status text not null default 'GENERATED' check(status in ('GENERATED','SIGNED','VOID')),
   snapshot jsonb not null default '{}'::jsonb,
   generated_by uuid default auth.uid(),
@@ -236,7 +236,7 @@ begin
     'term_months',v_investment.term_months,
     'maturity_date',v_investment.maturity_date,
     'return_rate_percent',p_return_rate,
-    'rate_basis','PENDING_DEFINITION',
+    'rate_basis','ANNUAL',
     'payment_place',v_investment.payment_place,
     'payment_method',v_investment.payment_method
   );
@@ -244,7 +244,7 @@ begin
   update public.inv_investments
   set
     agreed_return_rate=p_return_rate,
-    return_rate_basis='PENDING_DEFINITION',
+    return_rate_basis='ANNUAL',
     contract_number=coalesce(nullif(trim(p_contract_number),''),contract_number),
     updated_at=now()
   where id=v_investment.id;
@@ -259,7 +259,7 @@ begin
     set
       contract_number=coalesce(trim(p_contract_number),''),
       return_rate_percent=p_return_rate,
-      rate_basis='PENDING_DEFINITION',
+      rate_basis='ANNUAL',
       snapshot=v_snapshot,
       status='GENERATED',
       generated_by=auth.uid(),
@@ -277,7 +277,7 @@ begin
     )
     values(
       v_id,v_investment.company_id,v_investment.investor_id,v_investment.id,v_code,
-      coalesce(trim(p_contract_number),''),p_return_rate,'PENDING_DEFINITION',
+      coalesce(trim(p_contract_number),''),p_return_rate,'ANNUAL',
       'GENERATED',v_snapshot,auth.uid()
     )
     returning * into v_result;
@@ -469,7 +469,7 @@ begin
   values(
     v_id,v_old.company_id,v_old.investor_id,null,v_code,coalesce(trim(p_contract_number),''),
     v_decision.renewal_amount,v_start,v_decision.renewal_term_months,v_maturity,p_return_rate,
-    'PENDING_DEFINITION',null,v_decision.payment_place,v_decision.payment_method,'ACTIVE',auth.uid()
+    'ANNUAL',null,v_decision.payment_place,v_decision.payment_method,'ACTIVE',auth.uid()
   )
   returning * into v_new;
 
@@ -498,7 +498,7 @@ begin
       'capital_outstanding_before_renewal',v_outstanding,
       'renewal_term_months',v_new.term_months,
       'return_rate_percent',p_return_rate,
-      'rate_basis','PENDING_DEFINITION'
+      'rate_basis','ANNUAL'
     ),
     auth.uid()
   );
