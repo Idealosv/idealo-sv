@@ -131,13 +131,13 @@ test('beneficiarios avanzados conservan historial y control de porcentaje',()=>{
  assert.match(beneficiariesPanel,/supabase\.rpc\('inv_set_beneficiary_active'/)
 })
 
-test('renovaciones registran decisión sin ejecutar automáticamente una inversión',()=>{
+test('renovaciones separan la decisión de su ejecución posterior',()=>{
  assert.match(renewalControls,/create table if not exists public\.inv_renewal_decisions/)
  assert.match(renewalControls,/RENEW_CAPITAL_YIELD/)
  assert.match(renewalControls,/WITHDRAW/)
  assert.match(renewalControls,/v_days>30/)
- assert.match(renewalsPanel,/Esta etapa solo registra la decisión/)
- assert.match(renewalsPanel,/No cierra la inversión anterior ni crea una nueva automáticamente/)
+ assert.match(renewalsPanel,/Esta etapa registra la decisión/)
+ assert.match(renewalsPanel,/puede ejecutar la renovación/)
  assert.match(renewalsPanel,/supabase\.rpc\('inv_save_renewal_decision'/)
  assert.match(renewalsPanel,/supabase\.rpc\('inv_cancel_renewal_decision'/)
 })
@@ -194,7 +194,8 @@ test('configuración operativa no inventa fórmula financiera',()=>{
  assert.match(companySettings,/payment_places/)
  assert.match(companySettings,/CONFIGURATION_UPDATED/)
  assert.match(configurationPanel,/10% · 12% · 15%/)
- assert.match(configurationPanel,/no se asume qué porcentaje corresponde/i)
+ assert.match(configurationPanel,/tasas anuales por monto/i)
+ assert.match(configurationPanel,/rangos mostrados abajo son ejemplos provisionales/i)
 })
 
 test('configuración restringe cambios y expone permisos efectivos',()=>{
