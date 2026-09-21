@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría']
+const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría','Configuración']
 
 const demo={
  investors:[
@@ -61,7 +61,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad'
+    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad',Configuración:'Reglas del vertical'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -81,6 +81,7 @@ export default function PrestaditosPreviewApp(){
     {tab==='Documentos'&&<Documents/>}
     {tab==='Reportes'&&<Reports/>}
     {tab==='Auditoría'&&<Audit/>}
+    {tab==='Configuración'&&<Configuration/>}
    </section>
   </main>
  </div>
@@ -204,5 +205,33 @@ function Audit(){return <>
  <section className="prst-investor-summary"><article><span>Eventos cargados</span><strong>4</strong><small>últimos movimientos</small></article><article><span>Expedientes</span><strong>1</strong><small>cambios de inversionistas</small></article><article><span>Financieros</span><strong>2</strong><small>solicitudes y pagos</small></article><article><span>Documentales</span><strong>1</strong><small>archivos</small></article></section>
  <Card title="Auditoría del ERP" kicker="TRAZABILIDAD">
   <Table headers={['Fecha y hora','Categoría','Acción','Inversionista','Responsable']} rows={demo.audit.map((x,i)=><tr key={i}><td><b>{x.date}</b></td><td><span className="prst-audit-category">{x.category}</span></td><td>{x.action}</td><td>{x.investor}</td><td>{x.actor}</td></tr>)}/>
+ </Card>
+ </>}
+
+
+function Configuration(){return <>
+ <section className="prst-investor-summary prst-config-summary">
+  <article><span>Empresa</span><strong>Prestadito$ El Salvador</strong><small>vertical de inversionistas</small></article>
+  <article><span>Tu rol</span><strong>owner</strong><small>permisos efectivos</small></article>
+  <article><span>Plazos configurados</span><strong>3</strong><small>6, 12, 18 meses</small></article>
+  <article><span>Rendimiento</span><strong>Manual</strong><small>regla automática pendiente</small></article>
+ </section>
+ <Card title="Reglas y catálogos de Prestadito$" kicker="CONFIGURACIÓN OPERATIVA">
+  <div className="prst-config-sections">
+   <section><div className="prst-section-title">Plazos disponibles</div><p className="prst-copy">Opciones sugeridas para solicitudes y renovaciones.</p><div className="prst-chip-list"><span>6 meses</span><span>12 meses</span><span>18 meses</span></div></section>
+   <section><div className="prst-section-title">Formas de pago</div><p className="prst-copy">Catálogo de uso operativo.</p><div className="prst-chip-list"><span>Transferencia bancaria</span><span>Depósito</span><span>Efectivo</span></div></section>
+   <section><div className="prst-section-title">Lugares de pago</div><p className="prst-copy">Nombres consistentes en el ERP.</p><div className="prst-chip-list"><span>Oficina central</span><span>Banco</span></div></section>
+   <section><div className="prst-section-title">Rendimiento financiero</div><div className="prst-config-locked"><div><span>Modo actual</span><strong>Manual · pendiente de regla real</strong></div><p>No se configura una fórmula automática hasta definir la política real de Prestadito$.</p></div></section>
+  </div>
+ </Card>
+ <Card title="Matriz de acceso" kicker="PERMISOS EFECTIVOS">
+  <Table headers={['Acción','Propietario','Administrador','Personal','Otros']} rows={[
+   ['Consultar información','Sí','Sí','Sí','Sí'],
+   ['Registrar solicitudes','Sí','Sí','Sí','No'],
+   ['Aprobar solicitudes','Sí','Sí','No','No'],
+   ['Formalizar inversiones','Sí','Sí','No','No'],
+   ['Registrar / revertir pagos','Sí','Sí','No','No'],
+   ['Modificar configuración','Sí','Sí','No','No'],
+  ].map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{j===0?<b>{cell}</b>:cell}</td>)}</tr>)}/>
  </Card>
  </>}
