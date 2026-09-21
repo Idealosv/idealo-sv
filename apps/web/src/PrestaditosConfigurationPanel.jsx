@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
+import { ANNUAL_RATE_EXAMPLE_TIERS, annualReferenceGain } from './prestaditos-rate-rules.js'
 
 const normalized=value=>String(value||'').trim()
+const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
+const moneyForReference=(amount,rate)=>money(annualReferenceGain(amount,rate))
 const uniqCaseInsensitive=values=>{
  const seen=new Set()
  return values.map(normalized).filter(Boolean).filter(value=>{const key=value.toLowerCase();if(seen.has(key))return false;seen.add(key);return true})
@@ -87,7 +90,7 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
    <article><span>Empresa</span><strong>{company?.name||'Prestadito$'}</strong><small>vertical de inversionistas</small></article>
    <article><span>Tu rol</span><strong>{role||'—'}</strong><small>permisos efectivos</small></article>
    <article><span>Plazos configurados</span><strong>{terms.length}</strong><small>{terms.length?terms.join(', ')+' meses':'sin restricción configurada'}</small></article>
-   <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>porcentajes informados; regla pendiente</small></article>
+   <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>tasas anuales por monto</small></article>
   </section>
 
   <form className="prst-card prst-form prst-config-form" onSubmit={submit}>
@@ -132,9 +135,10 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
     <section>
      <div className="prst-section-title">Rendimiento financiero</div>
      <div className="prst-config-locked">
-      <div><span>Porcentajes informados</span><strong>10% · 12% · 15%</strong></div>
-      <p>Estos tres porcentajes ya pueden registrarse en una inversión y en un contrato. Todavía no se asume qué porcentaje corresponde a cada monto o plazo, ni si es mensual, anual, por todo el plazo, simple o compuesto.</p>
-      <div className="prst-chip-list"><span>10%</span><span>12%</span><span>15%</span></div>
+      <div><span>Porcentajes confirmados</span><strong>10% · 12% · 15% anual</strong></div>
+      <p>Sabemos que los porcentajes son anuales y dependen del monto invertido. Los rangos mostrados abajo son ejemplos provisionales hasta recibir la tabla real de Prestadito$.</p>
+      <div className="prst-rate-tier-list">{ANNUAL_RATE_EXAMPLE_TIERS.map(row=><span key={row.rate}>{row.label} → <b>{row.rate}% anual</b><small>Referencia anual: {row.min?moneyForReference(row.min,row.rate):'—'}</small></span>)}</div>
+      <div className="prst-note"><strong>Pendiente:</strong> definir los montos reales de cada rango y la regla de cálculo para inversiones con plazo distinto de 12 meses.</div>
      </div>
     </section>
 
