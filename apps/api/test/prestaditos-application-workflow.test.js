@@ -19,6 +19,8 @@ const renewalControls=read('supabase/migrations/20260921194500_prestaditos_renew
 const treasuryPanel=read('apps/web/src/PrestaditosTreasuryPanel.jsx')
 const documentsPanel=read('apps/web/src/PrestaditosDocumentsPanel.jsx')
 const documentRepository=read('supabase/migrations/20260921201500_prestaditos_document_repository.sql')
+const reportsPanel=read('apps/web/src/PrestaditosReportsPanel.jsx')
+const auditPanel=read('apps/web/src/PrestaditosAuditPanel.jsx')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -157,4 +159,27 @@ test('repositorio documental es privado, auditable y no elimina historial',()=>{
  assert.match(documentsPanel,/createSignedUrl/)
  assert.match(documentsPanel,/No se eliminará el archivo/)
  assert.match(documentsPanel,/Máximo 10 MB/)
+})
+
+
+test('reportes gerenciales incluyen filtros y exportación sin mutar datos',()=>{
+ assert.match(reportsPanel,/REPORTES GERENCIALES/)
+ assert.match(reportsPanel,/Exportar CSV/)
+ assert.match(reportsPanel,/Inversiones/)
+ assert.match(reportsPanel,/Inversionistas/)
+ assert.match(reportsPanel,/Solicitudes/)
+ assert.match(reportsPanel,/Pagos/)
+ assert.match(reportsPanel,/Vencimientos/)
+ assert.match(reportsPanel,/Renovaciones/)
+ assert.match(reportsPanel,/Documentos/)
+ assert.match(reportsPanel,/Blob/)
+})
+
+test('auditoría permite filtrar, inspeccionar y exportar trazabilidad',()=>{
+ assert.match(auditPanel,/Auditoría del ERP/)
+ assert.match(auditPanel,/Quién hizo qué, cuándo y sobre qué expediente/)
+ assert.match(auditPanel,/Exportar CSV/)
+ assert.match(auditPanel,/Ver detalle/)
+ assert.match(auditPanel,/DETALLE DE AUDITORÍA/)
+ assert.match(auditPanel,/últimos 250 eventos/)
 })
