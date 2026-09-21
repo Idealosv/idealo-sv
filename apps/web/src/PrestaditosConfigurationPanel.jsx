@@ -87,7 +87,7 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
    <article><span>Empresa</span><strong>{company?.name||'Prestadito$'}</strong><small>vertical de inversionistas</small></article>
    <article><span>Tu rol</span><strong>{role||'—'}</strong><small>permisos efectivos</small></article>
    <article><span>Plazos configurados</span><strong>{terms.length}</strong><small>{terms.length?terms.join(', ')+' meses':'sin restricción configurada'}</small></article>
-   <article><span>Rendimiento</span><strong>Manual</strong><small>regla automática pendiente</small></article>
+   <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>porcentajes informados; regla pendiente</small></article>
   </section>
 
   <form className="prst-card prst-form prst-config-form" onSubmit={submit}>
@@ -132,8 +132,9 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
     <section>
      <div className="prst-section-title">Rendimiento financiero</div>
      <div className="prst-config-locked">
-      <div><span>Modo actual</span><strong>Manual · pendiente de regla real</strong></div>
-      <p>No se habilita ninguna tasa, fórmula ni cálculo automático hasta que Prestadito$ defina oficialmente cómo se calcula el rendimiento según monto, plazo, frecuencia y demás condiciones.</p>
+      <div><span>Porcentajes informados</span><strong>10% · 12% · 15%</strong></div>
+      <p>Estos tres porcentajes ya pueden registrarse en una inversión y en un contrato. Todavía no se asume qué porcentaje corresponde a cada monto o plazo, ni si es mensual, anual, por todo el plazo, simple o compuesto.</p>
+      <div className="prst-chip-list"><span>10%</span><span>12%</span><span>15%</span></div>
      </div>
     </section>
 
