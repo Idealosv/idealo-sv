@@ -174,6 +174,7 @@ declare
   v_payments_count integer;
   v_maturities integer;
   v_renewals_executed integer;
+  v_withdrawals_finalized integer;
   v_contracts_signed integer;
   v_result public.inv_monthly_closeouts%rowtype;
 begin
@@ -221,7 +222,10 @@ begin
     and maturity_date<v_end
     and status<>'CANCELLED';
 
-  select count(*)::integer into v_renewals_executed
+  select
+    count(*) filter(where decision_type<>'WITHDRAW')::integer,
+    count(*) filter(where decision_type='WITHDRAW')::integer
+  into v_renewals_executed,v_withdrawals_finalized
   from public.inv_renewal_decisions
   where company_id=p_company_id
     and status='EXECUTED'
@@ -260,6 +264,7 @@ begin
       'payments_count',v_payments_count,
       'maturities',v_maturities,
       'renewals_executed',v_renewals_executed,
+      'withdrawals_finalized',v_withdrawals_finalized,
       'contracts_signed',v_contracts_signed
     ),
     coalesce(trim(p_notes),''),
