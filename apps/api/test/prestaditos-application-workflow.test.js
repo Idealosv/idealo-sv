@@ -7,6 +7,8 @@ const applicationMigration=read('supabase/migrations/20260921170500_prestaditos_
 const formalizationMigration=read('supabase/migrations/20260921173500_prestaditos_formalization_integrity.sql')
 const applicationsPanel=read('apps/web/src/PrestaditosApplicationsPanel.jsx')
 const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
+const investmentsPanel=read('apps/web/src/PrestaditosInvestmentsPanel.jsx')
+const investmentControls=read('supabase/migrations/20260921181000_prestaditos_investment_controls.sql')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -47,4 +49,27 @@ test('interfaz de inversiones formaliza por RPC sin insertar inversión directam
  assert.doesNotMatch(host,/from\('inv_investments'\)\.insert/)
  assert.match(host,/x\.status==='FUNDS_RECEIVED'/)
  assert.match(host,/capital y el plazo se toman de la aprobación/)
+})
+
+
+test('módulo de inversiones conserva capital y plazo formalizados',()=>{
+ assert.match(investmentsPanel,/Capital aprobado/)
+ assert.match(investmentsPanel,/Plazo aprobado/)
+ assert.match(investmentsPanel,/No editable/)
+ assert.match(investmentsPanel,/supabase\.rpc\('inv_formalize_application'/)
+ assert.doesNotMatch(investmentsPanel,/from\('inv_investments'\)\.insert/)
+})
+
+test('módulo de inversiones muestra expediente, beneficiarios y pagos',()=>{
+ assert.match(investmentsPanel,/EXPEDIENTE DE INVERSIÓN/)
+ assert.match(investmentsPanel,/Beneficiarios del inversionista/)
+ assert.match(investmentsPanel,/Historial de pagos de esta inversión/)
+ assert.match(investmentsPanel,/Vencen en 30 días/)
+})
+
+test('edición operativa de inversión está restringida y auditada',()=>{
+ assert.match(investmentControls,/public\.inv_company_can_review/)
+ assert.match(investmentControls,/INVESTMENT_DETAILS_UPDATED/)
+ assert.match(investmentControls,/projected_gain/)
+ assert.match(investmentsPanel,/supabase\.rpc\('inv_update_investment_details'/)
 })
