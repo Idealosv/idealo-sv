@@ -7,6 +7,7 @@ const today=()=>new Date().toISOString().slice(0,10)
 const fullName=x=>[x?.first_names,x?.last_names].filter(Boolean).join(' ')||'—'
 const daysUntil=value=>value?Math.ceil((new Date(`${value}T12:00:00`).getTime()-new Date(`${today()}T12:00:00`).getTime())/86400000):null
 const normalized=value=>String(value||'').trim()
+const RETURN_RATES=[10,12,15]
 
 const STATUS_LABELS={
  PENDING:'Pendiente',
@@ -52,7 +53,7 @@ export default function PrestaditosInvestmentsPanel({
  const existingApplicationIds=useMemo(()=>new Set(investments.map(x=>x.application_id).filter(Boolean)),[investments])
  const eligible=useMemo(()=>applications.filter(x=>x.status==='FUNDS_RECEIVED'&&!existingApplicationIds.has(x.id)),[applications,existingApplicationIds])
 
- const emptyForm={application_id:'',granted_at:today(),contract_number:'',projected_gain:'',payment_place:'',payment_method:''}
+ const emptyForm={application_id:'',granted_at:today(),return_rate:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''}
  const [form,setForm]=useState(emptyForm)
  const [search,setSearch]=useState('')
  const [statusFilter,setStatusFilter]=useState('ALL')
@@ -108,10 +109,13 @@ export default function PrestaditosInvestmentsPanel({
    if(application.status!=='FUNDS_RECEIVED')throw new Error('La solicitud debe estar en Fondos recibidos.')
    if(existingApplicationIds.has(application.id))throw new Error('Esta solicitud ya fue formalizada.')
    const projected=form.projected_gain===''?null:Number(form.projected_gain)
+   const returnRate=Number(form.return_rate)
+   if(!RETURN_RATES.includes(returnRate))throw new Error('Seleccioná 10%, 12% o 15% como porcentaje acordado.')
    if(projected!==null&&(!Number.isFinite(projected)||projected<0))throw new Error('Ingresá una ganancia proyectada válida o dejala vacía.')
-   const {error}=await supabase.rpc('inv_formalize_application',{
+   const {error}=await supabase.rpc('inv_formalize_application_with_rate',{
     p_application_id:application.id,
     p_granted_at:form.granted_at,
+    p_return_rate:returnRate,
     p_contract_number:normalized(form.contract_number),
     p_projected_gain:projected,
     p_payment_place:normalized(form.payment_place),
@@ -126,6 +130,7 @@ export default function PrestaditosInvestmentsPanel({
  const openEdit=row=>setEdit({
   row,
   contract_number:row.contract_number||'',
+  return_rate:row.agreed_return_rate==null?'':String(Number(row.agreed_return_rate)),
   projected_gain:row.projected_gain==null?'':String(row.projected_gain),
   payment_place:row.payment_place||'',
   payment_method:row.payment_method||'',
@@ -149,6 +154,11 @@ export default function PrestaditosInvestmentsPanel({
     p_notes:normalized(current.notes),
    })
    if(error)throw error
+   const currentRate=Number(current.row.agreed_return_rate||0)
+   if(currentRate!==returnRate){
+    const {error:rateError}=await supabase.rpc('inv_set_investment_return_rate',{p_investment_id:current.row.id,p_return_rate:returnRate,p_note:normalized(current.notes)})
+    if(rateError)throw rateError
+   }
   },'Datos operativos de la inversión actualizados.')
  }
 
@@ -181,6 +191,7 @@ export default function PrestaditosInvestmentsPanel({
 
     <div className="prst-form-grid">
      <Field label="Fecha de otorgamiento *"><input type="date" value={form.granted_at} onChange={e=>setForm({...form,granted_at:e.target.value})} required disabled={!canManage}/></Field>
+     <Field label="Porcentaje acordado *" hint="Opciones informadas hasta ahora; no se asume periodicidad."><select value={form.return_rate} onChange={e=>setForm({...form,return_rate:e.target.value})} required disabled={!canManage}><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}%</option>)}</select></Field>
      <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})} disabled={!canManage} placeholder="Puede completarse después"/></Field>
      <Field label="Ganancia proyectada" hint="Manual hasta que definamos la fórmula real de Prestadito$."><input type="number" min="0" step="0.01" value={form.projected_gain} onChange={e=>setForm({...form,projected_gain:e.target.value})} disabled={!canManage}/></Field>
      <Field label="Lugar de pago"><input list="prst-investment-place-options" value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
@@ -282,7 +293,7 @@ function InvestmentDetail({investment,application,investor,beneficiaries,payment
    <div className="prst-profile-grid">
     <article><small>Inversionista</small><b>{fullName(investor)}</b><span>{investor?.investor_code||'—'} · DUI {investor?.dui||'—'}</span><span>{investor?.phone||investor?.whatsapp||'Sin teléfono'}</span></article>
     <article><small>Origen</small><b>{application?.application_code||'Solicitud no disponible'}</b><span>Otorgada: {date(investment.granted_at)}</span><span>Vence: {date(investment.maturity_date)}{d!==null?` · ${d<0?Math.abs(d)+' días vencida':d+' días restantes'}`:''}</span></article>
-    <article><small>Contrato</small><b>{investment.contract_number||'Número pendiente'}</b><span>Estado: {STATUS_LABELS[status]||status}</span><span>Ganancia proyectada: {investment.projected_gain==null?'Pendiente':money(investment.projected_gain)}</span></article>
+    <article><small>Contrato</small><b>{investment.contract_number||'Número pendiente'}</b><span>Estado: {STATUS_LABELS[status]||status}</span><span>Porcentaje acordado: {investment.agreed_return_rate==null?'Pendiente':Number(investment.agreed_return_rate)+'%'}</span><span>Ganancia proyectada: {investment.projected_gain==null?'Pendiente':money(investment.projected_gain)}</span></article>
     <article><small>Pago</small><b>{investment.payment_place||'Lugar pendiente'}</b><span>{investment.payment_method||'Forma pendiente'}</span><span>Capital devuelto registrado: {money(capitalReturned)}</span></article>
    </div>
 
@@ -303,12 +314,13 @@ function InvestmentEditModal({edit,setEdit,onSubmit,saving}){
    <header><div><small>DATOS OPERATIVOS</small><h2>Editar inversión</h2><p>{edit.row.investment_code}</p></div><button type="button" onClick={()=>setEdit(null)} disabled={saving}>×</button></header>
    <div className="prst-form-grid">
     <Field label="Número de contrato"><input value={edit.contract_number} onChange={e=>setEdit({...edit,contract_number:e.target.value})}/></Field>
+    <Field label="Porcentaje acordado"><select value={edit.return_rate} onChange={e=>setEdit({...edit,return_rate:e.target.value})}><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}%</option>)}</select></Field>
     <Field label="Ganancia proyectada" hint="Manual hasta definir la fórmula."><input type="number" min="0" step="0.01" value={edit.projected_gain} onChange={e=>setEdit({...edit,projected_gain:e.target.value})}/></Field>
     <Field label="Lugar de pago"><input value={edit.payment_place} onChange={e=>setEdit({...edit,payment_place:e.target.value})}/></Field>
     <Field label="Forma de pago"><input value={edit.payment_method} onChange={e=>setEdit({...edit,payment_method:e.target.value})}/></Field>
    </div>
    <Field label="Motivo / nota del cambio" hint="Quedará registrado en auditoría."><textarea value={edit.notes} onChange={e=>setEdit({...edit,notes:e.target.value})} placeholder="Ej. Se asignó número de contrato o cambió lugar de pago."/></Field>
-   <div className="prst-note"><strong>No editable:</strong> capital, plazo, fecha de otorgamiento y vencimiento se conservan como fueron formalizados.</div>
+   <div className="prst-note"><strong>No editable:</strong> capital, plazo, fecha de otorgamiento y vencimiento se conservan como fueron formalizados. El porcentaje puede ser 10%, 12% o 15%, pero su periodicidad y fórmula siguen pendientes de definición.</div>
    <div className="prst-modal-actions"><button type="button" onClick={()=>setEdit(null)} disabled={saving}>Cancelar</button><button type="submit" className="primary" disabled={saving}>{saving?'Guardando…':'Guardar cambios'}</button></div>
   </form>
  </div>
