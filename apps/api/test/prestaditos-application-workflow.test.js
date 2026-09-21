@@ -11,6 +11,7 @@ const investmentsPanel=read('apps/web/src/PrestaditosInvestmentsPanel.jsx')
 const investmentControls=read('supabase/migrations/20260921181000_prestaditos_investment_controls.sql')
 const paymentsPanel=read('apps/web/src/PrestaditosPaymentsPanel.jsx')
 const paymentLedger=read('supabase/migrations/20260921184500_prestaditos_payment_ledger.sql')
+const maturitiesPanel=read('apps/web/src/PrestaditosMaturitiesPanel.jsx')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -96,4 +97,13 @@ test('interfaz de pagos usa RPC controladas y mantiene historial',()=>{
  assert.match(paymentsPanel,/El pago no se eliminará/)
  assert.match(paymentsPanel,/HISTORIAL DE PAGOS/)
  assert.doesNotMatch(paymentsPanel,/from\('inv_payments'\)\.insert/)
+})
+
+
+test('control de vencimientos clasifica ventanas críticas sin alterar contratos',()=>{
+ assert.match(maturitiesPanel,/Próximos 7 días/)
+ assert.match(maturitiesPanel,/Próximos 30 días/)
+ assert.match(maturitiesPanel,/Próximos 90 días/)
+ assert.match(maturitiesPanel,/llegar a la fecha de vencimiento no renueva ni cierra la inversión automáticamente/)
+ assert.match(maturitiesPanel,/Gestionar vencimiento/)
 })
