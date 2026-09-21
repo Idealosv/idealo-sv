@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Contratos','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría','Configuración']
+const TABS=['Dashboard','Alertas','Inversionistas','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría','Configuración']
 
 const demo={
  investors:[
@@ -65,7 +65,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad',Configuración:'Reglas del vertical'
+    Dashboard:'Resumen ejecutivo',Alertas:'Seguimiento operativo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad',Configuración:'Reglas del vertical'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -74,8 +74,10 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard capital={capital} projected={projected} yieldPaid={yieldPaid}/>}
+    {tab==='Alertas'&&<Alerts/>}
     {tab==='Inversionistas'&&<Investors/>}
     {tab==='Solicitudes'&&<Applications/>}
+    {tab==='Simulador'&&<Simulator/>}
     {tab==='Inversiones'&&<Investments/>}
     {tab==='Contratos'&&<Contracts/>}
     {tab==='Beneficiarios'&&<Beneficiaries/>}
@@ -103,6 +105,13 @@ function Dashboard({capital,projected,yieldPaid}){
    <Metric label="Próximo vencimiento" value="15 feb 2027" hint="seguimiento automático"/>
   </section>
   <section className="prst-grid two">
+   <Card title="Atención requerida" kicker="ALERTAS OPERATIVAS">
+    <div className="prst-dashboard-alerts">
+     <button className="critical"><span>Crítica</span><strong>Inversión vencida</strong><small>José Roberto Hernández · 11 días vencida</small></button>
+     <button className="high"><span>Alta</span><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></button>
+     <button className="medium"><span>Media</span><strong>Expediente incompleto</strong><small>José Roberto Hernández · falta documento de identidad</small></button>
+    </div>
+   </Card>
    <Card title="Flujo principal" kicker="OPERACIÓN DE INVERSIONISTAS">
     <div className="prst-flow">
      {[
@@ -247,5 +256,46 @@ function Contracts(){return <>
  <Card title="Control contractual" kicker="CONTRATOS / PDF / FIRMA">
   <div className="prst-note"><strong>Confirmado:</strong> 10%, 12% y 15% son tasas anuales. Por ahora usamos como ejemplo: $1,000–$4,999.99 = 10%, $5,000–$9,999.99 = 12% y $10,000+ = 15%.</div>
   <Table headers={['Contrato','Inversionista','Inversión','Capital','Porcentaje','Estado']} rows={demo.contracts.map(x=><tr key={x.code}><td><b>{x.code}</b><small>{x.number}</small></td><td>{x.investor}</td><td>{x.investment}</td><td>{money(x.capital)}</td><td><b>{x.rate}% anual</b><small>según monto de ejemplo</small></td><td><Status tone={x.status==='Firmado'?'active':'review'}>{x.status}</Status></td></tr>)}/>
+ </Card>
+ </>}
+
+
+function Simulator(){
+ const [amount,setAmount]=useState('5000')
+ const [term,setTerm]=useState('12')
+ const value=Number(amount||0)
+ const rate=value>=10000?15:value>=5000?12:value>=1000?10:10
+ const annual=value*rate/100
+ const selected=Number(term)===12?annual:null
+ return <>
+  <section className="prst-investor-summary prst-simulator-summary">
+   <article><span>Monto simulado</span><strong>{money(value)}</strong><small>capital de referencia</small></article>
+   <article><span>Tasa anual</span><strong>{rate}%</strong><small>rango provisional</small></article>
+   <article><span>Referencia anual</span><strong>{money(annual)}</strong><small>capital × tasa anual</small></article>
+   <article><span>Plazo</span><strong>{term} meses</strong><small>{selected==null?'prorrateo pendiente':'equivale a un año'}</small></article>
+  </section>
+  <section className="prst-grid form-list">
+   <Card title="Simular una inversión" kicker="SIMULADOR">
+    <div className="prst-form-grid">
+     <label className="prst-field"><span>Monto a invertir</span><input type="number" value={amount} onChange={e=>setAmount(e.target.value)}/></label>
+     <label className="prst-field"><span>Plazo</span><div className="prst-input-suffix"><input type="number" value={term} onChange={e=>setTerm(e.target.value)}/><span>meses</span></div></label>
+    </div>
+    <div className="prst-rate-reference"><span><b>Tasa anual sugerida</b><strong>{rate}%</strong></span><span><b>Ganancia anual de referencia</b><strong>{money(annual)}</strong></span><span><b>Ganancia del plazo seleccionado</b><strong>{selected==null?'Pendiente de regla':money(selected)}</strong></span><span><b>Total a 12 meses</b><strong>{money(value+annual)}</strong></span><small>{Number(term)===12?'Para 12 meses la referencia anual coincide con el plazo simulado.':'Para este plazo todavía no se calcula automáticamente el rendimiento hasta recibir la regla de prorrateo.'}</small></div>
+   </Card>
+   <Card title="Tasas anuales por monto" kicker="EJEMPLOS PROVISIONALES">
+    <div className="prst-simulator-examples"><article><span>$1,000 a $4,999.99</span><strong>10% anual</strong><small>Ejemplo: $2,000 → $200 al año</small></article><article><span>$5,000 a $9,999.99</span><strong>12% anual</strong><small>Ejemplo: $7,500 → $900 al año</small></article><article><span>$10,000 en adelante</span><strong>15% anual</strong><small>Ejemplo: $15,000 → $2,250 al año</small></article></div>
+   </Card>
+  </section>
+ </>}
+
+function Alerts(){return <>
+ <section className="prst-investor-summary prst-alert-summary"><article><span>Críticas</span><strong>1</strong><small>acción inmediata</small></article><article><span>Altas</span><strong>2</strong><small>requieren atención</small></article><article><span>Medias</span><strong>1</strong><small>seguimiento preventivo</small></article><article><span>Total abiertas</span><strong>4</strong><small>calculadas en tiempo real</small></article></section>
+ <Card title="Alertas de Prestadito$" kicker="SEGUIMIENTO OPERATIVO">
+  <div className="prst-alert-list">
+   <article className="prst-operational-alert critical"><div className="prst-alert-icon">!</div><div className="prst-alert-copy"><div><span>Vencimiento</span><b>Crítica</b></div><strong>Inversión vencida</strong><small>José Roberto Hernández · INVEST-20260310-G7H8I9</small></div><button>Ir a Vencimientos</button></article>
+   <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><button>Ir a Contratos</button></article>
+   <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Renovación</span><b>Alta</b></div><strong>Decisión lista para ejecutar</strong><small>José Roberto Hernández · REN-20260910-AB1234</small></div><button>Ir a Renovaciones</button></article>
+   <article className="prst-operational-alert medium"><div className="prst-alert-icon">•</div><div className="prst-alert-copy"><div><span>Documentación</span><b>Media</b></div><strong>Expediente incompleto</strong><small>José Roberto Hernández · documento pendiente</small></div><button>Ir a Inversionistas</button></article>
+  </div>
  </Card>
  </>}
