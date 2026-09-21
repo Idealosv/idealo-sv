@@ -17,6 +17,8 @@ const beneficiaryControls=read('supabase/migrations/20260921192000_prestaditos_b
 const renewalsPanel=read('apps/web/src/PrestaditosRenewalsPanel.jsx')
 const renewalControls=read('supabase/migrations/20260921194500_prestaditos_renewal_decisions.sql')
 const treasuryPanel=read('apps/web/src/PrestaditosTreasuryPanel.jsx')
+const documentsPanel=read('apps/web/src/PrestaditosDocumentsPanel.jsx')
+const documentRepository=read('supabase/migrations/20260921201500_prestaditos_document_repository.sql')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -144,4 +146,15 @@ test('tesorería consolida únicamente movimientos de inversionistas',()=>{
  assert.match(treasuryPanel,/Solo movimientos de inversionistas/)
  assert.match(treasuryPanel,/Una entrada de capital nace de una inversión formalizada/)
  assert.match(treasuryPanel,/row\.status==='REVERSED'/)
+})
+
+
+test('repositorio documental es privado, auditable y no elimina historial',()=>{
+ assert.match(documentRepository,/create table if not exists public\.inv_documents/)
+ assert.match(documentRepository,/DOCUMENT_RECORDED/)
+ assert.match(documentRepository,/DOCUMENT_INACTIVATED/)
+ assert.match(documentRepository,/revoke insert,update,delete on public\.inv_documents from authenticated/)
+ assert.match(documentsPanel,/createSignedUrl/)
+ assert.match(documentsPanel,/No se eliminará el archivo/)
+ assert.match(documentsPanel,/Máximo 10 MB/)
 })
