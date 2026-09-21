@@ -46,3 +46,33 @@
 @media(max-width:980px){.prst-app{grid-template-columns:220px minmax(0,1fr)}.prst-grid.form-list,.prst-grid.two{grid-template-columns:1fr}.prst-form{position:relative;top:auto}.prst-capture-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.prst-app{display:block;overflow:auto}.prst-sidebar{position:relative;max-height:none}.prst-sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}.prst-main{overflow:visible}.prst-topbar{position:relative;padding:16px}.prst-content{padding:14px}.prst-metrics{grid-template-columns:repeat(2,1fr)}.prst-form-grid{grid-template-columns:1fr}.prst-field.span-2{grid-column:auto}.prst-card-head{flex-direction:column}.prst-search{max-width:none}.prst-back{margin:0 14px 14px}}
 @media(max-width:480px){.prst-metrics{grid-template-columns:1fr}.prst-sidebar nav{grid-template-columns:1fr}.prst-topbar{align-items:flex-start;flex-direction:column}.prst-top-actions,.prst-top-actions button{width:100%}}
+
+
+.prst-investor-module{display:grid;gap:15px}
+.prst-investor-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.prst-investor-summary article{padding:14px 15px;border:1px solid var(--prst-border);border-radius:11px;background:#fff;border-top:3px solid #26292d}
+.prst-investor-summary article:nth-child(3){border-top-color:#2f7b49}.prst-investor-summary article:nth-child(4){border-top-color:#d99222}
+.prst-investor-summary span{display:block;color:var(--prst-muted);font-size:8px;font-weight:900;text-transform:uppercase}.prst-investor-summary strong{display:block;margin:5px 0 2px;font-size:21px}.prst-investor-summary small{color:#7a8086;font-size:8px}
+.prst-section-title{margin:12px 0 9px;padding-top:11px;border-top:1px solid #e6e8ea;color:#4a4f55;font-size:8px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
+.prst-mini-button{min-height:32px;padding:0 10px;border:1px solid #cfd4d8;border-radius:7px;background:#fff;color:#3c4146;font:inherit;font-size:8px;font-weight:850;cursor:pointer}
+.prst-directory-tools{display:grid;grid-template-columns:minmax(220px,1fr) 150px 180px auto;gap:8px;align-items:center;margin-bottom:12px}
+.prst-directory-tools select{min-height:40px;padding:8px 9px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px}
+.prst-directory-tools>span{color:#70767c;font-size:8px;font-weight:800;text-align:right}
+.prst-investor-table{min-width:980px!important}
+.prst-doc-badge{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:24px;padding:0 7px;border:1px solid #d3d8dc;border-radius:999px;font-size:8px;font-weight:950}
+.prst-doc-badge.complete{border-color:#a8d5b6;background:#eef9f2;color:#2c7043}.prst-doc-badge.pending{border-color:#edc789;background:#fff7ea;color:#8b5a12}
+.prst-modal-backdrop{position:fixed;inset:0;z-index:2147483200;display:grid;place-items:center;padding:18px;background:rgba(8,10,12,.68);backdrop-filter:blur(3px)}
+.prst-investor-modal{width:min(900px,100%);max-height:92vh;overflow:auto;padding:20px;border:1px solid #393d41;border-radius:15px;background:#fff;box-shadow:0 26px 80px rgba(0,0,0,.34)}
+.prst-investor-modal>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #e4e7e9}
+.prst-investor-modal>header small{display:block;color:var(--prst-red);font-size:8px;font-weight:950;letter-spacing:.08em}.prst-investor-modal>header h2{margin:3px 0 0;font-size:23px}.prst-investor-modal>header p{margin:4px 0 0;color:#737980;font-size:9px}
+.prst-investor-modal>header>button{width:34px;height:34px;border:1px solid #d3d7db;border-radius:8px;background:#fff;font-size:19px;cursor:pointer}
+.prst-profile-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}
+.prst-profile-metrics article{padding:12px;border:1px solid #e0e4e7;border-radius:10px;background:#fafafa}.prst-profile-metrics span{display:block;color:#737980;font-size:8px;text-transform:uppercase;font-weight:900}.prst-profile-metrics strong{display:block;margin-top:5px;font-size:15px}
+.prst-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.prst-profile-grid article{display:grid;gap:4px;padding:12px;border:1px solid #e1e4e7;border-radius:10px;background:#fbfbfc}.prst-profile-grid small{color:var(--prst-red);font-size:8px;font-weight:900;text-transform:uppercase}.prst-profile-grid b{font-size:10px}.prst-profile-grid span{color:#6f757b;font-size:9px;line-height:1.4}
+.prst-document-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.prst-document-actions button{display:grid;gap:4px;min-height:62px;padding:11px;border:1px solid #d8dde1;border-radius:9px;background:#fafafa;text-align:left;cursor:pointer}.prst-document-actions button:disabled{opacity:.55;cursor:not-allowed}.prst-document-actions span{font-size:8px;color:#72787e;text-transform:uppercase;font-weight:900}.prst-document-actions strong{font-size:10px}
+.prst-compact-list{display:grid;gap:7px}.prst-compact-list>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid #e2e5e8;border-radius:9px;background:#fafafa}.prst-compact-list span{display:grid;gap:2px}.prst-compact-list b{font-size:9px}.prst-compact-list small{color:#777d83;font-size:8px}.prst-compact-list strong{font-size:11px}
+.prst-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:13px;border-top:1px solid #e5e8ea}.prst-modal-actions button{min-height:36px;padding:0 13px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px;font-weight:850;cursor:pointer}.prst-modal-actions .primary{border-color:#c71219;background:var(--prst-red);color:#fff}
+@media(max-width:1100px){.prst-investor-summary{grid-template-columns:repeat(2,1fr)}.prst-directory-tools{grid-template-columns:1fr 1fr}.prst-directory-tools .prst-search{grid-column:1/-1;max-width:none}.prst-directory-tools>span{text-align:left}.prst-profile-metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.prst-investor-summary,.prst-profile-metrics,.prst-profile-grid,.prst-document-actions{grid-template-columns:1fr}.prst-directory-tools{grid-template-columns:1fr}.prst-directory-tools .prst-search{grid-column:auto}.prst-investor-modal{padding:15px}}
