@@ -34,6 +34,7 @@ function Status({value}){return <span className={`prst-status ${String(value||''
 export default function PrestaditosInvestmentsPanel({
  company,
  role,
+ settings,
  applications,
  investments,
  beneficiaries,
@@ -45,6 +46,8 @@ export default function PrestaditosInvestmentsPanel({
  onFormalized,
 }){
  const normalizedRole=String(role||'').toLowerCase()
+ const paymentMethods=Array.isArray(settings?.payment_methods)?settings.payment_methods:[]
+ const paymentPlaces=Array.isArray(settings?.payment_places)?settings.payment_places:[]
  const canManage=['owner','admin'].includes(normalizedRole)
  const existingApplicationIds=useMemo(()=>new Set(investments.map(x=>x.application_id).filter(Boolean)),[investments])
  const eligible=useMemo(()=>applications.filter(x=>x.status==='FUNDS_RECEIVED'&&!existingApplicationIds.has(x.id)),[applications,existingApplicationIds])
@@ -150,6 +153,8 @@ export default function PrestaditosInvestmentsPanel({
  }
 
  return <section className="prst-investment-module">
+  <datalist id="prst-investment-place-options">{paymentPlaces.map(value=><option key={value} value={value}/>)}</datalist>
+  <datalist id="prst-investment-method-options">{paymentMethods.map(value=><option key={value} value={value}/>)}</datalist>
   <section className="prst-investor-summary prst-investment-summary">
    <article><span>Inversiones activas</span><strong>{summary.active}</strong><small>vigentes</small></article>
    <article><span>Capital activo</span><strong>{money(summary.capital)}</strong><small>formalizado</small></article>
@@ -178,8 +183,8 @@ export default function PrestaditosInvestmentsPanel({
      <Field label="Fecha de otorgamiento *"><input type="date" value={form.granted_at} onChange={e=>setForm({...form,granted_at:e.target.value})} required disabled={!canManage}/></Field>
      <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})} disabled={!canManage} placeholder="Puede completarse después"/></Field>
      <Field label="Ganancia proyectada" hint="Manual hasta que definamos la fórmula real de Prestadito$."><input type="number" min="0" step="0.01" value={form.projected_gain} onChange={e=>setForm({...form,projected_gain:e.target.value})} disabled={!canManage}/></Field>
-     <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
-     <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
+     <Field label="Lugar de pago"><input list="prst-investment-place-options" value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
+     <Field label="Forma de pago" className="span-2"><input list="prst-investment-method-options" value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
     </div>
 
     <div className="prst-note"><strong>Protección:</strong> el capital y el plazo vienen de la aprobación y no se pueden cambiar aquí. El vencimiento se calcula automáticamente y la solicitud solo puede convertirse en inversión una vez.</div>
