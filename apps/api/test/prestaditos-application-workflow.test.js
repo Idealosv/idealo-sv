@@ -9,6 +9,8 @@ const applicationsPanel=read('apps/web/src/PrestaditosApplicationsPanel.jsx')
 const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
 const investmentsPanel=read('apps/web/src/PrestaditosInvestmentsPanel.jsx')
 const investmentControls=read('supabase/migrations/20260921181000_prestaditos_investment_controls.sql')
+const paymentsPanel=read('apps/web/src/PrestaditosPaymentsPanel.jsx')
+const paymentLedger=read('supabase/migrations/20260921184500_prestaditos_payment_ledger.sql')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -72,4 +74,26 @@ test('edición operativa de inversión está restringida y auditada',()=>{
  assert.match(investmentControls,/INVESTMENT_DETAILS_UPDATED/)
  assert.match(investmentControls,/projected_gain/)
  assert.match(investmentsPanel,/supabase\.rpc\('inv_update_investment_details'/)
+})
+
+
+test('libro de pagos no elimina movimientos y permite reversión auditada',()=>{
+ assert.match(paymentLedger,/status text not null default 'POSTED'/)
+ assert.match(paymentLedger,/INVESTOR_PAYMENT_REVERSED/)
+ assert.match(paymentLedger,/Indicá el motivo de la reversión/)
+ assert.match(paymentLedger,/revoke insert,update,delete on public\.inv_payments from authenticated/)
+})
+
+test('devolución de capital no puede superar el principal pendiente',()=>{
+ assert.match(paymentLedger,/v_returned\+p_amount>v_investment\.principal/)
+ assert.match(paymentLedger,/La devolución de capital supera el capital pendiente/)
+ assert.match(paymentsPanel,/outstandingCapital/)
+})
+
+test('interfaz de pagos usa RPC controladas y mantiene historial',()=>{
+ assert.match(paymentsPanel,/supabase\.rpc\('inv_record_payment'/)
+ assert.match(paymentsPanel,/supabase\.rpc\('inv_reverse_payment'/)
+ assert.match(paymentsPanel,/El pago no se eliminará/)
+ assert.match(paymentsPanel,/HISTORIAL DE PAGOS/)
+ assert.doesNotMatch(paymentsPanel,/from\('inv_payments'\)\.insert/)
 })
