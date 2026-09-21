@@ -177,40 +177,73 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
   </section>
  </>}
 
-function InvestmentsPanel({company,investors,applications,investments,investorMap,saving,act,preselectedApplicationId='',onFormalized}){
- const eligible=applications.filter(x=>['APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status))
- const [form,setForm]=useState({application_id:'',principal:'',granted_at:today(),term_months:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
- useEffect(()=>{if(form.application_id)return;const preferred=eligible.find(x=>x.id===preselectedApplicationId)||eligible[0];if(preferred)setForm(x=>({...x,application_id:preferred.id,principal:String(preferred.approved_amount??preferred.requested_amount),term_months:String(preferred.approved_term_months??preferred.requested_term_months),payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))},[eligible,form.application_id,preselectedApplicationId])
- const choose=id=>{const a=applications.find(x=>x.id===id);setForm({...form,application_id:id,principal:a?String(a.approved_amount??a.requested_amount):'',term_months:a?String(a.approved_term_months??a.requested_term_months):'',payment_place:a?.payment_place||'',payment_method:a?.payment_method||''})}
+function InvestmentsPanel({applications,investments,investorMap,saving,act,preselectedApplicationId='',onFormalized}){
+ const existingApplicationIds=useMemo(()=>new Set(investments.map(x=>x.application_id).filter(Boolean)),[investments])
+ const eligible=applications.filter(x=>x.status==='FUNDS_RECEIVED'&&!existingApplicationIds.has(x.id))
+ const [form,setForm]=useState({application_id:'',granted_at:today(),contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
+
+ useEffect(()=>{
+  if(form.application_id)return
+  const preferred=eligible.find(x=>x.id===preselectedApplicationId)||eligible[0]
+  if(preferred)setForm(current=>({...current,application_id:preferred.id,payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))
+ },[eligible,form.application_id,preselectedApplicationId])
+
+ const selectedApplication=applications.find(x=>x.id===form.application_id)||null
+ const selectedPrincipal=selectedApplication?Number(selectedApplication.approved_amount??selectedApplication.requested_amount):0
+ const selectedTerm=selectedApplication?Number(selectedApplication.approved_term_months??selectedApplication.requested_term_months):0
+
+ const choose=id=>{
+  const row=applications.find(x=>x.id===id)
+  setForm({...form,application_id:id,payment_place:row?.payment_place||'',payment_method:row?.payment_method||''})
+ }
+
  const submit=e=>{e.preventDefault();act(async()=>{
-  const a=applications.find(x=>x.id===form.application_id);if(!a)throw new Error('Seleccioná una solicitud aprobada.')
-  const start=new Date(`${form.granted_at}T12:00:00`);const maturity=new Date(start);maturity.setMonth(maturity.getMonth()+Number(form.term_months))
-  const code=`INVEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
-  const payload={company_id:company.id,investor_id:a.investor_id,application_id:a.id,investment_code:code,contract_number:form.contract_number,principal:Number(form.principal),granted_at:form.granted_at,term_months:Number(form.term_months),maturity_date:maturity.toISOString().slice(0,10),projected_gain:form.projected_gain?Number(form.projected_gain):null,payment_place:form.payment_place,payment_method:form.payment_method,status:'ACTIVE'}
-  const {data,error}=await supabase.from('inv_investments').insert(payload).select('id').single();if(error)throw error
-  const {error:appError}=await supabase.from('inv_applications').update({status:'ACTIVE'}).eq('id',a.id);if(appError)throw appError
-  await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:a.investor_id,investment_id:data.id,action:'INVESTMENT_ACTIVATED',detail:{investment_code:code,principal:Number(form.principal),term_months:Number(form.term_months)}})
-  setForm({application_id:'',principal:'',granted_at:today(),term_months:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
+  const application=applications.find(x=>x.id===form.application_id)
+  if(!application)throw new Error('Seleccioná una solicitud lista para formalizar.')
+  if(application.status!=='FUNDS_RECEIVED')throw new Error('La solicitud todavía no está en Fondos recibidos.')
+  if(existingApplicationIds.has(application.id))throw new Error('Esta solicitud ya fue formalizada.')
+  const projected=form.projected_gain===''?null:Number(form.projected_gain)
+  if(projected!==null&&(!Number.isFinite(projected)||projected<0))throw new Error('Ingresá una ganancia proyectada válida o dejala vacía.')
+  const {error}=await supabase.rpc('inv_formalize_application',{
+   p_application_id:application.id,
+   p_granted_at:form.granted_at,
+   p_contract_number:form.contract_number.trim(),
+   p_projected_gain:projected,
+   p_payment_place:form.payment_place.trim(),
+   p_payment_method:form.payment_method.trim(),
+  })
+  if(error)throw error
+  setForm({application_id:'',granted_at:today(),contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
   onFormalized?.()
- },'Inversión activada correctamente.')}
+ },'Inversión formalizada. La solicitud y la inversión quedaron vinculadas en una sola operación.')}
+
  return <section className="prst-grid form-list">
   <form className="prst-card prst-form" onSubmit={submit}>
-   <div className="prst-card-head"><div><small>FORMALIZACIÓN</small><h2>Activar inversión</h2><p>Solo se muestran solicitudes aprobadas.</p></div></div>
-   <Field label="Solicitud aprobada *"><select value={form.application_id} onChange={e=>choose(e.target.value)} required><option value="">Seleccionar</option>{eligible.map(a=><option key={a.id} value={a.id}>{fullName(investorMap.get(a.investor_id))} · {money(a.requested_amount)} · {a.requested_term_months} meses</option>)}</select></Field>
+   <div className="prst-card-head"><div><small>FORMALIZACIÓN</small><h2>Activar inversión</h2><p>Solo aparecen solicitudes con aprobación, firma y recepción de fondos completadas.</p></div></div>
+   <Field label="Solicitud lista para formalizar *"><select value={form.application_id} onChange={e=>choose(e.target.value)} required><option value="">Seleccionar</option>{eligible.map(a=><option key={a.id} value={a.id}>{a.application_code||'Solicitud'} · {fullName(investorMap.get(a.investor_id))} · {money(a.approved_amount??a.requested_amount)} · {a.approved_term_months??a.requested_term_months} meses</option>)}</select></Field>
+
+   {selectedApplication&&<div className="prst-comparison-box">
+    <span>Inversionista</span><strong>{fullName(investorMap.get(selectedApplication.investor_id))}</strong>
+    <span>Capital aprobado</span><strong>{money(selectedPrincipal)}</strong>
+    <span>Plazo aprobado</span><strong>{selectedTerm} meses</strong>
+    <span>Solicitud</span><strong>{selectedApplication.application_code||'—'}</strong>
+   </div>}
+
    <div className="prst-form-grid">
-    <Field label="Capital *"><input type="number" min="1" step="0.01" value={form.principal} onChange={e=>setForm({...form,principal:e.target.value})} required/></Field>
     <Field label="Fecha de otorgamiento *"><input type="date" value={form.granted_at} onChange={e=>setForm({...form,granted_at:e.target.value})} required/></Field>
-    <Field label="Plazo (meses) *"><input type="number" min="1" value={form.term_months} onChange={e=>setForm({...form,term_months:e.target.value})} required/></Field>
-    <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})}/></Field>
+    <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})} placeholder="Se puede completar al generar el contrato"/></Field>
     <Field label="Ganancia proyectada" hint="Temporalmente manual hasta definir la fórmula real de Prestadito$."><input type="number" min="0" step="0.01" value={form.projected_gain} onChange={e=>setForm({...form,projected_gain:e.target.value})}/></Field>
     <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})}/></Field>
     <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})}/></Field>
    </div>
-   <button className="prst-primary" disabled={saving||!eligible.length}>{saving?'Guardando…':'Activar inversión'}</button>
+
+   <div className="prst-note"><strong>Integridad:</strong> el capital y el plazo se toman de la aprobación de la solicitud y no se pueden alterar durante la formalización. La fecha de vencimiento se calcula automáticamente.</div>
+   <button className="prst-primary" disabled={saving||!eligible.length||!form.application_id}>{saving?'Formalizando…':'Formalizar inversión'}</button>
   </form>
+
   <article className="prst-card">
-   <div className="prst-card-head"><div><small>PORTAFOLIO</small><h2>Inversiones</h2></div></div>
-   {!investments.length?<Empty title="Aún no hay inversiones activas">Aprobá una solicitud y formalizala desde el formulario.</Empty>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Capital</th><th>Otorgada</th><th>Vence</th><th>Ganancia proyectada</th><th>Pago</th><th>Estado</th></tr></thead><tbody>{investments.map(x=><tr key={x.id}><td><b>{fullName(investorMap.get(x.investor_id))}</b><small>{x.investment_code}</small></td><td>{money(x.principal)}</td><td>{date(x.granted_at)}</td><td><b>{date(x.maturity_date)}</b><small>{daysUntil(x.maturity_date)} días</small></td><td>{x.projected_gain==null?'Pendiente':money(x.projected_gain)}</td><td><b>{x.payment_place||'—'}</b><small>{x.payment_method||'—'}</small></td><td><Status value={x.status}/></td></tr>)}</tbody></table></div>}
+   <div className="prst-card-head"><div><small>PORTAFOLIO</small><h2>Inversiones formalizadas</h2><p>Cada inversión conserva el vínculo con su solicitud original.</p></div></div>
+   {!investments.length?<Empty title="Aún no hay inversiones activas">Completá el flujo de una solicitud y formalizala desde este módulo.</Empty>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Capital</th><th>Otorgada</th><th>Vence</th><th>Ganancia proyectada</th><th>Pago</th><th>Estado</th></tr></thead><tbody>{investments.map(x=><tr key={x.id}><td><b>{fullName(investorMap.get(x.investor_id))}</b><small>{x.investment_code}</small></td><td>{money(x.principal)}</td><td>{date(x.granted_at)}</td><td><b>{date(x.maturity_date)}</b><small>{daysUntil(x.maturity_date)} días</small></td><td>{x.projected_gain==null?'Pendiente':money(x.projected_gain)}</td><td><b>{x.payment_place||'—'}</b><small>{x.payment_method||'—'}</small></td><td><Status value={x.status}/></td></tr>)}</tbody></table></div>}
   </article>
  </section>}
 
