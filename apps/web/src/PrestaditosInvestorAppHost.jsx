@@ -126,8 +126,15 @@ export default function PrestaditosInvestorAppHost(){
  const yieldPaid=payments.filter(x=>x.payment_type==='YIELD').reduce((s,x)=>s+Number(x.amount||0),0)
  const pendingApps=applications.filter(x=>['PENDING','REVIEW','APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status)).length
  const nextMaturity=[...activeInvestments].filter(x=>x.maturity_date).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date)))[0]
+ const operationalAlerts=useMemo(()=>buildPrestaditosAlerts({investors,applications,investments,contracts,payments,renewals,investorMap}),[investors,applications,investments,contracts,payments,renewals,investorMap])
 
  if(!enabled)return null
+
+ const goFromAlert=(target,row)=>{
+  if(target==='Renovaciones'&&row?.investment_id)setRenewalToManage(row.investment_id)
+  if(target==='Inversionistas'&&row?.investor_id){const investor=investorMap.get(row.investor_id);setQuery(investor?fullName(investor):'')}
+  setTab(target)
+ }
 
  const act=async(fn,success)=>{
   setSaving(true);setError('');setNotice('')
