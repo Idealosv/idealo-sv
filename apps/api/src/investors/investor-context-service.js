@@ -54,6 +54,12 @@ export async function resolveInvestorCompanyContext({request,supabase}){
  let selected=candidates.find(row=>row.company.id===preferredCompanyId)
  if(!selected)selected=candidates[0]
 
+ const status=String(selected.subscription?.status||'')
+ const graceValid=status==='past_due'&&selected.subscription?.grace_ends_at&&new Date(selected.subscription.grace_ends_at).getTime()>Date.now()
+ if(!['trial','active'].includes(status)&&!graceValid){
+  throw httpError('La membresía de esta empresa está suspendida, vencida o cancelada. Reactivala desde el Administrador de Membresías.',403,'INVESTOR_SUBSCRIPTION_BLOCKED')
+ }
+
  return{
   ok:true,
   company:{
