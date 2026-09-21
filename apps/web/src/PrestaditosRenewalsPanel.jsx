@@ -21,6 +21,7 @@ function Empty({title,children}){return <div className="prst-empty"><strong>{tit
 export default function PrestaditosRenewalsPanel({
  company,
  role,
+ settings,
  investments,
  payments,
  renewals,
@@ -31,6 +32,9 @@ export default function PrestaditosRenewalsPanel({
  onHandled,
 }){
  const canManage=['owner','admin'].includes(String(role||'').toLowerCase())
+ const termOptions=Array.isArray(settings?.allowed_term_months)?settings.allowed_term_months:[]
+ const paymentMethods=Array.isArray(settings?.payment_methods)?settings.payment_methods:[]
+ const paymentPlaces=Array.isArray(settings?.payment_places)?settings.payment_places:[]
  const eligible=useMemo(()=>investments.filter(row=>{
   const d=daysUntil(row.maturity_date)
   return row.maturity_date&&d!==null&&d<=30&&!['CLOSED','CANCELLED','RENEWED'].includes(row.status)
@@ -146,6 +150,9 @@ export default function PrestaditosRenewalsPanel({
  }),[eligible,renewals])
 
  return <section className="prst-renewal-module">
+  <datalist id="prst-renewal-term-options">{termOptions.map(value=><option key={value} value={value}/>)}</datalist>
+  <datalist id="prst-renewal-place-options">{paymentPlaces.map(value=><option key={value} value={value}/>)}</datalist>
+  <datalist id="prst-renewal-method-options">{paymentMethods.map(value=><option key={value} value={value}/>)}</datalist>
   <section className="prst-investor-summary prst-renewal-summary">
    <article><span>Por gestionar</span><strong>{summary.pending}</strong><small>vencidas o ≤30 días</small></article>
    <article><span>Decisiones registradas</span><strong>{summary.recorded}</strong><small>pendientes de ejecución</small></article>
@@ -177,10 +184,10 @@ export default function PrestaditosRenewalsPanel({
 
     {form.decision_type!=='WITHDRAW'&&<div className="prst-form-grid">
      <Field label="Monto que se pretende renovar *"><input type="number" min="0.01" step="0.01" value={form.renewal_amount} onChange={e=>setForm({...form,renewal_amount:e.target.value})} required disabled={!canManage}/></Field>
-     <Field label="Nuevo plazo *"><div className="prst-input-suffix"><input type="number" min="1" max="240" step="1" value={form.renewal_term_months} onChange={e=>setForm({...form,renewal_term_months:e.target.value})} required disabled={!canManage}/><span>meses</span></div></Field>
+     <Field label="Nuevo plazo *"><div className="prst-input-suffix"><input type="number" min="1" max="240" step="1" list="prst-renewal-term-options" value={form.renewal_term_months} onChange={e=>setForm({...form,renewal_term_months:e.target.value})} required disabled={!canManage}/><span>meses</span></div></Field>
      <Field label="Inicio solicitado"><input type="date" value={form.requested_start_date} onChange={e=>setForm({...form,requested_start_date:e.target.value})} disabled={!canManage}/></Field>
-     <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
-     <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
+     <Field label="Lugar de pago"><input list="prst-renewal-place-options" value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
+     <Field label="Forma de pago" className="span-2"><input list="prst-renewal-method-options" value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
     </div>}
 
     <Field label="Observaciones / instrucciones"><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} disabled={!canManage} placeholder="Condiciones conversadas con el inversionista."/></Field>
