@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Alertas','Inversionistas','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría','Configuración']
+const TABS=['Dashboard','Notificaciones','Inversionistas','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Configuración']
 
 const demo={
  investors:[
@@ -65,7 +65,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Alertas:'Seguimiento operativo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad',Configuración:'Reglas del vertical'
+    Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Configuración:'Reglas del vertical'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -74,20 +74,23 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard capital={capital} projected={projected} yieldPaid={yieldPaid}/>}
-    {tab==='Alertas'&&<Alerts/>}
+    {tab==='Notificaciones'&&<Notifications/>}
     {tab==='Inversionistas'&&<Investors/>}
     {tab==='Solicitudes'&&<Applications/>}
     {tab==='Simulador'&&<Simulator/>}
     {tab==='Inversiones'&&<Investments/>}
     {tab==='Contratos'&&<Contracts/>}
     {tab==='Beneficiarios'&&<Beneficiaries/>}
+    {tab==='Estado de cuenta'&&<Statement/>}
     {tab==='Rendimientos'&&<Payments/>}
     {tab==='Vencimientos'&&<Maturities/>}
     {tab==='Renovaciones'&&<Renewals/>}
     {tab==='Tesorería'&&<Treasury capital={capital} yieldPaid={yieldPaid}/>} 
     {tab==='Documentos'&&<Documents/>}
     {tab==='Reportes'&&<Reports/>}
+    {tab==='Cierre mensual'&&<MonthlyCloseout/>}
     {tab==='Auditoría'&&<Audit/>}
+    {tab==='Auditoría técnica'&&<TechnicalAudit/>}
     {tab==='Configuración'&&<Configuration/>}
    </section>
   </main>
@@ -126,6 +129,20 @@ function Dashboard({capital,projected,yieldPaid}){
    <Card title="Solicitudes recientes" kicker="ACTIVIDAD">
     <div className="prst-list">{demo.applications.map(x=><article key={x.code}><div><b>{x.name}</b><small>{money(x.amount)} · {x.term} meses</small></div><Status tone={x.status==='Aprobada'?'active':x.status==='Pendiente'?'pending':'review'}>{x.status}</Status></article>)}</div>
    </Card>
+  </section>
+  <section className="prst-executive-analytics">
+   <section className="prst-grid two">
+    <Card title="Capital vigente por tasa anual" kicker="DISTRIBUCIÓN POR TASA">
+     <div className="prst-exec-bars">
+      <div className="prst-exec-bar"><div><span>10% anual</span><b>{money(4000)}</b></div><div className="prst-exec-track"><i style={{width:'33%'}}/></div><small>1 inversión</small></div>
+      <div className="prst-exec-bar"><div><span>12% anual</span><b>{money(8000)}</b></div><div className="prst-exec-track"><i style={{width:'67%'}}/></div><small>1 inversión</small></div>
+      <div className="prst-exec-bar"><div><span>15% anual</span><b>{money(12000)}</b></div><div className="prst-exec-track"><i style={{width:'100%'}}/></div><small>1 inversión vencida</small></div>
+     </div>
+    </Card>
+    <Card title="Capital por ventana de vencimiento" kicker="VENCIMIENTOS">
+     <div className="prst-exec-bars"><div className="prst-exec-bar"><div><span>Vencidas</span><b>{money(12000)}</b></div><div className="prst-exec-track"><i style={{width:'100%'}}/></div><small>1 inversión</small></div><div className="prst-exec-bar"><div><span>Más de 90 días</span><b>{money(12000)}</b></div><div className="prst-exec-track"><i style={{width:'100%'}}/></div><small>2 inversiones activas</small></div></div>
+    </Card>
+   </section>
   </section>
  </>}
 
@@ -288,14 +305,36 @@ function Simulator(){
   </section>
  </>}
 
-function Alerts(){return <>
- <section className="prst-investor-summary prst-alert-summary"><article><span>Críticas</span><strong>1</strong><small>acción inmediata</small></article><article><span>Altas</span><strong>2</strong><small>requieren atención</small></article><article><span>Medias</span><strong>1</strong><small>seguimiento preventivo</small></article><article><span>Total abiertas</span><strong>4</strong><small>calculadas en tiempo real</small></article></section>
- <Card title="Alertas de Prestadito$" kicker="SEGUIMIENTO OPERATIVO">
+function Statement(){return <>
+ <section className="prst-investor-summary prst-statement-summary"><article><span>Capital vigente</span><strong>{money(4000)}</strong><small>saldo actual</small></article><article><span>Capital histórico</span><strong>{money(4000)}</strong><small>formalizado</small></article><article><span>Rendimientos pagados</span><strong>{money(150)}</strong><small>movimientos vigentes</small></article><article><span>Capital devuelto</span><strong>{money(0)}</strong><small>devoluciones</small></article></section>
+ <Card title="Estado de cuenta · Carlos Ernesto Mejía" kicker="ESTADO DE CUENTA">
+  <div className="prst-profile-grid"><article><small>Código</small><b>INV-2026-001284</b><span>DUI 01234567-8</span></article><article><small>Inversiones</small><b>1</b><span>1 vigente</span></article><article><small>Tasa</small><b>10% anual</b><span>rango provisional</span></article><article><small>Beneficiarios</small><b>2</b><span>100% asignado</span></article></div>
+  <Table headers={['Inversión','Capital','Tasa anual','Inicio','Vence','Capital pendiente','Estado']} rows={[<tr key="s1"><td>INVEST-20260901-A1B2C3</td><td>{money(4000)}</td><td>10% anual</td><td>01 sep 2026</td><td>01 sep 2027</td><td><b>{money(4000)}</b></td><td><Status>Activa</Status></td></tr>]}/>
+  <div className="prst-note"><strong>PDF:</strong> en la versión operativa se puede imprimir o guardar este estado de cuenta como PDF.</div>
+ </Card>
+ </>}
+
+function MonthlyCloseout(){return <>
+ <section className="prst-investor-summary prst-closeout-summary"><article><span>Cierres guardados</span><strong>2</strong><small>todas las versiones</small></article><article><span>Meses cerrados</span><strong>1</strong><small>septiembre 2026</small></article><article><span>Último período</span><strong>sep 2026</strong><small>CIE-202609-V02</small></article><article><span>Modo</span><strong>Snapshot</strong><small>no bloquea movimientos</small></article></section>
+ <Card title="CIE-202609-V02 · septiembre 2026" kicker="CIERRE MENSUAL">
+  <section className="prst-metrics prst-closeout-detail"><article><span>Nuevas inversiones</span><strong>1</strong><small>formalizadas</small></article><article><span>Capital formalizado</span><strong>{money(4000)}</strong><small>del período</small></article><article><span>Rendimientos pagados</span><strong>{money(270)}</strong><small>vigentes</small></article><article><span>Capital devuelto</span><strong>{money(12000)}</strong><small>vigente</small></article><article><span>Vencimientos</span><strong>1</strong><small>del período</small></article><article><span>Renovaciones</span><strong>1</strong><small>ejecutadas</small></article></section>
+  <div className="prst-note"><strong>No destructivo:</strong> el cierre conserva versiones y no modifica inversiones, pagos ni contratos.</div>
+ </Card>
+ </>}
+
+function TechnicalAudit(){return <>
+ <section className="prst-investor-summary prst-tech-audit-summary"><article><span>Estado general</span><strong>Correcto</strong><small>sin inconsistencias demo</small></article><article><span>Errores</span><strong>0</strong><small>integridad crítica</small></article><article><span>Advertencias</span><strong>0</strong><small>requieren verificación</small></article><article><span>Controles</span><strong>6</strong><small>seguridad implementada</small></article></section>
+ <Card title="Integridad del vertical" kicker="AUDITORÍA TÉCNICA"><div className="prst-tech-ok"><strong>Sin inconsistencias detectadas.</strong><span>Inversiones, pagos, contratos, documentos y renovaciones mantienen consistencia en la muestra.</span></div></Card>
+ <Card title="Controles implementados" kicker="ARQUITECTURA DE SEGURIDAD"><div className="prst-security-checks">{['Aislamiento por empresa','Pagos protegidos','Inversiones protegidas','Documentos privados','Contratos auditados','Cierres no destructivos'].map(x=><article key={x}><span>✓</span><div><strong>{x}</strong><small>Control activo en el vertical de inversionistas.</small></div></article>)}</div></Card>
+ </>}
+
+function Notifications(){return <>
+ <section className="prst-investor-summary prst-alert-summary"><article><span>Críticas abiertas</span><strong>1</strong><small>acción inmediata</small></article><article><span>Altas abiertas</span><strong>2</strong><small>requieren atención</small></article><article><span>Revisadas</span><strong>1</strong><small>siguen activas</small></article><article><span>Archivadas</span><strong>2</strong><small>historial personal</small></article></section>
+ <Card title="Centro de notificaciones" kicker="SEGUIMIENTO OPERATIVO">
+  <div className="prst-notification-tabs"><button className="active">Abiertas</button><button>Revisadas</button><button>Archivadas</button></div>
   <div className="prst-alert-list">
-   <article className="prst-operational-alert critical"><div className="prst-alert-icon">!</div><div className="prst-alert-copy"><div><span>Vencimiento</span><b>Crítica</b></div><strong>Inversión vencida</strong><small>José Roberto Hernández · INVEST-20260310-G7H8I9</small></div><button>Ir a Vencimientos</button></article>
-   <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><button>Ir a Contratos</button></article>
-   <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Renovación</span><b>Alta</b></div><strong>Decisión lista para ejecutar</strong><small>José Roberto Hernández · REN-20260910-AB1234</small></div><button>Ir a Renovaciones</button></article>
-   <article className="prst-operational-alert medium"><div className="prst-alert-icon">•</div><div className="prst-alert-copy"><div><span>Documentación</span><b>Media</b></div><strong>Expediente incompleto</strong><small>José Roberto Hernández · documento pendiente</small></div><button>Ir a Inversionistas</button></article>
+   <article className="prst-operational-alert critical"><div className="prst-alert-icon">!</div><div className="prst-alert-copy"><div><span>Vencimiento</span><b>Crítica</b></div><strong>Inversión vencida</strong><small>José Roberto Hernández · INVEST-20260310-G7H8I9</small></div><div className="prst-notification-actions"><button>Abrir</button><button>Revisada</button><button>Archivar</button></div></article>
+   <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><div className="prst-notification-actions"><button>Abrir</button><button>Revisada</button><button>Archivar</button></div></article>
   </div>
  </Card>
  </>}
