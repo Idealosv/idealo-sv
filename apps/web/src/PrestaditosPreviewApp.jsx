@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos']
+const TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Beneficiarios','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Auditoría']
 
 const demo={
  investors:[
@@ -38,6 +38,12 @@ const demo={
   {code:'DOC-20260905-BB2020',title:'Comprobante de transferencia',investor:'Carlos Ernesto Mejía',relation:'INVEST-20260901-A1B2C3',type:'Comprobante de pago',size:'462 KB',status:'Activo'},
   {code:'DOC-20260915-CC3030',title:'Formulario de beneficiarios',investor:'María Elena López',relation:'Expediente general',type:'Formulario',size:'820 KB',status:'Activo'},
  ],
+ audit:[
+  {date:'21 sep 2026 · 10:14',category:'Inversionistas',action:'Inversionista actualizado',investor:'Carlos Ernesto Mejía',actor:'Usuario 41a8c229'},
+  {date:'21 sep 2026 · 10:32',category:'Solicitudes',action:'Solicitud aprobada',investor:'María Elena López',actor:'Usuario 41a8c229'},
+  {date:'21 sep 2026 · 10:49',category:'Pagos',action:'Pago registrado',investor:'Carlos Ernesto Mejía',actor:'Usuario 41a8c229'},
+  {date:'21 sep 2026 · 11:06',category:'Documentos',action:'Documento registrado',investor:'María Elena López',actor:'Usuario 41a8c229'},
+ ],
 }
 
 function Status({children,tone='active'}){return <span className={`prst-status ${tone}`}>{children}</span>}
@@ -55,7 +61,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado'
+    Dashboard:'Resumen ejecutivo',Inversionistas:'Expedientes y documentos',Solicitudes:'Solicitudes de inversión',Inversiones:'Capital y vigencias',Beneficiarios:'Designaciones',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales',Auditoría:'Trazabilidad'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -73,6 +79,8 @@ export default function PrestaditosPreviewApp(){
     {tab==='Renovaciones'&&<Renewals/>}
     {tab==='Tesorería'&&<Treasury capital={capital} yieldPaid={yieldPaid}/>} 
     {tab==='Documentos'&&<Documents/>}
+    {tab==='Reportes'&&<Reports/>}
+    {tab==='Auditoría'&&<Audit/>}
    </section>
   </main>
  </div>
@@ -173,5 +181,28 @@ function Documents(){return <>
  <section className="prst-investor-summary"><article><span>Documentos activos</span><strong>3</strong><small>archivos vigentes</small></article><article><span>Contratos</span><strong>1</strong><small>documento contractual</small></article><article><span>Comprobantes</span><strong>1</strong><small>respaldo de pago</small></article><article><span>Inactivos</span><strong>0</strong><small>histórico conservado</small></article></section>
  <Card title="Repositorio documental" kicker="EXPEDIENTE PRIVADO">
   <Table headers={['Documento','Inversionista','Relación','Tipo','Archivo','Estado']} rows={demo.documents.map(x=><tr key={x.code}><td><b>{x.title}</b><small>{x.code}</small></td><td>{x.investor}</td><td>{x.relation}</td><td>{x.type}</td><td>{x.size}</td><td><Status>{x.status}</Status></td></tr>)}/>
+ </Card>
+ </>}
+
+
+function Reports(){return <>
+ <section className="prst-metrics">
+  <Metric label="Inversionistas activos" value="3" hint="expedientes habilitados"/>
+  <Metric label="Capital activo" value={money(25000)} hint="inversiones vigentes" tone="money"/>
+  <Metric label="Ganancia proyectada" value={money(2520)} hint="según datos formalizados" tone="money"/>
+  <Metric label="Rendimientos pagados" value={money(270)} hint="pagos vigentes"/>
+  <Metric label="Capital devuelto" value={money(12000)} hint="devoluciones"/>
+  <Metric label="Vencidas" value="1" hint="requiere seguimiento" tone="warn"/>
+ </section>
+ <Card title="Inversiones" kicker="REPORTES GERENCIALES">
+  <div className="prst-report-tabs"><button className="active">Inversiones</button><button>Inversionistas</button><button>Solicitudes</button><button>Pagos</button><button>Vencimientos</button><button>Renovaciones</button><button>Documentos</button></div>
+  <Table headers={['Código','Inversionista','Capital','Plazo','Otorgada','Vence','Ganancia','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td>{x.code}</td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
+ </Card>
+ </>}
+
+function Audit(){return <>
+ <section className="prst-investor-summary"><article><span>Eventos cargados</span><strong>4</strong><small>últimos movimientos</small></article><article><span>Expedientes</span><strong>1</strong><small>cambios de inversionistas</small></article><article><span>Financieros</span><strong>2</strong><small>solicitudes y pagos</small></article><article><span>Documentales</span><strong>1</strong><small>archivos</small></article></section>
+ <Card title="Auditoría del ERP" kicker="TRAZABILIDAD">
+  <Table headers={['Fecha y hora','Categoría','Acción','Inversionista','Responsable']} rows={demo.audit.map((x,i)=><tr key={i}><td><b>{x.date}</b></td><td><span className="prst-audit-category">{x.category}</span></td><td>{x.action}</td><td>{x.investor}</td><td>{x.actor}</td></tr>)}/>
  </Card>
  </>}
