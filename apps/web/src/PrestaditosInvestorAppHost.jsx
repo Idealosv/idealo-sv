@@ -1,0 +1,376 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { supabase } from './lib/supabase.js'
+import './prestaditos-investors.css'
+
+const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
+const TABS=[
+ ['Dashboard','Resumen de inversiones'],
+ ['Inversionistas','Expedientes y documentos'],
+ ['Solicitudes','Solicitudes de inversión'],
+ ['Inversiones','Contratos y vigencias'],
+ ['Beneficiarios','Beneficiarios registrados'],
+ ['Rendimientos','Pagos al inversionista'],
+ ['Vencimientos','Próximas fechas'],
+ ['Renovaciones','Continuidad de inversiones'],
+ ['Tesorería','Entradas y salidas'],
+ ['Documentos','DUI, rostro y contratos'],
+ ['Reportes','Indicadores gerenciales'],
+ ['Auditoría','Trazabilidad'],
+ ['Configuración','Reglas del vertical'],
+]
+
+const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
+const date=value=>value?new Date(String(value).includes('T')?value:`${value}T12:00:00`).toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}):'—'
+const today=()=>new Date().toISOString().slice(0,10)
+const fullName=investor=>[investor?.first_names,investor?.last_names].filter(Boolean).join(' ')||'—'
+const daysUntil=value=>value?Math.ceil((new Date(`${value}T12:00:00`).getTime()-new Date(`${today()}T12:00:00`).getTime())/86400000):null
+const safeText=error=>String(error?.message||error||'Ocurrió un error inesperado.')
+
+function Metric({label,value,hint,tone=''}){return <article className={`prst-metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>}
+function Field({label,children,hint,className=''}){return <label className={`prst-field ${className}`.trim()}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
+function Empty({title,children}){return <div className="prst-empty"><strong>{title}</strong>{children&&<p>{children}</p>}</div>}
+function Status({value}){const map={PENDING:'Pendiente',REVIEW:'En revisión',APPROVED:'Aprobada',REJECTED:'Rechazada',SIGNATURE:'Firma',FUNDS_RECEIVED:'Fondos recibidos',ACTIVE:'Activa',INACTIVE:'Inactivo',BLOCKED:'Bloqueado',MATURING:'Próxima a vencer',MATURED:'Vencida',RENEWED:'Renovada',CLOSED:'Cerrada',CANCELLED:'Cancelada'};return <span className={`prst-status ${String(value||'').toLowerCase()}`}>{map[value]||value||'—'}</span>}
+
+export default function PrestaditosInvestorAppHost(){
+ const enabled=window.location.pathname==='/investors'||window.location.pathname.startsWith('/investors/')
+ const queryCompany=enabled?new URLSearchParams(window.location.search).get('company')||'':''
+ const [company,setCompany]=useState(null)
+ const [role,setRole]=useState('')
+ const [tab,setTab]=useState('Dashboard')
+ const [loading,setLoading]=useState(enabled)
+ const [saving,setSaving]=useState(false)
+ const [error,setError]=useState('')
+ const [notice,setNotice]=useState('')
+ const [investors,setInvestors]=useState([])
+ const [applications,setApplications]=useState([])
+ const [investments,setInvestments]=useState([])
+ const [beneficiaries,setBeneficiaries]=useState([])
+ const [payments,setPayments]=useState([])
+ const [audit,setAudit]=useState([])
+ const [query,setQuery]=useState('')
+
+ const resolveContext=useCallback(async()=>{
+  if(!enabled||!supabase)return
+  setLoading(true);setError('')
+  try{
+   const {data:{session}}=await supabase.auth.getSession()
+   if(!session?.access_token)throw new Error('Iniciá sesión para entrar a Prestadito$.')
+   const preferred=queryCompany||window.__IDEALO_ACTIVE_COMPANY__?.id||''
+   const response=await fetch(`${API}/api/investors/context${preferred?`?company_id=${encodeURIComponent(preferred)}`:''}`,{headers:{Authorization:`Bearer ${session.access_token}`}})
+   const body=await response.json().catch(()=>({}))
+   if(!response.ok)throw new Error(body.message||'No se pudo resolver la empresa de inversionistas.')
+   setCompany(body.company);setRole(body.role||'')
+   window.__IDEALO_ACTIVE_COMPANY__={...(window.__IDEALO_ACTIVE_COMPANY__||{}),...body.company}
+   window.dispatchEvent(new CustomEvent('idealo-company-resolved',{detail:window.__IDEALO_ACTIVE_COMPANY__}))
+   const url=new URL(window.location.href)
+   if(url.searchParams.get('company')!==body.company.id){url.searchParams.set('company',body.company.id);window.history.replaceState({},'',url.pathname+url.search+url.hash)}
+  }catch(err){setError(safeText(err))}
+  finally{setLoading(false)}
+ },[enabled,queryCompany])
+
+ useEffect(()=>{resolveContext()},[resolveContext])
+
+ const load=useCallback(async()=>{
+  if(!enabled||!company?.id||!supabase)return
+  setLoading(true);setError('')
+  try{
+   const [i,a,n,b,p,l]=await Promise.all([
+    supabase.from('inv_investors').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
+    supabase.from('inv_applications').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
+    supabase.from('inv_investments').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
+    supabase.from('inv_beneficiaries').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
+    supabase.from('inv_payments').select('*').eq('company_id',company.id).order('payment_date',{ascending:false}).limit(250),
+    supabase.from('inv_audit_log').select('*').eq('company_id',company.id).order('created_at',{ascending:false}).limit(250),
+   ])
+   for(const r of [i,a,n,b,p,l])if(r.error)throw r.error
+   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[])
+  }catch(err){setError(safeText(err))}
+  finally{setLoading(false)}
+ },[enabled,company?.id])
+
+ useEffect(()=>{load()},[load])
+
+ const investorMap=useMemo(()=>new Map(investors.map(x=>[x.id,x])),[investors])
+ const activeInvestments=investments.filter(x=>['ACTIVE','MATURING'].includes(x.status))
+ const totalPrincipal=activeInvestments.reduce((s,x)=>s+Number(x.principal||0),0)
+ const projectedGain=activeInvestments.reduce((s,x)=>s+Number(x.projected_gain||0),0)
+ const yieldPaid=payments.filter(x=>x.payment_type==='YIELD').reduce((s,x)=>s+Number(x.amount||0),0)
+ const pendingApps=applications.filter(x=>['PENDING','REVIEW','APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status)).length
+ const nextMaturity=[...activeInvestments].filter(x=>x.maturity_date).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date)))[0]
+
+ if(!enabled)return null
+
+ const act=async(fn,success)=>{
+  setSaving(true);setError('');setNotice('')
+  try{await fn();setNotice(success);await load()}
+  catch(err){setError(safeText(err))}
+  finally{setSaving(false)}
+ }
+
+ return <div className="prst-app">
+  <aside className="prst-sidebar">
+   <div className="prst-brand">
+    <span className="prst-mark">$</span>
+    <div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div>
+   </div>
+   <div className="prst-company"><span>EMPRESA</span><strong>{company?.name||'Prestadito$ El Salvador'}</strong><small>{role||'Usuario autorizado'}</small></div>
+   <nav>{TABS.map(([name,desc])=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>setTab(name)}><strong>{name}</strong><small>{desc}</small></button>)}</nav>
+   <a className="prst-back" href="/master">← Administrador IDEALO SV</a>
+  </aside>
+
+  <main className="prst-main">
+   <header className="prst-topbar">
+    <div><span>IDEALO SV · FINANCIERA / INVERSIONISTAS</span><h1>{tab}</h1><p>ERP exclusivo para inversionistas e inversiones.</p></div>
+    <div className="prst-top-actions"><button type="button" onClick={load} disabled={loading}>{loading?'Actualizando…':'Actualizar'}</button></div>
+   </header>
+   {error&&<div className="prst-alert error">{error}</div>}
+   {notice&&<div className="prst-alert success">{notice}</div>}
+
+   <section className="prst-content">
+    {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
+    {tab==='Inversionistas'&&<InvestorsPanel company={company} investors={investors} query={query} setQuery={setQuery} saving={saving} act={act}/>}
+    {tab==='Solicitudes'&&<ApplicationsPanel company={company} investors={investors} applications={applications} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Inversiones'&&<InvestmentsPanel company={company} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Rendimientos'&&<PaymentsPanel company={company} investors={investors} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Vencimientos'&&<MaturitiesPanel investments={investments} investorMap={investorMap}/>}
+    {tab==='Renovaciones'&&<RenewalsPanel investments={investments} investorMap={investorMap}/>}
+    {tab==='Tesorería'&&<TreasuryPanel investments={investments} payments={payments}/>}
+    {tab==='Documentos'&&<DocumentsPanel investors={investors}/>}
+    {tab==='Reportes'&&<ReportsPanel investors={investors} applications={applications} investments={investments} payments={payments}/>}
+    {tab==='Auditoría'&&<AuditPanel audit={audit} investorMap={investorMap}/>}
+    {tab==='Configuración'&&<ConfigurationPanel/>}
+   </section>
+  </main>
+ </div>
+}
+
+function Dashboard({investors,applications,investments,payments,totalPrincipal,projectedGain,yieldPaid,pendingApps,nextMaturity,investorMap,onGo}){
+ const maturityDays=nextMaturity?daysUntil(nextMaturity.maturity_date):null
+ const recent=applications.slice(0,5)
+ return <>
+  <section className="prst-metrics">
+   <Metric label="Inversionistas" value={investors.length} hint="Expedientes registrados"/>
+   <Metric label="Capital activo" value={money(totalPrincipal)} hint={`${investments.filter(x=>['ACTIVE','MATURING'].includes(x.status)).length} inversiones activas`} tone="money"/>
+   <Metric label="Solicitudes pendientes" value={pendingApps} hint="Por revisar o formalizar" tone="warn"/>
+   <Metric label="Ganancia proyectada" value={projectedGain?money(projectedGain):'—'} hint={projectedGain?'Según inversiones formalizadas':'Se calculará con la regla acordada'} tone="money"/>
+   <Metric label="Rendimientos pagados" value={money(yieldPaid)} hint="Pagos tipo rendimiento"/>
+   <Metric label="Próximo vencimiento" value={nextMaturity?date(nextMaturity.maturity_date):'—'} hint={maturityDays===null?'Sin vencimientos':maturityDays<0?'Vencido':`${maturityDays} días restantes`} tone={maturityDays!==null&&maturityDays<=30?'warn':''}/>
+  </section>
+  <section className="prst-grid two">
+   <article className="prst-card">
+    <div className="prst-card-head"><div><small>FLUJO PRINCIPAL</small><h2>Operación de inversionistas</h2></div></div>
+    <div className="prst-flow">
+     <button onClick={()=>onGo('Inversionistas')}><b>1</b><span><strong>Registrar inversionista</strong><small>Generales, rostro y DUI</small></span></button>
+     <button onClick={()=>onGo('Solicitudes')}><b>2</b><span><strong>Recibir solicitud</strong><small>Monto, plazo y lugar de pago</small></span></button>
+     <button onClick={()=>onGo('Inversiones')}><b>3</b><span><strong>Formalizar inversión</strong><small>Otorgamiento, vencimiento y contrato</small></span></button>
+     <button onClick={()=>onGo('Rendimientos')}><b>4</b><span><strong>Registrar pagos</strong><small>Rendimientos y devolución de capital</small></span></button>
+    </div>
+   </article>
+   <article className="prst-card">
+    <div className="prst-card-head"><div><small>SOLICITUDES RECIENTES</small><h2>Actividad</h2></div></div>
+    {!recent.length?<Empty title="Aún no hay solicitudes">Cuando un inversionista envíe una solicitud aparecerá aquí.</Empty>:<div className="prst-list">{recent.map(x=><article key={x.id}><div><b>{fullName(investorMap.get(x.investor_id))}</b><small>{money(x.requested_amount)} · {x.requested_term_months} meses</small></div><Status value={x.status}/></article>)}</div>}
+   </article>
+  </section>
+ </>}
+
+function InvestorsPanel({company,investors,query,setQuery,saving,act}){
+ const empty={first_names:'',last_names:'',birth_date:'',dui:'',nit:'',marital_status:'',profession:'',phone:'',whatsapp:'',email:'',address:'',department:'',district:'',emergency_contact_name:'',emergency_contact_phone:'',bank_name:'',bank_account_last4:'',notes:''}
+ const [form,setForm]=useState(empty)
+ const [face,setFace]=useState(null),[duiFront,setDuiFront]=useState(null),[duiBack,setDuiBack]=useState(null)
+ const update=e=>setForm({...form,[e.target.name]:e.target.value})
+ const filtered=investors.filter(x=>!query.trim()||`${x.first_names} ${x.last_names} ${x.dui} ${x.investor_code} ${x.phone}`.toLowerCase().includes(query.trim().toLowerCase()))
+ const upload=async(investorId,file,label)=>{
+  if(!file)return ''
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase()
+  const path=`${company.id}/${investorId}/${label}-${Date.now()}.${ext}`
+  const {error}=await supabase.storage.from('investor-documents').upload(path,file,{upsert:false})
+  if(error)throw error
+  return path
+ }
+ const submit=e=>{e.preventDefault();act(async()=>{
+  const code=`INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
+  const {data,error}=await supabase.from('inv_investors').insert({...form,company_id:company.id,investor_code:code}).select('*').single()
+  if(error)throw error
+  const [facePath,frontPath,backPath]=await Promise.all([upload(data.id,face,'rostro'),upload(data.id,duiFront,'dui-frente'),upload(data.id,duiBack,'dui-reverso')])
+  const patch={face_photo_path:facePath,dui_front_path:frontPath,dui_back_path:backPath}
+  if(facePath||frontPath||backPath){const {error:updateError}=await supabase.from('inv_investors').update(patch).eq('id',data.id);if(updateError)throw updateError}
+  await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:data.id,action:'INVESTOR_CREATED',detail:{investor_code:code}})
+  setForm(empty);setFace(null);setDuiFront(null);setDuiBack(null)
+ },'Inversionista registrado correctamente.')}
+ return <section className="prst-grid form-list">
+  <form className="prst-card prst-form" onSubmit={submit}>
+   <div className="prst-card-head"><div><small>NUEVO EXPEDIENTE</small><h2>Registrar inversionista</h2><p>Datos generales, fotografía y documento de identidad.</p></div></div>
+   <div className="prst-form-grid">
+    <Field label="Nombres *"><input name="first_names" value={form.first_names} onChange={update} required/></Field>
+    <Field label="Apellidos *"><input name="last_names" value={form.last_names} onChange={update} required/></Field>
+    <Field label="Fecha de nacimiento"><input name="birth_date" type="date" value={form.birth_date} onChange={update}/></Field>
+    <Field label="DUI *"><input name="dui" value={form.dui} onChange={update} required placeholder="00000000-0"/></Field>
+    <Field label="NIT"><input name="nit" value={form.nit} onChange={update}/></Field>
+    <Field label="Estado civil"><input name="marital_status" value={form.marital_status} onChange={update}/></Field>
+    <Field label="Profesión u oficio" className="span-2"><input name="profession" value={form.profession} onChange={update}/></Field>
+    <Field label="Teléfono"><input name="phone" value={form.phone} onChange={update}/></Field>
+    <Field label="WhatsApp"><input name="whatsapp" value={form.whatsapp} onChange={update}/></Field>
+    <Field label="Correo" className="span-2"><input type="email" name="email" value={form.email} onChange={update}/></Field>
+    <Field label="Departamento"><input name="department" value={form.department} onChange={update}/></Field>
+    <Field label="Distrito"><input name="district" value={form.district} onChange={update}/></Field>
+    <Field label="Dirección" className="span-2"><textarea name="address" value={form.address} onChange={update}/></Field>
+    <Field label="Contacto de emergencia"><input name="emergency_contact_name" value={form.emergency_contact_name} onChange={update}/></Field>
+    <Field label="Teléfono de emergencia"><input name="emergency_contact_phone" value={form.emergency_contact_phone} onChange={update}/></Field>
+    <Field label="Banco"><input name="bank_name" value={form.bank_name} onChange={update}/></Field>
+    <Field label="Últimos 4 de cuenta" hint="No guardamos la cuenta completa en esta primera fase."><input name="bank_account_last4" maxLength="4" value={form.bank_account_last4} onChange={update}/></Field>
+   </div>
+   <div className="prst-capture-grid">
+    <Field label="Foto del rostro"><input type="file" accept="image/*" capture="user" onChange={e=>setFace(e.target.files?.[0]||null)}/><small>{face?.name||'Tomar o seleccionar fotografía'}</small></Field>
+    <Field label="DUI frente"><input type="file" accept="image/*" capture="environment" onChange={e=>setDuiFront(e.target.files?.[0]||null)}/><small>{duiFront?.name||'Escanear / fotografiar frente'}</small></Field>
+    <Field label="DUI reverso"><input type="file" accept="image/*" capture="environment" onChange={e=>setDuiBack(e.target.files?.[0]||null)}/><small>{duiBack?.name||'Escanear / fotografiar reverso'}</small></Field>
+   </div>
+   <Field label="Observaciones"><textarea name="notes" value={form.notes} onChange={update}/></Field>
+   <button className="prst-primary" disabled={saving}>{saving?'Guardando…':'Guardar inversionista'}</button>
+  </form>
+  <article className="prst-card">
+   <div className="prst-card-head"><div><small>DIRECTORIO</small><h2>Inversionistas</h2></div><input className="prst-search" placeholder="Buscar nombre, DUI, código o teléfono" value={query} onChange={e=>setQuery(e.target.value)}/></div>
+   {!filtered.length?<Empty title="No hay inversionistas">Registrá el primer expediente desde el formulario.</Empty>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>DUI</th><th>Contacto</th><th>Documentos</th><th>Estado</th></tr></thead><tbody>{filtered.map(x=><tr key={x.id}><td><b>{fullName(x)}</b><small>{x.investor_code}</small></td><td>{x.dui}</td><td><b>{x.phone||x.whatsapp||'—'}</b><small>{x.email||'Sin correo'}</small></td><td><span className="prst-doc-count">{[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length}/3</span></td><td><Status value={x.status}/></td></tr>)}</tbody></table></div>}
+  </article>
+ </section>}
+
+function ApplicationsPanel({company,investors,applications,investorMap,saving,act}){
+ const empty={investor_id:'',requested_amount:'',requested_term_months:'',requested_start_date:today(),payment_place:'',payment_method:'',observations:''}
+ const [form,setForm]=useState(empty)
+ useEffect(()=>{if(!form.investor_id&&investors[0])setForm(x=>({...x,investor_id:investors[0].id}))},[investors,form.investor_id])
+ const submit=e=>{e.preventDefault();act(async()=>{const {data,error}=await supabase.from('inv_applications').insert({...form,company_id:company.id,requested_amount:Number(form.requested_amount),requested_term_months:Number(form.requested_term_months)}).select('id').single();if(error)throw error;await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:form.investor_id,action:'APPLICATION_CREATED',detail:{application_id:data.id,amount:Number(form.requested_amount),term_months:Number(form.requested_term_months)}});setForm({...empty,investor_id:form.investor_id})},'Solicitud enviada a revisión.')}
+ const setStatus=(row,status)=>act(async()=>{const {error}=await supabase.from('inv_applications').update({status,reviewed_at:new Date().toISOString()}).eq('id',row.id);if(error)throw error;await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:row.investor_id,action:'APPLICATION_STATUS_CHANGED',detail:{application_id:row.id,status}})},'Estado de solicitud actualizado.')
+ return <section className="prst-grid form-list">
+  <form className="prst-card prst-form" onSubmit={submit}>
+   <div className="prst-card-head"><div><small>NUEVA SOLICITUD</small><h2>Solicitud de inversión</h2><p>Monto, plazo y condiciones solicitadas por el inversionista.</p></div></div>
+   <Field label="Inversionista *"><select value={form.investor_id} onChange={e=>setForm({...form,investor_id:e.target.value})} required><option value="">Seleccionar</option>{investors.map(x=><option key={x.id} value={x.id}>{fullName(x)} · {x.investor_code}</option>)}</select></Field>
+   <div className="prst-form-grid">
+    <Field label="Monto a invertir *"><input type="number" min="1" step="0.01" value={form.requested_amount} onChange={e=>setForm({...form,requested_amount:e.target.value})} required/></Field>
+    <Field label="Plazo (meses) *"><input type="number" min="1" max="120" value={form.requested_term_months} onChange={e=>setForm({...form,requested_term_months:e.target.value})} required/></Field>
+    <Field label="Fecha deseada de inicio"><input type="date" value={form.requested_start_date} onChange={e=>setForm({...form,requested_start_date:e.target.value})}/></Field>
+    <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} placeholder="Sucursal, banco u otro"/></Field>
+    <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} placeholder="Transferencia, efectivo, depósito..."/></Field>
+   </div>
+   <Field label="Observaciones"><textarea value={form.observations} onChange={e=>setForm({...form,observations:e.target.value})}/></Field>
+   <button className="prst-primary" disabled={saving||!investors.length}>{saving?'Guardando…':'Registrar solicitud'}</button>
+  </form>
+  <article className="prst-card">
+   <div className="prst-card-head"><div><small>BANDEJA</small><h2>Solicitudes recibidas</h2></div></div>
+   {!applications.length?<Empty title="Sin solicitudes">Las solicitudes nuevas aparecerán en esta bandeja.</Empty>:<div className="prst-list">{applications.map(x=><article key={x.id}><div><b>{fullName(investorMap.get(x.investor_id))}</b><small>{money(x.requested_amount)} · {x.requested_term_months} meses · {x.payment_place||'Lugar pendiente'}</small><small>{date(x.created_at)}</small></div><div className="prst-row-actions"><Status value={x.status}/>{x.status==='PENDING'&&<button onClick={()=>setStatus(x,'REVIEW')}>Revisar</button>}{x.status==='REVIEW'&&<><button onClick={()=>setStatus(x,'APPROVED')}>Aprobar</button><button className="danger" onClick={()=>setStatus(x,'REJECTED')}>Rechazar</button></>}</div></article>)}</div>}
+  </article>
+ </section>}
+
+function InvestmentsPanel({company,investors,applications,investments,investorMap,saving,act}){
+ const eligible=applications.filter(x=>['APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status))
+ const [form,setForm]=useState({application_id:'',principal:'',granted_at:today(),term_months:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
+ useEffect(()=>{if(!form.application_id&&eligible[0]){const a=eligible[0];setForm(x=>({...x,application_id:a.id,principal:String(a.requested_amount),term_months:String(a.requested_term_months),payment_place:a.payment_place||'',payment_method:a.payment_method||''}))}},[eligible,form.application_id])
+ const choose=id=>{const a=applications.find(x=>x.id===id);setForm({...form,application_id:id,principal:a?String(a.requested_amount):'',term_months:a?String(a.requested_term_months):'',payment_place:a?.payment_place||'',payment_method:a?.payment_method||''})}
+ const submit=e=>{e.preventDefault();act(async()=>{
+  const a=applications.find(x=>x.id===form.application_id);if(!a)throw new Error('Seleccioná una solicitud aprobada.')
+  const start=new Date(`${form.granted_at}T12:00:00`);const maturity=new Date(start);maturity.setMonth(maturity.getMonth()+Number(form.term_months))
+  const code=`INVEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
+  const payload={company_id:company.id,investor_id:a.investor_id,application_id:a.id,investment_code:code,contract_number:form.contract_number,principal:Number(form.principal),granted_at:form.granted_at,term_months:Number(form.term_months),maturity_date:maturity.toISOString().slice(0,10),projected_gain:form.projected_gain?Number(form.projected_gain):null,payment_place:form.payment_place,payment_method:form.payment_method,status:'ACTIVE'}
+  const {data,error}=await supabase.from('inv_investments').insert(payload).select('id').single();if(error)throw error
+  const {error:appError}=await supabase.from('inv_applications').update({status:'ACTIVE'}).eq('id',a.id);if(appError)throw appError
+  await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:a.investor_id,investment_id:data.id,action:'INVESTMENT_ACTIVATED',detail:{investment_code:code,principal:Number(form.principal),term_months:Number(form.term_months)}})
+  setForm({application_id:'',principal:'',granted_at:today(),term_months:'',contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
+ },'Inversión activada correctamente.')}
+ return <section className="prst-grid form-list">
+  <form className="prst-card prst-form" onSubmit={submit}>
+   <div className="prst-card-head"><div><small>FORMALIZACIÓN</small><h2>Activar inversión</h2><p>Solo se muestran solicitudes aprobadas.</p></div></div>
+   <Field label="Solicitud aprobada *"><select value={form.application_id} onChange={e=>choose(e.target.value)} required><option value="">Seleccionar</option>{eligible.map(a=><option key={a.id} value={a.id}>{fullName(investorMap.get(a.investor_id))} · {money(a.requested_amount)} · {a.requested_term_months} meses</option>)}</select></Field>
+   <div className="prst-form-grid">
+    <Field label="Capital *"><input type="number" min="1" step="0.01" value={form.principal} onChange={e=>setForm({...form,principal:e.target.value})} required/></Field>
+    <Field label="Fecha de otorgamiento *"><input type="date" value={form.granted_at} onChange={e=>setForm({...form,granted_at:e.target.value})} required/></Field>
+    <Field label="Plazo (meses) *"><input type="number" min="1" value={form.term_months} onChange={e=>setForm({...form,term_months:e.target.value})} required/></Field>
+    <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})}/></Field>
+    <Field label="Ganancia proyectada" hint="Temporalmente manual hasta definir la fórmula real de Prestadito$."><input type="number" min="0" step="0.01" value={form.projected_gain} onChange={e=>setForm({...form,projected_gain:e.target.value})}/></Field>
+    <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})}/></Field>
+    <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})}/></Field>
+   </div>
+   <button className="prst-primary" disabled={saving||!eligible.length}>{saving?'Guardando…':'Activar inversión'}</button>
+  </form>
+  <article className="prst-card">
+   <div className="prst-card-head"><div><small>PORTAFOLIO</small><h2>Inversiones</h2></div></div>
+   {!investments.length?<Empty title="Aún no hay inversiones activas">Aprobá una solicitud y formalizala desde el formulario.</Empty>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Capital</th><th>Otorgada</th><th>Vence</th><th>Ganancia proyectada</th><th>Pago</th><th>Estado</th></tr></thead><tbody>{investments.map(x=><tr key={x.id}><td><b>{fullName(investorMap.get(x.investor_id))}</b><small>{x.investment_code}</small></td><td>{money(x.principal)}</td><td>{date(x.granted_at)}</td><td><b>{date(x.maturity_date)}</b><small>{daysUntil(x.maturity_date)} días</small></td><td>{x.projected_gain==null?'Pendiente':money(x.projected_gain)}</td><td><b>{x.payment_place||'—'}</b><small>{x.payment_method||'—'}</small></td><td><Status value={x.status}/></td></tr>)}</tbody></table></div>}
+  </article>
+ </section>}
+
+function BeneficiariesPanel({company,investors,beneficiaries,investorMap,saving,act}){
+ const [form,setForm]=useState({investor_id:'',full_name:'',dui:'',birth_date:'',relationship:'',phone:'',address:'',percentage:''})
+ useEffect(()=>{if(!form.investor_id&&investors[0])setForm(x=>({...x,investor_id:investors[0].id}))},[investors,form.investor_id])
+ const submit=e=>{e.preventDefault();act(async()=>{const {error}=await supabase.from('inv_beneficiaries').insert({...form,company_id:company.id,percentage:Number(form.percentage)});if(error)throw error;await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:form.investor_id,action:'BENEFICIARY_ADDED',detail:{full_name:form.full_name,percentage:Number(form.percentage)}});setForm({...form,full_name:'',dui:'',birth_date:'',relationship:'',phone:'',address:'',percentage:''})},'Beneficiario agregado.')}
+ return <section className="prst-grid form-list">
+  <form className="prst-card prst-form" onSubmit={submit}>
+   <div className="prst-card-head"><div><small>BENEFICIARIO</small><h2>Agregar beneficiario</h2><p>El total de porcentajes por inversionista no puede superar 100%.</p></div></div>
+   <Field label="Inversionista *"><select value={form.investor_id} onChange={e=>setForm({...form,investor_id:e.target.value})} required>{investors.map(x=><option key={x.id} value={x.id}>{fullName(x)}</option>)}</select></Field>
+   <div className="prst-form-grid">
+    <Field label="Nombre completo *"><input value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} required/></Field>
+    <Field label="DUI"><input value={form.dui} onChange={e=>setForm({...form,dui:e.target.value})}/></Field>
+    <Field label="Fecha de nacimiento"><input type="date" value={form.birth_date} onChange={e=>setForm({...form,birth_date:e.target.value})}/></Field>
+    <Field label="Parentesco / relación"><input value={form.relationship} onChange={e=>setForm({...form,relationship:e.target.value})}/></Field>
+    <Field label="Teléfono"><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></Field>
+    <Field label="Porcentaje *"><input type="number" min="0.01" max="100" step="0.01" value={form.percentage} onChange={e=>setForm({...form,percentage:e.target.value})} required/></Field>
+    <Field label="Dirección" className="span-2"><textarea value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/></Field>
+   </div>
+   <button className="prst-primary" disabled={saving||!investors.length}>{saving?'Guardando…':'Guardar beneficiario'}</button>
+  </form>
+  <article className="prst-card">
+   <div className="prst-card-head"><div><small>REGISTRO</small><h2>Beneficiarios</h2></div></div>
+   {!beneficiaries.length?<Empty title="Sin beneficiarios registrados"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Beneficiario</th><th>Relación</th><th>Porcentaje</th></tr></thead><tbody>{beneficiaries.map(x=><tr key={x.id}><td>{fullName(investorMap.get(x.investor_id))}</td><td><b>{x.full_name}</b><small>{x.dui||'Sin DUI'}</small></td><td>{x.relationship||'—'}</td><td><b>{Number(x.percentage).toFixed(2)}%</b></td></tr>)}</tbody></table></div>}
+  </article>
+ </section>}
+
+function PaymentsPanel({company,investors,investments,payments,investorMap,saving,act}){
+ const [form,setForm]=useState({investment_id:'',payment_type:'YIELD',amount:'',payment_date:today(),payment_place:'',payment_method:'',reference:'',notes:''})
+ const active=investments.filter(x=>!['CANCELLED','CLOSED'].includes(x.status))
+ useEffect(()=>{if(!form.investment_id&&active[0])setForm(x=>({...x,investment_id:active[0].id,payment_place:active[0].payment_place||'',payment_method:active[0].payment_method||''}))},[active,form.investment_id])
+ const choose=id=>{const inv=investments.find(x=>x.id===id);setForm({...form,investment_id:id,payment_place:inv?.payment_place||'',payment_method:inv?.payment_method||''})}
+ const submit=e=>{e.preventDefault();act(async()=>{const inv=investments.find(x=>x.id===form.investment_id);if(!inv)throw new Error('Seleccioná una inversión.');const {data,error}=await supabase.from('inv_payments').insert({...form,company_id:company.id,investor_id:inv.investor_id,amount:Number(form.amount)}).select('id').single();if(error)throw error;await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:inv.investor_id,investment_id:inv.id,action:'INVESTOR_PAYMENT_RECORDED',detail:{payment_id:data.id,type:form.payment_type,amount:Number(form.amount)}});setForm({...form,amount:'',reference:'',notes:''})},'Pago registrado correctamente.')}
+ return <section className="prst-grid form-list">
+  <form className="prst-card prst-form" onSubmit={submit}>
+   <div className="prst-card-head"><div><small>PAGO</small><h2>Registrar pago al inversionista</h2></div></div>
+   <Field label="Inversión *"><select value={form.investment_id} onChange={e=>choose(e.target.value)} required>{active.map(x=><option key={x.id} value={x.id}>{fullName(investorMap.get(x.investor_id))} · {x.investment_code} · {money(x.principal)}</option>)}</select></Field>
+   <div className="prst-form-grid">
+    <Field label="Tipo"><select value={form.payment_type} onChange={e=>setForm({...form,payment_type:e.target.value})}><option value="YIELD">Rendimiento</option><option value="CAPITAL_RETURN">Devolución de capital</option><option value="ADJUSTMENT">Ajuste autorizado</option></select></Field>
+    <Field label="Monto *"><input type="number" min="0.01" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} required/></Field>
+    <Field label="Fecha"><input type="date" value={form.payment_date} onChange={e=>setForm({...form,payment_date:e.target.value})}/></Field>
+    <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})}/></Field>
+    <Field label="Forma de pago"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})}/></Field>
+    <Field label="Referencia"><input value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})}/></Field>
+   </div>
+   <Field label="Notas"><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></Field>
+   <button className="prst-primary" disabled={saving||!active.length}>{saving?'Guardando…':'Registrar pago'}</button>
+  </form>
+  <article className="prst-card">
+   <div className="prst-card-head"><div><small>HISTORIAL</small><h2>Pagos registrados</h2></div></div>
+   {!payments.length?<Empty title="Sin pagos registrados"/>:<div className="prst-table-wrap"><table><thead><tr><th>Fecha</th><th>Inversionista</th><th>Tipo</th><th>Monto</th><th>Lugar / forma</th></tr></thead><tbody>{payments.map(x=><tr key={x.id}><td>{date(x.payment_date)}</td><td>{fullName(investorMap.get(x.investor_id))}</td><td>{x.payment_type==='YIELD'?'Rendimiento':x.payment_type==='CAPITAL_RETURN'?'Capital':'Ajuste'}</td><td><b>{money(x.amount)}</b></td><td><b>{x.payment_place||'—'}</b><small>{x.payment_method||'—'}</small></td></tr>)}</tbody></table></div>}
+  </article>
+ </section>}
+
+function MaturitiesPanel({investments,investorMap}){
+ const rows=[...investments].filter(x=>x.maturity_date&&!['CLOSED','CANCELLED'].includes(x.status)).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date)))
+ return <article className="prst-card"><div className="prst-card-head"><div><small>CONTROL</small><h2>Vencimientos</h2><p>Seguimiento de inversiones próximas a vencer.</p></div></div>{!rows.length?<Empty title="Sin vencimientos pendientes"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Capital</th><th>Vencimiento</th><th>Días restantes</th><th>Estado</th></tr></thead><tbody>{rows.map(x=>{const d=daysUntil(x.maturity_date);return <tr key={x.id}><td>{fullName(investorMap.get(x.investor_id))}</td><td>{money(x.principal)}</td><td>{date(x.maturity_date)}</td><td><b className={d<=30?'prst-danger-text':''}>{d}</b></td><td><Status value={d<0?'MATURED':d<=30?'MATURING':x.status}/></td></tr>})}</tbody></table></div>}</article>}
+
+function RenewalsPanel({investments,investorMap}){
+ const rows=investments.filter(x=>['MATURING','MATURED','ACTIVE'].includes(x.status)&&daysUntil(x.maturity_date)<=30)
+ return <article className="prst-card"><div className="prst-card-head"><div><small>RENOVACIONES</small><h2>Decisiones al vencimiento</h2><p>La lógica de renovar capital, capital + rendimiento o retirar se habilitará sobre estas inversiones.</p></div></div>{!rows.length?<Empty title="No hay inversiones dentro de la ventana de 30 días"/>:<div className="prst-list">{rows.map(x=><article key={x.id}><div><b>{fullName(investorMap.get(x.investor_id))}</b><small>{money(x.principal)} · vence {date(x.maturity_date)}</small></div><Status value={daysUntil(x.maturity_date)<0?'MATURED':'MATURING'}/></article>)}</div>}</article>}
+
+function TreasuryPanel({investments,payments}){
+ const capital=investments.filter(x=>!['CANCELLED'].includes(x.status)).reduce((s,x)=>s+Number(x.principal||0),0)
+ const yieldOut=payments.filter(x=>x.payment_type==='YIELD').reduce((s,x)=>s+Number(x.amount||0),0)
+ const capitalOut=payments.filter(x=>x.payment_type==='CAPITAL_RETURN').reduce((s,x)=>s+Number(x.amount||0),0)
+ return <><section className="prst-metrics"><Metric label="Capital recibido" value={money(capital)} hint="Inversiones formalizadas"/><Metric label="Rendimientos pagados" value={money(yieldOut)} hint="Salidas por rendimiento"/><Metric label="Capital devuelto" value={money(capitalOut)} hint="Devoluciones registradas"/><Metric label="Capital neto" value={money(capital-capitalOut)} hint="Capital menos devoluciones"/></section><article className="prst-card"><div className="prst-card-head"><div><small>TESORERÍA</small><h2>Movimientos exclusivos de inversionistas</h2><p>Este vertical no mezcla operaciones de clientes, préstamos ni facturación comercial.</p></div></div></article></>}
+
+function DocumentsPanel({investors}){
+ return <article className="prst-card"><div className="prst-card-head"><div><small>EXPEDIENTES</small><h2>Documentos del inversionista</h2></div></div>{!investors.length?<Empty title="Sin expedientes"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Rostro</th><th>DUI frente</th><th>DUI reverso</th></tr></thead><tbody>{investors.map(x=><tr key={x.id}><td><b>{fullName(x)}</b><small>{x.investor_code}</small></td><td>{x.face_photo_path?'✓ Guardado':'Pendiente'}</td><td>{x.dui_front_path?'✓ Guardado':'Pendiente'}</td><td>{x.dui_back_path?'✓ Guardado':'Pendiente'}</td></tr>)}</tbody></table></div>}</article>}
+
+function ReportsPanel({investors,applications,investments,payments}){
+ const active=investments.filter(x=>['ACTIVE','MATURING'].includes(x.status))
+ return <><section className="prst-metrics"><Metric label="Inversionistas activos" value={investors.filter(x=>x.status==='ACTIVE').length} hint="Expedientes habilitados"/><Metric label="Solicitudes" value={applications.length} hint="Histórico"/><Metric label="Inversiones activas" value={active.length} hint={money(active.reduce((s,x)=>s+Number(x.principal||0),0))}/><Metric label="Pagos realizados" value={payments.length} hint={money(payments.reduce((s,x)=>s+Number(x.amount||0),0))}/></section><article className="prst-card"><div className="prst-card-head"><div><small>REPORTES</small><h2>Base gerencial creada</h2><p>Los filtros por período, exportación y reportes PDF se agregarán sobre estos datos reales.</p></div></div></article></>}
+
+function AuditPanel({audit,investorMap}){
+ return <article className="prst-card"><div className="prst-card-head"><div><small>TRAZABILIDAD</small><h2>Auditoría del vertical</h2></div></div>{!audit.length?<Empty title="Sin eventos de auditoría"/>:<div className="prst-table-wrap"><table><thead><tr><th>Fecha</th><th>Inversionista</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>{audit.map(x=><tr key={x.id}><td>{date(x.created_at)}</td><td>{fullName(investorMap.get(x.investor_id))}</td><td><b>{x.action}</b></td><td><small>{JSON.stringify(x.detail)}</small></td></tr>)}</tbody></table></div>}</article>}
+
+function ConfigurationPanel(){
+ return <section className="prst-grid two"><article className="prst-card"><div className="prst-card-head"><div><small>REGLAS</small><h2>Configuración financiera</h2></div></div><div className="prst-note"><strong>Rendimiento:</strong> todavía no se ha fijado una fórmula automática. El campo de ganancia proyectada queda manual hasta que Prestadito$ defina cómo calcula el rendimiento según monto y plazo.</div><div className="prst-note"><strong>Enfoque:</strong> este ERP contiene únicamente inversionistas e inversiones. No se habilitan módulos de clientes, préstamos o cartera.</div></article><article className="prst-card"><div className="prst-card-head"><div><small>SEGURIDAD</small><h2>Documentos privados</h2></div></div><p className="prst-copy">Las fotografías del rostro y DUI se almacenan en un bucket privado separado por empresa. El acceso depende de la membresía de IDEALO SV y de pertenecer a la empresa.</p></article></section>}
