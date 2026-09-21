@@ -6,6 +6,8 @@ import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
 import PrestaditosInvestmentsPanel from './PrestaditosInvestmentsPanel.jsx'
 import PrestaditosPaymentsPanel from './PrestaditosPaymentsPanel.jsx'
 import PrestaditosMaturitiesPanel from './PrestaditosMaturitiesPanel.jsx'
+import PrestaditosBeneficiariesPanel from './PrestaditosBeneficiariesPanel.jsx'
+import PrestaditosRenewalsPanel from './PrestaditosRenewalsPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -52,8 +54,10 @@ export default function PrestaditosInvestorAppHost(){
  const [beneficiaries,setBeneficiaries]=useState([])
  const [payments,setPayments]=useState([])
  const [audit,setAudit]=useState([])
+ const [renewals,setRenewals]=useState([])
  const [query,setQuery]=useState('')
  const [applicationToFormalize,setApplicationToFormalize]=useState('')
+ const [renewalToManage,setRenewalToManage]=useState('')
 
  const resolveContext=useCallback(async()=>{
   if(!enabled||!supabase)return
@@ -80,16 +84,17 @@ export default function PrestaditosInvestorAppHost(){
   if(!enabled||!company?.id||!supabase)return
   setLoading(true);setError('')
   try{
-   const [i,a,n,b,p,l]=await Promise.all([
+   const [i,a,n,b,p,l,rn]=await Promise.all([
     supabase.from('inv_investors').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_applications').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_investments').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_beneficiaries').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_payments').select('*').eq('company_id',company.id).order('payment_date',{ascending:false}).limit(250),
     supabase.from('inv_audit_log').select('*').eq('company_id',company.id).order('created_at',{ascending:false}).limit(250),
+    supabase.from('inv_renewal_decisions').select('*').eq('company_id',company.id).order('decided_at',{ascending:false}),
    ])
-   for(const r of [i,a,n,b,p,l])if(r.error)throw r.error
-   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[])
+   for(const r of [i,a,n,b,p,l,rn])if(r.error)throw r.error
+   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[])
   }catch(err){setError(safeText(err))}
   finally{setLoading(false)}
  },[enabled,company?.id])
@@ -137,10 +142,10 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
     {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
     {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
-    {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Beneficiarios'&&<PrestaditosBeneficiariesPanel company={company} role={role} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={()=>setTab('Renovaciones')}/>}
-    {tab==='Renovaciones'&&<RenewalsPanel investments={investments} investorMap={investorMap}/>}
+    {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={investmentId=>{setRenewalToManage(investmentId);setTab('Renovaciones')}}/>}
+    {tab==='Renovaciones'&&<PrestaditosRenewalsPanel company={company} role={role} investments={investments} payments={payments} renewals={renewals} investorMap={investorMap} saving={saving} act={act} preselectedInvestmentId={renewalToManage} onHandled={()=>setRenewalToManage('')}/>}
     {tab==='Tesorería'&&<TreasuryPanel investments={investments} payments={payments}/>}
     {tab==='Documentos'&&<DocumentsPanel investors={investors}/>}
     {tab==='Reportes'&&<ReportsPanel investors={investors} applications={applications} investments={investments} payments={payments}/>}
@@ -179,35 +184,6 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
    </article>
   </section>
  </>}
-
-function BeneficiariesPanel({company,investors,beneficiaries,investorMap,saving,act}){
- const [form,setForm]=useState({investor_id:'',full_name:'',dui:'',birth_date:'',relationship:'',phone:'',address:'',percentage:''})
- useEffect(()=>{if(!form.investor_id&&investors[0])setForm(x=>({...x,investor_id:investors[0].id}))},[investors,form.investor_id])
- const submit=e=>{e.preventDefault();act(async()=>{const {error}=await supabase.from('inv_beneficiaries').insert({...form,company_id:company.id,percentage:Number(form.percentage)});if(error)throw error;await supabase.from('inv_audit_log').insert({company_id:company.id,investor_id:form.investor_id,action:'BENEFICIARY_ADDED',detail:{full_name:form.full_name,percentage:Number(form.percentage)}});setForm({...form,full_name:'',dui:'',birth_date:'',relationship:'',phone:'',address:'',percentage:''})},'Beneficiario agregado.')}
- return <section className="prst-grid form-list">
-  <form className="prst-card prst-form" onSubmit={submit}>
-   <div className="prst-card-head"><div><small>BENEFICIARIO</small><h2>Agregar beneficiario</h2><p>El total de porcentajes por inversionista no puede superar 100%.</p></div></div>
-   <Field label="Inversionista *"><select value={form.investor_id} onChange={e=>setForm({...form,investor_id:e.target.value})} required>{investors.map(x=><option key={x.id} value={x.id}>{fullName(x)}</option>)}</select></Field>
-   <div className="prst-form-grid">
-    <Field label="Nombre completo *"><input value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} required/></Field>
-    <Field label="DUI"><input value={form.dui} onChange={e=>setForm({...form,dui:e.target.value})}/></Field>
-    <Field label="Fecha de nacimiento"><input type="date" value={form.birth_date} onChange={e=>setForm({...form,birth_date:e.target.value})}/></Field>
-    <Field label="Parentesco / relación"><input value={form.relationship} onChange={e=>setForm({...form,relationship:e.target.value})}/></Field>
-    <Field label="Teléfono"><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></Field>
-    <Field label="Porcentaje *"><input type="number" min="0.01" max="100" step="0.01" value={form.percentage} onChange={e=>setForm({...form,percentage:e.target.value})} required/></Field>
-    <Field label="Dirección" className="span-2"><textarea value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/></Field>
-   </div>
-   <button className="prst-primary" disabled={saving||!investors.length}>{saving?'Guardando…':'Guardar beneficiario'}</button>
-  </form>
-  <article className="prst-card">
-   <div className="prst-card-head"><div><small>REGISTRO</small><h2>Beneficiarios</h2></div></div>
-   {!beneficiaries.length?<Empty title="Sin beneficiarios registrados"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Beneficiario</th><th>Relación</th><th>Porcentaje</th></tr></thead><tbody>{beneficiaries.map(x=><tr key={x.id}><td>{fullName(investorMap.get(x.investor_id))}</td><td><b>{x.full_name}</b><small>{x.dui||'Sin DUI'}</small></td><td>{x.relationship||'—'}</td><td><b>{Number(x.percentage).toFixed(2)}%</b></td></tr>)}</tbody></table></div>}
-  </article>
- </section>}
-
-function RenewalsPanel({investments,investorMap}){
- const rows=investments.filter(x=>['MATURING','MATURED','ACTIVE'].includes(x.status)&&daysUntil(x.maturity_date)<=30)
- return <article className="prst-card"><div className="prst-card-head"><div><small>RENOVACIONES</small><h2>Decisiones al vencimiento</h2><p>La lógica de renovar capital, capital + rendimiento o retirar se habilitará sobre estas inversiones.</p></div></div>{!rows.length?<Empty title="No hay inversiones dentro de la ventana de 30 días"/>:<div className="prst-list">{rows.map(x=><article key={x.id}><div><b>{fullName(investorMap.get(x.investor_id))}</b><small>{money(x.principal)} · vence {date(x.maturity_date)}</small></div><Status value={daysUntil(x.maturity_date)<0?'MATURED':'MATURING'}/></article>)}</div>}</article>}
 
 function TreasuryPanel({investments,payments}){
  const capital=investments.filter(x=>!['CANCELLED'].includes(x.status)).reduce((s,x)=>s+Number(x.principal||0),0)
