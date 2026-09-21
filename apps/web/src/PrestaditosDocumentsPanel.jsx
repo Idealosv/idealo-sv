@@ -34,6 +34,7 @@ export default function PrestaditosDocumentsPanel({
  investorMap,
  saving,
  act,
+ preselectedInvestorId='',
 }){
  const canUpload=['owner','admin','staff'].includes(String(role||'').toLowerCase())
  const canManage=['owner','admin'].includes(String(role||'').toLowerCase())
@@ -47,8 +48,13 @@ export default function PrestaditosDocumentsPanel({
  const [deactivate,setDeactivate]=useState(null)
 
  useEffect(()=>{
+  if(preselectedInvestorId&&investors.some(x=>x.id===preselectedInvestorId)){
+   if(form.investor_id!==preselectedInvestorId)setForm(current=>({...current,investor_id:preselectedInvestorId,application_id:'',investment_id:''}))
+   if(investorFilter!==preselectedInvestorId)setInvestorFilter(preselectedInvestorId)
+   return
+  }
   if(!form.investor_id&&investors[0])setForm(current=>({...current,investor_id:investors[0].id}))
- },[investors,form.investor_id])
+ },[investors,form.investor_id,preselectedInvestorId,investorFilter])
 
  const investorApplications=applications.filter(x=>x.investor_id===form.investor_id)
  const investorInvestments=investments.filter(x=>x.investor_id===form.investor_id)
