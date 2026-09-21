@@ -345,3 +345,43 @@
 .prst-rate-tier-list>span b{font-size:9px}
 .prst-rate-tier-list>span small{display:block;margin-left:auto;color:#727980;font-size:7px}
 @media(max-width:680px){.prst-rate-reference{grid-template-columns:1fr}.prst-rate-reference>small{grid-column:auto}.prst-rate-tier-list>span{align-items:flex-start;flex-direction:column}.prst-rate-tier-list>span small{margin-left:0}}
+
+
+.prst-simulator-module,.prst-alerts-module{display:grid;gap:15px}
+.prst-simulator-summary article:nth-child(1){border-top-color:#2b6f9f}
+.prst-simulator-summary article:nth-child(2){border-top-color:#8a4e96}
+.prst-simulator-summary article:nth-child(3){border-top-color:#2f7b49}
+.prst-simulator-summary article:nth-child(4){border-top-color:#d99222}
+.prst-simulator-examples{display:grid;gap:9px}
+.prst-simulator-examples article{display:grid;gap:4px;padding:12px;border:1px solid #e0e4e7;border-radius:9px;background:#fafbfc}
+.prst-simulator-examples span{color:#6d747b;font-size:8px;font-weight:850}
+.prst-simulator-examples strong{font-size:13px}
+.prst-simulator-examples small{color:#747b82;font-size:8px}
+.prst-alert-summary article:nth-child(1){border-top-color:#a33d35}
+.prst-alert-summary article:nth-child(2){border-top-color:#d46d3a}
+.prst-alert-summary article:nth-child(3){border-top-color:#d99222}
+.prst-alert-summary article:nth-child(4){border-top-color:#2b6f9f}
+.prst-alert-filters{display:grid;grid-template-columns:minmax(260px,1fr) 160px 170px auto;gap:8px;align-items:center;margin-bottom:12px}
+.prst-alert-filters select{min-height:39px;padding:8px 9px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px}
+.prst-alert-filters>span{color:#717880;font-size:8px;font-weight:850;text-align:right}
+.prst-alert-list{display:grid;gap:8px}
+.prst-operational-alert{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px;border:1px solid #dce1e5;border-radius:9px;background:#fff}
+.prst-operational-alert.critical{border-color:#e0aaa5;background:#fff7f6}
+.prst-operational-alert.high{border-color:#e2bea9;background:#fff9f5}
+.prst-operational-alert.medium{border-color:#e7d19f;background:#fffdf7}
+.prst-alert-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f1f3f4;color:#5c646b;font-size:12px;font-weight:950}
+.prst-operational-alert.critical .prst-alert-icon{background:#f8dfdc;color:#8d312a}
+.prst-operational-alert.high .prst-alert-icon{background:#f8e8dd;color:#96502d}
+.prst-operational-alert.medium .prst-alert-icon{background:#fbf1d7;color:#8a641b}
+.prst-alert-copy{display:grid;gap:3px}.prst-alert-copy>div{display:flex;gap:7px;align-items:center}.prst-alert-copy>div span{color:#6f767d;font-size:7px;font-weight:900;text-transform:uppercase}.prst-alert-copy>div b{font-size:7px}.prst-alert-copy>strong{font-size:9px}.prst-alert-copy>small{color:#6f767d;font-size:8px}
+.prst-operational-alert>button{min-height:34px;padding:0 10px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:8px;font-weight:900;cursor:pointer}
+.prst-alert-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.prst-alert-rules span{padding:9px 10px;border:1px solid #e0e4e7;border-radius:8px;background:#fafbfc;font-size:8px;font-weight:800}
+.prst-alert-scope{border-left:4px solid #d99222}
+.prst-dashboard-alerts{display:grid;gap:7px}
+.prst-dashboard-alerts button{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 8px;text-align:left;padding:9px 10px;border:1px solid #dde1e4;border-radius:8px;background:#fff;font:inherit;cursor:pointer}
+.prst-dashboard-alerts button span{grid-row:1/3;align-self:center;padding:4px 6px;border-radius:999px;background:#f1f3f4;font-size:7px;font-weight:900}
+.prst-dashboard-alerts button strong{font-size:8px}.prst-dashboard-alerts button small{color:#727980;font-size:7px}
+.prst-dashboard-alerts button.critical{border-color:#e0aaa5;background:#fff7f6}.prst-dashboard-alerts button.high{border-color:#e2bea9;background:#fff9f5}.prst-dashboard-alerts button.medium{border-color:#e7d19f;background:#fffdf7}
+@media(max-width:900px){.prst-alert-filters{grid-template-columns:1fr 1fr}.prst-alert-filters .prst-search{grid-column:1/-1;max-width:none}.prst-alert-filters>span{text-align:left}.prst-alert-rules{grid-template-columns:1fr}}
+@media(max-width:680px){.prst-alert-filters{grid-template-columns:1fr}.prst-alert-filters .prst-search{grid-column:auto}.prst-operational-alert{grid-template-columns:30px minmax(0,1fr)}.prst-operational-alert>button{grid-column:1/-1;width:100%}}
