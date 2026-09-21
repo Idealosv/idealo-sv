@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import './prestaditos-investors.css'
+import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -128,7 +129,7 @@ export default function PrestaditosInvestorAppHost(){
 
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
-    {tab==='Inversionistas'&&<InvestorsPanel company={company} investors={investors} query={query} setQuery={setQuery} saving={saving} act={act}/>}
+    {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
     {tab==='Solicitudes'&&<ApplicationsPanel company={company} investors={investors} applications={applications} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Inversiones'&&<InvestmentsPanel company={company} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
