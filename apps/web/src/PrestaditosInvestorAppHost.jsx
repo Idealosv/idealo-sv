@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase.js'
 import './prestaditos-investors.css'
 import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
 import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
+import PrestaditosInvestmentsPanel from './PrestaditosInvestmentsPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -133,7 +134,7 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
     {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
-    {tab==='Inversiones'&&<InvestmentsPanel company={company} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
+    {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>}
     {tab==='Beneficiarios'&&<BeneficiariesPanel company={company} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Rendimientos'&&<PaymentsPanel company={company} investors={investors} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Vencimientos'&&<MaturitiesPanel investments={investments} investorMap={investorMap}/>}
@@ -176,76 +177,6 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
    </article>
   </section>
  </>}
-
-function InvestmentsPanel({applications,investments,investorMap,saving,act,preselectedApplicationId='',onFormalized}){
- const existingApplicationIds=useMemo(()=>new Set(investments.map(x=>x.application_id).filter(Boolean)),[investments])
- const eligible=applications.filter(x=>x.status==='FUNDS_RECEIVED'&&!existingApplicationIds.has(x.id))
- const [form,setForm]=useState({application_id:'',granted_at:today(),contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
-
- useEffect(()=>{
-  if(form.application_id)return
-  const preferred=eligible.find(x=>x.id===preselectedApplicationId)||eligible[0]
-  if(preferred)setForm(current=>({...current,application_id:preferred.id,payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))
- },[eligible,form.application_id,preselectedApplicationId])
-
- const selectedApplication=applications.find(x=>x.id===form.application_id)||null
- const selectedPrincipal=selectedApplication?Number(selectedApplication.approved_amount??selectedApplication.requested_amount):0
- const selectedTerm=selectedApplication?Number(selectedApplication.approved_term_months??selectedApplication.requested_term_months):0
-
- const choose=id=>{
-  const row=applications.find(x=>x.id===id)
-  setForm({...form,application_id:id,payment_place:row?.payment_place||'',payment_method:row?.payment_method||''})
- }
-
- const submit=e=>{e.preventDefault();act(async()=>{
-  const application=applications.find(x=>x.id===form.application_id)
-  if(!application)throw new Error('Seleccioná una solicitud lista para formalizar.')
-  if(application.status!=='FUNDS_RECEIVED')throw new Error('La solicitud todavía no está en Fondos recibidos.')
-  if(existingApplicationIds.has(application.id))throw new Error('Esta solicitud ya fue formalizada.')
-  const projected=form.projected_gain===''?null:Number(form.projected_gain)
-  if(projected!==null&&(!Number.isFinite(projected)||projected<0))throw new Error('Ingresá una ganancia proyectada válida o dejala vacía.')
-  const {error}=await supabase.rpc('inv_formalize_application',{
-   p_application_id:application.id,
-   p_granted_at:form.granted_at,
-   p_contract_number:form.contract_number.trim(),
-   p_projected_gain:projected,
-   p_payment_place:form.payment_place.trim(),
-   p_payment_method:form.payment_method.trim(),
-  })
-  if(error)throw error
-  setForm({application_id:'',granted_at:today(),contract_number:'',projected_gain:'',payment_place:'',payment_method:''})
-  onFormalized?.()
- },'Inversión formalizada. La solicitud y la inversión quedaron vinculadas en una sola operación.')}
-
- return <section className="prst-grid form-list">
-  <form className="prst-card prst-form" onSubmit={submit}>
-   <div className="prst-card-head"><div><small>FORMALIZACIÓN</small><h2>Activar inversión</h2><p>Solo aparecen solicitudes con aprobación, firma y recepción de fondos completadas.</p></div></div>
-   <Field label="Solicitud lista para formalizar *"><select value={form.application_id} onChange={e=>choose(e.target.value)} required><option value="">Seleccionar</option>{eligible.map(a=><option key={a.id} value={a.id}>{a.application_code||'Solicitud'} · {fullName(investorMap.get(a.investor_id))} · {money(a.approved_amount??a.requested_amount)} · {a.approved_term_months??a.requested_term_months} meses</option>)}</select></Field>
-
-   {selectedApplication&&<div className="prst-comparison-box">
-    <span>Inversionista</span><strong>{fullName(investorMap.get(selectedApplication.investor_id))}</strong>
-    <span>Capital aprobado</span><strong>{money(selectedPrincipal)}</strong>
-    <span>Plazo aprobado</span><strong>{selectedTerm} meses</strong>
-    <span>Solicitud</span><strong>{selectedApplication.application_code||'—'}</strong>
-   </div>}
-
-   <div className="prst-form-grid">
-    <Field label="Fecha de otorgamiento *"><input type="date" value={form.granted_at} onChange={e=>setForm({...form,granted_at:e.target.value})} required/></Field>
-    <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})} placeholder="Se puede completar al generar el contrato"/></Field>
-    <Field label="Ganancia proyectada" hint="Temporalmente manual hasta definir la fórmula real de Prestadito$."><input type="number" min="0" step="0.01" value={form.projected_gain} onChange={e=>setForm({...form,projected_gain:e.target.value})}/></Field>
-    <Field label="Lugar de pago"><input value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})}/></Field>
-    <Field label="Forma de pago" className="span-2"><input value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})}/></Field>
-   </div>
-
-   <div className="prst-note"><strong>Integridad:</strong> el capital y el plazo se toman de la aprobación de la solicitud y no se pueden alterar durante la formalización. La fecha de vencimiento se calcula automáticamente.</div>
-   <button className="prst-primary" disabled={saving||!eligible.length||!form.application_id}>{saving?'Formalizando…':'Formalizar inversión'}</button>
-  </form>
-
-  <article className="prst-card">
-   <div className="prst-card-head"><div><small>PORTAFOLIO</small><h2>Inversiones formalizadas</h2><p>Cada inversión conserva el vínculo con su solicitud original.</p></div></div>
-   {!investments.length?<Empty title="Aún no hay inversiones activas">Completá el flujo de una solicitud y formalizala desde este módulo.</Empty>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Capital</th><th>Otorgada</th><th>Vence</th><th>Ganancia proyectada</th><th>Pago</th><th>Estado</th></tr></thead><tbody>{investments.map(x=><tr key={x.id}><td><b>{fullName(investorMap.get(x.investor_id))}</b><small>{x.investment_code}</small></td><td>{money(x.principal)}</td><td>{date(x.granted_at)}</td><td><b>{date(x.maturity_date)}</b><small>{daysUntil(x.maturity_date)} días</small></td><td>{x.projected_gain==null?'Pendiente':money(x.projected_gain)}</td><td><b>{x.payment_place||'—'}</b><small>{x.payment_method||'—'}</small></td><td><Status value={x.status}/></td></tr>)}</tbody></table></div>}
-  </article>
- </section>}
 
 function BeneficiariesPanel({company,investors,beneficiaries,investorMap,saving,act}){
  const [form,setForm]=useState({investor_id:'',full_name:'',dui:'',birth_date:'',relationship:'',phone:'',address:'',percentage:''})
