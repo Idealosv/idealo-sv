@@ -13,7 +13,7 @@ const TYPE_LABELS={YIELD:'Rendimiento',CAPITAL_RETURN:'Devolución de capital',A
 function Field({label,children,hint,className=''}){return <label className={`prst-field ${className}`.trim()}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
 function Empty({title,children}){return <div className="prst-empty"><strong>{title}</strong>{children&&<p>{children}</p>}</div>}
 
-export default function PrestaditosPaymentsPanel({company,role,settings,investments,payments,investorMap,saving,act}){
+export default function PrestaditosPaymentsPanel({company,role,settings,investments,payments,investorMap,saving,act,preselectedInvestmentId=''}){
  const normalizedRole=String(role||'').toLowerCase()
  const paymentMethods=Array.isArray(settings?.payment_methods)?settings.payment_methods:[]
  const paymentPlaces=Array.isArray(settings?.payment_places)?settings.payment_places:[]
@@ -29,11 +29,17 @@ export default function PrestaditosPaymentsPanel({company,role,settings,investme
  const [selectedInvestmentId,setSelectedInvestmentId]=useState('')
 
  useEffect(()=>{
+  const preferred=usableInvestments.find(x=>x.id===preselectedInvestmentId)
+  if(preferred&&form.investment_id!==preferred.id){
+   setForm(current=>({...current,investment_id:preferred.id,payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))
+   setSelectedInvestmentId(preferred.id)
+   return
+  }
   if(!form.investment_id&&usableInvestments[0]){
    const row=usableInvestments[0]
    setForm(current=>({...current,investment_id:row.id,payment_place:row.payment_place||'',payment_method:row.payment_method||''}))
   }
- },[usableInvestments,form.investment_id])
+ },[usableInvestments,form.investment_id,preselectedInvestmentId])
 
  const paymentRows=useMemo(()=>{
   const term=search.trim().toLowerCase()
