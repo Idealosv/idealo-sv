@@ -21,6 +21,8 @@ const documentsPanel=read('apps/web/src/PrestaditosDocumentsPanel.jsx')
 const documentRepository=read('supabase/migrations/20260921201500_prestaditos_document_repository.sql')
 const reportsPanel=read('apps/web/src/PrestaditosReportsPanel.jsx')
 const auditPanel=read('apps/web/src/PrestaditosAuditPanel.jsx')
+const configurationPanel=read('apps/web/src/PrestaditosConfigurationPanel.jsx')
+const companySettings=read('supabase/migrations/20260921205000_prestaditos_company_settings.sql')
 
 test('solicitudes conservan trazabilidad y separación entre solicitado y aprobado',()=>{
  assert.match(applicationMigration,/application_code text/)
@@ -182,4 +184,23 @@ test('auditoría permite filtrar, inspeccionar y exportar trazabilidad',()=>{
  assert.match(auditPanel,/Ver detalle/)
  assert.match(auditPanel,/DETALLE DE AUDITORÍA/)
  assert.match(auditPanel,/últimos 250 eventos/)
+})
+
+
+test('configuración operativa no inventa fórmula financiera',()=>{
+ assert.match(companySettings,/MANUAL_PENDING_RULE/)
+ assert.match(companySettings,/allowed_term_months/)
+ assert.match(companySettings,/payment_methods/)
+ assert.match(companySettings,/payment_places/)
+ assert.match(companySettings,/CONFIGURATION_UPDATED/)
+ assert.match(configurationPanel,/Manual · pendiente de regla real/)
+ assert.match(configurationPanel,/no se habilita ninguna tasa/i)
+})
+
+test('configuración restringe cambios y expone permisos efectivos',()=>{
+ assert.match(companySettings,/public\.inv_company_can_review/)
+ assert.match(companySettings,/revoke insert,update,delete on public\.inv_company_settings from authenticated/)
+ assert.match(configurationPanel,/PERMISOS EFECTIVOS/)
+ assert.match(configurationPanel,/Solo propietario o administrador/)
+ assert.match(configurationPanel,/Cambiar los roles de usuarios se administra desde IDEALO SV/)
 })
