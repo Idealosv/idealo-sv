@@ -10,6 +10,8 @@ import PrestaditosBeneficiariesPanel from './PrestaditosBeneficiariesPanel.jsx'
 import PrestaditosRenewalsPanel from './PrestaditosRenewalsPanel.jsx'
 import PrestaditosTreasuryPanel from './PrestaditosTreasuryPanel.jsx'
 import PrestaditosDocumentsPanel from './PrestaditosDocumentsPanel.jsx'
+import PrestaditosReportsPanel from './PrestaditosReportsPanel.jsx'
+import PrestaditosAuditPanel from './PrestaditosAuditPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -152,8 +154,8 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Renovaciones'&&<PrestaditosRenewalsPanel company={company} role={role} investments={investments} payments={payments} renewals={renewals} investorMap={investorMap} saving={saving} act={act} preselectedInvestmentId={renewalToManage} onHandled={()=>setRenewalToManage('')}/>}
     {tab==='Tesorería'&&<PrestaditosTreasuryPanel investments={investments} payments={payments} investorMap={investorMap}/>}
     {tab==='Documentos'&&<PrestaditosDocumentsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} documents={documents} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Reportes'&&<ReportsPanel investors={investors} applications={applications} investments={investments} payments={payments}/>}
-    {tab==='Auditoría'&&<AuditPanel audit={audit} investorMap={investorMap}/>}
+    {tab==='Reportes'&&<PrestaditosReportsPanel company={company} investors={investors} applications={applications} investments={investments} payments={payments} renewals={renewals} documents={documents} investorMap={investorMap}/>}
+    {tab==='Auditoría'&&<PrestaditosAuditPanel company={company} audit={audit} investorMap={investorMap}/>}
     {tab==='Configuración'&&<ConfigurationPanel/>}
    </section>
   </main>
@@ -188,13 +190,6 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
    </article>
   </section>
  </>}
-
-function ReportsPanel({investors,applications,investments,payments}){
- const active=investments.filter(x=>['ACTIVE','MATURING'].includes(x.status))
- return <><section className="prst-metrics"><Metric label="Inversionistas activos" value={investors.filter(x=>x.status==='ACTIVE').length} hint="Expedientes habilitados"/><Metric label="Solicitudes" value={applications.length} hint="Histórico"/><Metric label="Inversiones activas" value={active.length} hint={money(active.reduce((s,x)=>s+Number(x.principal||0),0))}/><Metric label="Pagos realizados" value={payments.length} hint={money(payments.reduce((s,x)=>s+Number(x.amount||0),0))}/></section><article className="prst-card"><div className="prst-card-head"><div><small>REPORTES</small><h2>Base gerencial creada</h2><p>Los filtros por período, exportación y reportes PDF se agregarán sobre estos datos reales.</p></div></div></article></>}
-
-function AuditPanel({audit,investorMap}){
- return <article className="prst-card"><div className="prst-card-head"><div><small>TRAZABILIDAD</small><h2>Auditoría del vertical</h2></div></div>{!audit.length?<Empty title="Sin eventos de auditoría"/>:<div className="prst-table-wrap"><table><thead><tr><th>Fecha</th><th>Inversionista</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>{audit.map(x=><tr key={x.id}><td>{date(x.created_at)}</td><td>{fullName(investorMap.get(x.investor_id))}</td><td><b>{x.action}</b></td><td><small>{JSON.stringify(x.detail)}</small></td></tr>)}</tbody></table></div>}</article>}
 
 function ConfigurationPanel(){
  return <section className="prst-grid two"><article className="prst-card"><div className="prst-card-head"><div><small>REGLAS</small><h2>Configuración financiera</h2></div></div><div className="prst-note"><strong>Rendimiento:</strong> todavía no se ha fijado una fórmula automática. El campo de ganancia proyectada queda manual hasta que Prestadito$ defina cómo calcula el rendimiento según monto y plazo.</div><div className="prst-note"><strong>Enfoque:</strong> este ERP contiene únicamente inversionistas e inversiones. No se habilitan módulos de clientes, préstamos o cartera.</div></article><article className="prst-card"><div className="prst-card-head"><div><small>SEGURIDAD</small><h2>Documentos privados</h2></div></div><p className="prst-copy">Las fotografías del rostro y DUI se almacenan en un bucket privado separado por empresa. El acceso depende de la membresía de IDEALO SV y de pertenecer a la empresa.</p></article></section>}
