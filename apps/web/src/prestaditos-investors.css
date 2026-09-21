@@ -127,3 +127,22 @@
 .prst-investment-modal{width:min(1000px,100%)}
 @media(max-width:1100px){.prst-investment-tools{grid-template-columns:1fr 1fr}.prst-investment-tools .prst-search{grid-column:1/-1;max-width:none}.prst-investment-tools>span{text-align:left}}
 @media(max-width:680px){.prst-formalization-snapshot,.prst-investment-tools{grid-template-columns:1fr}.prst-investment-tools .prst-search{grid-column:auto}}
+
+
+.prst-payment-module{display:grid;gap:15px}
+.prst-payment-summary article:nth-child(1){border-top-color:#2f7b49}
+.prst-payment-summary article:nth-child(2){border-top-color:var(--prst-red)}
+.prst-payment-summary article:nth-child(3){border-top-color:#2b6f9f}
+.prst-payment-summary article:nth-child(4){border-top-color:#8a4e96}
+.prst-payment-snapshot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.prst-payment-snapshot>div{display:grid;gap:3px;padding:11px;border:1px solid #dde1e4;border-radius:9px;background:#fafafa}
+.prst-payment-snapshot span{color:#777d83;font-size:7px;font-weight:900;text-transform:uppercase}
+.prst-payment-snapshot strong{font-size:10px}.prst-payment-snapshot small{color:#777d83;font-size:8px}
+.prst-payment-tools{grid-template-columns:minmax(260px,1fr) 150px 135px auto}
+.prst-date-filters{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.prst-date-filters .prst-field{width:160px;margin:0}.prst-date-filters button{min-height:40px;padding:0 10px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:8px;font-weight:850;cursor:pointer}
+.prst-payment-table{min-width:1260px!important}
+.prst-row-reversed{opacity:.72;background:#fafafa}
+.prst-payment-modal{width:min(940px,100%)}
+@media(max-width:1100px){.prst-payment-tools{grid-template-columns:1fr 1fr}.prst-payment-tools .prst-search{grid-column:1/-1;max-width:none}.prst-payment-tools>span{text-align:left}}
+@media(max-width:680px){.prst-payment-snapshot,.prst-payment-tools{grid-template-columns:1fr}.prst-payment-tools .prst-search{grid-column:auto}.prst-date-filters{display:grid;grid-template-columns:1fr}.prst-date-filters .prst-field{width:auto}}
