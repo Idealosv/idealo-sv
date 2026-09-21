@@ -8,6 +8,7 @@ import PrestaditosPaymentsPanel from './PrestaditosPaymentsPanel.jsx'
 import PrestaditosMaturitiesPanel from './PrestaditosMaturitiesPanel.jsx'
 import PrestaditosBeneficiariesPanel from './PrestaditosBeneficiariesPanel.jsx'
 import PrestaditosRenewalsPanel from './PrestaditosRenewalsPanel.jsx'
+import PrestaditosTreasuryPanel from './PrestaditosTreasuryPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -146,7 +147,7 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={investmentId=>{setRenewalToManage(investmentId);setTab('Renovaciones')}}/>}
     {tab==='Renovaciones'&&<PrestaditosRenewalsPanel company={company} role={role} investments={investments} payments={payments} renewals={renewals} investorMap={investorMap} saving={saving} act={act} preselectedInvestmentId={renewalToManage} onHandled={()=>setRenewalToManage('')}/>}
-    {tab==='Tesorería'&&<TreasuryPanel investments={investments} payments={payments}/>}
+    {tab==='Tesorería'&&<PrestaditosTreasuryPanel investments={investments} payments={payments} investorMap={investorMap}/>}
     {tab==='Documentos'&&<DocumentsPanel investors={investors}/>}
     {tab==='Reportes'&&<ReportsPanel investors={investors} applications={applications} investments={investments} payments={payments}/>}
     {tab==='Auditoría'&&<AuditPanel audit={audit} investorMap={investorMap}/>}
@@ -184,12 +185,6 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
    </article>
   </section>
  </>}
-
-function TreasuryPanel({investments,payments}){
- const capital=investments.filter(x=>!['CANCELLED'].includes(x.status)).reduce((s,x)=>s+Number(x.principal||0),0)
- const yieldOut=payments.filter(x=>x.payment_type==='YIELD').reduce((s,x)=>s+Number(x.amount||0),0)
- const capitalOut=payments.filter(x=>x.payment_type==='CAPITAL_RETURN').reduce((s,x)=>s+Number(x.amount||0),0)
- return <><section className="prst-metrics"><Metric label="Capital recibido" value={money(capital)} hint="Inversiones formalizadas"/><Metric label="Rendimientos pagados" value={money(yieldOut)} hint="Salidas por rendimiento"/><Metric label="Capital devuelto" value={money(capitalOut)} hint="Devoluciones registradas"/><Metric label="Capital neto" value={money(capital-capitalOut)} hint="Capital menos devoluciones"/></section><article className="prst-card"><div className="prst-card-head"><div><small>TESORERÍA</small><h2>Movimientos exclusivos de inversionistas</h2><p>Este vertical no mezcla operaciones de clientes, préstamos ni facturación comercial.</p></div></div></article></>}
 
 function DocumentsPanel({investors}){
  return <article className="prst-card"><div className="prst-card-head"><div><small>EXPEDIENTES</small><h2>Documentos del inversionista</h2></div></div>{!investors.length?<Empty title="Sin expedientes"/>:<div className="prst-table-wrap"><table><thead><tr><th>Inversionista</th><th>Rostro</th><th>DUI frente</th><th>DUI reverso</th></tr></thead><tbody>{investors.map(x=><tr key={x.id}><td><b>{fullName(x)}</b><small>{x.investor_code}</small></td><td>{x.face_photo_path?'✓ Guardado':'Pendiente'}</td><td>{x.dui_front_path?'✓ Guardado':'Pendiente'}</td><td>{x.dui_back_path?'✓ Guardado':'Pendiente'}</td></tr>)}</tbody></table></div>}</article>}
