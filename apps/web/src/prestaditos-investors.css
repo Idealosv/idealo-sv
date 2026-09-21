@@ -231,3 +231,52 @@
  .prst-documents-tools{grid-template-columns:1fr}
  .prst-documents-tools .prst-search{grid-column:auto}
 }
+
+
+.prst-reports-module,.prst-audit-module{display:grid;gap:15px}
+.prst-report-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.prst-report-tabs button{min-height:34px;padding:0 11px;border:1px solid #d5d9dd;border-radius:8px;background:#fff;color:#596068;font:inherit;font-size:8px;font-weight:850;cursor:pointer}
+.prst-report-tabs button.active{border-color:#1f2225;background:#1f2225;color:#fff}
+.prst-report-export{min-height:36px;padding:0 12px;border:1px solid #b8c8bd;border-radius:8px;background:#f1f8f3;color:#2d6740;font:inherit;font-size:8px;font-weight:900;cursor:pointer}
+.prst-report-export:disabled{opacity:.45;cursor:not-allowed}
+.prst-report-filters{display:grid;grid-template-columns:minmax(180px,1.2fr) 150px 150px 110px auto;gap:8px;align-items:end;margin-bottom:12px}
+.prst-report-filters label,.prst-report-filters>div{display:grid;gap:5px}
+.prst-report-filters span{color:#646b72;font-size:8px;font-weight:850}
+.prst-report-filters select,.prst-report-filters input{min-height:39px;padding:8px 9px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px}
+.prst-report-filters>div{padding:7px 10px;border:1px solid #e0e3e6;border-radius:8px;background:#fafafa}
+.prst-report-filters>div strong{font-size:15px}
+.prst-report-filters>button{min-height:39px;padding:0 10px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:8px;font-weight:850;cursor:pointer}
+.prst-report-table{min-width:980px!important}
+.prst-report-note{border-left:4px solid #2b6f9f}
+.prst-report-company{color:#737980;font-size:8px}
+.prst-audit-summary article:nth-child(1){border-top-color:#2b6f9f}
+.prst-audit-summary article:nth-child(2){border-top-color:#2f7b49}
+.prst-audit-summary article:nth-child(3){border-top-color:#d99222}
+.prst-audit-summary article:nth-child(4){border-top-color:#8a4e96}
+.prst-audit-filters{display:grid;grid-template-columns:minmax(240px,1.3fr) 150px 190px 140px 140px auto;gap:8px;margin-bottom:12px}
+.prst-audit-filters select,.prst-audit-filters input{min-height:39px;padding:8px 9px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px}
+.prst-audit-filters>button{min-height:39px;padding:0 10px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:8px;font-weight:850;cursor:pointer}
+.prst-audit-table{min-width:1180px!important}
+.prst-audit-category{display:inline-flex;align-items:center;justify-content:center;min-height:23px;padding:0 7px;border-radius:999px;border:1px solid #d7dce0;background:#f5f6f7;font-size:7px;font-weight:900}
+.prst-audit-category.investor{border-color:#b5d8c0;background:#f2f9f4;color:#2d7044}
+.prst-audit-category.application{border-color:#d6c39d;background:#fbf8ef;color:#806120}
+.prst-audit-category.investment{border-color:#b8cfe0;background:#f2f7fa;color:#35627f}
+.prst-audit-category.beneficiary{border-color:#d3c1dc;background:#faf5fc;color:#6d487c}
+.prst-audit-category.payment{border-color:#e6b6b2;background:#fff5f4;color:#8b342e}
+.prst-audit-category.renewal{border-color:#d8c795;background:#fff9eb;color:#7e6214}
+.prst-audit-category.document{border-color:#c2c8ce;background:#f6f7f8;color:#4f5961}
+.prst-audit-detail-button{min-height:30px;padding:0 8px;border:1px solid #cfd4d8;border-radius:7px;background:#fff;font:inherit;font-size:8px;font-weight:850;cursor:pointer}
+.prst-audit-foot{margin-top:10px;color:#747b82;font-size:8px}
+.prst-audit-modal{width:min(900px,100%)}
+.prst-audit-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.prst-audit-detail-grid article{display:grid;gap:4px;padding:10px;border:1px solid #e0e4e7;border-radius:9px;background:#fafafa}
+.prst-audit-detail-grid span{color:#777d83;font-size:7px;font-weight:900;text-transform:uppercase}
+.prst-audit-detail-grid strong{font-size:9px;overflow-wrap:anywhere}
+@media(max-width:1180px){
+ .prst-report-filters{grid-template-columns:1fr 1fr 1fr}
+ .prst-audit-filters{grid-template-columns:1fr 1fr 1fr}
+}
+@media(max-width:680px){
+ .prst-report-filters,.prst-audit-filters,.prst-audit-detail-grid{grid-template-columns:1fr}
+ .prst-report-export{width:100%}
+}
