@@ -17,24 +17,31 @@ import PrestaditosConfigurationPanel from './PrestaditosConfigurationPanel.jsx'
 import PrestaditosSimulatorPanel from './PrestaditosSimulatorPanel.jsx'
 import PrestaditosAlertsPanel from './PrestaditosAlertsPanel.jsx'
 import { buildPrestaditosAlerts } from './prestaditos-alerts.js'
+import PrestaditosInvestorStatementPanel from './PrestaditosInvestorStatementPanel.jsx'
+import PrestaditosExecutiveAnalytics from './PrestaditosExecutiveAnalytics.jsx'
+import PrestaditosMonthlyCloseoutPanel from './PrestaditosMonthlyCloseoutPanel.jsx'
+import PrestaditosTechnicalAuditPanel from './PrestaditosTechnicalAuditPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
  ['Dashboard','Resumen de inversiones'],
- ['Alertas','Seguimiento operativo'],
+ ['Notificaciones','Seguimiento operativo'],
  ['Inversionistas','Expedientes y documentos'],
  ['Solicitudes','Solicitudes de inversión'],
  ['Simulador','Tasas anuales por monto'],
  ['Inversiones','Capital y vigencias'],
  ['Contratos','PDF y firma'],
  ['Beneficiarios','Beneficiarios registrados'],
+ ['Estado de cuenta','Resumen por inversionista'],
  ['Rendimientos','Pagos al inversionista'],
  ['Vencimientos','Próximas fechas'],
  ['Renovaciones','Continuidad de inversiones'],
  ['Tesorería','Entradas y salidas'],
  ['Documentos','DUI, rostro y contratos'],
  ['Reportes','Indicadores gerenciales'],
+ ['Cierre mensual','Snapshot del período'],
  ['Auditoría','Trazabilidad'],
+ ['Auditoría técnica','Integridad y seguridad'],
  ['Configuración','Reglas del vertical'],
 ]
 
@@ -70,6 +77,8 @@ export default function PrestaditosInvestorAppHost(){
  const [documents,setDocuments]=useState([])
  const [settings,setSettings]=useState(null)
  const [contracts,setContracts]=useState([])
+ const [notificationStates,setNotificationStates]=useState([])
+ const [closeouts,setCloseouts]=useState([])
  const [query,setQuery]=useState('')
  const [applicationToFormalize,setApplicationToFormalize]=useState('')
  const [renewalToManage,setRenewalToManage]=useState('')
@@ -99,7 +108,7 @@ export default function PrestaditosInvestorAppHost(){
   if(!enabled||!company?.id||!supabase)return
   setLoading(true);setError('')
   try{
-   const [i,a,n,b,p,l,rn,d,s,c]=await Promise.all([
+   const [i,a,n,b,p,l,rn,d,s,c,ns,co]=await Promise.all([
     supabase.from('inv_investors').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_applications').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_investments').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
@@ -110,9 +119,11 @@ export default function PrestaditosInvestorAppHost(){
     supabase.from('inv_documents').select('*').eq('company_id',company.id).order('created_at',{ascending:false}),
     supabase.from('inv_company_settings').select('*').eq('company_id',company.id).maybeSingle(),
     supabase.from('inv_contracts').select('*').eq('company_id',company.id).order('generated_at',{ascending:false}),
+    supabase.from('inv_notification_states').select('*').eq('company_id',company.id).order('updated_at',{ascending:false}),
+    supabase.from('inv_monthly_closeouts').select('*').eq('company_id',company.id).order('period_month',{ascending:false}).order('version',{ascending:false}),
    ])
-   for(const r of [i,a,n,b,p,l,rn,d,s,c])if(r.error)throw r.error
-   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[]);setSettings(s.data||null);setContracts(c.data||[])
+   for(const r of [i,a,n,b,p,l,rn,d,s,c,ns,co])if(r.error)throw r.error
+   setInvestors(i.data||[]);setApplications(a.data||[]);setInvestments(n.data||[]);setBeneficiaries(b.data||[]);setPayments(p.data||[]);setAudit(l.data||[]);setRenewals(rn.data||[]);setDocuments(d.data||[]);setSettings(s.data||null);setContracts(c.data||[]);setNotificationStates(ns.data||[]);setCloseouts(co.data||[])
   }catch(err){setError(safeText(err))}
   finally{setLoading(false)}
  },[enabled,company?.id])
@@ -123,10 +134,12 @@ export default function PrestaditosInvestorAppHost(){
  const activeInvestments=investments.filter(x=>['ACTIVE','MATURING'].includes(x.status))
  const totalPrincipal=activeInvestments.reduce((s,x)=>s+Number(x.principal||0),0)
  const projectedGain=activeInvestments.reduce((s,x)=>s+Number(x.projected_gain||0),0)
- const yieldPaid=payments.filter(x=>x.payment_type==='YIELD').reduce((s,x)=>s+Number(x.amount||0),0)
+ const yieldPaid=payments.filter(x=>x.payment_type==='YIELD'&&(x.status||'POSTED')==='POSTED').reduce((s,x)=>s+Number(x.amount||0),0)
  const pendingApps=applications.filter(x=>['PENDING','REVIEW','APPROVED','SIGNATURE','FUNDS_RECEIVED'].includes(x.status)).length
  const nextMaturity=[...activeInvestments].filter(x=>x.maturity_date).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date)))[0]
  const operationalAlerts=useMemo(()=>buildPrestaditosAlerts({investors,applications,investments,contracts,payments,renewals,investorMap}),[investors,applications,investments,contracts,payments,renewals,investorMap])
+ const notificationStateMap=useMemo(()=>new Map(notificationStates.map(x=>[x.alert_key,x])),[notificationStates])
+ const openAlerts=useMemo(()=>operationalAlerts.filter(x=>!notificationStateMap.has(x.id)),[operationalAlerts,notificationStateMap])
 
  if(!enabled)return null
 
@@ -163,21 +176,24 @@ export default function PrestaditosInvestorAppHost(){
    {notice&&<div className="prst-alert success">{notice}</div>}
 
    <section className="prst-content">
-    {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} alerts={operationalAlerts} onGo={setTab} onAlert={goFromAlert}/>}
-    {tab==='Alertas'&&<PrestaditosAlertsPanel investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} renewals={renewals} investorMap={investorMap} onGo={goFromAlert}/>} 
+    {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} alerts={openAlerts} onGo={setTab} onAlert={goFromAlert}/>}
+    {tab==='Notificaciones'&&<PrestaditosAlertsPanel company={company} investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} renewals={renewals} investorMap={investorMap} notificationStates={notificationStates} act={act} onGo={goFromAlert}/>} 
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
     {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} settings={settings} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
     {tab==='Simulador'&&<PrestaditosSimulatorPanel settings={settings}/>} 
     {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} settings={settings} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>} 
     {tab==='Contratos'&&<PrestaditosContractsPanel company={company} role={role} investments={investments} contracts={contracts} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Beneficiarios'&&<PrestaditosBeneficiariesPanel company={company} role={role} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
+    {tab==='Beneficiarios'&&<PrestaditosBeneficiariesPanel company={company} role={role} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>} 
+    {tab==='Estado de cuenta'&&<PrestaditosInvestorStatementPanel company={company} investors={investors} investments={investments} payments={payments} beneficiaries={beneficiaries} contracts={contracts}/>}
     {tab==='Rendimientos'&&<PrestaditosPaymentsPanel company={company} role={role} settings={settings} investments={investments} payments={payments} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Vencimientos'&&<PrestaditosMaturitiesPanel investments={investments} payments={payments} investorMap={investorMap} onGoRenewals={investmentId=>{setRenewalToManage(investmentId);setTab('Renovaciones')}}/>}
     {tab==='Renovaciones'&&<PrestaditosRenewalsPanel company={company} role={role} settings={settings} investments={investments} payments={payments} renewals={renewals} investorMap={investorMap} saving={saving} act={act} preselectedInvestmentId={renewalToManage} onHandled={()=>setRenewalToManage('')}/>}
     {tab==='Tesorería'&&<PrestaditosTreasuryPanel investments={investments} payments={payments} investorMap={investorMap}/>}
     {tab==='Documentos'&&<PrestaditosDocumentsPanel company={company} role={role} investors={investors} applications={applications} investments={investments} documents={documents} investorMap={investorMap} saving={saving} act={act}/>}
-    {tab==='Reportes'&&<PrestaditosReportsPanel company={company} investors={investors} applications={applications} investments={investments} payments={payments} renewals={renewals} documents={documents} investorMap={investorMap}/>}
-    {tab==='Auditoría'&&<PrestaditosAuditPanel company={company} audit={audit} investorMap={investorMap}/>}
+    {tab==='Reportes'&&<PrestaditosReportsPanel company={company} investors={investors} applications={applications} investments={investments} payments={payments} renewals={renewals} documents={documents} investorMap={investorMap}/>} 
+    {tab==='Cierre mensual'&&<PrestaditosMonthlyCloseoutPanel company={company} role={role} closeouts={closeouts} saving={saving} act={act}/>}
+    {tab==='Auditoría'&&<PrestaditosAuditPanel company={company} audit={audit} investorMap={investorMap}/>} 
+    {tab==='Auditoría técnica'&&<PrestaditosTechnicalAuditPanel investors={investors} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} renewals={renewals} documents={documents} contracts={contracts}/>}
     {tab==='Configuración'&&<PrestaditosConfigurationPanel company={company} role={role} settings={settings} saving={saving} act={act}/>}
    </section>
   </main>
@@ -199,7 +215,7 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
 
   <section className="prst-grid two">
    <article className="prst-card">
-    <div className="prst-card-head"><div><small>ALERTAS OPERATIVAS</small><h2>Atención requerida</h2></div><button type="button" className="prst-mini-button" onClick={()=>onGo('Alertas')}>Ver todas ({alerts.length})</button></div>
+    <div className="prst-card-head"><div><small>ALERTAS OPERATIVAS</small><h2>Atención requerida</h2></div><button type="button" className="prst-mini-button" onClick={()=>onGo('Notificaciones')}>Ver todas ({alerts.length})</button></div>
     {!alerts.length?<Empty title="Sin alertas abiertas">No hay situaciones pendientes con los criterios actuales.</Empty>:<div className="prst-dashboard-alerts">{alerts.slice(0,5).map(row=><button key={row.id} type="button" className={row.priority.toLowerCase()} onClick={()=>onAlert(row.tab,row)}><span>{row.priority==='CRITICAL'?'Crítica':row.priority==='HIGH'?'Alta':'Media'}</span><strong>{row.title}</strong><small>{row.detail}</small></button>)}</div>}
    </article>
 
@@ -218,5 +234,7 @@ function Dashboard({investors,applications,investments,payments,totalPrincipal,p
    <div className="prst-card-head"><div><small>SOLICITUDES RECIENTES</small><h2>Actividad</h2></div></div>
    {!recent.length?<Empty title="Aún no hay solicitudes">Cuando un inversionista envíe una solicitud aparecerá aquí.</Empty>:<div className="prst-list">{recent.map(x=><article key={x.id}><div><b>{fullName(investorMap.get(x.investor_id))}</b><small>{money(x.requested_amount)} · {x.requested_term_months} meses</small></div><Status value={x.status}/></article>)}</div>}
   </article>
+
+  <PrestaditosExecutiveAnalytics investments={investments} payments={payments} applications={applications}/>
  </>}
 
