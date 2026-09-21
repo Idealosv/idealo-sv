@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
+import { RETURN_RATES, annualReferenceGain, suggestedAnnualRate, tierForAmount } from './prestaditos-rate-rules.js'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const date=value=>value?new Date(String(value).includes('T')?value:`${value}T12:00:00`).toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}):'—'
@@ -7,7 +8,6 @@ const today=()=>new Date().toISOString().slice(0,10)
 const fullName=x=>[x?.first_names,x?.last_names].filter(Boolean).join(' ')||'—'
 const daysUntil=value=>value?Math.ceil((new Date(`${value}T12:00:00`).getTime()-new Date(`${today()}T12:00:00`).getTime())/86400000):null
 const normalized=value=>String(value||'').trim()
-const RETURN_RATES=[10,12,15]
 
 const STATUS_LABELS={
  PENDING:'Pendiente',
@@ -64,10 +64,13 @@ export default function PrestaditosInvestmentsPanel({
  useEffect(()=>{
   if(form.application_id)return
   const preferred=eligible.find(x=>x.id===preselectedApplicationId)||eligible[0]
-  if(preferred)setForm(current=>({...current,application_id:preferred.id,payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))
+  if(preferred){const amount=Number(preferred.approved_amount??preferred.requested_amount);const suggested=suggestedAnnualRate(amount);setForm(current=>({...current,application_id:preferred.id,return_rate:suggested?String(suggested):'',payment_place:preferred.payment_place||'',payment_method:preferred.payment_method||''}))}
  },[eligible,form.application_id,preselectedApplicationId])
 
  const selectedApplication=applications.find(x=>x.id===form.application_id)||null
+ const selectedAmount=selectedApplication?Number(selectedApplication.approved_amount??selectedApplication.requested_amount):0
+ const provisionalTier=selectedApplication?tierForAmount(selectedAmount):null
+ const annualReference=form.return_rate?annualReferenceGain(selectedAmount,Number(form.return_rate)):null
  const selected=investments.find(x=>x.id===selectedId)||null
 
  const filtered=useMemo(()=>{
@@ -97,7 +100,9 @@ export default function PrestaditosInvestmentsPanel({
 
  const choose=id=>{
   const row=applications.find(x=>x.id===id)
-  setForm({...form,application_id:id,payment_place:row?.payment_place||'',payment_method:row?.payment_method||''})
+  const amount=Number(row?.approved_amount??row?.requested_amount)
+  const suggested=suggestedAnnualRate(amount)
+  setForm({...form,application_id:id,return_rate:suggested?String(suggested):'',payment_place:row?.payment_place||'',payment_method:row?.payment_method||''})
  }
 
  const submit=e=>{
@@ -141,7 +146,9 @@ export default function PrestaditosInvestmentsPanel({
   e.preventDefault()
   if(!edit||!canManage)return
   const projected=edit.projected_gain===''?null:Number(edit.projected_gain)
+  const returnRate=Number(edit.return_rate)
   if(projected!==null&&(!Number.isFinite(projected)||projected<0))return
+  if(!RETURN_RATES.includes(returnRate))return
   const current=edit
   setEdit(null)
   act(async()=>{
@@ -191,12 +198,18 @@ export default function PrestaditosInvestmentsPanel({
 
     <div className="prst-form-grid">
      <Field label="Fecha de otorgamiento *"><input type="date" value={form.granted_at} onChange={e=>setForm({...form,granted_at:e.target.value})} required disabled={!canManage}/></Field>
-     <Field label="Porcentaje acordado *" hint="Opciones informadas hasta ahora; no se asume periodicidad."><select value={form.return_rate} onChange={e=>setForm({...form,return_rate:e.target.value})} required disabled={!canManage}><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}%</option>)}</select></Field>
+     <Field label="Porcentaje anual acordado *" hint="10%, 12% o 15% anual. La sugerencia por monto es provisional."><select value={form.return_rate} onChange={e=>setForm({...form,return_rate:e.target.value})} required disabled={!canManage}><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}% anual</option>)}</select></Field>
      <Field label="Número de contrato"><input value={form.contract_number} onChange={e=>setForm({...form,contract_number:e.target.value})} disabled={!canManage} placeholder="Puede completarse después"/></Field>
      <Field label="Ganancia proyectada" hint="Manual hasta que definamos la fórmula real de Prestadito$."><input type="number" min="0" step="0.01" value={form.projected_gain} onChange={e=>setForm({...form,projected_gain:e.target.value})} disabled={!canManage}/></Field>
      <Field label="Lugar de pago"><input list="prst-investment-place-options" value={form.payment_place} onChange={e=>setForm({...form,payment_place:e.target.value})} disabled={!canManage}/></Field>
      <Field label="Forma de pago" className="span-2"><input list="prst-investment-method-options" value={form.payment_method} onChange={e=>setForm({...form,payment_method:e.target.value})} disabled={!canManage}/></Field>
     </div>
+
+    {selectedApplication&&form.return_rate&&<div className="prst-rate-reference">
+     <span><b>Tasa anual seleccionada</b><strong>{Number(form.return_rate)}%</strong></span>
+     <span><b>Ganancia anual de referencia</b><strong>{money(annualReference)}</strong></span>
+     <small>{provisionalTier?<>Sugerencia provisional por monto: {provisionalTier.label} → {provisionalTier.rate}% anual.</>:<>El monto está fuera de los ejemplos provisionales.</>} Para plazos distintos de 12 meses todavía no se calcula automáticamente el rendimiento total.</small>
+    </div>}
 
     <div className="prst-note"><strong>Protección:</strong> el capital y el plazo vienen de la aprobación y no se pueden cambiar aquí. El vencimiento se calcula automáticamente y la solicitud solo puede convertirse en inversión una vez.</div>
     <button className="prst-primary" disabled={saving||!canManage||!form.application_id}>{saving?'Formalizando…':'Formalizar inversión'}</button>
@@ -293,7 +306,7 @@ function InvestmentDetail({investment,application,investor,beneficiaries,payment
    <div className="prst-profile-grid">
     <article><small>Inversionista</small><b>{fullName(investor)}</b><span>{investor?.investor_code||'—'} · DUI {investor?.dui||'—'}</span><span>{investor?.phone||investor?.whatsapp||'Sin teléfono'}</span></article>
     <article><small>Origen</small><b>{application?.application_code||'Solicitud no disponible'}</b><span>Otorgada: {date(investment.granted_at)}</span><span>Vence: {date(investment.maturity_date)}{d!==null?` · ${d<0?Math.abs(d)+' días vencida':d+' días restantes'}`:''}</span></article>
-    <article><small>Contrato</small><b>{investment.contract_number||'Número pendiente'}</b><span>Estado: {STATUS_LABELS[status]||status}</span><span>Porcentaje acordado: {investment.agreed_return_rate==null?'Pendiente':Number(investment.agreed_return_rate)+'%'}</span><span>Ganancia proyectada: {investment.projected_gain==null?'Pendiente':money(investment.projected_gain)}</span></article>
+    <article><small>Contrato</small><b>{investment.contract_number||'Número pendiente'}</b><span>Estado: {STATUS_LABELS[status]||status}</span><span>Porcentaje anual acordado: {investment.agreed_return_rate==null?'Pendiente':Number(investment.agreed_return_rate)+'% anual'}</span><span>Ganancia proyectada: {investment.projected_gain==null?'Pendiente':money(investment.projected_gain)}</span></article>
     <article><small>Pago</small><b>{investment.payment_place||'Lugar pendiente'}</b><span>{investment.payment_method||'Forma pendiente'}</span><span>Capital devuelto registrado: {money(capitalReturned)}</span></article>
    </div>
 
@@ -314,13 +327,13 @@ function InvestmentEditModal({edit,setEdit,onSubmit,saving}){
    <header><div><small>DATOS OPERATIVOS</small><h2>Editar inversión</h2><p>{edit.row.investment_code}</p></div><button type="button" onClick={()=>setEdit(null)} disabled={saving}>×</button></header>
    <div className="prst-form-grid">
     <Field label="Número de contrato"><input value={edit.contract_number} onChange={e=>setEdit({...edit,contract_number:e.target.value})}/></Field>
-    <Field label="Porcentaje acordado"><select value={edit.return_rate} onChange={e=>setEdit({...edit,return_rate:e.target.value})}><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}%</option>)}</select></Field>
+    <Field label="Porcentaje anual acordado"><select value={edit.return_rate} onChange={e=>setEdit({...edit,return_rate:e.target.value})}><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}% anual</option>)}</select></Field>
     <Field label="Ganancia proyectada" hint="Manual hasta definir la fórmula."><input type="number" min="0" step="0.01" value={edit.projected_gain} onChange={e=>setEdit({...edit,projected_gain:e.target.value})}/></Field>
     <Field label="Lugar de pago"><input value={edit.payment_place} onChange={e=>setEdit({...edit,payment_place:e.target.value})}/></Field>
     <Field label="Forma de pago"><input value={edit.payment_method} onChange={e=>setEdit({...edit,payment_method:e.target.value})}/></Field>
    </div>
    <Field label="Motivo / nota del cambio" hint="Quedará registrado en auditoría."><textarea value={edit.notes} onChange={e=>setEdit({...edit,notes:e.target.value})} placeholder="Ej. Se asignó número de contrato o cambió lugar de pago."/></Field>
-   <div className="prst-note"><strong>No editable:</strong> capital, plazo, fecha de otorgamiento y vencimiento se conservan como fueron formalizados. El porcentaje puede ser 10%, 12% o 15%, pero su periodicidad y fórmula siguen pendientes de definición.</div>
+   <div className="prst-note"><strong>No editable:</strong> capital, plazo, fecha de otorgamiento y vencimiento se conservan como fueron formalizados. El porcentaje puede ser 10%, 12% o 15% anual. Los rangos por monto son provisionales y el cálculo total para plazos distintos de 12 meses sigue pendiente de la regla definitiva.</div>
    <div className="prst-modal-actions"><button type="button" onClick={()=>setEdit(null)} disabled={saving}>Cancelar</button><button type="submit" className="primary" disabled={saving}>{saving?'Guardando…':'Guardar cambios'}</button></div>
   </form>
  </div>
