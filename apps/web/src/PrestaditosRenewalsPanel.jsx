@@ -7,6 +7,7 @@ const today=()=>new Date().toISOString().slice(0,10)
 const fullName=x=>[x?.first_names,x?.last_names].filter(Boolean).join(' ')||'—'
 const daysUntil=value=>value?Math.ceil((new Date(`${value}T12:00:00`).getTime()-new Date(`${today()}T12:00:00`).getTime())/86400000):null
 const normalized=value=>String(value||'').trim()
+const RETURN_RATES=[10,12,15]
 
 const DECISION_LABELS={
  RENEW_CAPITAL:'Renovar capital',
@@ -45,6 +46,8 @@ export default function PrestaditosRenewalsPanel({
  const [search,setSearch]=useState('')
  const [statusFilter,setStatusFilter]=useState('RECORDED')
  const [cancel,setCancel]=useState(null)
+ const [execute,setExecute]=useState(null)
+ const [withdraw,setWithdraw]=useState(null)
 
  useEffect(()=>{
   if(selectedInvestmentId)return
@@ -129,6 +132,40 @@ export default function PrestaditosRenewalsPanel({
    const {error}=await supabase.rpc('inv_cancel_renewal_decision',{p_renewal_id:current.row.id,p_reason:reason})
    if(error)throw error
   },'Decisión cancelada. El historial se conserva.')
+ }
+
+ const submitExecute=e=>{
+  e.preventDefault()
+  if(!execute||!canManage)return
+  const rate=Number(execute.rate)
+  if(!RETURN_RATES.includes(rate))return
+  const current=execute
+  setExecute(null)
+  act(async()=>{
+   const {error}=await supabase.rpc('inv_execute_renewal',{
+    p_renewal_id:current.row.id,
+    p_return_rate:rate,
+    p_contract_number:normalized(current.contract_number),
+   })
+   if(error)throw error
+   onHandled?.()
+  },'Renovación ejecutada y nueva inversión creada.')
+ }
+
+ const submitWithdraw=e=>{
+  e.preventDefault()
+  if(!withdraw||!canManage||!withdraw.confirmed)return
+  const current=withdraw
+  setWithdraw(null)
+  act(async()=>{
+   const {error}=await supabase.rpc('inv_finalize_withdrawal',{
+    p_renewal_id:current.row.id,
+    p_confirm_yield_settled:true,
+    p_note:normalized(current.note),
+   })
+   if(error)throw error
+   onHandled?.()
+  },'Retiro finalizado y la inversión anterior quedó cerrada.')
  }
 
  const filtered=useMemo(()=>{
@@ -217,12 +254,32 @@ export default function PrestaditosRenewalsPanel({
        <td>{DECISION_LABELS[row.decision_type]||row.decision_type}</td>
        <td>{row.decision_type==='WITHDRAW'?<b>No aplica</b>:<><b>{money(row.renewal_amount)}</b><small>{row.renewal_term_months} meses</small></>}</td>
        <td><span className={`prst-status ${row.status==='RECORDED'?'review':row.status==='CANCELLED'?'rejected':'active'}`}>{row.status==='RECORDED'?'Registrada':row.status==='CANCELLED'?'Cancelada':'Ejecutada'}</span>{row.status==='CANCELLED'&&<small>{row.cancel_reason}</small>}</td>
-       <td><div className="prst-row-actions">{row.status==='RECORDED'&&canManage&&<><button type="button" onClick={()=>setSelectedInvestmentId(row.investment_id)}>Editar</button><button type="button" className="danger" onClick={()=>setCancel({row,reason:''})}>Cancelar</button></>}</div></td>
+       <td><div className="prst-row-actions">{row.status==='RECORDED'&&canManage&&<><button type="button" onClick={()=>setSelectedInvestmentId(row.investment_id)}>Editar</button>{row.decision_type==='WITHDRAW'?<button type="button" className="approve" onClick={()=>setWithdraw({row,confirmed:false,note:''})}>Finalizar retiro</button>:<button type="button" className="approve" onClick={()=>setExecute({row,rate:'',contract_number:''})}>Ejecutar</button>}<button type="button" className="danger" onClick={()=>setCancel({row,reason:''})}>Cancelar</button></>}</div></td>
       </tr>
      })}</tbody>
     </table></div>}
    </article>
   </section>
+
+  {execute&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&!saving&&setExecute(null)}>
+   <form className="prst-decision-modal" onSubmit={submitExecute}>
+    <header><div><small>EJECUTAR RENOVACIÓN</small><h2>{execute.row.renewal_code}</h2><p>Se creará una nueva inversión usando el monto y plazo ya registrados.</p></div><button type="button" onClick={()=>setExecute(null)} disabled={saving}>×</button></header>
+    <Field label="Porcentaje acordado *" hint="Solo se conocen 10%, 12% y 15%; no se asume periodicidad."><select value={execute.rate} onChange={e=>setExecute({...execute,rate:e.target.value})} required><option value="">Seleccionar</option>{RETURN_RATES.map(value=><option key={value} value={value}>{value}%</option>)}</select></Field>
+    <Field label="Número del nuevo contrato"><input value={execute.contract_number} onChange={e=>setExecute({...execute,contract_number:e.target.value})}/></Field>
+    <div className="prst-note"><strong>Control:</strong> la inversión anterior se marcará como renovada y se creará la sucesora de forma atómica. No se calcula ganancia automática porque la fórmula todavía no está definida.</div>
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setExecute(null)}>Cancelar</button><button type="submit" className="primary" disabled={saving||!execute.rate}>Ejecutar renovación</button></div>
+   </form>
+  </div>}
+
+  {withdraw&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&!saving&&setWithdraw(null)}>
+   <form className="prst-decision-modal" onSubmit={submitWithdraw}>
+    <header><div><small>FINALIZAR RETIRO</small><h2>{withdraw.row.renewal_code}</h2><p>El sistema verificará que el capital haya sido devuelto completamente.</p></div><button type="button" onClick={()=>setWithdraw(null)} disabled={saving}>×</button></header>
+    <label className="prst-confirm-check"><input type="checkbox" checked={withdraw.confirmed} onChange={e=>setWithdraw({...withdraw,confirmed:e.target.checked})}/><span>Confirmo que el rendimiento fue liquidado o que, según las condiciones reales del caso, no queda rendimiento pendiente.</span></label>
+    <Field label="Nota de cierre"><textarea value={withdraw.note} onChange={e=>setWithdraw({...withdraw,note:e.target.value})} placeholder="Referencia de liquidación o comentarios."/></Field>
+    <div className="prst-note"><strong>No basta con confirmar:</strong> la base de datos también exige que la devolución de capital registrada alcance el capital de la inversión.</div>
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setWithdraw(null)}>Cancelar</button><button type="submit" className="danger" disabled={saving||!withdraw.confirmed}>Finalizar retiro</button></div>
+   </form>
+  </div>}
 
   {cancel&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&!saving&&setCancel(null)}>
    <form className="prst-decision-modal" onSubmit={submitCancel}>
