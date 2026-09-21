@@ -164,8 +164,10 @@ export default function PrestaditosInvestorAppHost(){
 
    <section className="prst-content">
     {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} onGo={setTab}/>}
+    {tab==='Alertas'&&<PrestaditosAlertsPanel investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} renewals={renewals} investorMap={investorMap} onGo={goFromAlert}/>} 
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
     {tab==='Solicitudes'&&<PrestaditosApplicationsPanel company={company} role={role} settings={settings} investors={investors} applications={applications} investments={investments} investorMap={investorMap} saving={saving} act={act} onFormalize={applicationId=>{setApplicationToFormalize(applicationId);setTab('Inversiones')}}/>}
+    {tab==='Simulador'&&<PrestaditosSimulatorPanel settings={settings}/>} 
     {tab==='Inversiones'&&<PrestaditosInvestmentsPanel company={company} role={role} settings={settings} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} investorMap={investorMap} saving={saving} act={act} preselectedApplicationId={applicationToFormalize} onFormalized={()=>setApplicationToFormalize('')}/>} 
     {tab==='Contratos'&&<PrestaditosContractsPanel company={company} role={role} investments={investments} contracts={contracts} investorMap={investorMap} saving={saving} act={act}/>}
     {tab==='Beneficiarios'&&<PrestaditosBeneficiariesPanel company={company} role={role} investors={investors} beneficiaries={beneficiaries} investorMap={investorMap} saving={saving} act={act}/>}
@@ -182,7 +184,7 @@ export default function PrestaditosInvestorAppHost(){
  </div>
 }
 
-function Dashboard({investors,applications,investments,payments,totalPrincipal,projectedGain,yieldPaid,pendingApps,nextMaturity,investorMap,onGo}){
+function Dashboard({investors,applications,investments,payments,totalPrincipal,projectedGain,yieldPaid,pendingApps,nextMaturity,investorMap,alerts,onGo,onAlert}){
  const maturityDays=nextMaturity?daysUntil(nextMaturity.maturity_date):null
  const recent=applications.slice(0,5)
  return <>
