@@ -395,6 +395,8 @@ declare
   v_code text;
   v_start date;
   v_maturity date;
+  v_capital_returned numeric;
+  v_outstanding numeric;
 begin
   select * into v_decision
   from public.inv_renewal_decisions
@@ -436,6 +438,19 @@ begin
 
   if v_old.status in ('RENEWED','CLOSED','CANCELLED') then
     raise exception 'La inversión anterior ya fue cerrada o renovada.';
+  end if;
+
+  select coalesce(sum(amount),0)
+    into v_capital_returned
+  from public.inv_payments
+  where investment_id=v_old.id
+    and payment_type='CAPITAL_RETURN'
+    and status='POSTED';
+
+  v_outstanding:=greatest(0,v_old.principal-v_capital_returned);
+
+  if v_decision.renewal_amount<v_outstanding then
+    raise exception 'El monto a renovar no puede dejar capital anterior sin liquidar. Registrá primero la devolución de la diferencia.';
   end if;
 
   v_start:=coalesce(v_decision.requested_start_date,current_date);
@@ -480,6 +495,7 @@ begin
       'successor_investment_id',v_new.id,
       'successor_investment_code',v_new.investment_code,
       'renewal_amount',v_new.principal,
+      'capital_outstanding_before_renewal',v_outstanding,
       'renewal_term_months',v_new.term_months,
       'return_rate_percent',p_return_rate,
       'rate_basis','PENDING_DEFINITION'
