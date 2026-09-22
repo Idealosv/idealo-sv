@@ -203,5 +203,5 @@ test('configuración restringe cambios y expone permisos efectivos',()=>{
  assert.match(companySettings,/revoke insert,update,delete on public\.inv_company_settings from authenticated/)
  assert.match(configurationPanel,/PERMISOS EFECTIVOS/)
  assert.match(configurationPanel,/Solo propietario o administrador/)
- assert.match(configurationPanel,/Cambiar los roles de usuarios se administra desde IDEALO SV/)
+ assert.match(configurationPanel,/Los roles se cambian desde IDEALO SV/)
 })
