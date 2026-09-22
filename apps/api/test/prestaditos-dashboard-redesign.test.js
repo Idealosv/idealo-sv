@@ -57,12 +57,12 @@ test('dashboard usa estética financiera ejecutiva sin neón ni grid cyber',()=>
 
 test('dashboard usa tipografía ejecutiva grande y legible',()=>{
  assert.match(css,/DASHBOARD EJECUTIVO LIMPIO Y LEGIBLE/)
- assert.match(css,/prst-dash-hero h2\{[^}]*font-size:46px/)
- assert.match(css,/prst-dash-kpi strong\{[^}]*font-size:27px/)
- assert.match(css,/prst-dash-panel>header h3\{[^}]*font-size:32px/)
- assert.match(css,/prst-dash-alert-list strong\{font-size:16px/)
- assert.match(css,/prst-dash-flow strong\{font-size:16px/)
- assert.match(css,/prst-dash-list strong\{[^}]*font-size:16px/)
+ assert.match(css,/DASHBOARD COMPACT PREMIUM SCALE/)
+ assert.match(css,/prst-dash-kpi strong\{[\s\S]*font-size:23px!important/)
+ assert.match(css,/prst-dash-panel>header h3\{[\s\S]*font-size:23px!important/)
+ assert.match(css,/prst-dash-alert-list strong\{[\s\S]*font-size:13px!important/)
+ assert.match(css,/prst-dash-flow strong[\s\S]*font-size:13px!important/)
+ assert.match(css,/prst-dash-list strong[\s\S]*font-size:13px!important/)
  assert.doesNotMatch(dashboard,/prst-dash-financial/)
 })
 
@@ -70,8 +70,8 @@ test('dashboard usa tipografía ejecutiva grande y legible',()=>{
 test('dashboard reduce saturación visual y limita listas operativas',()=>{
  assert.match(dashboard,/\.slice\(0,3\)/)
  assert.doesNotMatch(dashboard,/prst-dash-financial/)
- assert.match(css,/gap:24px/)
- assert.match(css,/font-size:46px/)
+ assert.match(css,/gap:16px!important/)
+ assert.match(css,/font-size:35px!important/)
 })
 
 
@@ -81,4 +81,14 @@ test('dashboard aísla botones de estilos globales oscuros',()=>{
  assert.match(css,/\.prst-dash-flow>button\{[\s\S]*background:#f8fafc!important/)
  assert.match(css,/\.prst-dash-list>button\{[\s\S]*background:#f8fafc!important/)
  assert.match(css,/\.prst-dash-alert-list>button\{[\s\S]*background:#f8fafc!important/)
+})
+
+
+test('dashboard usa escala premium compacta sin perder legibilidad',()=>{
+ assert.match(css,/DASHBOARD COMPACT PREMIUM SCALE/)
+ assert.match(css,/min-height:142px!important/)
+ assert.match(css,/font-size:35px!important/)
+ assert.match(css,/min-height:104px!important/)
+ assert.match(css,/font-size:23px!important/)
+ assert.match(css,/padding:18px!important/)
 })
