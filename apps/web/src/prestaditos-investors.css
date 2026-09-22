@@ -2926,3 +2926,27 @@
  .prst-contract-tools{grid-template-columns:1fr}
  .prst-contract-tools>span{text-align:left}
 }
+
+
+/* ===== INVESTMENTS · PRESENTATION READY ===== */
+.prst-investments-module{display:grid;gap:9px}
+.prst-investment-summary{gap:8px}
+.prst-investment-summary article{padding:11px 13px;border-radius:10px}
+.prst-investment-summary strong{font-size:19px;margin:3px 0 1px}
+.prst-investment-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:-2px 0 9px;padding-bottom:9px;border-bottom:1px solid #e1e6ea}
+.prst-investment-head strong{display:block;font-size:12px}
+.prst-investment-head small{display:block;margin-top:2px;color:#75808a;font-size:8px}
+.prst-investment-head button.primary{min-height:34px;padding:0 12px;border:1px solid var(--prst-red);border-radius:8px;background:var(--prst-red);color:#fff;font:inherit;font-size:9px;font-weight:900;cursor:pointer}
+.prst-investment-tools{display:grid;grid-template-columns:minmax(280px,1fr) 190px auto;gap:8px;align-items:center;margin-bottom:9px}
+.prst-investment-tools select{min-height:40px;padding:8px 9px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px}
+.prst-investment-tools>span{text-align:right;color:#70767c;font-size:8px;font-weight:850}
+.prst-investment-view{min-height:28px;padding:0 10px;border:1px solid #cfd6dc;border-radius:7px;background:#fff;font:inherit;font-size:8px;font-weight:900;cursor:pointer}
+.prst-investment-view:hover{background:#303d4a;border-color:#303d4a;color:#fff}
+.prst-investment-detail,.prst-investment-modal{width:min(820px,calc(100vw - 24px));max-height:92vh;overflow:auto}
+.prst-investment-modal .prst-field input[readonly]{background:#f5f7f9;color:#4e5964}
+@media(max-width:760px){
+ .prst-investment-head{align-items:flex-start;flex-direction:column}
+ .prst-investment-head button.primary{width:100%}
+ .prst-investment-tools{grid-template-columns:1fr}
+ .prst-investment-tools>span{text-align:left}
+}
