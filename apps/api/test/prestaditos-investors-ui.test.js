@@ -68,3 +68,16 @@ test('estilos de inversionistas mantienen diseño ejecutivo claro',()=>{
  assert.match(css,/prst-investor-followup-grid/)
  assert.match(css,/prst-investor-form-pro/)
 })
+
+
+test('vista previa mantiene capital individual coherente con el resumen',()=>{
+ assert.match(preview,/activeCapital=\{i1:4000,i2:8000,i3:0\}/)
+ assert.match(preview,/activeCount=\{i1:1,i2:1,i3:0\}/)
+ assert.match(preview,/onGo\?\.\('Contratos'\)/)
+})
+
+test('bloques inferiores conservan fondo claro y acciones menos saturadas',()=>{
+ assert.match(css,/INVESTORS VISUAL POLISH · PREVIEW CONSISTENCY/)
+ assert.match(css,/prst-investor-followup-list>button\{[\s\S]*background:#f8fafb!important/)
+ assert.match(css,/prst-investor-actions button:not\(\.primary\)\{[\s\S]*background:#ffffff!important/)
+})
