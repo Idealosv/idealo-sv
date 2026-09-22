@@ -36,7 +36,7 @@ export default function PrestaditosDocumentsPanel({
  act,
  preselectedInvestorId='',
 }){
- const canUpload=['owner','admin','staff'].includes(String(role||'').toLowerCase())
+ const canUpload=['owner','admin','staff','operator'].includes(String(role||'').toLowerCase())
  const canManage=['owner','admin'].includes(String(role||'').toLowerCase())
  const empty={investor_id:'',application_id:'',investment_id:'',document_type:'CONTRACT',title:'',document_date:'',notes:''}
  const [form,setForm]=useState(empty)
