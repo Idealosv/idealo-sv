@@ -472,3 +472,101 @@
   .prst-app .prst-dashboard-premium .prst-dash-kpis{grid-template-columns:1fr!important}
   .prst-app .prst-investor-summary{grid-template-columns:1fr!important}
 }
+
+
+/* ===== MODERATE GLOBAL TYPE BUMP ===== */
+/* Aumento leve de legibilidad en todo el ERP: +1 px aprox., sin agrandar de más. */
+.prst-app .prst-brand strong{font-size:18px!important}
+.prst-app .prst-brand small{font-size:10px!important}
+.prst-app .prst-company span{font-size:9px!important}
+.prst-app .prst-company strong{font-size:13px!important}
+.prst-app .prst-company small{font-size:10px!important}
+
+.prst-app .prst-sidebar nav button strong{font-size:12px!important}
+.prst-app .prst-sidebar nav button small{font-size:9px!important}
+.prst-app .prst-back{font-size:10px!important}
+
+.prst-app .prst-top-title>span{font-size:10px!important}
+.prst-app .prst-top-title h1{font-size:27px!important}
+.prst-app .prst-top-title p{font-size:11px!important}
+.prst-app .prst-global-search-input input{font-size:12px!important}
+.prst-app .prst-top-actions button,
+.prst-app .prst-mobile-menu{font-size:11px!important}
+.prst-app>.prst-main>.prst-alert{font-size:10px!important}
+
+.prst-app .prst-card-head small{font-size:9px!important}
+.prst-app .prst-card-head h2{font-size:20px!important}
+.prst-app .prst-card-head p{font-size:11px!important}
+.prst-app .prst-metric span,
+.prst-app .prst-investor-summary>article span{font-size:10px!important}
+.prst-app .prst-metric strong,
+.prst-app .prst-investor-summary>article strong{font-size:25px!important}
+.prst-app .prst-metric small,
+.prst-app .prst-investor-summary>article small{font-size:10px!important}
+
+.prst-app .prst-field>span{font-size:11px!important}
+.prst-app .prst-field>small{font-size:10px!important}
+.prst-app .prst-field input,
+.prst-app .prst-field select,
+.prst-app .prst-field textarea,
+.prst-app .prst-search,
+.prst-app .prst-alert-filters select,
+.prst-app .prst-agenda-filters select{font-size:12px!important}
+
+.prst-app .prst-table-wrap th{font-size:10px!important}
+.prst-app .prst-table-wrap td{font-size:11px!important}
+.prst-app .prst-table-wrap td small{font-size:9px!important}
+.prst-app .prst-row-actions button,
+.prst-app .prst-mini-button{font-size:10px!important}
+.prst-app .prst-status{font-size:9px!important}
+
+/* Dashboard: apenas un incremento, manteniendo la densidad tipo centro de control. */
+.prst-app .prst-dashboard-premium .prst-dash-eyebrow>span,
+.prst-app .prst-dashboard-premium .prst-dash-eyebrow>b{font-size:10px!important}
+.prst-app .prst-dashboard-premium .prst-dash-hero h2{font-size:32px!important}
+.prst-app .prst-dashboard-premium .prst-dash-hero p{font-size:12px!important}
+.prst-app .prst-dashboard-premium .prst-dash-hero-meta>span{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-hero-actions button{font-size:10px!important}
+
+.prst-app .prst-dashboard-premium .prst-dash-kpi>div>span{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-kpi strong{font-size:21px!important}
+.prst-app .prst-dashboard-premium .prst-dash-kpi small{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-kpi-icon{font-size:10px!important}
+
+.prst-app .prst-dashboard-premium .prst-dash-panel>header>div>span{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-panel>header h3{font-size:19px!important}
+.prst-app .prst-dashboard-premium .prst-dash-panel>header p{font-size:10px!important}
+.prst-app .prst-dashboard-premium .prst-dash-panel>header>button{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-alert-list strong,
+.prst-app .prst-dashboard-premium .prst-dash-flow strong,
+.prst-app .prst-dashboard-premium .prst-dash-list strong{font-size:11px!important}
+.prst-app .prst-dashboard-premium .prst-dash-alert-list small,
+.prst-app .prst-dashboard-premium .prst-dash-flow small,
+.prst-app .prst-dashboard-premium .prst-dash-list small{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-days b{font-size:10px!important}
+.prst-app .prst-dashboard-premium .prst-dash-days small{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-bar>div:first-child span,
+.prst-app .prst-dashboard-premium .prst-dash-bar>div:first-child b{font-size:11px!important}
+.prst-app .prst-dashboard-premium .prst-dash-bar>small{font-size:9px!important}
+.prst-app .prst-dashboard-premium .prst-dash-status-grid b{font-size:10px!important}
+.prst-app .prst-dashboard-premium .prst-dash-status-grid strong{font-size:15px!important}
+.prst-app .prst-dashboard-premium .prst-dash-footnote{font-size:9px!important}
+
+/* Agenda y notificaciones */
+.prst-app .prst-agenda-module .prst-agenda-summary span,
+.prst-app .prst-alerts-module .prst-alert-summary span{font-size:9px!important}
+.prst-app .prst-agenda-module .prst-agenda-summary strong,
+.prst-app .prst-alerts-module .prst-alert-summary strong{font-size:23px!important}
+.prst-app .prst-agenda-module .prst-agenda-summary small,
+.prst-app .prst-alerts-module .prst-alert-summary small{font-size:9px!important}
+.prst-app .prst-agenda-module .prst-agenda-date b,
+.prst-app .prst-agenda-module .prst-agenda-copy>strong,
+.prst-app .prst-alerts-module .prst-alert-copy>strong{font-size:12px!important}
+.prst-app .prst-agenda-module .prst-agenda-date small,
+.prst-app .prst-agenda-module .prst-agenda-copy>small,
+.prst-app .prst-alerts-module .prst-alert-copy>small{font-size:10px!important}
+
+@media(max-width:900px){
+  .prst-app .prst-top-title h1{font-size:25px!important}
+  .prst-app .prst-dashboard-premium .prst-dash-hero h2{font-size:29px!important}
+}
