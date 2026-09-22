@@ -718,12 +718,196 @@ function Beneficiaries(){
  </section>
 }
 
-function Payments(){return <>
- <section className="prst-investor-summary"><article><span>Rendimientos pagados</span><strong>{money(270)}</strong><small>vigentes</small></article><article><span>Capital devuelto</span><strong>{money(12000)}</strong><small>registrado</small></article><article><span>Movimientos</span><strong>3</strong><small>en la muestra</small></article><article><span>Revertidos</span><strong>0</strong><small>auditoría</small></article></section>
- <Card title="Libro de pagos" kicker="RENDIMIENTOS / PAGOS">
-  <Table headers={['Pago','Fecha','Inversionista','Inversión','Tipo','Monto','Estado']} rows={demo.payments.map(x=><tr key={x.code}><td>{x.code}</td><td>{x.date}</td><td>{x.name}</td><td>{x.investment}</td><td>{x.type}</td><td><b>{money(x.amount)}</b></td><td><Status>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Payments(){
+ const [rows,setRows]=useState(demo.payments)
+ const [query,setQuery]=useState('')
+ const [type,setType]=useState('ALL')
+ const [status,setStatus]=useState('ALL')
+ const [selected,setSelected]=useState(null)
+ const [draft,setDraft]=useState(null)
+ const [reversing,setReversing]=useState(null)
+ const [reversalReason,setReversalReason]=useState('')
+ const [notice,setNotice]=useState('')
+
+ const posted=rows.filter(x=>x.status==='Vigente')
+ const yieldPaid=posted.filter(x=>x.type==='Rendimiento').reduce((s,x)=>s+Number(x.amount||0),0)
+ const capitalReturned=posted.filter(x=>x.type==='Devolución de capital').reduce((s,x)=>s+Number(x.amount||0),0)
+ const reversed=rows.filter(x=>x.status==='Revertido').length
+ const q=query.trim().toLowerCase()
+ const filtered=rows.filter(x=>
+  (type==='ALL'||x.type===type)&&
+  (status==='ALL'||x.status===status)&&
+  (!q||(x.code+' '+x.name+' '+x.investment+' '+x.type+' '+x.date+' '+(x.reference||'')).toLowerCase().includes(q))
+ )
+
+ const formatDate=value=>{
+  if(!value)return ''
+  const d=new Date(value+'T12:00:00')
+  if(Number.isNaN(d.getTime()))return value
+  return d.toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}).replace('.','')
+ }
+ const capitalPendingFor=investmentCode=>{
+  const investment=demo.investments.find(x=>x.code===investmentCode)
+  const returned=rows.filter(x=>x.investment===investmentCode&&x.type==='Devolución de capital'&&x.status==='Vigente').reduce((s,x)=>s+Number(x.amount||0),0)
+  return Math.max(0,Number(investment?.capital||0)-returned)
+ }
+ const openNew=()=>{
+  const investment=demo.investments.find(x=>x.status==='Activa')||demo.investments[0]
+  setDraft({
+   code:'PAG-DEMO-'+String(Date.now()).slice(-6),
+   name:investment?.name||'',
+   investment:investment?.code||'',
+   type:'Rendimiento',
+   amount:'',
+   date:new Date().toISOString().slice(0,10),
+   method:'Transferencia bancaria',
+   reference:'',
+   notes:'',
+   status:'Vigente',
+  })
+  setNotice('')
+ }
+ const changeInvestment=investmentCode=>{
+  const investment=demo.investments.find(x=>x.code===investmentCode)
+  setDraft(current=>({...current,investment:investmentCode,name:investment?.name||current.name}))
+ }
+ const save=e=>{
+  e.preventDefault()
+  if(!draft)return
+  const amount=Number(draft.amount||0)
+  if(amount<=0){
+   setNotice('Ingresá un monto mayor que cero.')
+   return
+  }
+  if(draft.type==='Devolución de capital'&&amount>capitalPendingFor(draft.investment)){
+   setNotice('La devolución supera el capital pendiente de esta inversión.')
+   return
+  }
+  setRows(current=>[{
+   ...draft,
+   amount,
+   date:formatDate(draft.date),
+   reference:draft.reference.trim()||'Sin referencia',
+   notes:draft.notes.trim(),
+  },...current])
+  setDraft(null)
+  setNotice('')
+ }
+ const startReversal=row=>{
+  setReversing(row)
+  setSelected(null)
+  setReversalReason('')
+  setNotice('')
+ }
+ const confirmReversal=e=>{
+  e.preventDefault()
+  if(!reversalReason.trim()){
+   setNotice('Escribí el motivo de la reversión para conservar la trazabilidad.')
+   return
+  }
+  const reason=reversalReason.trim()
+  setRows(current=>current.map(x=>x.code===reversing.code?{...x,status:'Revertido',reversalReason:reason}:x))
+  setReversing(null)
+  setReversalReason('')
+  setNotice('Movimiento revertido en esta vista previa. El registro permanece visible para auditoría.')
+ }
+
+ return <section className="prst-payments-module">
+  <section className="prst-payment-command">
+   <div><small>RENDIMIENTOS / PAGOS</small><h2>Control de pagos al inversionista</h2><p>Registrá rendimientos, devoluciones de capital y mantené la trazabilidad de cada movimiento.</p></div>
+   <button type="button" className="primary" onClick={openNew}>+ Registrar pago</button>
+  </section>
+
+  <section className="prst-investor-summary prst-payment-summary">
+   <article><span>Rendimientos pagados</span><strong>{money(yieldPaid)}</strong><small>movimientos vigentes</small></article>
+   <article><span>Capital devuelto</span><strong>{money(capitalReturned)}</strong><small>registrado</small></article>
+   <article><span>Movimientos</span><strong>{rows.length}</strong><small>{posted.length} vigentes</small></article>
+   <article><span>Revertidos</span><strong>{reversed}</strong><small>con trazabilidad</small></article>
+  </section>
+
+  {notice&&<div className="prst-beneficiary-notice prst-payment-notice">{notice}</div>}
+
+  <Card title="Libro de pagos" kicker="RENDIMIENTOS / PAGOS">
+   <div className="prst-payment-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar pago, inversionista, inversión o referencia"/>
+    <select value={type} onChange={e=>setType(e.target.value)}>
+     <option value="ALL">Todos los tipos</option>
+     <option value="Rendimiento">Rendimientos</option>
+     <option value="Devolución de capital">Devoluciones de capital</option>
+     <option value="Ajuste autorizado">Ajustes autorizados</option>
+    </select>
+    <select value={status} onChange={e=>setStatus(e.target.value)}>
+     <option value="ALL">Todos los estados</option>
+     <option value="Vigente">Vigentes</option>
+     <option value="Revertido">Revertidos</option>
+    </select>
+    <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
+   </div>
+
+   {filtered.length?<Table headers={['Pago','Fecha','Inversionista','Inversión','Tipo','Monto','Estado','Acción']} rows={filtered.map(x=><tr key={x.code}>
+    <td><b>{x.code}</b><small>{x.reference||'movimiento registrado'}</small></td>
+    <td>{x.date}</td>
+    <td><b>{x.name}</b></td>
+    <td>{x.investment}</td>
+    <td>{x.type}</td>
+    <td><b>{money(x.amount)}</b></td>
+    <td><Status tone={x.status==='Revertido'?'rejected':'active'}>{x.status}</Status></td>
+    <td><button type="button" className="prst-mini-button" onClick={()=>setSelected(x)}>Ver detalle</button></td>
+   </tr>)}/>:<div className="prst-empty"><strong>Sin movimientos</strong><p>No hay pagos que coincidan con los filtros seleccionados.</p></div>}
+  </Card>
+
+  {selected&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}>
+   <section className="prst-investor-modal prst-payment-detail">
+    <header><div><small>DETALLE DEL MOVIMIENTO</small><h2>{selected.code}</h2><p>{selected.name}</p></div><button type="button" onClick={()=>setSelected(null)}>×</button></header>
+    <section className="prst-profile-metrics">
+     <article><span>Monto</span><strong>{money(selected.amount)}</strong></article>
+     <article><span>Tipo</span><strong>{selected.type}</strong></article>
+     <article><span>Estado</span><strong>{selected.status}</strong></article>
+     <article><span>Fecha</span><strong>{selected.date}</strong></article>
+    </section>
+    <div className="prst-profile-grid">
+     <article><small>Inversión</small><b>{selected.investment}</b><span>Movimiento asociado al expediente de inversión.</span></article>
+     <article><small>Referencia</small><b>{selected.reference||'Sin referencia'}</b><span>Comprobante o referencia interna.</span></article>
+     <article><small>Forma de pago</small><b>{selected.method||'No especificada'}</b><span>Medio utilizado para el movimiento.</span></article>
+     <article><small>Observación</small><b>{selected.reversalReason||selected.notes||'Sin observaciones'}</b><span>{selected.status==='Revertido'?'Motivo registrado de reversión.':'Seguimiento interno del pago.'}</span></article>
+    </div>
+    <div className="prst-modal-actions">
+     <button type="button" onClick={()=>setSelected(null)}>Cerrar</button>
+     {selected.status==='Vigente'&&<button type="button" className="danger" onClick={()=>startReversal(selected)}>Revertir movimiento</button>}
+    </div>
+   </section>
+  </div>}
+
+  {draft&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setDraft(null)}>
+   <form className="prst-investor-modal prst-payment-editor" onSubmit={save}>
+    <header><div><small>VISTA PREVIA</small><h2>Registrar pago</h2><p>Nuevo movimiento demostrativo con control de capital y trazabilidad.</p></div><button type="button" onClick={()=>setDraft(null)}>×</button></header>
+    <div className="prst-form-grid prst-payment-form">
+     <label className="prst-field span-2"><span>Inversión</span><select value={draft.investment} onChange={e=>changeInvestment(e.target.value)}>{demo.investments.map(x=><option key={x.code} value={x.code}>{x.code} · {x.name}</option>)}</select></label>
+     <label className="prst-field"><span>Inversionista</span><input readOnly value={draft.name}/></label>
+     <label className="prst-field"><span>Tipo de movimiento</span><select value={draft.type} onChange={e=>setDraft({...draft,type:e.target.value})}><option>Rendimiento</option><option>Devolución de capital</option><option>Ajuste autorizado</option></select></label>
+     <label className="prst-field"><span>Monto</span><input type="number" min="0.01" step="0.01" value={draft.amount} onChange={e=>setDraft({...draft,amount:e.target.value})} placeholder="0.00"/></label>
+     <label className="prst-field"><span>Fecha</span><input type="date" value={draft.date} onChange={e=>setDraft({...draft,date:e.target.value})}/></label>
+     <label className="prst-field"><span>Forma de pago</span><select value={draft.method} onChange={e=>setDraft({...draft,method:e.target.value})}><option>Transferencia bancaria</option><option>Efectivo</option><option>Cheque</option><option>Otro</option></select></label>
+     <label className="prst-field"><span>Referencia</span><input value={draft.reference} onChange={e=>setDraft({...draft,reference:e.target.value})} placeholder="N.º de transferencia o comprobante"/></label>
+     {draft.type==='Devolución de capital'&&<label className="prst-field"><span>Capital pendiente</span><input readOnly value={money(capitalPendingFor(draft.investment))}/></label>}
+     <label className="prst-field span-2"><span>Observaciones</span><textarea value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})} placeholder="Detalle interno opcional"/></label>
+    </div>
+    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setDraft(null)}>Cancelar</button><button type="submit" className="primary">Guardar pago demo</button></div>
+   </form>
+  </div>}
+
+  {reversing&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setReversing(null)}>
+   <form className="prst-investor-modal prst-payment-reversal" onSubmit={confirmReversal}>
+    <header><div><small>TRAZABILIDAD</small><h2>Revertir movimiento</h2><p>{reversing.code} · {money(reversing.amount)}</p></div><button type="button" onClick={()=>setReversing(null)}>×</button></header>
+    <div className="prst-note"><strong>Importante:</strong> el movimiento no se elimina. Quedará marcado como revertido y conservará el motivo para auditoría.</div>
+    <label className="prst-field prst-payment-reversal-field"><span>Motivo obligatorio</span><textarea value={reversalReason} onChange={e=>setReversalReason(e.target.value)} placeholder="Explicá por qué se revierte este pago"/></label>
+    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setReversing(null)}>Cancelar</button><button type="submit" className="danger">Confirmar reversión</button></div>
+   </form>
+  </div>}
+ </section>
+}
 
 function Maturities(){return <>
  <section className="prst-investor-summary"><article><span>Vencidas</span><strong>1</strong><small>requiere decisión</small></article><article><span>Próximos 7 días</span><strong>0</strong><small>atención inmediata</small></article><article><span>Próximos 30 días</span><strong>0</strong><small>gestión preventiva</small></article><article><span>Próximos 90 días</span><strong>0</strong><small>planificación</small></article></section>
