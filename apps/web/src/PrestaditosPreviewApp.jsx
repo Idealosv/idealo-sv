@@ -1151,21 +1151,124 @@ function Documents({investorId='i1'}){
  </section>
 }
 
-function Reports(){return <>
- <section className="prst-metrics">
-  <Metric label="Inversionistas activos" value="3" hint="expedientes habilitados"/>
-  <Metric label="Capital activo" value={money(12000)} hint="inversiones vigentes" tone="money"/>
-  <Metric label="Referencia anual" value={money(1360)} hint="referencia anual" tone="money"/>
-  <Metric label="Rendimientos pagados" value={money(270)} hint="pagos vigentes"/>
-  <Metric label="Capital devuelto" value={money(12000)} hint="devoluciones"/>
-  <Metric label="Vencidas" value="1" hint="requiere seguimiento" tone="warn"/>
- </section>
- <Card title="Inversiones" kicker="REPORTES GERENCIALES">
-  <label className="prst-report-picker"><span>Tipo de reporte</span><select defaultValue="INVESTMENTS"><option value="INVESTMENTS">Inversiones</option><option value="INVESTORS">Inversionistas</option><option value="APPLICATIONS">Solicitudes</option><option value="PAYMENTS">Pagos</option><option value="MATURITIES">Vencimientos</option><option value="RENEWALS">Renovaciones</option><option value="DOCUMENTS">Documentos</option></select></label>
-  <Table headers={['Código','Inversionista','Capital','Plazo','Otorgada','Vence','Ganancia','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td>{x.code}</td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Reports(){
+ const [report,setReport]=useState('INVESTMENTS')
+ const [query,setQuery]=useState('')
+ const [investor,setInvestor]=useState('ALL')
 
+ const activeInvestments=demo.investments.filter(x=>x.status==='Activa')
+ const capitalActive=activeInvestments.reduce((s,x)=>s+Number(x.capital||0),0)
+ const annualReference=activeInvestments.reduce((s,x)=>s+(Number(x.capital||0)*Number(x.rate||0)/100),0)
+ const yieldPaid=demo.payments.filter(x=>x.type==='Rendimiento'&&x.status==='Vigente').reduce((s,x)=>s+Number(x.amount||0),0)
+ const capitalReturned=demo.payments.filter(x=>x.type==='Devolución de capital'&&x.status==='Vigente').reduce((s,x)=>s+Number(x.amount||0),0)
+ const overdue=demo.investments.filter(x=>x.status==='Vencida').length
+
+ const reports={
+  INVESTMENTS:{
+   title:'Inversiones',
+   description:'Capital colocado, plazo, vencimiento y ganancia registrada.',
+   headers:['Código','Inversionista','Capital','Plazo','Otorgada','Vence','Ganancia','Estado'],
+   rows:demo.investments.map(x=>({id:x.code,investor:x.name,cells:[x.code,x.name,money(x.capital),x.term+' meses',x.granted,x.maturity,money(x.gain),x.status]})),
+  },
+  INVESTORS:{
+   title:'Inversionistas',
+   description:'Directorio resumido de expedientes y estado documental.',
+   headers:['Código','Inversionista','DUI','Teléfono','Correo','Documentos','Estado'],
+   rows:demo.investors.map(x=>({id:x.code,investor:x.name,cells:[x.code,x.name,x.dui,x.phone,x.email,x.docs,x.status]})),
+  },
+  APPLICATIONS:{
+   title:'Solicitudes',
+   description:'Solicitudes recibidas, monto, plazo y estado de aprobación.',
+   headers:['Código','Inversionista','Monto','Plazo','Forma / lugar','Estado'],
+   rows:demo.applications.map(x=>({id:x.code,investor:x.name,cells:[x.code,x.name,money(x.amount),x.term+' meses',x.place,x.status]})),
+  },
+  PAYMENTS:{
+   title:'Rendimientos y pagos',
+   description:'Pagos registrados al inversionista y devoluciones de capital.',
+   headers:['Código','Inversionista','Inversión','Tipo','Monto','Fecha','Estado'],
+   rows:demo.payments.map(x=>({id:x.code,investor:x.name,cells:[x.code,x.name,x.investment,x.type,money(x.amount),x.date,x.status]})),
+  },
+  MATURITIES:{
+   title:'Vencimientos',
+   description:'Inversiones vigentes y vencidas que requieren seguimiento.',
+   headers:['Inversión','Inversionista','Capital','Vence','Plazo','Situación','Estado'],
+   rows:demo.investments.map(x=>({id:'MAT-'+x.code,investor:x.name,cells:[x.code,x.name,money(x.capital),x.maturity,x.term+' meses',x.status==='Vencida'?'Seguimiento inmediato':'En plazo',x.status]})),
+  },
+  RENEWALS:{
+   title:'Renovaciones',
+   description:'Decisiones registradas sobre capital al llegar el vencimiento.',
+   headers:['Código','Inversionista','Inversión','Decisión','Monto','Nuevo plazo','Estado'],
+   rows:demo.renewals.map(x=>({id:x.code,investor:x.name,cells:[x.code,x.name,x.investment,x.decision,money(x.amount),x.term+' meses',x.status]})),
+  },
+  DOCUMENTS:{
+   title:'Documentos',
+   description:'Documentos incorporados al expediente privado del inversionista.',
+   headers:['Código','Inversionista','Documento','Relación','Tipo','Tamaño','Estado'],
+   rows:demo.documents.map(x=>({id:x.code,investor:x.investor,cells:[x.code,x.investor,x.title,x.relation,x.type,x.size,x.status]})),
+  },
+ }
+ const config=reports[report]
+ const q=query.trim().toLowerCase()
+ const rows=config.rows.filter(row=>(investor==='ALL'||row.investor===investor)&&(!q||row.cells.join(' ').toLowerCase().includes(q)))
+ const hasFilters=query.trim()||investor!=='ALL'
+ const statusTone=value=>value==='Vencida'?'rejected':value==='En revisión'||value==='Pendiente'?'review':'active'
+ const clearFilters=()=>{setQuery('');setInvestor('ALL')}
+ const exportCsv=()=>{
+  const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"'
+  const csv='\ufeff'+[config.headers,...rows.map(row=>row.cells)].map(line=>line.map(quote).join(',')).join('\n')
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+  const a=document.createElement('a')
+  a.href=url
+  a.download='prestaditos-'+report.toLowerCase()+'-demo.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+ }
+
+ return <section className="prst-reports-module">
+  <section className="prst-metrics">
+   <Metric label="Inversionistas activos" value={demo.investors.filter(x=>x.status==='Activo').length} hint="expedientes habilitados"/>
+   <Metric label="Capital activo" value={money(capitalActive)} hint="inversiones vigentes" tone="money"/>
+   <Metric label="Referencia anual" value={money(annualReference)} hint="rendimiento anual estimado" tone="money"/>
+   <Metric label="Rendimientos pagados" value={money(yieldPaid)} hint="pagos vigentes"/>
+   <Metric label="Capital devuelto" value={money(capitalReturned)} hint="devoluciones registradas"/>
+   <Metric label="Vencidas" value={overdue} hint="requieren seguimiento" tone="warn"/>
+  </section>
+
+  <article className="prst-card prst-report-workspace">
+   <div className="prst-card-head prst-report-head">
+    <div><small>REPORTES GERENCIALES</small><h2>{config.title}</h2><p>{config.description}</p></div>
+    <button type="button" className="prst-report-export" onClick={exportCsv} disabled={!rows.length}>Exportar CSV</button>
+   </div>
+
+   <label className="prst-report-picker">
+    <span>Tipo de reporte</span>
+    <select value={report} onChange={e=>{setReport(e.target.value);setQuery('');setInvestor('ALL')}}>
+     <option value="INVESTMENTS">Inversiones</option>
+     <option value="INVESTORS">Inversionistas</option>
+     <option value="APPLICATIONS">Solicitudes</option>
+     <option value="PAYMENTS">Rendimientos y pagos</option>
+     <option value="MATURITIES">Vencimientos</option>
+     <option value="RENEWALS">Renovaciones</option>
+     <option value="DOCUMENTS">Documentos</option>
+    </select>
+   </label>
+
+   <div className="prst-report-filters prst-report-filters-preview">
+    <label><span>Buscar en el reporte</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Código, nombre, estado o referencia"/></label>
+    <label><span>Inversionista</span><select value={investor} onChange={e=>setInvestor(e.target.value)}><option value="ALL">Todos</option>{demo.investors.map(x=><option key={x.id} value={x.name}>{x.name}</option>)}</select></label>
+    <div><span>Resultados</span><strong>{rows.length}</strong></div>
+    <button type="button" onClick={clearFilters} disabled={!hasFilters}>Limpiar filtros</button>
+   </div>
+
+   {rows.length?<div className="prst-table-wrap"><table className="prst-report-table"><thead><tr>{config.headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.map(row=><tr key={row.id}>{row.cells.map((cell,index)=><td key={index}>{index===row.cells.length-1?<Status tone={statusTone(cell)}>{cell}</Status>:index===0||index===1?<b>{cell}</b>:cell}</td>)}</tr>)}</tbody></table></div>:<div className="prst-empty"><strong>Sin resultados</strong><p>No hay registros que coincidan con los filtros actuales.</p></div>}
+
+   <div className="prst-report-footer">
+    <span>Mostrando {rows.length} de {config.rows.length} registros</span>
+    <small>Vista demostrativa · la exportación usa únicamente los datos visibles.</small>
+   </div>
+  </article>
+ </section>
+}
 function Audit(){return <>
  <section className="prst-investor-summary"><article><span>Eventos cargados</span><strong>4</strong><small>últimos movimientos</small></article><article><span>Expedientes</span><strong>1</strong><small>cambios de inversionistas</small></article><article><span>Financieros</span><strong>2</strong><small>solicitudes y pagos</small></article><article><span>Documentales</span><strong>1</strong><small>archivos</small></article></section>
  <Card title="Auditoría del ERP" kicker="TRAZABILIDAD">
