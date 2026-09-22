@@ -291,7 +291,7 @@ function Investors({onGo,onOpenInvestor}){
    </table></div>
   </article>
 
-  {editDraft&&<form className="prst-card prst-preview-investor-edit" onSubmit={editingId.startsWith('demo-')?saveNew:saveDraft}>
+  {editDraft&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&closeEdit()}><form className="prst-card prst-preview-investor-edit prst-editor-modal prst-editor-modal-preview" onSubmit={editingId.startsWith('demo-')?saveNew:saveDraft}>
    <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>{editingId.startsWith('demo-')?'Nuevo inversionista':'Editar inversionista'}</h2><p>Probá el flujo visual. Estos cambios no modifican información real.</p></div><button type="button" className="prst-mini-button" onClick={closeEdit}>Cerrar</button></div>
    <div className="prst-form-grid">
     <label className="prst-field"><span>Nombre completo</span><input name="name" value={editDraft.name} onChange={updateDraft} required/></label>
@@ -302,7 +302,7 @@ function Investors({onGo,onOpenInvestor}){
     <label className="prst-field"><span>Documentación</span><select name="docs" value={editDraft.docs} onChange={updateDraft}><option>0/3</option><option>1/3</option><option>2/3</option><option>3/3</option></select></label>
    </div>
    <div className="prst-preview-edit-actions"><span>{editNotice}</span><div><button type="button" onClick={closeEdit}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
-  </form>}
+  </form></div>}
 
   <section className="prst-investor-followup-grid">
    <Card title="Pendientes prioritarios" kicker="SEGUIMIENTO DOCUMENTAL">
