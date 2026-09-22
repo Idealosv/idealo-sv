@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
-const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Prueba integral','Preparación','Configuración']
+const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
 
 const demo={
  investors:[
@@ -68,7 +68,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Agenda:'Vencimientos y tareas',Inversionistas:'Expedientes y documentos','Perfil 360':'Vista integral del inversionista',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad','Prueba integral':'3 casos ficticios',Preparación:'Cierre para producción',Configuración:'Reglas del vertical'
+    Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Agenda:'Vencimientos y tareas',Inversionistas:'Expedientes y documentos','Perfil 360':'Vista integral del inversionista',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Exportaciones:'Respaldo y CSV',Ayuda:'Manual y capacitación','Prueba integral':'3 casos ficticios',Preparación:'Cierre para producción',Configuración:'Reglas del vertical'
    })[name]}</small></button>)}</nav>
   </aside>
 
@@ -101,6 +101,8 @@ export default function PrestaditosPreviewApp(){
     {tab==='Cierre mensual'&&<MonthlyCloseout/>}
     {tab==='Auditoría'&&<Audit/>}
     {tab==='Auditoría técnica'&&<TechnicalAudit/>}
+    {tab==='Exportaciones'&&<Exports/>}
+    {tab==='Ayuda'&&<Help/>}
     {tab==='Prueba integral'&&<EndToEndDemo/>}
     {tab==='Preparación'&&<Readiness/>}
     {tab==='Configuración'&&<Configuration/>}
@@ -404,7 +406,18 @@ function EndToEndDemo(){const cases=[{amount:2000,rate:10,gain:200,name:'Ana Luc
  </Card>
  </>}
 
-function Readiness(){const rows=[['Listo','ERP funcional'],['Listo','Tasas 10%, 12% y 15% anual'],['Pendiente','Rangos reales por monto'],['Pendiente','Prorrateo para otros plazos'],['Pendiente','Contrato legal definitivo'],['Bloqueado','Base aislada de staging sin costo'],['Pendiente','CI heredado / móvil']];return <>
+function Readiness(){const rows=[['Listo','ERP funcional'],['Listo','Tasas 10%, 12% y 15% anual'],['Pendiente','Rangos reales por monto'],['Pendiente','Prorrateo para otros plazos'],['Pendiente','Contrato legal definitivo'],['Bloqueado','Base aislada de staging sin costo'],['Listo','CI general verde'],['Listo','Android / iPhone validados']];return <>
  <section className="prst-investor-summary prst-readiness-summary"><article><span>Listos</span><strong>2</strong><small>controles cerrados</small></article><article><span>Pendientes</span><strong>4</strong><small>requieren definición</small></article><article><span>Bloqueados</span><strong>1</strong><small>decisión externa</small></article><article><span>Producción</span><strong>No todavía</strong><small>rama protegida</small></article></section>
  <Card title="Checklist de liberación" kicker="CIERRE PARA PRODUCCIÓN"><div className="prst-readiness-list">{rows.map(([status,area])=><article key={area}><span className={'prst-readiness-status '+(status==='Listo'?'ready':status==='Bloqueado'?'blocked':'pending')}>{status}</span><div><strong>{area}</strong><small>{status==='Listo'?'Control cerrado.':'Debe resolverse antes de producción.'}</small></div></article>)}</div><div className="prst-note"><strong>Regla:</strong> mientras haya pendientes o bloqueos, no se considera lista para producción.</div></Card>
+ </>}
+
+
+function Exports(){return <>
+ <section className="prst-investor-summary prst-export-summary"><article><span>Registros exportables</span><strong>31</strong><small>muestra cargada</small></article><article><span>Conjuntos</span><strong>11</strong><small>datos estructurados</small></article><article><span>Rol</span><strong>Propietario</strong><small>exportación permitida</small></article><article><span>Archivos privados</span><strong>3</strong><small>metadatos únicamente</small></article></section>
+ <Card title="Exportación total de Prestadito$" kicker="RESPALDO Y EXPORTACIÓN"><div className="prst-note"><strong>JSON completo:</strong> inversionistas, solicitudes, inversiones, beneficiarios, pagos, contratos, renovaciones, documentos, auditoría y cierres. Los binarios privados no se incluyen.</div><div className="prst-export-grid">{['inversionistas','solicitudes','inversiones','beneficiarios','pagos','contratos','renovaciones','documentos','auditoría','cierres mensuales'].map(name=><article key={name}><div><strong>{name}</strong><small>datos de ejemplo</small></div><button>CSV</button></article>)}</div></Card>
+ </>}
+
+function Help(){return <>
+ <section className="prst-investor-summary prst-help-summary"><article><span>Guías</span><strong>6</strong><small>procesos principales</small></article><article><span>Capacitación</span><strong>Disponible</strong><small>checklist paso a paso</small></article><article><span>Preguntas rápidas</span><strong>5</strong><small>reglas importantes</small></article><article><span>Avance</span><strong>—</strong><small>activá capacitación</small></article></section>
+ <section className="prst-grid help-layout"><Card title="Manual de operación" kicker="AYUDA INTERNA"><div className="prst-help-guide-list">{['Registrar un inversionista','Registrar una solicitud','Formalizar una inversión','Registrar un pago','Gestionar una renovación','Generar cierre mensual'].map((x,i)=><button key={x} className={i===0?'active':''}><strong>{x}</strong><small>Guía paso a paso</small></button>)}</div></Card><Card title="Registrar un inversionista" kicker="GUÍA PASO A PASO"><div className="prst-training-steps">{['Abrí Inversionistas.','Completá nombres, apellidos y DUI.','Cargá rostro y DUI frente/reverso.','Revisá OCR si lo usás.','Guardá y verificá estado Activo.'].map((x,i)=><label key={x}><span>{i+1}</span><div><b>{x}</b></div></label>)}</div></Card></section>
  </>}
