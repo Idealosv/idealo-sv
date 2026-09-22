@@ -2950,3 +2950,49 @@
  .prst-investment-tools{grid-template-columns:1fr}
  .prst-investment-tools>span{text-align:left}
 }
+
+
+/* ===== RENDIMIENTOS / PAGOS · CONTROL OPERATIVO ===== */
+.prst-payments-module{display:grid;gap:10px}
+.prst-payment-command{
+ display:flex;align-items:center;justify-content:space-between;gap:16px;
+ padding:12px 14px;border:1px solid var(--prst-border);border-radius:11px;background:#fff
+}
+.prst-payment-command small{display:block;color:var(--prst-red);font-size:8px;font-weight:950;letter-spacing:.08em}
+.prst-payment-command h2{margin:2px 0 2px;font-size:16px}
+.prst-payment-command p{margin:0;color:#727980;font-size:8px}
+.prst-payment-command .primary{
+ min-height:36px;padding:0 13px;border:1px solid var(--prst-red);border-radius:8px;
+ background:var(--prst-red);color:#fff;font:inherit;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap
+}
+.prst-payment-summary article{padding:11px 13px}
+.prst-payment-summary strong{font-size:19px}
+.prst-payment-notice{margin:0}
+.prst-payment-tools{
+ display:grid;grid-template-columns:minmax(300px,1fr) 190px 170px auto;
+ gap:8px;align-items:center;margin-bottom:10px
+}
+.prst-payment-tools select{
+ min-height:38px;padding:7px 9px;border:1px solid #cfd4d8;border-radius:8px;
+ background:#fff;font:inherit;font-size:9px
+}
+.prst-payment-tools>span{color:#72787e;font-size:8px;font-weight:850;text-align:right}
+.prst-payments-module .prst-table-wrap table{min-width:1180px}
+.prst-payments-module .prst-table-wrap th{padding:8px 9px}
+.prst-payments-module .prst-table-wrap td{padding:9px}
+.prst-payment-detail,.prst-payment-editor{width:min(900px,calc(100vw - 24px))}
+.prst-payment-reversal{width:min(620px,calc(100vw - 24px))}
+.prst-payment-form{margin-top:14px}
+.prst-payment-reversal-field{display:grid;margin-top:12px}
+.prst-payment-reversal-field textarea{min-height:88px}
+.prst-modal-actions .danger{
+ min-height:34px;padding:0 12px;border:1px solid #b42318;border-radius:8px;
+ background:#b42318;color:#fff;font:inherit;font-size:9px;font-weight:900;cursor:pointer
+}
+@media(max-width:900px){
+ .prst-payment-command{align-items:flex-start;flex-direction:column}
+ .prst-payment-command .primary{width:100%}
+ .prst-payment-tools{grid-template-columns:1fr}
+ .prst-payment-tools>span{text-align:left}
+}
+
