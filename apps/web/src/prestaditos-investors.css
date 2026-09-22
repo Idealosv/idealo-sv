@@ -1946,3 +1946,53 @@
     grid-template-columns:1fr!important;
   }
 }
+
+
+/* ===== GLOBAL SIMPLIFICATION · LESS BUTTON NOISE ===== */
+.prst-sidebar nav{gap:8px!important}
+.prst-nav-primary{display:grid;gap:1px}
+.prst-nav-group{border-top:1px solid rgba(255,255,255,.08);padding-top:7px}
+.prst-nav-group summary{
+  display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 9px;
+  border-radius:7px;color:#9aa4ae;font-size:9px;font-weight:900;letter-spacing:.04em;
+  text-transform:uppercase;cursor:pointer;list-style:none;
+}
+.prst-nav-group summary::-webkit-details-marker{display:none}
+.prst-nav-group summary:hover{background:rgba(255,255,255,.04);color:#fff}
+.prst-nav-group summary span{
+  display:grid;place-items:center;min-width:21px;height:21px;padding:0 5px;border-radius:999px;
+  background:rgba(255,255,255,.07);color:#aeb7c0;font-size:8px;
+}
+.prst-nav-group>div{display:grid;gap:1px;margin-top:3px}
+.prst-nav-group:not([open])>div{display:none}
+
+.prst-action-menu{position:relative}
+.prst-action-menu summary{
+  display:inline-flex;align-items:center;justify-content:center;min-height:31px;padding:0 9px;
+  border:1px solid #d4dbe2;border-radius:8px;background:#fff;color:#344054;
+  font-size:8px;font-weight:900;cursor:pointer;list-style:none;white-space:nowrap;
+}
+.prst-action-menu summary::-webkit-details-marker{display:none}
+.prst-action-menu[open] summary{border-color:#aeb8c2;background:#f5f7f9}
+.prst-action-menu>div{
+  position:absolute;right:0;top:calc(100% + 5px);z-index:50;display:grid;min-width:150px;padding:5px;
+  border:1px solid #dce2e7;border-radius:9px;background:#fff;box-shadow:0 12px 28px rgba(16,24,40,.16);
+}
+.prst-action-menu>div button{
+  min-height:32px!important;width:100%;padding:0 9px!important;border:0!important;border-radius:6px!important;
+  background:transparent!important;color:#344054!important;text-align:left;font-size:9px!important;font-weight:800!important;cursor:pointer;
+}
+.prst-action-menu>div button:hover{background:#f3f5f7!important}
+.prst-action-menu.top summary{
+  min-height:38px;padding:0 12px;border-color:#4b5968;background:#303d4a;color:#fff;font-size:9px;
+}
+.prst-action-menu.top>div{min-width:170px}
+.prst-investor-actions.compact{min-width:110px!important;flex-wrap:nowrap!important;align-items:center!important}
+.prst-investor-actions.compact>button.primary{min-width:44px}
+.prst-sidebar nav button small{opacity:.78}
+
+@media(max-width:900px){
+  .prst-action-menu>div{
+    position:fixed;right:16px;left:16px;top:auto;bottom:16px;min-width:0;padding:8px;border-radius:12px;
+  }
+}
