@@ -2478,3 +2478,165 @@
   background:#f2f4f6;
   color:#667085;
 }
+
+
+/* ===== PROFILE 360 · COMPACT PROFESSIONAL LAYOUT ===== */
+.profile360-active .prst-topbar{
+  gap:14px;
+  padding:13px 20px;
+}
+.profile360-active .prst-topbar h1{
+  margin-top:2px;
+  font-size:23px;
+}
+.profile360-active .prst-topbar p{
+  margin-top:2px;
+  font-size:9px;
+}
+.profile360-active .prst-top-actions button{
+  min-height:34px;
+  padding:0 11px;
+}
+.profile360-active .prst-system-menu>summary{
+  min-height:36px;
+  padding:0 11px;
+  font-size:10px;
+}
+.profile360-active .prst-context-bar{
+  min-height:44px;
+  padding:5px 20px;
+}
+.profile360-active .prst-context-bar button{
+  min-height:32px;
+  padding:0 11px;
+  font-size:9px;
+}
+.profile360-active .prst-alert{
+  margin:9px 16px 0;
+  padding:8px 11px;
+  border-radius:8px;
+  font-size:9px;
+}
+.profile360-active .prst-content{
+  padding:14px 18px 36px;
+}
+.prst-profile360-page{
+  display:grid;
+  gap:9px;
+}
+.prst-profile360-page>.prst-card{
+  padding:13px 15px;
+  border-radius:11px;
+}
+.prst-profile360-page>.prst-card:first-child{
+  padding:13px 15px 12px;
+}
+.prst-profile360-page .prst-card-head{
+  margin-bottom:9px;
+}
+.prst-profile360-page .prst-card-head h2{
+  margin-top:2px;
+  font-size:17px;
+}
+.prst-profile360-page .prst-profile360-context{
+  gap:8px;
+  margin:-1px 0 8px;
+  font-size:9px;
+}
+.prst-profile360-page .prst-profile360-context span{
+  padding:4px 7px;
+}
+.prst-profile360-page .prst-profile360-actions{
+  gap:6px;
+  margin-top:8px;
+  padding-top:8px;
+}
+.prst-profile360-page .prst-profile360-actions button{
+  min-height:46px;
+  gap:2px;
+  padding:7px 9px;
+  border-radius:8px;
+}
+.prst-profile360-page .prst-profile360-actions b{
+  font-size:9px;
+}
+.prst-profile360-page .prst-profile360-actions small{
+  font-size:7px;
+  line-height:1.2;
+}
+.prst-profile360-page .prst-profile360-summary{
+  gap:8px;
+}
+.prst-profile360-page .prst-profile360-summary article{
+  padding:10px 12px;
+  border-radius:10px;
+}
+.prst-profile360-page .prst-profile360-summary strong{
+  margin:3px 0 1px;
+  font-size:19px;
+}
+.prst-profile360-page>.prst-grid.two{
+  gap:9px;
+}
+.prst-profile360-page>.prst-grid.two>.prst-card{
+  padding:12px 14px;
+}
+.prst-profile360-page .prst-profile-grid{
+  gap:6px;
+}
+.prst-profile360-page .prst-profile-grid article{
+  gap:2px;
+  padding:8px 9px;
+  border-radius:8px;
+}
+.prst-profile360-page .prst-profile-grid b{
+  font-size:9px;
+}
+.prst-profile360-page .prst-profile-grid span{
+  font-size:8px;
+}
+.prst-profile360-page .prst-profile360-counters{
+  gap:6px;
+}
+.prst-profile360-page .prst-profile360-counters>div{
+  gap:2px;
+  padding:8px 9px;
+  border-radius:8px;
+}
+.prst-profile360-page .prst-profile360-counters strong{
+  font-size:14px;
+}
+.prst-profile360-page>.prst-card:last-child{
+  padding:12px 14px;
+}
+.prst-profile360-page>.prst-card:last-child .prst-card-head{
+  margin-bottom:8px;
+}
+.prst-profile360-page>.prst-card:last-child .prst-table-wrap th{
+  padding:7px 9px;
+}
+.prst-profile360-page>.prst-card:last-child .prst-table-wrap td{
+  padding:8px 9px;
+}
+@media(max-width:980px){
+  .prst-profile360-page .prst-profile360-actions{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+@media(max-width:720px){
+  .profile360-active .prst-topbar{
+    padding:13px 14px;
+  }
+  .profile360-active .prst-context-bar{
+    padding:5px 14px;
+  }
+  .profile360-active .prst-content{
+    padding:12px 14px 30px;
+  }
+  .prst-profile360-page .prst-profile360-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .prst-profile360-page .prst-profile360-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}

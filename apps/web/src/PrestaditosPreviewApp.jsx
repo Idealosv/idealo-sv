@@ -133,7 +133,7 @@ export default function PrestaditosPreviewApp(){
    </nav>
   </aside>
 
-  <main className="prst-main">
+  <main className={`prst-main ${tab==='Perfil 360'?'profile360-active':''}`}>
    <header className="prst-topbar">
     <button type="button" className="prst-mobile-menu" onClick={()=>setMobileNavOpen(true)} aria-label="Abrir menú">☰</button>
     <div className="prst-top-title"><span>IDEALO SV · FINANCIERA / INVERSIONISTAS</span><h1>{tab}</h1><p>Vista previa con datos demostrativos. No modifica información real.</p></div>
@@ -697,7 +697,7 @@ function Profile360({investorId='i1',onGo}){
  const yields=payments.filter(x=>x.type==='Rendimiento').reduce((s,x)=>s+x.amount,0)
  const returned=payments.filter(x=>x.type==='Devolución de capital').reduce((s,x)=>s+x.amount,0)
  const next=active[0]
- return <>
+ return <div className="prst-profile360-page">
  <Card title={investor.name} kicker="PERFIL 360">
   <div className="prst-profile360-context"><span>{investor.code}</span><b>DUI {investor.dui}</b><small>{investor.phone} · {investor.email}</small></div>
   <div className="prst-profile360-actions"><button type="button" onClick={()=>onGo?.('Estado de cuenta')}><b>Estado de cuenta</b><small>Resumen y PDF</small></button><button type="button" onClick={()=>onGo?.('Contratos')}><b>Contrato</b><small>{contracts[0]?.code||'Sin contrato activo'}</small></button><button type="button" onClick={()=>onGo?.('Rendimientos')}><b>Registrar pago</b><small>Rendimiento o capital</small></button><button type="button" onClick={()=>onGo?.('Renovaciones')}><b>Renovación</b><small>Gestionar vencimiento</small></button><button type="button" onClick={()=>onGo?.('Documentos')}><b>Documentos</b><small>Expediente privado</small></button></div>
@@ -708,7 +708,7 @@ function Profile360({investorId='i1',onGo}){
   <Card title="Expediente relacionado" kicker="RESUMEN"><div className="prst-profile360-counters"><div><span>Solicitudes</span><strong>{demo.applications.filter(x=>x.name===investor.name).length}</strong></div><div><span>Contratos</span><strong>{contracts.length}</strong></div><div><span>Beneficiarios</span><strong>{beneficiaries.length}</strong></div><div><span>Documentos</span><strong>{documents.length}</strong></div><div><span>Pagos</span><strong>{payments.length}</strong></div><div><span>Renovaciones</span><strong>{renewals.length}</strong></div></div></Card>
  </section>
  <Card title="Capital y vigencias" kicker="INVERSIONES">{invs.length?<Table headers={['Inversión','Capital','Tasa anual','Inicio','Vence','Referencia anual','Estado']} rows={invs.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{money(x.capital)}</td><td>{x.rate}% anual</td><td>{x.granted}</td><td>{x.maturity}</td><td><b>{money(x.gain)}</b></td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>:<div className="prst-empty"><strong>Sin inversiones</strong><p>Este inversionista no tiene inversiones cargadas en la vista previa.</p></div>}</Card>
- </>}
+ </div>}
 
 function EndToEndDemo(){const cases=[{amount:2000,rate:10,gain:200,name:'Ana Lucía Prueba',end:'Retiro finalizado'},{amount:7500,rate:12,gain:900,name:'Brenda Sofía Ejemplo',end:'Renovación ejecutada'},{amount:15000,rate:15,gain:2250,name:'Carlos Andrés Demostración',end:'No renovación y cierre'}];return <>
  <section className="prst-investor-summary prst-e2e-summary"><article><span>Casos ficticios</span><strong>3</strong><small>10%, 12% y 15% anual</small></article><article><span>Plazo</span><strong>12 meses</strong><small>sin asumir prorrateo</small></article><article><span>Recorrido</span><strong>Completo</strong><small>hasta cierre/renovación</small></article><article><span>Base real</span><strong>No usada</strong><small>prueba sin costo</small></article></section>
