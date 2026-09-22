@@ -124,7 +124,7 @@ export default function PrestaditosPreviewApp(){
     {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
     {tab==='Notificaciones'&&<Notifications onGo={selectTab}/>} 
     {tab==='Agenda'&&<Agenda onGo={selectTab}/>} 
-    {tab==='Inversionistas'&&<Investors/>}
+    {tab==='Inversionistas'&&<Investors onGo={selectTab}/>} 
     {tab==='Perfil 360'&&<Profile360/>}
     {tab==='Solicitudes'&&<Applications/>}
     {tab==='Simulador'&&<Simulator/>}
@@ -153,12 +153,65 @@ export default function PrestaditosPreviewApp(){
 
 function Metric({label,value,hint,tone=''}){return <article className={`prst-metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>}
 
-function Investors(){return <>
- <section className="prst-investor-summary"><article><span>Total</span><strong>3</strong><small>expedientes</small></article><article><span>Activos</span><strong>3</strong><small>habilitados</small></article><article><span>Documentación completa</span><strong>2</strong><small>rostro + DUI</small></article><article><span>Documentos pendientes</span><strong>1</strong><small>requiere seguimiento</small></article></section>
- <Card title="Directorio de inversionistas" kicker="EXPEDIENTES">
-  <Table headers={['Inversionista','DUI','Contacto','Documentos','Estado']} rows={demo.investors.map(x=><tr key={x.id}><td><b>{x.name}</b><small>{x.code}</small></td><td>{x.dui}</td><td><b>{x.phone}</b><small>{x.email}</small></td><td><span className={`prst-doc-badge ${x.docs==='3/3'?'complete':'pending'}`}>{x.docs}</span></td><td><Status>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Investors({onGo}){
+ const [query,setQuery]=useState('')
+ const [status,setStatus]=useState('ALL')
+ const [docs,setDocs]=useState('ALL')
+ const activeCapital={1:4000,2:8000,3:0}
+ const activeCount={1:1,2:1,3:0}
+ const q=query.trim().toLowerCase()
+ const rows=demo.investors.filter(x=>(status==='ALL'||x.status===status)&&(docs==='ALL'||(docs==='COMPLETE'?x.docs==='3/3':x.docs!=='3/3'))&&(!q||(x.name+' '+x.code+' '+x.dui+' '+x.phone+' '+x.email).toLowerCase().includes(q)))
+ const pending=demo.investors.filter(x=>x.docs!=='3/3')
+ return <section className="prst-investor-module">
+  <section className="prst-investor-command">
+   <div><small>CONTROL DE EXPEDIENTES</small><h2>Directorio de inversionistas</h2><p>Consulta, documentación, capital activo y acceso rápido al expediente de cada inversionista.</p></div>
+   <div className="prst-investor-command-actions"><button>Exportar CSV</button><button onClick={()=>setDocs('PENDING')}>Ver pendientes <span>{pending.length}</span></button><button className="primary">+ Nuevo inversionista</button></div>
+  </section>
+
+  <section className="prst-investor-summary prst-investor-summary-pro">
+   <article><span>Total inversionistas</span><strong>3</strong><small>expedientes registrados</small></article>
+   <article><span>Activos</span><strong>3</strong><small>habilitados actualmente</small></article>
+   <article><span>Documentación completa</span><strong>2</strong><small>rostro + DUI frente/reverso</small></article>
+   <article><span>Pendientes documentales</span><strong>1</strong><small>requieren seguimiento</small></article>
+   <article><span>Capital activo</span><strong>{money(12000)}</strong><small>2 inversiones vigentes</small></article>
+  </section>
+
+  <article className="prst-card prst-investor-directory-card">
+   <div className="prst-card-head prst-investor-directory-head"><div><small>DIRECTORIO</small><h2>Inversionistas registrados</h2><p>Filtrá por estado o documentación y abrí el expediente sin perder el contexto.</p></div><div className="prst-directory-count"><span>Resultados</span><strong>{rows.length}</strong></div></div>
+   <div className="prst-directory-tools prst-directory-tools-pro">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nombre, DUI, código, teléfono o correo"/>
+    <select value={status} onChange={e=>setStatus(e.target.value)}><option value="ALL">Todos los estados</option><option value="Activo">Activos</option></select>
+    <select value={docs} onChange={e=>setDocs(e.target.value)}><option value="ALL">Todos los documentos</option><option value="COMPLETE">Documentación completa</option><option value="PENDING">Documentación pendiente</option></select>
+    {(query||status!=='ALL'||docs!=='ALL')&&<button className="prst-filter-clear" onClick={()=>{setQuery('');setStatus('ALL');setDocs('ALL')}}>Limpiar</button>}
+   </div>
+   <div className="prst-table-wrap prst-investor-table-wrap"><table className="prst-investor-table prst-investor-table-pro">
+    <thead><tr><th>Inversionista</th><th>DUI</th><th>Contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>{rows.map(x=>{
+     const n=Number(x.docs.split('/')[0]),pct=Math.round((n/3)*100)
+     return <tr key={x.id}>
+      <td><div className="prst-investor-name-cell"><span className="prst-investor-avatar">{x.name.split(' ').map(v=>v[0]).slice(0,2).join('')}</span><span><b>{x.name}</b><small>{x.code}</small></span></div></td>
+      <td><b>{x.dui}</b><small>identificación</small></td>
+      <td><b>{x.phone}</b><small>{x.email}</small></td>
+      <td><div className="prst-doc-progress"><div><span style={{width:`${pct}%`}}/></div><small>{n===3?'Completo':`${n}/3 documentos`}</small></div></td>
+      <td><b>{activeCount[x.id]||0}</b><small>{activeCount[x.id]?'vigentes':'sin inversión activa'}</small></td>
+      <td><b>{money(activeCapital[x.id]||0)}</b><small>capital vigente</small></td>
+      <td><Status>{x.status}</Status></td>
+      <td><div className="prst-row-actions prst-investor-actions"><button className="primary">Ver</button><button onClick={()=>onGo?.('Perfil 360')}>Perfil 360</button><button onClick={()=>onGo?.('Documentos')}>Documentos</button><button>Editar</button></div></td>
+     </tr>
+    })}</tbody>
+   </table></div>
+  </article>
+
+  <section className="prst-investor-followup-grid">
+   <Card title="Pendientes prioritarios" kicker="SEGUIMIENTO DOCUMENTAL">
+    <div className="prst-investor-followup-list">{pending.map(x=><button key={x.id}><span><b>{x.name}</b><small>DUI reverso pendiente</small></span><strong>{x.docs}</strong></button>)}</div>
+   </Card>
+   <Card title="Últimos inversionistas" kicker="ACTIVIDAD RECIENTE">
+    <div className="prst-investor-followup-list recent">{demo.investors.map(x=><button key={x.id}><span><b>{x.name}</b><small>{x.code}</small></span><Status>{x.status}</Status></button>)}</div>
+   </Card>
+  </section>
+ </section>
+}
 
 function Applications(){return <>
  <section className="prst-investor-summary"><article><span>Solicitudes</span><strong>3</strong><small>histórico</small></article><article><span>Pendientes / revisión</span><strong>2</strong><small>{money(28000)} solicitado</small></article><article><span>Aprobadas</span><strong>1</strong><small>lista para proceso</small></article><article><span>Formalizadas</span><strong>0</strong><small>desde esta muestra</small></article></section>
