@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { buildPrestaditosSearchResults } from '../../web/src/prestaditos-search.js'
 import { buildPrestaditosAgenda, agendaWindow } from '../../web/src/prestaditos-agenda.js'
+import { PRESTADITOS_E2E_SCENARIOS, validatePrestaditosDemoScenario } from '../../web/src/prestaditos-demo-scenarios.js'
 
 const read=path=>readFileSync(new URL(`../../../${path}`,import.meta.url),'utf8')
 const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
@@ -13,6 +14,8 @@ const css=read('apps/web/src/prestaditos-investors.css')
 const smoke=read('supabase/tests/prestaditos_staging_readiness.sql')
 const workflow=read('.github/workflows/prestaditos-staging-smoke.yml')
 const runbook=read('docs/prestaditos-staging-runbook.md')
+const readiness=read('apps/web/src/PrestaditosProductionReadinessPanel.jsx')
+const securityAudit=read('apps/web/scripts/audit-prestaditos-security.mjs')
 
 test('buscador global encuentra DUI contrato pago y documento y abre Perfil 360',()=>{
  const investors=[{id:'i1',first_names:'Carlos Ernesto',last_names:'Mejía',dui:'01234567-8',investor_code:'INV-001'}]
@@ -103,4 +106,39 @@ test('staging smoke está protegido contra el proyecto principal',()=>{
  assert.match(runbook,/Caso A — tasa 10% anual/)
  assert.match(runbook,/Caso B — tasa 12% anual/)
  assert.match(runbook,/Caso C — tasa 15% anual/)
+})
+
+
+test('los tres escenarios ficticios completan el recorrido sin usar una base real',()=>{
+ assert.equal(PRESTADITOS_E2E_SCENARIOS.length,3)
+ assert.deepEqual(PRESTADITOS_E2E_SCENARIOS.map(x=>x.rate),[10,12,15])
+ assert.deepEqual(PRESTADITOS_E2E_SCENARIOS.map(x=>x.amount),[2000,7500,15000])
+ assert.deepEqual(PRESTADITOS_E2E_SCENARIOS.map(x=>x.annualReference),[200,900,2250])
+ for(const scenario of PRESTADITOS_E2E_SCENARIOS){
+  assert.equal(validatePrestaditosDemoScenario(scenario).length,0)
+  assert.equal(scenario.termMonths,12)
+  assert.ok(scenario.path.some(step=>step[0]==='CONTRACT'))
+  assert.ok(scenario.path.some(step=>step[0]==='PAYMENT'))
+  assert.ok(scenario.path.some(step=>step[0]==='MATURITY'))
+  assert.ok(scenario.path.some(step=>step[0]==='CLOSEOUT'))
+ }
+})
+
+test('cierre para producción conserva bloqueos reales y no afirma readiness falso',()=>{
+ assert.match(readiness,/Producción/)
+ assert.match(readiness,/No todavía/)
+ assert.match(readiness,/Rangos de monto/)
+ assert.match(readiness,/Plazos distintos de 12 meses/)
+ assert.match(readiness,/Contrato legal definitivo/)
+ assert.match(readiness,/Base aislada de staging/)
+ assert.match(readiness,/mientras exista un punto Pendiente o Bloqueado/)
+})
+
+test('auditoría estática de seguridad cubre RLS storage tasas pagos y cierres',()=>{
+ assert.match(securityAudit,/RLS base inversionistas/)
+ assert.match(securityAudit,/bucket privado/)
+ assert.match(securityAudit,/pagos sin escritura directa autenticada/)
+ assert.match(securityAudit,/tasas anuales forzadas/)
+ assert.match(securityAudit,/cierres mensuales no editables directos/)
+ assert.match(securityAudit,/PRESTADITOS_SMOKE_OK/)
 })
