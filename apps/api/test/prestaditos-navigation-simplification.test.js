@@ -8,22 +8,38 @@ const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
 const investors=read('apps/web/src/PrestaditosInvestorsPanel.jsx')
 const css=read('apps/web/src/prestaditos-investors.css')
 
-test('menu lateral deja visibles solo modulos principales y agrupa secundarios',()=>{
+test('menu lateral contiene solo ocho modulos principales',()=>{
  for(const source of [preview,host]){
-  assert.match(source,/PRIMARY_TABS/)
-  assert.match(source,/OPERATION_TABS/)
-  assert.match(source,/ADMIN_TABS/)
-  assert.match(source,/Más operación/)
-  assert.match(source,/Administración/)
-  assert.match(source,/prst-nav-group/)
+  assert.match(source,/const MAIN_TABS=\['Dashboard','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos','Tesorería','Reportes'\]/)
+  assert.match(source,/MAIN_TABS\.map\(navButton\)/)
+  assert.doesNotMatch(source,/Más operación/)
+  assert.doesNotMatch(source,/<summary>Administración/)
  }
 })
 
-test('acciones secundarias de inversionistas se agrupan bajo Mas',()=>{
- assert.match(investors,/prst-action-menu top/)
- assert.match(investors,/prst-investor-actions compact/)
- assert.match(investors,/<summary>Más<\/summary>/)
- assert.match(preview,/prst-investor-actions compact/)
+test('operaciones secundarias pasan a acciones contextuales',()=>{
+ for(const source of [preview,host]){
+  assert.match(source,/const MODULE_ACTIONS=/)
+  assert.match(source,/Inversionistas:\['Perfil 360','Beneficiarios','Estado de cuenta','Documentos'\]/)
+  assert.match(source,/Solicitudes:\['Simulador'\]/)
+  assert.match(source,/Inversiones:\['Contratos','Renovaciones'\]/)
+  assert.match(source,/Reportes:\['Cierre mensual','Auditoría','Auditoría técnica','Exportaciones'\]/)
+  assert.match(source,/prst-context-bar/)
+ }
+})
+
+test('perfil 360 deja de ser modulo y queda como boton del inversionista',()=>{
+ assert.match(investors,/onClick=\{\(\)=>goProfile\(x\)\}>Perfil 360<\/button>/)
+ assert.match(preview,/onClick=\{\(\)=>onOpenInvestor\?\.\('Perfil 360',x\.id\)\}>Perfil 360<\/button>/)
+ assert.doesNotMatch(host,/MAIN_TABS=.*Perfil 360/)
+ assert.doesNotMatch(preview,/MAIN_TABS=.*Perfil 360/)
+})
+
+test('herramientas del sistema salen del menu lateral',()=>{
+ for(const source of [preview,host]){
+  assert.match(source,/const SYSTEM_TABS=\['Notificaciones','Agenda','Configuración','Ayuda','Prueba integral','Preparación'\]/)
+  assert.match(source,/prst-system-menu/)
+ }
 })
 
 test('navegacion relacionada de inversionistas sigue conectada',()=>{
@@ -33,9 +49,10 @@ test('navegacion relacionada de inversionistas sigue conectada',()=>{
  assert.match(investors,/goContracts/)
 })
 
-test('estilos reducen ruido de botones sin eliminar acciones',()=>{
- assert.match(css,/GLOBAL SIMPLIFICATION · LESS BUTTON NOISE/)
- assert.match(css,/prst-nav-group/)
+test('estilos soportan la arquitectura simplificada',()=>{
+ assert.match(css,/CORE ERP NAVIGATION · 8 MODULES/)
+ assert.match(css,/prst-context-bar/)
+ assert.match(css,/prst-system-menu/)
  assert.match(css,/prst-action-menu/)
  assert.match(css,/prst-investor-actions\.compact/)
 })
