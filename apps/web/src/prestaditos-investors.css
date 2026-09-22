@@ -2445,3 +2445,36 @@
  .prst-preview-camera-grid{grid-template-columns:1fr}
  .prst-camera-modal{width:100%}
 }
+
+
+/* ===== CAMERA CAPTURE STATUS ===== */
+.prst-camera-captured{
+  position:relative;
+  overflow:hidden;
+  min-height:84px;
+  border-radius:8px;
+  background:#111820;
+  box-shadow:inset 0 0 0 1px #d9e0e5;
+}
+.prst-camera-captured img{
+  display:block;
+  width:100%;
+  height:84px;
+  object-fit:cover;
+}
+.prst-camera-captured span{
+  position:absolute;
+  right:7px;
+  bottom:7px;
+  padding:4px 7px;
+  border-radius:999px;
+  background:rgba(17,24,32,.82);
+  color:#fff;
+  font-size:8px;
+  font-weight:900;
+}
+.prst-field select:disabled{
+  cursor:not-allowed;
+  background:#f2f4f6;
+  color:#667085;
+}

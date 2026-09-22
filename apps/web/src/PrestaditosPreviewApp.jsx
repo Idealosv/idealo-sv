@@ -197,6 +197,11 @@ function Investors({onGo,onOpenInvestor}){
  const q=query.trim().toLowerCase()
  const rows=investorRows.filter(x=>(status==='ALL'||x.status===status)&&(docs==='ALL'||(docs==='COMPLETE'?x.docs==='3/3':x.docs!=='3/3'))&&(!q||(x.name+' '+x.code+' '+x.dui+' '+x.phone+' '+x.email).toLowerCase().includes(q)))
  const pending=investorRows.filter(x=>x.docs!=='3/3')
+ const updateNewCaptureDocs=(nextFace,nextFront,nextBack)=>{
+  if(!editingId.startsWith('demo-'))return
+  const count=[nextFace,nextFront,nextBack].filter(Boolean).length
+  setEditDraft(current=>current?{...current,docs:`${count}/3`}:current)
+ }
 
  const openEdit=x=>{
   setEditingId(x.id)
@@ -302,14 +307,14 @@ function Investors({onGo,onOpenInvestor}){
     <label className="prst-field"><span>Teléfono</span><input name="phone" value={editDraft.phone} onChange={updateDraft}/></label>
     <label className="prst-field"><span>Correo</span><input name="email" type="email" value={editDraft.email} onChange={updateDraft}/></label>
     <label className="prst-field"><span>Estado</span><select name="status" value={editDraft.status} onChange={updateDraft}><option>Activo</option><option>Inactivo</option></select></label>
-    <label className="prst-field"><span>Documentación</span><select name="docs" value={editDraft.docs} onChange={updateDraft}><option>0/3</option><option>1/3</option><option>2/3</option><option>3/3</option></select></label>
+    <label className="prst-field"><span>Documentación</span><select name="docs" value={editDraft.docs} onChange={updateDraft} disabled={editingId.startsWith('demo-')}><option>0/3</option><option>1/3</option><option>2/3</option><option>3/3</option></select></label>
    </div>
    <div className="prst-preview-camera-section">
     <div className="prst-section-title">Captura de documentos</div>
     <div className="prst-preview-camera-grid">
-     <div><span>Foto del rostro</span><PrestaditosCameraCapture label="Tomar foto del rostro" facingMode="user" fileName="rostro" onCapture={file=>{setFaceCapture(file);setEditDraft(current=>({...current,docs:current?.docs==='0/3'?'1/3':current?.docs||'1/3'}))}}/><small>{faceCapture?.name||'Usa la cámara frontal.'}</small></div>
-     <div><span>DUI frente</span><PrestaditosCameraCapture label="Escanear DUI frente" facingMode="environment" fileName="dui-frente" onCapture={file=>{setDuiFrontCapture(file);setEditDraft(current=>({...current,docs:current?.docs==='0/3'?'1/3':current?.docs==='1/3'?'2/3':current?.docs||'2/3'}))}}/><small>{duiFrontCapture?.name||'Usa la cámara trasera.'}</small></div>
-     <div><span>DUI reverso</span><PrestaditosCameraCapture label="Escanear DUI reverso" facingMode="environment" fileName="dui-reverso" onCapture={file=>{setDuiBackCapture(file);setEditDraft(current=>({...current,docs:'3/3'}))}}/><small>{duiBackCapture?.name||'Usa la cámara trasera.'}</small></div>
+     <div><span>Foto del rostro</span><PrestaditosCameraCapture label="Tomar foto del rostro" facingMode="user" fileName="rostro" onCapture={file=>{setFaceCapture(file);updateNewCaptureDocs(file,duiFrontCapture,duiBackCapture)}}/><small>{faceCapture?.name||'Usa la cámara frontal.'}</small></div>
+     <div><span>DUI frente</span><PrestaditosCameraCapture label="Escanear DUI frente" facingMode="environment" fileName="dui-frente" onCapture={file=>{setDuiFrontCapture(file);updateNewCaptureDocs(faceCapture,file,duiBackCapture)}}/><small>{duiFrontCapture?.name||'Usa la cámara trasera.'}</small></div>
+     <div><span>DUI reverso</span><PrestaditosCameraCapture label="Escanear DUI reverso" facingMode="environment" fileName="dui-reverso" onCapture={file=>{setDuiBackCapture(file);updateNewCaptureDocs(faceCapture,duiFrontCapture,file)}}/><small>{duiBackCapture?.name||'Usa la cámara trasera.'}</small></div>
     </div>
    </div>
    <div className="prst-preview-edit-actions"><span>{editNotice}</span><div><button type="button" onClick={closeEdit}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
