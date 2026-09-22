@@ -16,6 +16,11 @@ export default function PrestaditosAlertsPanel({company,investors,applications,i
 
  const alerts=useMemo(()=>buildPrestaditosAlerts({investors,applications,investments,contracts,payments,renewals,investorMap}),[investors,applications,investments,contracts,payments,renewals,investorMap])
  const stateMap=useMemo(()=>new Map(notificationStates.map(x=>[x.alert_key,x])),[notificationStates])
+ const viewCounts=useMemo(()=>({
+  OPEN:alerts.filter(x=>!stateMap.has(x.id)).length,
+  READ:notificationStates.filter(x=>x.state==='READ'&&alerts.some(a=>a.id===x.alert_key)).length,
+  DISMISSED:notificationStates.filter(x=>x.state==='DISMISSED').length,
+ }),[alerts,notificationStates,stateMap])
 
  const rows=useMemo(()=>{
   if(view==='DISMISSED'){
@@ -78,10 +83,10 @@ export default function PrestaditosAlertsPanel({company,investors,applications,i
    <article><span>Archivadas</span><strong>{notificationStates.filter(x=>x.state==='DISMISSED').length}</strong><small>historial personal</small></article>
   </section>
 
-  <article className="prst-card">
-   <div className="prst-card-head"><div><small>CENTRO DE NOTIFICACIONES</small><h2>Seguimiento de Prestadito$</h2><p>Las alertas se generan por datos reales y cada usuario puede revisarlas o archivarlas sin alterar la operación.</p></div></div>
+  <article className="prst-card prst-notification-center-card">
+   <div className="prst-card-head"><div><small>SEGUIMIENTO OPERATIVO</small><h2>Centro de notificaciones</h2><p>Priorizá lo urgente, revisá pendientes y conservá un historial sin alterar la operación financiera.</p></div></div>
 
-   <div className="prst-notification-tabs">{Object.entries(viewLabels).map(([value,label])=><button key={value} type="button" className={view===value?'active':''} onClick={()=>setView(value)}>{label}</button>)}</div>
+   <div className="prst-notification-tabs">{Object.entries(viewLabels).map(([value,label])=><button key={value} type="button" className={view===value?'active':''} onClick={()=>setView(value)}>{label}<span>{viewCounts[value]}</span></button>)}</div>
 
    <div className="prst-alert-filters">
     <input className="prst-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar notificación o inversionista"/>
@@ -94,15 +99,15 @@ export default function PrestaditosAlertsPanel({company,investors,applications,i
     <div className="prst-alert-icon">{row.priority==='CRITICAL'?'!':row.priority==='HIGH'?'↑':'•'}</div>
     <div className="prst-alert-copy"><div><span>{typeLabels[row.type]||row.type}</span><b>{labels[row.priority]||row.priority}</b></div><strong>{row.title}</strong><small>{row.detail}</small>{row.stored&&row.updated_at&&<small>Archivada: {new Date(row.updated_at).toLocaleString('es-SV')}</small>}</div>
     <div className="prst-notification-actions">
-     {view!=='DISMISSED'&&<button type="button" onClick={()=>onGo?.(row.tab,row)}>Abrir</button>}
-     {view==='OPEN'&&<button type="button" onClick={()=>persist(row,'READ')}>Revisada</button>}
-     {view!=='DISMISSED'&&<button type="button" onClick={()=>persist(row,'DISMISSED')}>Archivar</button>}
-     {view==='DISMISSED'&&<button type="button" onClick={()=>restore(row)}>Restaurar</button>}
+     {view!=='DISMISSED'&&<button type="button" className="primary" onClick={()=>onGo?.(row.tab,row)}>Abrir</button>}
+     {view==='OPEN'&&<button type="button" className="secondary" onClick={()=>persist(row,'READ')}>Marcar revisada</button>}
+     {view!=='DISMISSED'&&<button type="button" className="archive" onClick={()=>persist(row,'DISMISSED')}>Archivar</button>}
+     {view==='DISMISSED'&&<button type="button" className="restore" onClick={()=>restore(row)}>Restaurar</button>}
     </div>
    </article>)}</div>}
   </article>
 
-  <article className="prst-card prst-alert-scope">
+  <article className="prst-card prst-alert-scope prst-notification-rules-card">
    <div className="prst-card-head"><div><small>CRITERIOS ACTUALES</small><h2>Qué está vigilando el sistema</h2></div></div>
    <div className="prst-alert-rules">
     <span>Inversiones vencidas y próximas a vencer en 30 días.</span>
