@@ -245,11 +245,10 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
   </section>
 
   <section className="prst-investor-summary prst-investor-summary-pro">
-   <article><span>Total inversionistas</span><strong>{investors.length}</strong><small>expedientes registrados</small></article>
-   <article><span>Activos</span><strong>{totals.active}</strong><small>habilitados actualmente</small></article>
-   <article><span>Documentación completa</span><strong>{totals.complete}</strong><small>rostro + DUI frente/reverso</small></article>
-   <article><span>Pendientes documentales</span><strong>{totals.pending}</strong><small>requieren seguimiento</small></article>
-   <article><span>Capital activo</span><strong>{money(totals.capital)}</strong><small>{activeInvestments.length} inversión{activeInvestments.length===1?'':'es'} vigente{activeInvestments.length===1?'':'s'}</small></article>
+   <article><span>Total inversionistas</span><strong>{investors.length}</strong><small>{totals.active} activos</small></article>
+   <article><span>Documentación pendiente</span><strong>{totals.pending}</strong><small>{totals.complete} expedientes completos</small></article>
+   <article><span>Inversiones activas</span><strong>{activeInvestments.length}</strong><small>vigentes actualmente</small></article>
+   <article><span>Capital activo</span><strong>{money(totals.capital)}</strong><small>capital vigente</small></article>
   </section>
 
   <article className="prst-card prst-investor-directory-card">
@@ -266,20 +265,18 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
    </div>
 
    {!filtered.length?<Empty title="No hay coincidencias">Cambiá los filtros o registrá un nuevo inversionista.</Empty>:<div className="prst-table-wrap prst-investor-table-wrap"><table className="prst-investor-table prst-investor-table-pro">
-    <thead><tr><th>Inversionista</th><th>DUI / NIT</th><th>Contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Actualizado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Inversionista</th><th>Identificación / contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody>{filtered.map(x=>{
      const docs=[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length
      const inv=investorInvestmentMap.get(x.id)||{count:0,capital:0}
      const pct=Math.round((docs/3)*100)
      return <tr key={x.id}>
       <td><div className="prst-investor-name-cell"><span className="prst-investor-avatar">{String(x.first_names||'?').trim().charAt(0)}{String(x.last_names||'').trim().charAt(0)}</span><span><b>{fullName(x)}</b><small>{x.investor_code}{age(x.birth_date)!==null?` · ${age(x.birth_date)} años`:''}</small></span></div></td>
-      <td><b>{x.dui||'DUI pendiente'}</b><small>{x.nit?`NIT ${x.nit}`:'Sin NIT adicional'}</small></td>
-      <td><b>{x.phone||x.whatsapp||'Sin teléfono'}</b><small>{x.email||'Sin correo'}</small></td>
+      <td><b>{x.dui||'DUI pendiente'}</b><small>{x.phone||x.whatsapp||x.email||'Sin contacto'}{x.nit?` · NIT ${x.nit}`:''}</small></td>
       <td><div className="prst-doc-progress"><div><span style={{width:`${pct}%`}}/></div><small>{docs===3?'Completo':`${docs}/3 documentos`}</small></div></td>
       <td><b>{inv.count}</b><small>{inv.count?'vigentes':'sin inversión activa'}</small></td>
       <td><b>{money(inv.capital)}</b><small>capital vigente</small></td>
-      <td><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span></td>
-      <td><b>{date(x.updated_at||x.created_at)}</b><small>{x.updated_at?'última edición':'registro'}</small></td>
+      <td><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span><small>{date(x.updated_at||x.created_at)}</small></td>
       <td><div className="prst-row-actions prst-investor-actions compact">
        <button type="button" className="primary" onClick={()=>setSelectedId(x.id)}>Ver</button>
        <button type="button" onClick={()=>goProfile(x)}>Perfil 360</button>
@@ -296,21 +293,6 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
     })}</tbody>
    </table></div>}
   </article>
-
-  <section className="prst-investor-followup-grid">
-   <article className="prst-card prst-investor-followup-card">
-    <div className="prst-card-head"><div><small>SEGUIMIENTO DOCUMENTAL</small><h2>Pendientes prioritarios</h2><p>Expedientes con foto o DUI incompletos.</p></div><b className="prst-directory-count compact">{totals.pending}</b></div>
-    {!pendingDocs.length?<Empty title="Documentación al día">Todos los expedientes tienen rostro y DUI completos.</Empty>:<div className="prst-investor-followup-list">{pendingDocs.map(x=>{
-     const missing=[!x.face_photo_path?'Rostro':'',!x.dui_front_path?'DUI frente':'',!x.dui_back_path?'DUI reverso':''].filter(Boolean)
-     return <button key={x.id} type="button" onClick={()=>setSelectedId(x.id)}><span><b>{fullName(x)}</b><small>{missing.join(' · ')}</small></span><strong>{x._docs}/3</strong></button>
-    })}</div>}
-   </article>
-
-   <article className="prst-card prst-investor-followup-card">
-    <div className="prst-card-head"><div><small>ACTIVIDAD RECIENTE</small><h2>Últimos inversionistas</h2><p>Expedientes registrados recientemente.</p></div></div>
-    {!recentInvestors.length?<Empty title="Sin registros"/>:<div className="prst-investor-followup-list recent">{recentInvestors.map(x=><button key={x.id} type="button" onClick={()=>setSelectedId(x.id)}><span><b>{fullName(x)}</b><small>{x.investor_code} · {date(x.created_at)}</small></span><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span></button>)}</div>}
-   </article>
-  </section>
 
   {formOpen&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&reset()}><form className="prst-card prst-form prst-investor-form prst-investor-form-pro prst-editor-modal" onSubmit={submit}>
    <div className="prst-card-head prst-investor-form-head">
