@@ -392,7 +392,7 @@ function Reports(){return <>
   <Metric label="Vencidas" value="1" hint="requiere seguimiento" tone="warn"/>
  </section>
  <Card title="Inversiones" kicker="REPORTES GERENCIALES">
-  <div className="prst-report-tabs"><button className="active">Inversiones</button><button>Inversionistas</button><button>Solicitudes</button><button>Pagos</button><button>Vencimientos</button><button>Renovaciones</button><button>Documentos</button></div>
+  <label className="prst-report-picker"><span>Tipo de reporte</span><select defaultValue="INVESTMENTS"><option value="INVESTMENTS">Inversiones</option><option value="INVESTORS">Inversionistas</option><option value="APPLICATIONS">Solicitudes</option><option value="PAYMENTS">Pagos</option><option value="MATURITIES">Vencimientos</option><option value="RENEWALS">Renovaciones</option><option value="DOCUMENTS">Documentos</option></select></label>
   <Table headers={['Código','Inversionista','Capital','Plazo','Otorgada','Vence','Ganancia','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td>{x.code}</td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
  </Card>
  </>}
