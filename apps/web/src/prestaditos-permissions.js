@@ -1,0 +1,50 @@
+export const PRESTADITOS_ROLE_LEVELS={
+ owner:'OWNER',
+ admin:'ADMIN',
+ staff:'OPERATOR',
+ operator:'OPERATOR',
+ viewer:'READ_ONLY',
+ read_only:'READ_ONLY',
+ readonly:'READ_ONLY',
+ member:'READ_ONLY',
+}
+
+export const PRESTADITOS_PERMISSION_MATRIX={
+ VIEW:'VIEW',
+ EDIT_INVESTOR:'EDIT_INVESTOR',
+ CREATE_APPLICATION:'CREATE_APPLICATION',
+ REVIEW_APPLICATION:'REVIEW_APPLICATION',
+ FORMALIZE_INVESTMENT:'FORMALIZE_INVESTMENT',
+ PREPARE_CONTRACT:'PREPARE_CONTRACT',
+ REGISTER_PAYMENT:'REGISTER_PAYMENT',
+ REVERSE_PAYMENT:'REVERSE_PAYMENT',
+ MANAGE_BENEFICIARY:'MANAGE_BENEFICIARY',
+ UPLOAD_DOCUMENT:'UPLOAD_DOCUMENT',
+ CHANGE_DOCUMENT_STATUS:'CHANGE_DOCUMENT_STATUS',
+ MANAGE_RENEWAL:'MANAGE_RENEWAL',
+ MONTHLY_CLOSEOUT:'MONTHLY_CLOSEOUT',
+ CONFIGURE:'CONFIGURE',
+ EXPORT:'EXPORT',
+}
+
+const grants={
+ OWNER:new Set(Object.values(PRESTADITOS_PERMISSION_MATRIX)),
+ ADMIN:new Set(Object.values(PRESTADITOS_PERMISSION_MATRIX)),
+ OPERATOR:new Set([
+  'VIEW',
+  'EDIT_INVESTOR',
+  'CREATE_APPLICATION',
+  'UPLOAD_DOCUMENT',
+  'EXPORT',
+ ]),
+ READ_ONLY:new Set(['VIEW','EXPORT']),
+}
+
+export const prestaditosRoleLevel=role=>PRESTADITOS_ROLE_LEVELS[String(role||'').toLowerCase()]||'READ_ONLY'
+export const canPrestaditos=(role,permission)=>grants[prestaditosRoleLevel(role)]?.has(permission)||false
+export const prestaditosRoleLabel=role=>({
+ OWNER:'Propietario',
+ ADMIN:'Administrador',
+ OPERATOR:'Operador',
+ READ_ONLY:'Solo lectura',
+}[prestaditosRoleLevel(role)]||'Solo lectura')
