@@ -59,9 +59,17 @@ const TABS=[
  ['Configuración','Reglas del vertical'],
 ]
 
-const PRIMARY_TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos']
-const OPERATION_TABS=['Perfil 360','Simulador','Contratos','Beneficiarios','Estado de cuenta','Renovaciones','Tesorería','Documentos']
-const ADMIN_TABS=['Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
+const MAIN_TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos','Tesorería','Reportes']
+const MODULE_ACTIONS={
+ Inversionistas:['Perfil 360','Beneficiarios','Estado de cuenta','Documentos'],
+ Solicitudes:['Simulador'],
+ Inversiones:['Contratos','Renovaciones'],
+ Rendimientos:['Estado de cuenta'],
+ Vencimientos:['Renovaciones','Agenda'],
+ Tesorería:['Cierre mensual','Exportaciones'],
+ Reportes:['Cierre mensual','Auditoría','Auditoría técnica','Exportaciones'],
+}
+const SYSTEM_TABS=['Notificaciones','Agenda','Configuración','Ayuda','Prueba integral','Preparación']
 const TAB_DESCRIPTIONS=Object.fromEntries(TABS)
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
@@ -173,7 +181,9 @@ export default function PrestaditosInvestorAppHost(){
   if(target==='Inversionistas'&&row?.investor_id){const investor=investorMap.get(row.investor_id);setQuery(investor?fullName(investor):'')}
   selectTab(target)
  }
- const navButton=name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{TAB_DESCRIPTIONS[name]}</small></button>
+ const moduleParent=Object.entries(MODULE_ACTIONS).find(([,items])=>items.includes(tab))?.[0]||tab
+ const moduleActions=MODULE_ACTIONS[moduleParent]||[]
+ const navButton=name=><button key={name} type="button" className={moduleParent===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{TAB_DESCRIPTIONS[name]}</small></button>
 
  const chooseGlobalResult=row=>{
   if(row?.investor_id)setFocusInvestorId(row.investor_id)
@@ -197,15 +207,7 @@ export default function PrestaditosInvestorAppHost(){
    </div>
    <div className="prst-company"><span>EMPRESA</span><strong>{company?.name||'Prestadito$ El Salvador'}</strong><small>{role||'Usuario autorizado'}</small></div>
    <nav>
-    <div className="prst-nav-primary">{PRIMARY_TABS.map(navButton)}</div>
-    <details className="prst-nav-group" open={OPERATION_TABS.includes(tab)||undefined}>
-     <summary>Más operación <span>{OPERATION_TABS.length}</span></summary>
-     <div>{OPERATION_TABS.map(navButton)}</div>
-    </details>
-    <details className="prst-nav-group" open={ADMIN_TABS.includes(tab)||undefined}>
-     <summary>Administración <span>{ADMIN_TABS.length}</span></summary>
-     <div>{ADMIN_TABS.map(navButton)}</div>
-    </details>
+    <div className="prst-nav-primary">{MAIN_TABS.map(navButton)}</div>
    </nav>
    <a className="prst-back" href="/master">← Administrador IDEALO SV</a>
   </aside>
@@ -215,8 +217,15 @@ export default function PrestaditosInvestorAppHost(){
     <button type="button" className="prst-mobile-menu" onClick={()=>setMobileNavOpen(true)} aria-label="Abrir menú">☰</button>
     <div className="prst-top-title"><span>IDEALO SV · FINANCIERA / INVERSIONISTAS</span><h1>{tab}</h1><p>ERP exclusivo para inversionistas e inversiones.</p></div>
     <PrestaditosGlobalSearch investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} documents={documents} beneficiaries={beneficiaries} onChoose={chooseGlobalResult}/>
-    <div className="prst-top-actions"><button type="button" onClick={load} disabled={loading}>{loading?'Actualizando…':'Actualizar'}</button></div>
+    <div className="prst-top-actions">
+     <details className="prst-system-menu">
+      <summary>Sistema</summary>
+      <div>{SYSTEM_TABS.map(name=><button key={name} type="button" onClick={()=>selectTab(name)}>{name}</button>)}</div>
+     </details>
+     <button type="button" onClick={load} disabled={loading}>{loading?'Actualizando…':'Actualizar'}</button>
+    </div>
    </header>
+   {moduleActions.length>0&&<div className="prst-context-bar"><span>{moduleParent}</span><div>{moduleActions.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}>{name}</button>)}</div></div>}
    {error&&<div className="prst-alert error">{error}</div>}
    {notice&&<div className="prst-alert success">{notice}</div>}
 
