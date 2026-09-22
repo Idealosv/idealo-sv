@@ -29,7 +29,7 @@ const statusLabel=value=>({ACTIVE:'Activo',INACTIVE:'Inactivo',BLOCKED:'Bloquead
 function Field({label,children,hint,className=''}){return <label className={`prst-field ${className}`.trim()}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
 function Empty({title,children}){return <div className="prst-empty"><strong>{title}</strong>{children&&<p>{children}</p>}</div>}
 
-export default function PrestaditosInvestorsPanel({company,role,investors,investments,beneficiaries,payments,query,setQuery,saving,act}){
+export default function PrestaditosInvestorsPanel({company,role,investors,investments,beneficiaries,payments,query,setQuery,saving,act,onNavigate}){
  const [form,setForm]=useState(EMPTY_FORM)
  const [editingId,setEditingId]=useState('')
  const [selectedId,setSelectedId]=useState('')
@@ -39,6 +39,7 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
  const [duiFront,setDuiFront]=useState(null)
  const [duiBack,setDuiBack]=useState(null)
  const [ocrApplied,setOcrApplied]=useState(false)
+ const [formOpen,setFormOpen]=useState(false)
  const canEdit=canPrestaditos(role,'EDIT_INVESTOR')
 
  const selected=investors.find(x=>x.id===selectedId)||null
@@ -55,7 +56,7 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
  },[investors,query,statusFilter,docsFilter])
 
  const reset=()=>{
-  setForm(EMPTY_FORM);setEditingId('');setFace(null);setDuiFront(null);setDuiBack(null);setOcrApplied(false)
+  setForm(EMPTY_FORM);setEditingId('');setFace(null);setDuiFront(null);setDuiBack(null);setOcrApplied(false);setFormOpen(false)
  }
 
  const update=e=>setForm(current=>({...current,[e.target.name]:e.target.value}))
@@ -77,6 +78,7 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
  }
 
  const startEdit=investor=>{
+  setFormOpen(true)
   setEditingId(investor.id)
   setSelectedId(investor.id)
   setForm(Object.fromEntries(Object.keys(EMPTY_FORM).map(key=>[key,investor[key]??EMPTY_FORM[key]])))
@@ -169,30 +171,146 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
   },`Estado de ${fullName(investor)} actualizado.`)
  }
 
+ const activeInvestments=useMemo(()=>investments.filter(x=>['ACTIVE','MATURING'].includes(x.status)),[investments])
+ const investorInvestmentMap=useMemo(()=>{
+  const map=new Map()
+  activeInvestments.forEach(inv=>{
+   const current=map.get(inv.investor_id)||{count:0,capital:0,firstInvestmentId:''}
+   current.count+=1
+   current.capital+=Number(inv.principal||0)
+   if(!current.firstInvestmentId)current.firstInvestmentId=inv.id
+   map.set(inv.investor_id,current)
+  })
+  return map
+ },[activeInvestments])
+
  const totals=useMemo(()=>({
   active:investors.filter(x=>x.status==='ACTIVE').length,
   complete:investors.filter(x=>[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length===3).length,
   pending:investors.filter(x=>[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length<3).length,
- }),[investors])
+  capital:activeInvestments.reduce((sum,x)=>sum+Number(x.principal||0),0),
+ }),[investors,activeInvestments])
+
+ const pendingDocs=useMemo(()=>investors
+  .map(x=>({...x,_docs:[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length}))
+  .filter(x=>x._docs<3)
+  .sort((a,b)=>a._docs-b._docs)
+  .slice(0,5),[investors])
+ const recentInvestors=useMemo(()=>[...investors].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,5),[investors])
+ const clearFilters=()=>{setQuery('');setStatusFilter('ALL');setDocsFilter('ALL')}
+ const hasFilters=Boolean(query.trim()||statusFilter!=='ALL'||docsFilter!=='ALL')
+ const openNew=()=>{
+  setForm(EMPTY_FORM);setEditingId('');setFace(null);setDuiFront(null);setDuiBack(null);setOcrApplied(false);setFormOpen(true)
+  window.setTimeout(()=>document.querySelector('.prst-investor-form')?.scrollIntoView({behavior:'smooth',block:'start'}),30)
+ }
+ const goProfile=investor=>onNavigate?.('Perfil 360',{investor_id:investor.id})
+ const goDocuments=investor=>onNavigate?.('Documentos',{investor_id:investor.id})
+ const goContracts=investor=>{
+  const linked=investorInvestmentMap.get(investor.id)
+  onNavigate?.('Contratos',{investor_id:investor.id,investment_id:linked?.firstInvestmentId||''})
+ }
+ const exportCsv=()=>{
+  const header=['Código','Nombre','DUI','NIT','Teléfono','WhatsApp','Correo','Estado','Documentos','Inversiones activas','Capital activo']
+  const rows=filtered.map(x=>{
+   const docs=[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length
+   const inv=investorInvestmentMap.get(x.id)||{count:0,capital:0}
+   return [x.investor_code,fullName(x),x.dui,x.nit,x.phone,x.whatsapp,x.email,statusLabel(x.status),`${docs}/3`,inv.count,Number(inv.capital||0).toFixed(2)]
+  })
+  const quote=v=>`"${String(v??'').replaceAll('"','""')}"`
+  const csv='\ufeff'+[header,...rows].map(row=>row.map(quote).join(',')).join('\n')
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'})
+  const url=URL.createObjectURL(blob)
+  const a=document.createElement('a')
+  a.href=url;a.download=`prestaditos-inversionistas-${new Date().toISOString().slice(0,10)}.csv`;a.click()
+  URL.revokeObjectURL(url)
+ }
 
  return <section className="prst-investor-module">
-  <section className="prst-investor-summary">
-   <article><span>Total</span><strong>{investors.length}</strong><small>expedientes</small></article>
-   <article><span>Activos</span><strong>{totals.active}</strong><small>habilitados</small></article>
-   <article><span>Documentación completa</span><strong>{totals.complete}</strong><small>rostro + DUI</small></article>
-   <article><span>Documentos pendientes</span><strong>{totals.pending}</strong><small>requieren seguimiento</small></article>
+  <section className="prst-investor-command">
+   <div>
+    <small>CONTROL DE EXPEDIENTES</small>
+    <h2>Directorio de inversionistas</h2>
+    <p>Consulta, documentación, capital activo y acceso rápido al expediente de cada inversionista.</p>
+   </div>
+   <div className="prst-investor-command-actions">
+    <button type="button" onClick={exportCsv} disabled={!filtered.length}>Exportar CSV</button>
+    {totals.pending>0&&<button type="button" onClick={()=>{setDocsFilter('PENDING');setStatusFilter('ALL')}}>Ver pendientes <span>{totals.pending}</span></button>}
+    {canEdit&&<button type="button" className="primary" onClick={openNew}>+ Nuevo inversionista</button>}
+   </div>
   </section>
 
-  <section className="prst-grid form-list">
-   <form className="prst-card prst-form prst-investor-form" onSubmit={submit}>
-    <div className="prst-card-head">
-     <div><small>{editingId?'EDITAR EXPEDIENTE':'NUEVO EXPEDIENTE'}</small><h2>{editingId?'Actualizar inversionista':'Registrar inversionista'}</h2><p>Datos personales, contacto, referencias y documentación privada.</p></div>
-     {editingId&&<button className="prst-mini-button" type="button" onClick={reset}>Cancelar edición</button>}
-    </div>
+  <section className="prst-investor-summary prst-investor-summary-pro">
+   <article><span>Total inversionistas</span><strong>{investors.length}</strong><small>expedientes registrados</small></article>
+   <article><span>Activos</span><strong>{totals.active}</strong><small>habilitados actualmente</small></article>
+   <article><span>Documentación completa</span><strong>{totals.complete}</strong><small>rostro + DUI frente/reverso</small></article>
+   <article><span>Pendientes documentales</span><strong>{totals.pending}</strong><small>requieren seguimiento</small></article>
+   <article><span>Capital activo</span><strong>{money(totals.capital)}</strong><small>{activeInvestments.length} inversión{activeInvestments.length===1?'':'es'} vigente{activeInvestments.length===1?'':'s'}</small></article>
+  </section>
 
-    {!canEdit&&<div className="prst-note">Tu rol es de consulta. Podés revisar expedientes, pero no crear, editar ni cambiar estados.</div>}
+  <article className="prst-card prst-investor-directory-card">
+   <div className="prst-card-head prst-investor-directory-head">
+    <div><small>DIRECTORIO</small><h2>Inversionistas registrados</h2><p>Filtrá por estado o documentación y abrí el expediente sin perder el contexto.</p></div>
+    <div className="prst-directory-count"><span>Resultados</span><strong>{filtered.length}</strong></div>
+   </div>
 
-    <div className="prst-section-title">Identificación</div>
+   <div className="prst-directory-tools prst-directory-tools-pro">
+    <input className="prst-search" placeholder="Buscar nombre, DUI, NIT, código, teléfono o correo" value={query} onChange={e=>setQuery(e.target.value)}/>
+    <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="ALL">Todos los estados</option><option value="ACTIVE">Activos</option><option value="INACTIVE">Inactivos</option><option value="BLOCKED">Bloqueados</option></select>
+    <select value={docsFilter} onChange={e=>setDocsFilter(e.target.value)}><option value="ALL">Todos los documentos</option><option value="COMPLETE">Documentación completa</option><option value="PENDING">Documentación pendiente</option></select>
+    {hasFilters&&<button type="button" className="prst-filter-clear" onClick={clearFilters}>Limpiar</button>}
+   </div>
+
+   {!filtered.length?<Empty title="No hay coincidencias">Cambiá los filtros o registrá un nuevo inversionista.</Empty>:<div className="prst-table-wrap prst-investor-table-wrap"><table className="prst-investor-table prst-investor-table-pro">
+    <thead><tr><th>Inversionista</th><th>DUI / NIT</th><th>Contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Actualizado</th><th>Acciones</th></tr></thead>
+    <tbody>{filtered.map(x=>{
+     const docs=[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length
+     const inv=investorInvestmentMap.get(x.id)||{count:0,capital:0}
+     const pct=Math.round((docs/3)*100)
+     return <tr key={x.id}>
+      <td><div className="prst-investor-name-cell"><span className="prst-investor-avatar">{String(x.first_names||'?').trim().charAt(0)}{String(x.last_names||'').trim().charAt(0)}</span><span><b>{fullName(x)}</b><small>{x.investor_code}{age(x.birth_date)!==null?` · ${age(x.birth_date)} años`:''}</small></span></div></td>
+      <td><b>{x.dui||'DUI pendiente'}</b><small>{x.nit?`NIT ${x.nit}`:'Sin NIT adicional'}</small></td>
+      <td><b>{x.phone||x.whatsapp||'Sin teléfono'}</b><small>{x.email||'Sin correo'}</small></td>
+      <td><div className="prst-doc-progress"><div><span style={{width:`${pct}%`}}/></div><small>{docs===3?'Completo':`${docs}/3 documentos`}</small></div></td>
+      <td><b>{inv.count}</b><small>{inv.count?'vigentes':'sin inversión activa'}</small></td>
+      <td><b>{money(inv.capital)}</b><small>capital vigente</small></td>
+      <td><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span></td>
+      <td><b>{date(x.updated_at||x.created_at)}</b><small>{x.updated_at?'última edición':'registro'}</small></td>
+      <td><div className="prst-row-actions prst-investor-actions">
+       <button type="button" className="primary" onClick={()=>setSelectedId(x.id)}>Ver</button>
+       <button type="button" onClick={()=>goProfile(x)}>Perfil 360</button>
+       <button type="button" onClick={()=>goDocuments(x)}>Documentos</button>
+       {inv.count>0&&<button type="button" onClick={()=>goContracts(x)}>Contratos</button>}
+       {canEdit&&<button type="button" onClick={()=>startEdit(x)}>Editar</button>}
+      </div></td>
+     </tr>
+    })}</tbody>
+   </table></div>}
+  </article>
+
+  <section className="prst-investor-followup-grid">
+   <article className="prst-card prst-investor-followup-card">
+    <div className="prst-card-head"><div><small>SEGUIMIENTO DOCUMENTAL</small><h2>Pendientes prioritarios</h2><p>Expedientes con foto o DUI incompletos.</p></div><b className="prst-directory-count compact">{totals.pending}</b></div>
+    {!pendingDocs.length?<Empty title="Documentación al día">Todos los expedientes tienen rostro y DUI completos.</Empty>:<div className="prst-investor-followup-list">{pendingDocs.map(x=>{
+     const missing=[!x.face_photo_path?'Rostro':'',!x.dui_front_path?'DUI frente':'',!x.dui_back_path?'DUI reverso':''].filter(Boolean)
+     return <button key={x.id} type="button" onClick={()=>setSelectedId(x.id)}><span><b>{fullName(x)}</b><small>{missing.join(' · ')}</small></span><strong>{x._docs}/3</strong></button>
+    })}</div>}
+   </article>
+
+   <article className="prst-card prst-investor-followup-card">
+    <div className="prst-card-head"><div><small>ACTIVIDAD RECIENTE</small><h2>Últimos inversionistas</h2><p>Expedientes registrados recientemente.</p></div></div>
+    {!recentInvestors.length?<Empty title="Sin registros"/>:<div className="prst-investor-followup-list recent">{recentInvestors.map(x=><button key={x.id} type="button" onClick={()=>setSelectedId(x.id)}><span><b>{fullName(x)}</b><small>{x.investor_code} · {date(x.created_at)}</small></span><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span></button>)}</div>}
+   </article>
+  </section>
+
+  {formOpen&&<form className="prst-card prst-form prst-investor-form prst-investor-form-pro" onSubmit={submit}>
+   <div className="prst-card-head prst-investor-form-head">
+    <div><small>{editingId?'EDITAR EXPEDIENTE':'NUEVO EXPEDIENTE'}</small><h2>{editingId?'Actualizar inversionista':'Registrar inversionista'}</h2><p>Identificación, contacto, referencia de pago y documentación privada.</p></div>
+    <button className="prst-mini-button" type="button" onClick={reset}>Cerrar formulario</button>
+   </div>
+
+   {!canEdit&&<div className="prst-note">Tu rol es de consulta. Podés revisar expedientes, pero no crear, editar ni cambiar estados.</div>}
+
+   <div className="prst-investor-form-section"><div className="prst-section-title">1 · Identificación</div>
     <div className="prst-form-grid">
      <Field label="Nombres *"><input name="first_names" value={form.first_names} onChange={update} required/></Field>
      <Field label="Apellidos *"><input name="last_names" value={form.last_names} onChange={update} required/></Field>
@@ -203,8 +321,9 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
      <Field label="Estado civil"><input name="marital_status" value={form.marital_status} onChange={update}/></Field>
      <Field label="Profesión u oficio"><input name="profession" value={form.profession} onChange={update}/></Field>
     </div>
+   </div>
 
-    <div className="prst-section-title">Contacto y domicilio</div>
+   <div className="prst-investor-form-section"><div className="prst-section-title">2 · Contacto y domicilio</div>
     <div className="prst-form-grid">
      <Field label="Teléfono"><input name="phone" value={form.phone} onChange={update} inputMode="tel"/></Field>
      <Field label="WhatsApp"><input name="whatsapp" value={form.whatsapp} onChange={update} inputMode="tel"/></Field>
@@ -213,59 +332,29 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
      <Field label="Distrito"><input name="district" value={form.district} onChange={update}/></Field>
      <Field label="Dirección" className="span-2"><textarea name="address" value={form.address} onChange={update}/></Field>
     </div>
+   </div>
 
-    <div className="prst-section-title">Referencia y pago</div>
+   <div className="prst-investor-form-section"><div className="prst-section-title">3 · Referencia y pago</div>
     <div className="prst-form-grid">
      <Field label="Contacto de emergencia"><input name="emergency_contact_name" value={form.emergency_contact_name} onChange={update}/></Field>
      <Field label="Teléfono de emergencia"><input name="emergency_contact_phone" value={form.emergency_contact_phone} onChange={update} inputMode="tel"/></Field>
      <Field label="Banco"><input name="bank_name" value={form.bank_name} onChange={update}/></Field>
      <Field label="Últimos 4 de cuenta" hint="Por seguridad no se guarda el número completo."><input name="bank_account_last4" inputMode="numeric" pattern="[0-9]{4}" maxLength="4" value={form.bank_account_last4} onChange={update}/></Field>
     </div>
+   </div>
 
-    <div className="prst-section-title">Documentos privados</div>
+   <div className="prst-investor-form-section"><div className="prst-section-title">4 · Documentos privados</div>
     <div className="prst-capture-grid">
      <Field label={editingId?'Reemplazar foto del rostro':'Foto del rostro'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="user" onChange={e=>setFace(e.target.files?.[0]||null)}/><small>{face?.name||'Cámara frontal o galería'}</small></Field>
      <Field label={editingId?'Reemplazar DUI frente':'DUI frente'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{setDuiFront(e.target.files?.[0]||null);setOcrApplied(false)}}/><small>{duiFront?.name||'Cámara trasera o galería'}</small></Field>
      <Field label={editingId?'Reemplazar DUI reverso':'DUI reverso'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>setDuiBack(e.target.files?.[0]||null)}/><small>{duiBack?.name||'Cámara trasera o galería'}</small></Field>
     </div>
     <PrestaditosDuiOcr file={duiFront} onApply={({dui,birth_date})=>{setForm(current=>({...current,dui:dui||current.dui,birth_date:birth_date||current.birth_date}));setOcrApplied(true)}}/>
+   </div>
 
-    <Field label="Observaciones internas"><textarea name="notes" value={form.notes} onChange={update}/></Field>
-    <button className="prst-primary" disabled={saving||!canEdit}>{saving?'Guardando…':editingId?'Guardar cambios':'Guardar inversionista'}</button>
-   </form>
-
-   <article className="prst-card">
-    <div className="prst-card-head">
-     <div><small>DIRECTORIO</small><h2>Inversionistas</h2><p>Buscá, revisá y administrá cada expediente.</p></div>
-    </div>
-    <div className="prst-directory-tools">
-     <input className="prst-search" placeholder="Buscar nombre, DUI, NIT, código, teléfono o correo" value={query} onChange={e=>setQuery(e.target.value)}/>
-     <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="ALL">Todos los estados</option><option value="ACTIVE">Activos</option><option value="INACTIVE">Inactivos</option><option value="BLOCKED">Bloqueados</option></select>
-     <select value={docsFilter} onChange={e=>setDocsFilter(e.target.value)}><option value="ALL">Todos los documentos</option><option value="COMPLETE">Documentos completos</option><option value="PENDING">Documentos pendientes</option></select>
-     <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
-    </div>
-
-    {!filtered.length?<Empty title="No hay coincidencias">Cambiá los filtros o registrá un nuevo inversionista.</Empty>:<div className="prst-table-wrap"><table className="prst-investor-table">
-     <thead><tr><th>Inversionista</th><th>Identificación</th><th>Contacto</th><th>Documentos</th><th>Estado</th><th>Acciones</th></tr></thead>
-     <tbody>{filtered.map(x=>{
-      const docs=[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length
-      return <tr key={x.id}>
-       <td><b>{fullName(x)}</b><small>{x.investor_code}{age(x.birth_date)!==null?` · ${age(x.birth_date)} años`:''}</small></td>
-       <td><b>DUI {x.dui}</b><small>{x.nit?`NIT ${x.nit}`:'Sin NIT adicional'}</small></td>
-       <td><b>{x.phone||x.whatsapp||'Sin teléfono'}</b><small>{x.email||'Sin correo'}</small></td>
-       <td><span className={`prst-doc-badge ${docs===3?'complete':'pending'}`}>{docs}/3</span></td>
-       <td><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span></td>
-       <td><div className="prst-row-actions">
-        <button type="button" onClick={()=>setSelectedId(x.id)}>Ver</button>
-        {canEdit&&<button type="button" onClick={()=>startEdit(x)}>Editar</button>}
-        {canEdit&&(x.status==='ACTIVE'?<button type="button" onClick={()=>changeStatus(x,'INACTIVE')}>Inactivar</button>:<button type="button" onClick={()=>changeStatus(x,'ACTIVE')}>Reactivar</button>)}
-        {canEdit&&x.status!=='BLOCKED'&&<button type="button" className="danger" onClick={()=>changeStatus(x,'BLOCKED')}>Bloquear</button>}
-       </div></td>
-      </tr>
-     })}</tbody>
-    </table></div>}
-   </article>
-  </section>
+   <Field label="Observaciones internas"><textarea name="notes" value={form.notes} onChange={update}/></Field>
+   <div className="prst-investor-form-actions"><button type="button" className="prst-mini-button" onClick={reset}>Cancelar</button><button className="prst-primary" disabled={saving||!canEdit}>{saving?'Guardando…':editingId?'Guardar cambios':'Guardar inversionista'}</button></div>
+  </form>}
 
   {selected&&<InvestorDetail
     investor={selected}
