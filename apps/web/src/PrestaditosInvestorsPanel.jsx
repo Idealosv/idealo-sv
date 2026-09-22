@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import PrestaditosDuiOcr from './PrestaditosDuiOcr.jsx'
+import { canPrestaditos } from './prestaditos-permissions.js'
 
 const EMPTY_FORM={
  first_names:'',last_names:'',birth_date:'',dui:'',nit:'',marital_status:'',profession:'',
@@ -28,7 +29,7 @@ const statusLabel=value=>({ACTIVE:'Activo',INACTIVE:'Inactivo',BLOCKED:'Bloquead
 function Field({label,children,hint,className=''}){return <label className={`prst-field ${className}`.trim()}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
 function Empty({title,children}){return <div className="prst-empty"><strong>{title}</strong>{children&&<p>{children}</p>}</div>}
 
-export default function PrestaditosInvestorsPanel({company,investors,investments,beneficiaries,payments,query,setQuery,saving,act}){
+export default function PrestaditosInvestorsPanel({company,role,investors,investments,beneficiaries,payments,query,setQuery,saving,act}){
  const [form,setForm]=useState(EMPTY_FORM)
  const [editingId,setEditingId]=useState('')
  const [selectedId,setSelectedId]=useState('')
@@ -38,6 +39,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
  const [duiFront,setDuiFront]=useState(null)
  const [duiBack,setDuiBack]=useState(null)
  const [ocrApplied,setOcrApplied]=useState(false)
+ const canEdit=canPrestaditos(role,'EDIT_INVESTOR')
 
  const selected=investors.find(x=>x.id===selectedId)||null
  const filtered=useMemo(()=>{
@@ -84,6 +86,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
 
  const submit=e=>{
   e.preventDefault()
+  if(!canEdit)return
   act(async()=>{
    const payload={
     first_names:normalized(form.first_names),
@@ -155,6 +158,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
  }
 
  const changeStatus=(investor,status)=>{
+  if(!canEdit)return
   const text=status==='BLOCKED'?'bloquear':status==='INACTIVE'?'marcar como inactivo':'reactivar'
   if(!window.confirm(`¿Confirmás ${text} el expediente de ${fullName(investor)}?`))return
   act(async()=>{
@@ -185,6 +189,8 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
      <div><small>{editingId?'EDITAR EXPEDIENTE':'NUEVO EXPEDIENTE'}</small><h2>{editingId?'Actualizar inversionista':'Registrar inversionista'}</h2><p>Datos personales, contacto, referencias y documentación privada.</p></div>
      {editingId&&<button className="prst-mini-button" type="button" onClick={reset}>Cancelar edición</button>}
     </div>
+
+    {!canEdit&&<div className="prst-note">Tu rol es de consulta. Podés revisar expedientes, pero no crear, editar ni cambiar estados.</div>}
 
     <div className="prst-section-title">Identificación</div>
     <div className="prst-form-grid">
@@ -225,7 +231,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
     <PrestaditosDuiOcr file={duiFront} onApply={({dui,birth_date})=>{setForm(current=>({...current,dui:dui||current.dui,birth_date:birth_date||current.birth_date}));setOcrApplied(true)}}/>
 
     <Field label="Observaciones internas"><textarea name="notes" value={form.notes} onChange={update}/></Field>
-    <button className="prst-primary" disabled={saving}>{saving?'Guardando…':editingId?'Guardar cambios':'Guardar inversionista'}</button>
+    <button className="prst-primary" disabled={saving||!canEdit}>{saving?'Guardando…':editingId?'Guardar cambios':'Guardar inversionista'}</button>
    </form>
 
    <article className="prst-card">
@@ -251,9 +257,9 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
        <td><span className={`prst-status ${String(x.status||'').toLowerCase()}`}>{statusLabel(x.status)}</span></td>
        <td><div className="prst-row-actions">
         <button type="button" onClick={()=>setSelectedId(x.id)}>Ver</button>
-        <button type="button" onClick={()=>startEdit(x)}>Editar</button>
-        {x.status==='ACTIVE'?<button type="button" onClick={()=>changeStatus(x,'INACTIVE')}>Inactivar</button>:<button type="button" onClick={()=>changeStatus(x,'ACTIVE')}>Reactivar</button>}
-        {x.status!=='BLOCKED'&&<button type="button" className="danger" onClick={()=>changeStatus(x,'BLOCKED')}>Bloquear</button>}
+        {canEdit&&<button type="button" onClick={()=>startEdit(x)}>Editar</button>}
+        {canEdit&&(x.status==='ACTIVE'?<button type="button" onClick={()=>changeStatus(x,'INACTIVE')}>Inactivar</button>:<button type="button" onClick={()=>changeStatus(x,'ACTIVE')}>Reactivar</button>)}
+        {canEdit&&x.status!=='BLOCKED'&&<button type="button" className="danger" onClick={()=>changeStatus(x,'BLOCKED')}>Bloquear</button>}
        </div></td>
       </tr>
      })}</tbody>
@@ -268,7 +274,7 @@ export default function PrestaditosInvestorsPanel({company,investors,investments
     beneficiaries={beneficiaries.filter(x=>x.investor_id===selected.id)}
     payments={payments.filter(x=>x.investor_id===selected.id)}
     onClose={()=>setSelectedId('')}
-    onEdit={()=>startEdit(selected)}
+    onEdit={canEdit?()=>startEdit(selected):null}
     onOpenDocument={openDocument}
   />}
  </section>
@@ -305,7 +311,7 @@ function InvestorDetail({investor,investments,beneficiaries,payments,onClose,onE
    <div className="prst-document-actions">{docs.map(([label,path])=><button key={label} type="button" disabled={!path} onClick={()=>onOpenDocument(path)}><span>{label}</span><strong>{path?'Abrir documento':'Pendiente'}</strong></button>)}</div>
    <div className="prst-section-title">Beneficiarios</div>
    {!beneficiaries.length?<Empty title="Sin beneficiarios"/>:<div className="prst-compact-list">{beneficiaries.map(x=><div key={x.id}><span><b>{x.full_name}</b><small>{x.relationship||'Relación pendiente'}</small></span><strong>{Number(x.percentage).toFixed(2)}%</strong></div>)}</div>}
-   <div className="prst-modal-actions"><button type="button" onClick={onClose}>Cerrar</button><button type="button" className="primary" onClick={onEdit}>Editar expediente</button></div>
+   <div className="prst-modal-actions"><button type="button" onClick={onClose}>Cerrar</button>{onEdit&&<button type="button" className="primary" onClick={onEdit}>Editar expediente</button>}</div>
   </section>
  </div>
 }
