@@ -21,7 +21,7 @@ test('el arranque crítico no importa estáticamente los runtimes secundarios', 
   assert.match(main, /timeout:350/)
   for (const moduleName of deferredModules) {
     assert.doesNotMatch(main, new RegExp(`import\\s+${moduleName}\\s+from`), `${moduleName} no debe bloquear el primer render`)
-    assert.match(deferred, new RegExp(`const\\s+${moduleName}\\s*=\\s*lazy\\(`), `${moduleName} debe conservarse como runtime diferido lazy`)
+    assert.ok(deferred.includes(`const ${moduleName} = lazy(`), `${moduleName} debe conservarse como runtime diferido lazy`)
   }
 })
 
