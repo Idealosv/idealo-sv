@@ -2160,3 +2160,87 @@
 @media(max-width:700px){
   .prst-report-picker{grid-template-columns:1fr}
 }
+
+
+/* ===== INVESTOR EDITOR MODAL · CLEAN WORKSPACE ===== */
+.prst-editor-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:grid;
+  place-items:center;
+  padding:28px;
+  background:rgba(15,23,32,.52);
+  backdrop-filter:blur(4px);
+}
+.prst-editor-modal{
+  width:min(1080px,calc(100vw - 56px));
+  max-height:calc(100vh - 56px);
+  overflow:auto;
+  margin:0!important;
+  border-radius:16px!important;
+  box-shadow:0 24px 70px rgba(16,24,40,.24)!important;
+}
+.prst-editor-modal-preview{
+  width:min(900px,calc(100vw - 56px));
+}
+.prst-editor-modal .prst-card-head{
+  position:sticky;
+  top:0;
+  z-index:5;
+  margin:-20px -20px 16px!important;
+  padding:18px 20px 14px!important;
+  border-bottom:1px solid #e4e9ed;
+  background:#fff;
+}
+.prst-editor-modal .prst-investor-form-actions,
+.prst-editor-modal .prst-preview-edit-actions{
+  position:sticky;
+  bottom:0;
+  z-index:5;
+  margin:16px -20px -20px!important;
+  padding:14px 20px!important;
+  border-top:1px solid #e4e9ed;
+  background:#fff;
+}
+.prst-investor-followup-grid{
+  align-items:start!important;
+}
+.prst-investor-followup-card{
+  min-height:0!important;
+}
+.prst-investor-followup-list{
+  max-height:220px;
+  overflow:auto;
+}
+.prst-top-actions{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  gap:7px!important;
+  flex-wrap:nowrap!important;
+}
+.prst-top-actions>button,
+.prst-top-actions>.prst-system-menu>summary{
+  min-width:auto!important;
+  white-space:nowrap!important;
+}
+
+@media(max-width:760px){
+  .prst-editor-backdrop{padding:10px}
+  .prst-editor-modal,
+  .prst-editor-modal-preview{
+    width:100%;
+    max-height:calc(100vh - 20px);
+    border-radius:12px!important;
+  }
+  .prst-editor-modal .prst-card-head{
+    margin:-15px -15px 14px!important;
+    padding:15px!important;
+  }
+  .prst-editor-modal .prst-investor-form-actions,
+  .prst-editor-modal .prst-preview-edit-actions{
+    margin:14px -15px -15px!important;
+    padding:12px 15px!important;
+  }
+}
