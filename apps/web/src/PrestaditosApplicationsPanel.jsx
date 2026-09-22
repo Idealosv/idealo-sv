@@ -303,12 +303,7 @@ export default function PrestaditosApplicationsPanel({
         <td><b>{row.payment_place||'Pendiente'}</b><small>{row.payment_method||'Forma pendiente'}</small></td>
         <td><Status value={row.status}/>{row.status==='APPROVED'&&<small>{money(row.approved_amount||row.requested_amount)} · {row.approved_term_months||row.requested_term_months} meses</small>}{investment&&<small>{investment.investment_code}</small>}</td>
         <td><div className="prst-row-actions">
-         <button type="button" onClick={()=>setSelectedId(row.id)}>Ver</button>
-         {canReview&&row.status==='PENDING'&&<><button type="button" onClick={()=>startEdit(row)}>Editar</button><button type="button" onClick={()=>transition(row,'REVIEW',{success:'Solicitud tomada para revisión.'})}>Revisar</button></>}
-         {canReview&&row.status==='REVIEW'&&<><button type="button" className="approve" onClick={()=>openApprove(row)}>Aprobar</button><button type="button" className="danger" onClick={()=>openReject(row)}>Rechazar</button></>}
-         {canReview&&row.status==='APPROVED'&&<button type="button" onClick={()=>transition(row,'SIGNATURE',{success:'Solicitud enviada a etapa de firma.'})}>Enviar a firma</button>}
-         {canReview&&row.status==='SIGNATURE'&&<button type="button" onClick={()=>transition(row,'FUNDS_RECEIVED',{success:'Recepción de fondos registrada. La solicitud está lista para formalizar.'})}>Fondos recibidos</button>}
-         {canReview&&row.status==='FUNDS_RECEIVED'&&!investment&&<button type="button" className="approve" onClick={()=>onFormalize?.(row.id)}>Formalizar</button>}
+         <button type="button" className="primary" onClick={()=>setSelectedId(row.id)}>Gestionar</button>
         </div></td>
        </tr>
       })}</tbody>
