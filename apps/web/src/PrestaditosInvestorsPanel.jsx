@@ -283,7 +283,7 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
 function InvestorDetail({investor,investments,beneficiaries,payments,onClose,onEdit,onOpenDocument}){
  const active=investments.filter(x=>['ACTIVE','MATURING'].includes(x.status))
  const capital=active.reduce((s,x)=>s+Number(x.principal||0),0)
- const yieldPaid=payments.filter(x=>x.payment_type==='YIELD').reduce((s,x)=>s+Number(x.amount||0),0)
+ const yieldPaid=payments.filter(x=>x.payment_type==='YIELD'&&(x.status||'POSTED')==='POSTED').reduce((s,x)=>s+Number(x.amount||0),0)
  const docs=[
   ['Rostro',investor.face_photo_path],
   ['DUI frente',investor.dui_front_path],
