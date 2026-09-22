@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import './prestaditos-investors.css'
+import './prestaditos-theme.css'
 import PrestaditosInvestorsPanel from './PrestaditosInvestorsPanel.jsx'
 import PrestaditosApplicationsPanel from './PrestaditosApplicationsPanel.jsx'
 import PrestaditosInvestmentsPanel from './PrestaditosInvestmentsPanel.jsx'
