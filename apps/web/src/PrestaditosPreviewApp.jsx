@@ -464,12 +464,157 @@ function Applications(){
   </div>}
  </section>
 }
-function Investments(){return <>
- <section className="prst-investor-summary"><article><span>Inversiones activas</span><strong>2</strong><small>vigentes</small></article><article><span>Capital activo</span><strong>{money(12000)}</strong><small>formalizado</small></article><article><span>Referencia anual</span><strong>{money(1360)}</strong><small>demostrativa</small></article><article><span>Vencidas</span><strong>1</strong><small>requiere gestión</small></article></section>
- <Card title="Portafolio de inversiones" kicker="INVERSIONES">
-  <Table headers={['Inversión','Inversionista','Capital','Plazo','Tasa anual','Otorgada','Vence','Referencia anual','Estado']} rows={demo.investments.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.term} meses</td><td><b>{x.rate}% anual</b><small>según monto de ejemplo</small></td><td>{x.granted}</td><td>{x.maturity}</td><td>{money(x.gain)}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Investments(){
+ const [rows,setRows]=useState(demo.investments)
+ const [query,setQuery]=useState('')
+ const [status,setStatus]=useState('ALL')
+ const [selected,setSelected]=useState(null)
+ const [draft,setDraft]=useState(null)
+ const [notice,setNotice]=useState('')
+
+ const activeRows=rows.filter(x=>x.status==='Activa')
+ const expiredRows=rows.filter(x=>x.status==='Vencida')
+ const activeCapital=activeRows.reduce((s,x)=>s+Number(x.capital||0),0)
+ const annualReference=activeRows.reduce((s,x)=>s+Number(x.gain||0),0)
+ const averageRate=activeRows.length?activeRows.reduce((s,x)=>s+Number(x.rate||0),0)/activeRows.length:0
+ const q=query.trim().toLowerCase()
+ const filtered=rows.filter(x=>
+  (status==='ALL'||x.status===status)&&
+  (!q||(x.code+' '+x.name+' '+x.status).toLowerCase().includes(q))
+ )
+
+ const formatDate=value=>{
+  if(!value)return ''
+  const d=new Date(value+'T12:00:00')
+  if(Number.isNaN(d.getTime()))return value
+  return d.toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}).replace('.','')
+ }
+ const maturityFor=(date,term)=>{
+  if(!date)return ''
+  const d=new Date(date+'T12:00:00')
+  d.setMonth(d.getMonth()+Number(term||0))
+  return d.toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}).replace('.','')
+ }
+ const openNew=()=>{
+  const investor=demo.investors[0]?.name||''
+  setDraft({
+   code:'INVEST-DEMO-'+String(Date.now()).slice(-6),
+   name:investor,
+   capital:5000,
+   term:12,
+   rate:10,
+   granted:new Date().toISOString().slice(0,10),
+   status:'Activa'
+  })
+  setNotice('')
+ }
+ const save=e=>{
+  e.preventDefault()
+  if(!draft)return
+  const capital=Number(draft.capital||0)
+  const rate=Number(draft.rate||0)
+  const term=Number(draft.term||0)
+  if(capital<=0||rate<=0||term<=0){
+   setNotice('Completá capital, plazo y tasa con valores mayores que cero.')
+   return
+  }
+  const maturity=maturityFor(draft.granted,term)
+  const gain=capital*rate/100
+  setRows(current=>[{
+   code:draft.code,
+   name:draft.name,
+   capital,
+   term,
+   rate,
+   granted:formatDate(draft.granted),
+   maturity,
+   gain,
+   status:'Activa'
+  },...current])
+  setDraft(null)
+  setNotice('')
+ }
+
+ return <section className="prst-investments-module">
+  <section className="prst-investment-command">
+   <div><small>INVERSIONES</small><h2>Portafolio y control de capital</h2><p>Consultá capital, tasa, vencimientos y estado de cada inversión desde una sola pantalla.</p></div>
+   <button type="button" className="primary" onClick={openNew}>+ Nueva inversión</button>
+  </section>
+
+  <section className="prst-investor-summary prst-investment-summary">
+   <article><span>Inversiones activas</span><strong>{activeRows.length}</strong><small>vigentes</small></article>
+   <article><span>Capital activo</span><strong>{money(activeCapital)}</strong><small>formalizado</small></article>
+   <article><span>Referencia anual</span><strong>{money(annualReference)}</strong><small>proyectada</small></article>
+   <article><span>Vencidas</span><strong>{expiredRows.length}</strong><small>{expiredRows.length?'requiere gestión':'sin pendientes'}</small></article>
+  </section>
+
+  <section className="prst-investment-insights">
+   <div><span>Tasa promedio activa</span><strong>{averageRate.toFixed(1)}%</strong></div>
+   <div><span>Capital vencido</span><strong>{money(expiredRows.reduce((s,x)=>s+Number(x.capital||0),0))}</strong></div>
+   <div><span>Total administrado</span><strong>{money(rows.reduce((s,x)=>s+Number(x.capital||0),0))}</strong></div>
+  </section>
+
+  <Card title="Portafolio de inversiones" kicker="INVERSIONES">
+   <div className="prst-investment-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar inversión o inversionista"/>
+    <select value={status} onChange={e=>setStatus(e.target.value)}>
+     <option value="ALL">Todos los estados</option>
+     <option value="Activa">Activas</option>
+     <option value="Vencida">Vencidas</option>
+    </select>
+    <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
+   </div>
+   <Table headers={['Inversión','Inversionista','Capital','Plazo','Tasa','Otorgada','Vence','Ref. anual','Estado','Acción']} rows={filtered.map(x=><tr key={x.code}>
+    <td><b>{x.code}</b></td>
+    <td><b>{x.name}</b></td>
+    <td><b>{money(x.capital)}</b></td>
+    <td>{x.term} meses</td>
+    <td><b>{x.rate}%</b><small>anual</small></td>
+    <td>{x.granted}</td>
+    <td><b className={x.status==='Vencida'?'prst-date-alert':''}>{x.maturity}</b></td>
+    <td>{money(x.gain)}</td>
+    <td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td>
+    <td><button type="button" className="prst-mini-button" onClick={()=>setSelected(x)}>Ver detalle</button></td>
+   </tr>)}/>
+  </Card>
+
+  {selected&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}>
+   <section className="prst-investor-modal prst-investment-detail">
+    <header><div><small>DETALLE DE INVERSIÓN</small><h2>{selected.code}</h2><p>{selected.name}</p></div><button type="button" onClick={()=>setSelected(null)}>×</button></header>
+    <section className="prst-profile-metrics">
+     <article><span>Capital</span><strong>{money(selected.capital)}</strong></article>
+     <article><span>Tasa anual</span><strong>{selected.rate}%</strong></article>
+     <article><span>Plazo</span><strong>{selected.term} meses</strong></article>
+     <article><span>Referencia anual</span><strong>{money(selected.gain)}</strong></article>
+    </section>
+    <div className="prst-profile-grid">
+     <article><small>Otorgada</small><b>{selected.granted}</b><span>Fecha de formalización de la inversión.</span></article>
+     <article><small>Vencimiento</small><b>{selected.maturity}</b><span>Fecha programada para cierre o renovación.</span></article>
+     <article><small>Estado</small><b>{selected.status}</b><span>{selected.status==='Vencida'?'Requiere seguimiento de vencimiento.':'Inversión vigente dentro del portafolio.'}</span></article>
+     <article><small>Contrato</small><b>{demo.contracts.find(c=>c.investment===selected.code)?.number||'Pendiente de asociar'}</b><span>Referencia contractual vinculada.</span></article>
+    </div>
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setSelected(null)}>Cerrar</button></div>
+   </section>
+  </div>}
+
+  {draft&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setDraft(null)}>
+   <form className="prst-investor-modal prst-investment-editor" onSubmit={save}>
+    <header><div><small>VISTA PREVIA</small><h2>Nueva inversión</h2><p>Registro demostrativo para validar flujo, diseño y controles.</p></div><button type="button" onClick={()=>setDraft(null)}>×</button></header>
+    <div className="prst-form-grid prst-investment-form">
+     <label className="prst-field span-2"><span>Inversionista</span><select value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+     <label className="prst-field"><span>Capital</span><input type="number" min="1" step="0.01" value={draft.capital} onChange={e=>setDraft({...draft,capital:e.target.value})}/></label>
+     <label className="prst-field"><span>Plazo</span><select value={draft.term} onChange={e=>setDraft({...draft,term:e.target.value})}><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option><option value="18">18 meses</option><option value="24">24 meses</option></select></label>
+     <label className="prst-field"><span>Tasa anual (%)</span><input type="number" min="0.01" step="0.01" value={draft.rate} onChange={e=>setDraft({...draft,rate:e.target.value})}/></label>
+     <label className="prst-field"><span>Fecha de otorgamiento</span><input type="date" value={draft.granted} onChange={e=>setDraft({...draft,granted:e.target.value})}/></label>
+     <label className="prst-field"><span>Referencia anual calculada</span><input readOnly value={money(Number(draft.capital||0)*Number(draft.rate||0)/100)}/></label>
+     <label className="prst-field"><span>Vencimiento estimado</span><input readOnly value={maturityFor(draft.granted,draft.term)}/></label>
+    </div>
+    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setDraft(null)}>Cancelar</button><button type="submit" className="primary">Guardar inversión demo</button></div>
+   </form>
+  </div>}
+ </section>
+}
 
 function Beneficiaries(){
  const RELATION_OPTIONS=['Esposa/o','Hijo/a','Madre','Padre','Hermano/a','Otro']
