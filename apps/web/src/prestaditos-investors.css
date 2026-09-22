@@ -2845,3 +2845,20 @@
  .prst-application-tools>span{text-align:left}
  .prst-application-detail-grid{grid-template-columns:1fr}
 }
+
+
+/* ===== APPLICATION FORM · COMPLETE DATA ===== */
+.prst-application-modal-expanded{width:min(900px,calc(100vw - 24px));max-height:92vh;overflow:auto}
+.prst-application-form-section{margin-top:2px}
+.prst-application-form-section+.prst-application-form-section{margin-top:8px}
+.prst-application-form-section .prst-section-title{margin:6px 0 9px}
+.prst-application-modal-expanded .prst-field input[readonly]{
+ background:#f5f7f9;color:#4e5964
+}
+.prst-application-modal-expanded textarea{min-height:64px}
+.prst-application-notes{margin-top:10px;padding:9px 10px;border:1px solid #e0e5e9;border-radius:8px;background:#f8fafb}
+.prst-application-notes span{display:block;color:#75808a;font-size:8px;font-weight:900;text-transform:uppercase}
+.prst-application-notes p{margin:4px 0 0;font-size:9px;line-height:1.45;color:#344054}
+@media(max-width:760px){
+ .prst-application-modal-expanded{width:100%;max-height:96vh}
+}

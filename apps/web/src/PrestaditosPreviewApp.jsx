@@ -334,12 +334,43 @@ function Applications(){
  const filtered=rows.filter(x=>(status==='ALL'||x.status===status)&&(!q||(x.code+' '+x.name+' '+x.place+' '+x.status).toLowerCase().includes(q)))
  const pending=rows.filter(x=>x.status==='Pendiente'||x.status==='En revisión')
  const approved=rows.filter(x=>x.status==='Aprobada')
- const openNew=()=>{setDraft({code:'SOL-DEMO-'+String(Date.now()).slice(-6),name:demo.investors[0]?.name||'',amount:5000,term:12,place:'Transferencia bancaria',status:'Pendiente'});setNotice('')}
+ const annualRate=amount=>Number(amount||0)>=10000?15:Number(amount||0)>=5000?12:10
+ const openNew=()=>{
+  const first=demo.investors[0]
+  const amount=5000
+  setDraft({
+   code:'SOL-DEMO-'+String(Date.now()).slice(-6),
+   name:first?.name||'',
+   investorCode:first?.code||'',
+   dui:first?.dui||'',
+   phone:first?.phone||'',
+   email:first?.email||'',
+   amount,
+   term:12,
+   rate:annualRate(amount),
+   place:'Transferencia bancaria',
+   channel:'Presencial',
+   fundsOrigin:'Ahorros propios',
+   bankReference:'',
+   requestDate:new Date().toISOString().slice(0,10),
+   notes:'',
+   status:'Pendiente'
+  })
+  setNotice('')
+ }
  const close=()=>{setDraft(null);setNotice('')}
+ const setInvestor=name=>{
+  const investor=demo.investors.find(x=>x.name===name)
+  setDraft(current=>({...current,name,investorCode:investor?.code||'',dui:investor?.dui||'',phone:investor?.phone||'',email:investor?.email||''}))
+ }
+ const setAmount=value=>{
+  const amount=value
+  setDraft(current=>({...current,amount,rate:annualRate(amount)}))
+ }
  const save=e=>{
   e.preventDefault()
   if(!draft?.name||Number(draft.amount)<=0||Number(draft.term)<=0){setNotice('Completá correctamente los datos de la solicitud.');return}
-  setRows(current=>[{...draft,amount:Number(draft.amount),term:Number(draft.term)},...current])
+  setRows(current=>[{...draft,amount:Number(draft.amount),term:Number(draft.term),rate:Number(draft.rate)},...current])
   setDraft(null);setNotice('')
  }
  const updateStatus=(code,next)=>{
@@ -375,9 +406,14 @@ function Applications(){
    <section className="prst-card prst-editor-modal prst-application-detail">
     <div className="prst-card-head"><div><small>SOLICITUD</small><h2>{selected.code}</h2><p>Detalle y control de estado.</p></div><button type="button" className="prst-mini-button" onClick={()=>setSelected(null)}>Cerrar</button></div>
     <div className="prst-application-detail-grid">
-     <article><span>Inversionista</span><b>{selected.name}</b></article><article><span>Monto</span><b>{money(selected.amount)}</b></article>
-     <article><span>Plazo</span><b>{selected.term} meses</b></article><article><span>Lugar</span><b>{selected.place}</b></article>
+     <article><span>Inversionista</span><b>{selected.name}</b><small>{selected.dui||'DUI registrado en expediente'}</small></article>
+     <article><span>Monto</span><b>{money(selected.amount)}</b><small>{selected.rate?selected.rate+'% anual referencial':'tasa según monto'}</small></article>
+     <article><span>Plazo</span><b>{selected.term} meses</b><small>{selected.requestDate||'fecha de muestra'}</small></article>
+     <article><span>Lugar / medio</span><b>{selected.place}</b><small>{selected.channel||'canal no indicado'}</small></article>
+     <article><span>Origen de fondos</span><b>{selected.fundsOrigin||'No indicado'}</b><small>{selected.bankReference||'sin referencia adicional'}</small></article>
+     <article><span>Contacto</span><b>{selected.phone||'—'}</b><small>{selected.email||'—'}</small></article>
     </div>
+    {selected.notes&&<div className="prst-application-notes"><span>Observaciones</span><p>{selected.notes}</p></div>}
     <div className="prst-application-state-actions"><span>Estado actual: <Status tone={selected.status==='Aprobada'?'active':selected.status==='Pendiente'?'pending':'review'}>{selected.status}</Status></span><div>
      <button type="button" onClick={()=>updateStatus(selected.code,'En revisión')}>En revisión</button>
      <button type="button" className="primary" onClick={()=>updateStatus(selected.code,'Aprobada')}>Aprobar</button>
@@ -386,16 +422,44 @@ function Applications(){
   </div>}
 
   {draft&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&close()}>
-   <form className="prst-card prst-editor-modal prst-application-modal" onSubmit={save}>
-    <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>Nueva solicitud</h2><p>Registrá una solicitud de inversión para revisión.</p></div><button type="button" className="prst-mini-button" onClick={close}>Cerrar</button></div>
-    <div className="prst-form-grid">
-     <label className="prst-field span-2"><span>Inversionista</span><select value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
-     <label className="prst-field"><span>Monto solicitado</span><input type="number" min="1" step="0.01" value={draft.amount} onChange={e=>setDraft({...draft,amount:e.target.value})}/></label>
-     <label className="prst-field"><span>Plazo</span><select value={draft.term} onChange={e=>setDraft({...draft,term:Number(e.target.value)})}><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option><option value="18">18 meses</option><option value="24">24 meses</option></select></label>
-     <label className="prst-field span-2"><span>Lugar / medio</span><select value={draft.place} onChange={e=>setDraft({...draft,place:e.target.value})}><option>Transferencia bancaria</option><option>Oficina central</option><option>Depósito bancario</option></select></label>
+   <form className="prst-card prst-editor-modal prst-application-modal prst-application-modal-expanded" onSubmit={save}>
+    <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>Nueva solicitud</h2><p>Registrá la información necesaria para revisar y aprobar una inversión.</p></div><button type="button" className="prst-mini-button" onClick={close}>Cerrar</button></div>
+
+    <div className="prst-application-form-section">
+     <div className="prst-section-title">Datos del inversionista</div>
+     <div className="prst-form-grid">
+      <label className="prst-field span-2"><span>Inversionista</span><select value={draft.name} onChange={e=>setInvestor(e.target.value)}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+      <label className="prst-field"><span>DUI</span><input value={draft.dui} readOnly/></label>
+      <label className="prst-field"><span>Código de inversionista</span><input value={draft.investorCode} readOnly/></label>
+      <label className="prst-field"><span>Teléfono</span><input value={draft.phone} readOnly/></label>
+      <label className="prst-field"><span>Correo</span><input value={draft.email} readOnly/></label>
+     </div>
     </div>
+
+    <div className="prst-application-form-section">
+     <div className="prst-section-title">Datos de la solicitud</div>
+     <div className="prst-form-grid">
+      <label className="prst-field"><span>Monto solicitado</span><input type="number" min="1" step="0.01" value={draft.amount} onChange={e=>setAmount(e.target.value)}/></label>
+      <label className="prst-field"><span>Plazo</span><select value={draft.term} onChange={e=>setDraft({...draft,term:Number(e.target.value)})}><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option><option value="18">18 meses</option><option value="24">24 meses</option></select></label>
+      <label className="prst-field"><span>Tasa anual referencial</span><input value={draft.rate+'% anual'} readOnly/><small>Se calcula automáticamente por monto en esta demostración.</small></label>
+      <label className="prst-field"><span>Referencia anual estimada</span><input value={money(Number(draft.amount||0)*Number(draft.rate||0)/100)} readOnly/></label>
+      <label className="prst-field"><span>Fecha de solicitud</span><input type="date" value={draft.requestDate} onChange={e=>setDraft({...draft,requestDate:e.target.value})}/></label>
+      <label className="prst-field"><span>Canal</span><select value={draft.channel} onChange={e=>setDraft({...draft,channel:e.target.value})}><option>Presencial</option><option>WhatsApp</option><option>Teléfono</option><option>Correo</option><option>Referido</option></select></label>
+     </div>
+    </div>
+
+    <div className="prst-application-form-section">
+     <div className="prst-section-title">Fondos y recepción</div>
+     <div className="prst-form-grid">
+      <label className="prst-field"><span>Lugar / medio</span><select value={draft.place} onChange={e=>setDraft({...draft,place:e.target.value})}><option>Transferencia bancaria</option><option>Oficina central</option><option>Depósito bancario</option><option>Efectivo</option></select></label>
+      <label className="prst-field"><span>Origen de fondos</span><select value={draft.fundsOrigin} onChange={e=>setDraft({...draft,fundsOrigin:e.target.value})}><option>Ahorros propios</option><option>Ingresos laborales</option><option>Actividad comercial</option><option>Venta de activo</option><option>Otro</option></select></label>
+      <label className="prst-field span-2"><span>Referencia bancaria / comprobante</span><input value={draft.bankReference} onChange={e=>setDraft({...draft,bankReference:e.target.value})} placeholder="Opcional: banco, número de referencia o comprobante"/></label>
+      <label className="prst-field span-2"><span>Observaciones</span><textarea value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})} placeholder="Notas internas para revisión de la solicitud"/></label>
+     </div>
+    </div>
+
     {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
-    <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
+    <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary">Guardar solicitud demo</button></div></div>
    </form>
   </div>}
  </section>
