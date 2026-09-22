@@ -53,7 +53,7 @@ button.prst-dash-kpi{cursor:pointer}
 .prst-dash-kpi-icon{display:grid!important;place-items:center;width:58px;height:58px;border-radius:15px;background:#f2f4f7;color:#344054;font-size:14px!important;font-weight:950!important}
 .prst-dash-kpi.blue .prst-dash-kpi-icon{background:#edf3ff;color:#325fb8}.prst-dash-kpi.red .prst-dash-kpi-icon{background:#fdeef0;color:#b82c3d}.prst-dash-kpi.orange .prst-dash-kpi-icon{background:#fff5df;color:#9b6811}.prst-dash-kpi.indigo .prst-dash-kpi-icon{background:#f0efff;color:#575db2}.prst-dash-kpi.green .prst-dash-kpi-icon{background:#eaf7f1;color:#24724f}.prst-dash-kpi.purple .prst-dash-kpi-icon{background:#f3effd;color:#6848a9}
 .prst-dash-kpi>div>span{display:block;color:#667085;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.055em}
-.prst-dash-kpi strong{display:block;margin-top:7px;color:#101828;font-size:32px;line-height:1.06;letter-spacing:-.035em}
+.prst-dash-kpi strong{display:block;margin-top:7px;color:#101828;font-size:27px;line-height:1.08;letter-spacing:-.03em}
 .prst-dash-kpi small{display:block;margin-top:7px;color:#75808e;font-size:13px;line-height:1.4}
 
 /* Layout */
