@@ -6,7 +6,7 @@ const here=path.dirname(fileURLToPath(import.meta.url))
 const root=path.resolve(here,'..')
 const checks=[
  ['src/EggWholesaleAppHost.jsx',['EggExecutiveDashboard','EggDocumentsPanel','EggAiPanel','EggCommercialPanel','Documentos','Comercial']],
- ['src/EggMachinePanel.jsx',['CLASIFICACIÓN AUTOMÁTICA','egg_import_weight_events_secure','Conectar USB / Serial','Distribución automática','Configuración avanzada']],
+ ['src/EggMachinePanel.jsx',['CLASIFICACIÓN AUTOMÁTICA','egg_import_weight_events_secure','Conectar USB / Serial','Distribución automática','CONFIGURACIÓN AVANZADA']],
  ['src/EggMobileDeliveryPanel.jsx',['egg_start_route_mobile','egg_deliver_route_stop_mobile']],
  ['src/EggDtePanel.jsx',['Firmar TEST','Enviar a MH TEST']],
  ['src/EggPricingPanel.jsx',['PRECIOS MAYORISTAS','Utilidad','Margen']],
