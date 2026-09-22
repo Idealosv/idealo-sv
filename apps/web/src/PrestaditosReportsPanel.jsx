@@ -88,9 +88,18 @@ export default function PrestaditosReportsPanel({company,investors,applications,
     <button type="button" className="prst-report-export" onClick={exportCurrent} disabled={!data.length}>Exportar CSV</button>
    </div>
 
-   <div className="prst-report-tabs">
-    {[['INVESTMENTS','Inversiones'],['INVESTORS','Inversionistas'],['APPLICATIONS','Solicitudes'],['PAYMENTS','Pagos'],['MATURITIES','Vencimientos'],['RENEWALS','Renovaciones'],['DOCUMENTS','Documentos']].map(([value,label])=><button key={value} type="button" className={report===value?'active':''} onClick={()=>setReport(value)}>{label}</button>)}
-   </div>
+   <label className="prst-report-picker">
+    <span>Tipo de reporte</span>
+    <select value={report} onChange={e=>setReport(e.target.value)}>
+     <option value="INVESTMENTS">Inversiones</option>
+     <option value="INVESTORS">Inversionistas</option>
+     <option value="APPLICATIONS">Solicitudes</option>
+     <option value="PAYMENTS">Pagos</option>
+     <option value="MATURITIES">Vencimientos</option>
+     <option value="RENEWALS">Renovaciones</option>
+     <option value="DOCUMENTS">Documentos</option>
+    </select>
+   </label>
 
    <div className="prst-report-filters">
     <label><span>Inversionista</span><select value={investorFilter} onChange={e=>setInvestorFilter(e.target.value)}><option value="ALL">Todos</option>{investors.map(x=><option key={x.id} value={x.id}>{fullName(x)}</option>)}</select></label>
