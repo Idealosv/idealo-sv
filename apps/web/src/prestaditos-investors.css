@@ -2011,13 +2011,20 @@
   border-bottom:1px solid #dde3e8;
   background:#fff;
 }
-.prst-context-bar>span{
+.prst-context-bar>.prst-context-parent{
   flex:0 0 auto;
-  color:#697586;
-  font-size:9px;
-  font-weight:950;
-  letter-spacing:.07em;
-  text-transform:uppercase;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid #d4dbe2;
+  border-radius:8px;
+  background:#fff;
+  color:#344054;
+  font:inherit;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.02em;
+  cursor:pointer;
+  white-space:nowrap;
 }
 .prst-context-bar>div{
   display:flex;
