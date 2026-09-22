@@ -2125,3 +2125,38 @@
     min-width:0;
   }
 }
+
+
+/* ===== SIMPLE REPORT PICKER ===== */
+.prst-report-picker{
+  display:grid;
+  grid-template-columns:140px minmax(220px,360px);
+  gap:10px;
+  align-items:center;
+  margin:0 0 14px;
+  padding:12px 14px;
+  border:1px solid #e1e6ea;
+  border-radius:10px;
+  background:#f8fafb;
+}
+.prst-report-picker>span{
+  color:#667085;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.prst-report-picker select{
+  min-height:40px;
+  padding:0 11px;
+  border:1px solid #cfd7df;
+  border-radius:8px;
+  background:#fff;
+  color:#24313d;
+  font:inherit;
+  font-size:11px;
+  font-weight:800;
+}
+@media(max-width:700px){
+  .prst-report-picker{grid-template-columns:1fr}
+}
