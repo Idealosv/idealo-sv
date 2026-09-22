@@ -31,3 +31,12 @@ test('notificaciones usa tipografia legible y acciones claras',()=>{
  assert.match(css,/prst-notification-actions button\.primary/)
  assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
 })
+
+
+test('notificaciones reduce espacio vacio y mejora legibilidad interna',()=>{
+ assert.match(css,/NOTIFICATIONS POLISH · COMPACT \+ LEGIBLE/)
+ assert.match(css,/prst-alert-summary strong\{[\s\S]*font-size:26px!important/)
+ assert.match(css,/prst-alert-copy>strong\{[\s\S]*font-size:16px!important/)
+ assert.match(css,/grid-template-columns:minmax\(260px,380px\) 180px 180px auto!important/)
+ assert.match(css,/prst-notification-actions button\{[\s\S]*min-height:34px!important/)
+})
