@@ -1113,7 +1113,7 @@ function Documents({investorId='i1'}){
     <td>{x.type}</td>
     <td><b>{x.fileName||x.size}</b><small>{x.fileName?x.size:'archivo registrado'}</small></td>
     <td><Status>{x.status}</Status></td>
-    <td><div className="prst-document-actions"><button type="button" className="prst-document-open" onClick={()=>setViewDoc(x)}>Ver</button><button type="button" className="prst-document-more" title="Más opciones">•••</button></div></td>
+    <td><div className="prst-document-actions"><button type="button" className="prst-document-open" onClick={()=>setViewDoc(x)}>Ver</button></div></td>
    </tr>)}/>:<div className="prst-empty"><strong>Sin documentos cargados</strong><p>No hay documentos que coincidan con los filtros actuales.</p></div>}
   </Card>
 
