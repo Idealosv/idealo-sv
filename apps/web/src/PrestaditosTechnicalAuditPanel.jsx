@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { buildPrestaditosIntegrityChecks, PRESTADITOS_SECURITY_CONTROLS } from './prestaditos-integrity.js'
+import { PRESTADITOS_PRODUCTION_READINESS, productionReadinessSummary } from './prestaditos-production-readiness.js'
 
 export default function PrestaditosTechnicalAuditPanel({investors,applications,investments,beneficiaries,payments,renewals,documents,contracts}){
  const issues=useMemo(()=>buildPrestaditosIntegrityChecks({investors,applications,investments,beneficiaries,payments,renewals,documents,contracts}),[investors,applications,investments,beneficiaries,payments,renewals,documents,contracts])
  const errors=issues.filter(x=>x.severity==='ERROR')
  const warnings=issues.filter(x=>x.severity==='WARN')
  const ok=issues.length===0
+ const readiness=productionReadinessSummary(PRESTADITOS_PRODUCTION_READINESS)
 
  const printAudit=()=>{
   const popup=window.open('','_blank')
@@ -42,6 +44,12 @@ export default function PrestaditosTechnicalAuditPanel({investors,applications,i
   <article className="prst-card">
    <div className="prst-card-head"><div><small>ARQUITECTURA DE SEGURIDAD</small><h2>Controles implementados</h2><p>Resumen de protecciones incorporadas específicamente en Prestadito$.</p></div></div>
    <div className="prst-security-checks">{PRESTADITOS_SECURITY_CONTROLS.map(row=><article key={row.name}><span>✓</span><div><strong>{row.name}</strong><small>{row.detail}</small></div></article>)}</div>
+  </article>
+
+  <article className="prst-card prst-production-gate">
+   <div className="prst-card-head"><div><small>PUERTA DE PRODUCCIÓN</small><h2>{readiness.ready?'Lista para producción':'Producción bloqueada'}</h2><p>El sistema no debe pasar a main mientras exista algún requisito bloqueado o pendiente.</p></div></div>
+   <div className="prst-readiness-grid">{PRESTADITOS_PRODUCTION_READINESS.map(row=><article key={row.key} className={row.status.toLowerCase()}><span>{row.status==='BLOCKED'?'Bloqueado':'Pendiente'}</span><strong>{row.label}</strong><small>{row.detail}</small></article>)}</div>
+   <div className="prst-note"><strong>Estado actual:</strong> {readiness.blocked} bloqueados y {readiness.pending} pendientes. La rama continúa siendo de desarrollo.</div>
   </article>
 
   <article className="prst-card prst-tech-note">
