@@ -195,8 +195,8 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
   .map(x=>({...x,_docs:[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length}))
   .filter(x=>x._docs<3)
   .sort((a,b)=>a._docs-b._docs)
-  .slice(0,5),[investors])
- const recentInvestors=useMemo(()=>[...investors].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,5),[investors])
+  .slice(0,3),[investors])
+ const recentInvestors=useMemo(()=>[...investors].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,3),[investors])
  const clearFilters=()=>{setQuery('');setStatusFilter('ALL');setDocsFilter('ALL')}
  const hasFilters=Boolean(query.trim()||statusFilter!=='ALL'||docsFilter!=='ALL')
  const openNew=()=>{
@@ -312,7 +312,7 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
    </article>
   </section>
 
-  {formOpen&&<form className="prst-card prst-form prst-investor-form prst-investor-form-pro" onSubmit={submit}>
+  {formOpen&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&reset()}><form className="prst-card prst-form prst-investor-form prst-investor-form-pro prst-editor-modal" onSubmit={submit}>
    <div className="prst-card-head prst-investor-form-head">
     <div><small>{editingId?'EDITAR EXPEDIENTE':'NUEVO EXPEDIENTE'}</small><h2>{editingId?'Actualizar inversionista':'Registrar inversionista'}</h2><p>Identificación, contacto, referencia de pago y documentación privada.</p></div>
     <button className="prst-mini-button" type="button" onClick={reset}>Cerrar formulario</button>
@@ -364,7 +364,7 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
 
    <Field label="Observaciones internas"><textarea name="notes" value={form.notes} onChange={update}/></Field>
    <div className="prst-investor-form-actions"><button type="button" className="prst-mini-button" onClick={reset}>Cancelar</button><button className="prst-primary" disabled={saving||!canEdit}>{saving?'Guardando…':editingId?'Guardar cambios':'Guardar inversionista'}</button></div>
-  </form>}
+  </form></div>}
 
   {selected&&<InvestorDetail
     investor={selected}
