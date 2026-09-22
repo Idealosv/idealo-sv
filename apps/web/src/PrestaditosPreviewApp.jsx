@@ -337,12 +337,66 @@ function Investments(){return <>
  </Card>
  </>}
 
-function Beneficiaries(){return <>
- <section className="prst-investor-summary"><article><span>Beneficiarios activos</span><strong>3</strong><small>designaciones</small></article><article><span>Inversionistas cubiertos</span><strong>2</strong><small>con beneficiarios</small></article><article><span>Asignación completa</span><strong>2</strong><small>100% distribuido</small></article><article><span>Inactivos</span><strong>0</strong><small>histórico</small></article></section>
- <Card title="Beneficiarios registrados" kicker="DESIGNACIONES">
-  <Table headers={['Código','Beneficiario','Inversionista','Relación','Porcentaje','Estado']} rows={demo.beneficiaries.map(x=><tr key={x.code}><td>{x.code}</td><td><b>{x.name}</b></td><td>{x.investor}</td><td>{x.relation}</td><td><b>{x.pct.toFixed(2)}%</b></td><td><Status>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Beneficiaries(){
+ const [rows,setRows]=useState(demo.beneficiaries)
+ const [query,setQuery]=useState('')
+ const [status,setStatus]=useState('ALL')
+ const [draft,setDraft]=useState(null)
+ const [notice,setNotice]=useState('')
+ const q=query.trim().toLowerCase()
+ const filtered=rows.filter(x=>(status==='ALL'||x.status===status)&&(!q||(x.name+' '+x.investor+' '+x.relation+' '+x.code).toLowerCase().includes(q)))
+ const active=rows.filter(x=>x.status==='Activo')
+ const covered=new Set(active.map(x=>x.investor)).size
+ const totals=active.reduce((acc,x)=>{acc[x.investor]=(acc[x.investor]||0)+Number(x.pct||0);return acc},{})
+ const complete=Object.values(totals).filter(v=>Math.abs(v-100)<0.01).length
+ const openNew=()=>{setDraft({code:'BEN-DEMO-'+String(Date.now()).slice(-6),name:'',investor:demo.investors[0]?.name||'',relation:'',pct:100,status:'Activo'});setNotice('')}
+ const close=()=>{setDraft(null);setNotice('')}
+ const save=e=>{
+  e.preventDefault()
+  const pct=Number(draft?.pct||0)
+  const already=rows.filter(x=>x.status==='Activo'&&x.investor===draft.investor).reduce((s,x)=>s+Number(x.pct||0),0)
+  if(!draft?.name.trim()||!draft?.relation.trim()){setNotice('Completá nombre y relación.');return}
+  if(pct<=0||pct>100){setNotice('El porcentaje debe ser mayor que 0 y no superar 100%.');return}
+  if(already+pct>100.001){setNotice(`La asignación de ${draft.investor} superaría el 100%.`);return}
+  setRows(current=>[{...draft,pct},...current])
+  setDraft(null)
+  setNotice('')
+ }
+ return <section className="prst-beneficiaries-module">
+  <section className="prst-beneficiary-command">
+   <div><small>BENEFICIARIOS</small><h2>Designaciones</h2><p>Administrá beneficiarios sin salir del expediente del inversionista.</p></div>
+   <button type="button" className="primary" onClick={openNew}>+ Nuevo beneficiario</button>
+  </section>
+
+  <section className="prst-investor-summary prst-beneficiary-summary">
+   <article><span>Beneficiarios activos</span><strong>{active.length}</strong><small>designaciones</small></article>
+   <article><span>Inversionistas cubiertos</span><strong>{covered}</strong><small>con beneficiarios</small></article>
+   <article><span>Asignación completa</span><strong>{complete}</strong><small>100% distribuido</small></article>
+   <article><span>Inactivos</span><strong>{rows.filter(x=>x.status!=='Activo').length}</strong><small>histórico</small></article>
+  </section>
+
+  <Card title="Beneficiarios registrados" kicker="DESIGNACIONES">
+   <div className="prst-beneficiary-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar beneficiario, inversionista o relación"/>
+    <select value={status} onChange={e=>setStatus(e.target.value)}><option value="ALL">Todos los estados</option><option value="Activo">Activos</option><option value="Inactivo">Inactivos</option></select>
+    <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
+   </div>
+   <Table headers={['Beneficiario','Inversionista','Relación','Porcentaje','Estado']} rows={filtered.map(x=><tr key={x.code}><td><b>{x.name}</b><small>{x.code}</small></td><td>{x.investor}</td><td>{x.relation}</td><td><b>{Number(x.pct).toFixed(2)}%</b></td><td><Status>{x.status}</Status></td></tr>)}/>
+  </Card>
+
+  {draft&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&close()}><form className="prst-card prst-editor-modal prst-beneficiary-modal" onSubmit={save}>
+   <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>Nuevo beneficiario</h2><p>La suma activa por inversionista no puede superar el 100%.</p></div><button type="button" className="prst-mini-button" onClick={close}>Cerrar</button></div>
+   <div className="prst-form-grid">
+    <label className="prst-field"><span>Nombre completo</span><input value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})} required/></label>
+    <label className="prst-field"><span>Inversionista</span><select value={draft.investor} onChange={e=>setDraft({...draft,investor:e.target.value})}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+    <label className="prst-field"><span>Relación</span><input value={draft.relation} onChange={e=>setDraft({...draft,relation:e.target.value})} placeholder="Ej. esposa, hijo, madre" required/></label>
+    <label className="prst-field"><span>Porcentaje</span><input type="number" min="0.01" max="100" step="0.01" value={draft.pct} onChange={e=>setDraft({...draft,pct:e.target.value})}/></label>
+   </div>
+   {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+   <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
+  </form></div>}
+ </section>
+}
 
 function Payments(){return <>
  <section className="prst-investor-summary"><article><span>Rendimientos pagados</span><strong>{money(270)}</strong><small>vigentes</small></article><article><span>Capital devuelto</span><strong>{money(12000)}</strong><small>registrado</small></article><article><span>Movimientos</span><strong>3</strong><small>en la muestra</small></article><article><span>Revertidos</span><strong>0</strong><small>auditoría</small></article></section>
