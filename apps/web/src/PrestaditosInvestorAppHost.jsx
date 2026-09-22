@@ -59,6 +59,11 @@ const TABS=[
  ['Configuración','Reglas del vertical'],
 ]
 
+const PRIMARY_TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos']
+const OPERATION_TABS=['Perfil 360','Simulador','Contratos','Beneficiarios','Estado de cuenta','Renovaciones','Tesorería','Documentos']
+const ADMIN_TABS=['Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
+const TAB_DESCRIPTIONS=Object.fromEntries(TABS)
+
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const date=value=>value?new Date(String(value).includes('T')?value:`${value}T12:00:00`).toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}):'—'
 const today=()=>new Date().toISOString().slice(0,10)
@@ -168,6 +173,8 @@ export default function PrestaditosInvestorAppHost(){
   if(target==='Inversionistas'&&row?.investor_id){const investor=investorMap.get(row.investor_id);setQuery(investor?fullName(investor):'')}
   selectTab(target)
  }
+ const navButton=name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{TAB_DESCRIPTIONS[name]}</small></button>
+
  const chooseGlobalResult=row=>{
   if(row?.investor_id)setFocusInvestorId(row.investor_id)
   if(row?.investment_id)setFocusInvestmentId(row.investment_id)
@@ -189,7 +196,17 @@ export default function PrestaditosInvestorAppHost(){
     <div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div>
    </div>
    <div className="prst-company"><span>EMPRESA</span><strong>{company?.name||'Prestadito$ El Salvador'}</strong><small>{role||'Usuario autorizado'}</small></div>
-   <nav>{TABS.map(([name,desc])=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{desc}</small></button>)}</nav>
+   <nav>
+    <div className="prst-nav-primary">{PRIMARY_TABS.map(navButton)}</div>
+    <details className="prst-nav-group" open={OPERATION_TABS.includes(tab)||undefined}>
+     <summary>Más operación <span>{OPERATION_TABS.length}</span></summary>
+     <div>{OPERATION_TABS.map(navButton)}</div>
+    </details>
+    <details className="prst-nav-group" open={ADMIN_TABS.includes(tab)||undefined}>
+     <summary>Administración <span>{ADMIN_TABS.length}</span></summary>
+     <div>{ADMIN_TABS.map(navButton)}</div>
+    </details>
+   </nav>
    <a className="prst-back" href="/master">← Administrador IDEALO SV</a>
   </aside>
 
