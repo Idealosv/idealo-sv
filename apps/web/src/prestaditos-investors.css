@@ -590,3 +590,27 @@
 .prst-training-progress{display:flex;align-items:center;gap:10px;margin-top:10px}.prst-training-progress>div{flex:1;height:8px;border-radius:999px;background:#eceff1;overflow:hidden}.prst-training-progress i{display:block;height:100%;background:#2f7b49}.prst-training-progress span{font-size:8px;font-weight:900;color:#5f666d}
 .prst-help-faq{display:grid;gap:7px}.prst-help-faq details{border:1px solid #dfe3e6;border-radius:8px;background:#fafbfc;padding:10px}.prst-help-faq summary{cursor:pointer;font-size:9px;font-weight:900}.prst-help-faq p{margin:7px 0 0;color:#666d73;font-size:8px;line-height:1.45}
 @media(max-width:850px){.prst-grid.help-layout{grid-template-columns:1fr}.prst-export-grid{grid-template-columns:1fr}}
+
+
+/* ===== LARGE ERP TYPOGRAPHY · PRESTADITO$ ===== */
+.prst-app{grid-template-columns:295px minmax(0,1fr)}
+.prst-brand{padding:24px 20px}.prst-brand strong{font-size:20px}.prst-brand small{font-size:11px}
+.prst-company{margin:16px;padding:15px}.prst-company span{font-size:10px}.prst-company strong{font-size:14px}.prst-company small{font-size:11px}
+.prst-sidebar nav{gap:4px;padding:0 12px 18px}
+.prst-sidebar nav button{min-height:60px;padding:12px 14px}
+.prst-sidebar nav button strong{font-size:14px}
+.prst-sidebar nav button small{font-size:10px;line-height:1.35}
+.prst-back{font-size:12px;min-height:42px}
+.prst-topbar{padding:22px 26px}
+.prst-topbar span{font-size:11px}
+.prst-topbar h1{font-size:31px}
+.prst-topbar p{font-size:12px}
+.prst-top-actions button{min-height:42px;font-size:12px}
+.prst-global-search-input{min-height:46px}
+.prst-global-search-input input{font-size:13px}
+.prst-content{max-width:1750px;padding:24px 26px 60px}
+@media(max-width:900px){
+ .prst-app{grid-template-columns:1fr}
+ .prst-sidebar nav button strong{font-size:15px}
+ .prst-sidebar nav button small{font-size:11px}
+}
