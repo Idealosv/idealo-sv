@@ -248,11 +248,10 @@ function Investors({onGo,onOpenInvestor}){
   </section>
 
   <section className="prst-investor-summary prst-investor-summary-pro">
-   <article><span>Total inversionistas</span><strong>{investorRows.length}</strong><small>expedientes registrados</small></article>
-   <article><span>Activos</span><strong>{investorRows.filter(x=>x.status==='Activo').length}</strong><small>habilitados actualmente</small></article>
-   <article><span>Documentación completa</span><strong>{investorRows.filter(x=>x.docs==='3/3').length}</strong><small>rostro + DUI frente/reverso</small></article>
-   <article><span>Pendientes documentales</span><strong>{pending.length}</strong><small>requieren seguimiento</small></article>
-   <article><span>Capital activo</span><strong>{money(12000)}</strong><small>2 inversiones vigentes</small></article>
+   <article><span>Inversionistas</span><strong>{investorRows.length}</strong><small>{investorRows.filter(x=>x.status==='Activo').length} activos</small></article>
+   <article><span>Documentación pendiente</span><strong>{pending.length}</strong><small>{investorRows.filter(x=>x.docs==='3/3').length} expedientes completos</small></article>
+   <article><span>Inversiones activas</span><strong>2</strong><small>vigentes actualmente</small></article>
+   <article><span>Capital activo</span><strong>{money(12000)}</strong><small>capital vigente</small></article>
   </section>
 
   <article className="prst-card prst-investor-directory-card">
@@ -264,13 +263,12 @@ function Investors({onGo,onOpenInvestor}){
     {(query||status!=='ALL'||docs!=='ALL')&&<button type="button" className="prst-filter-clear" onClick={()=>{setQuery('');setStatus('ALL');setDocs('ALL')}}>Limpiar</button>}
    </div>
    <div className="prst-table-wrap prst-investor-table-wrap"><table className="prst-investor-table prst-investor-table-pro">
-    <thead><tr><th>Inversionista</th><th>DUI</th><th>Contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Inversionista</th><th>Identificación / contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody>{rows.map(x=>{
      const n=Number(x.docs.split('/')[0]),pct=Math.round((n/3)*100)
      return <tr key={x.id}>
       <td><div className="prst-investor-name-cell"><span className="prst-investor-avatar">{x.name.split(' ').filter(Boolean).map(v=>v[0]).slice(0,2).join('')||'NV'}</span><span><b>{x.name||'Nuevo inversionista'}</b><small>{x.code}</small></span></div></td>
-      <td><b>{x.dui||'Pendiente'}</b><small>identificación</small></td>
-      <td><b>{x.phone||'Sin teléfono'}</b><small>{x.email||'Sin correo'}</small></td>
+      <td><b>{x.dui||'DUI pendiente'}</b><small>{x.phone||x.email||'Sin contacto'}{x.email&&x.phone?` · ${x.email}`:''}</small></td>
       <td><div className="prst-doc-progress"><div><span style={{width:`${pct}%`}}/></div><small>{n===3?'Completo':`${n}/3 documentos`}</small></div></td>
       <td><b>{activeCount[x.id]||0}</b><small>{activeCount[x.id]?'vigentes':'sin inversión activa'}</small></td>
       <td><b>{money(activeCapital[x.id]||0)}</b><small>capital vigente</small></td>
@@ -304,14 +302,6 @@ function Investors({onGo,onOpenInvestor}){
    <div className="prst-preview-edit-actions"><span>{editNotice}</span><div><button type="button" onClick={closeEdit}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
   </form></div>}
 
-  <section className="prst-investor-followup-grid">
-   <Card title="Pendientes prioritarios" kicker="SEGUIMIENTO DOCUMENTAL">
-    <div className="prst-investor-followup-list">{pending.map(x=><button key={x.id} type="button" onClick={()=>onOpenInvestor?.('Documentos',x.id)}><span><b>{x.name}</b><small>DUI reverso pendiente</small></span><strong>{x.docs}</strong></button>)}</div>
-   </Card>
-   <Card title="Últimos inversionistas" kicker="ACTIVIDAD RECIENTE">
-    <div className="prst-investor-followup-list recent">{investorRows.map(x=><button key={x.id} type="button" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}><span><b>{x.name}</b><small>{x.code}</small></span><Status>{x.status}</Status></button>)}</div>
-   </Card>
-  </section>
  </section>
 }
 
