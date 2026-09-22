@@ -614,3 +614,298 @@
  .prst-sidebar nav button strong{font-size:15px}
  .prst-sidebar nav button small{font-size:11px}
 }
+
+
+/* ===== NOTIFICATIONS MODULE · EXECUTIVE UI ===== */
+.prst-alerts-module{
+  display:grid;
+  gap:18px;
+  padding:18px;
+  border-radius:22px;
+  background:#eef1f4;
+}
+.prst-alerts-module .prst-alert-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+}
+.prst-alerts-module .prst-alert-summary article{
+  position:relative;
+  min-height:112px;
+  padding:18px 20px;
+  overflow:hidden;
+  border:0;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(16,24,40,.05),inset 0 0 0 1px #e4e8ed;
+}
+.prst-alerts-module .prst-alert-summary article:before{
+  content:'';
+  position:absolute;
+  left:0;right:0;top:0;height:3px;
+  background:#98a2b3;
+}
+.prst-alerts-module .prst-alert-summary article:nth-child(1):before{background:#c23f39}
+.prst-alerts-module .prst-alert-summary article:nth-child(2):before{background:#db7b33}
+.prst-alerts-module .prst-alert-summary article:nth-child(3):before{background:#d2a126}
+.prst-alerts-module .prst-alert-summary article:nth-child(4):before{background:#3975a9}
+.prst-alerts-module .prst-alert-summary span{
+  display:block;
+  color:#667085;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.prst-alerts-module .prst-alert-summary strong{
+  display:block;
+  margin-top:9px;
+  color:#101828;
+  font-size:31px;
+  line-height:1;
+}
+.prst-alerts-module .prst-alert-summary small{
+  display:block;
+  margin-top:8px;
+  color:#7a8491;
+  font-size:11px;
+}
+
+.prst-alerts-module>.prst-card{
+  border:0;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 10px 24px rgba(16,24,40,.055),inset 0 0 0 1px #e4e8ed;
+}
+.prst-alerts-module .prst-notification-center-card{padding:24px}
+.prst-alerts-module .prst-card-head{margin-bottom:18px}
+.prst-alerts-module .prst-card-head small{
+  color:#d92d3e;
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+.prst-alerts-module .prst-card-head h2{
+  margin:5px 0 5px;
+  color:#101828;
+  font-size:29px;
+  line-height:1.08;
+}
+.prst-alerts-module .prst-card-head p{
+  margin:0;
+  color:#667085;
+  font-size:13px;
+  line-height:1.5;
+  max-width:900px;
+}
+
+.prst-alerts-module .prst-notification-tabs{
+  display:inline-flex;
+  gap:4px;
+  padding:4px;
+  margin-bottom:16px;
+  border-radius:12px;
+  background:#f1f3f5;
+}
+.prst-alerts-module .prst-notification-tabs button{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:0 14px;
+  border:0!important;
+  border-radius:9px;
+  background:transparent!important;
+  color:#59636d!important;
+  font:inherit;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.prst-alerts-module .prst-notification-tabs button span{
+  display:grid;
+  place-items:center;
+  min-width:23px;
+  height:23px;
+  padding:0 6px;
+  border-radius:999px;
+  background:#e2e6ea;
+  color:#4f5963;
+  font-size:10px;
+}
+.prst-alerts-module .prst-notification-tabs button.active{
+  background:#1f2933!important;
+  color:#fff!important;
+  box-shadow:0 4px 10px rgba(16,24,40,.12);
+}
+.prst-alerts-module .prst-notification-tabs button.active span{
+  background:rgba(255,255,255,.13);
+  color:#fff;
+}
+
+.prst-alerts-module .prst-alert-filters{
+  display:grid;
+  grid-template-columns:minmax(280px,1fr) 190px 190px auto;
+  gap:10px;
+  align-items:center;
+  margin-bottom:18px;
+}
+.prst-alerts-module .prst-alert-filters .prst-search,
+.prst-alerts-module .prst-alert-filters select{
+  min-height:46px;
+  padding:0 13px;
+  border:1px solid #d5dbe1;
+  border-radius:10px;
+  background:#fff;
+  color:#24303c;
+  font:inherit;
+  font-size:12px;
+}
+.prst-alerts-module .prst-alert-filters>span{
+  color:#667085;
+  font-size:11px;
+  font-weight:850;
+  text-align:right;
+}
+
+.prst-alerts-module .prst-alert-list{display:grid;gap:11px}
+.prst-alerts-module .prst-operational-alert{
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) auto;
+  gap:14px;
+  align-items:center;
+  min-height:92px;
+  padding:17px 18px;
+  border:0;
+  border-radius:14px;
+  background:#fafbfc;
+  box-shadow:inset 0 0 0 1px #e5e9ed;
+}
+.prst-alerts-module .prst-operational-alert.critical{
+  background:#fff8f7;
+  box-shadow:inset 4px 0 #c74640,inset 0 0 0 1px #efd9d7;
+}
+.prst-alerts-module .prst-operational-alert.high{
+  background:#fffaf6;
+  box-shadow:inset 4px 0 #dc813a,inset 0 0 0 1px #f0dfd0;
+}
+.prst-alerts-module .prst-operational-alert.medium{
+  background:#fffdf7;
+  box-shadow:inset 4px 0 #cf9e24,inset 0 0 0 1px #ede4cc;
+}
+.prst-alerts-module .prst-alert-icon{
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  background:#f0f2f4;
+  color:#4f5b66;
+  font-size:15px;
+  font-weight:950;
+}
+.prst-alerts-module .prst-operational-alert.critical .prst-alert-icon{background:#f9e2df;color:#933a33}
+.prst-alerts-module .prst-operational-alert.high .prst-alert-icon{background:#f9e9de;color:#96502d}
+.prst-alerts-module .prst-operational-alert.medium .prst-alert-icon{background:#fbf1d7;color:#80611b}
+.prst-alerts-module .prst-alert-copy{display:grid;gap:5px;min-width:0}
+.prst-alerts-module .prst-alert-copy>div{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prst-alerts-module .prst-alert-copy>div span{
+  color:#68727d;
+  font-size:10px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.055em;
+}
+.prst-alerts-module .prst-alert-copy>div b{
+  display:inline-flex;
+  align-items:center;
+  min-height:23px;
+  padding:0 8px;
+  border-radius:999px;
+  background:#eef1f3;
+  color:#56616b;
+  font-size:9px;
+}
+.prst-alerts-module .prst-alert-copy>strong{
+  color:#101828;
+  font-size:15px;
+  line-height:1.25;
+}
+.prst-alerts-module .prst-alert-copy>small{
+  color:#667085;
+  font-size:12px;
+  line-height:1.4;
+}
+
+.prst-alerts-module .prst-notification-actions{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.prst-alerts-module .prst-notification-actions button{
+  min-height:38px;
+  padding:0 11px;
+  border-radius:9px;
+  font:inherit;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.prst-alerts-module .prst-notification-actions button.primary{
+  border:1px solid #1f2933!important;
+  background:#1f2933!important;
+  color:#fff!important;
+}
+.prst-alerts-module .prst-notification-actions button.secondary,
+.prst-alerts-module .prst-notification-actions button.restore{
+  border:1px solid #d2d8de!important;
+  background:#fff!important;
+  color:#344054!important;
+}
+.prst-alerts-module .prst-notification-actions button.archive{
+  border:1px solid #e5c8cb!important;
+  background:#fff!important;
+  color:#a43d48!important;
+}
+
+.prst-alerts-module .prst-notification-rules-card{padding:22px 24px}
+.prst-alerts-module .prst-alert-rules{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:0;
+}
+.prst-alerts-module .prst-alert-rules span{
+  display:flex;
+  align-items:center;
+  min-height:56px;
+  padding:12px 14px;
+  border:0;
+  border-radius:11px;
+  background:#f7f9fb;
+  color:#344054;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.4;
+  box-shadow:inset 0 0 0 1px #e6eaee;
+}
+.prst-alerts-module .prst-note{margin-top:12px;font-size:11px;line-height:1.5}
+
+@media(max-width:1100px){
+ .prst-alerts-module .prst-alert-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .prst-alerts-module .prst-alert-filters{grid-template-columns:1fr 1fr}
+ .prst-alerts-module .prst-alert-filters .prst-search{grid-column:1/-1;max-width:none}
+ .prst-alerts-module .prst-alert-filters>span{text-align:left}
+ .prst-alerts-module .prst-alert-rules{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .prst-alerts-module{padding:12px}
+ .prst-alerts-module .prst-alert-summary{grid-template-columns:1fr}
+ .prst-alerts-module .prst-alert-filters{grid-template-columns:1fr}
+ .prst-alerts-module .prst-alert-filters .prst-search{grid-column:auto}
+ .prst-alerts-module .prst-operational-alert{grid-template-columns:42px minmax(0,1fr)}
+ .prst-alerts-module .prst-notification-actions{grid-column:1/-1;justify-content:stretch}
+ .prst-alerts-module .prst-notification-actions button{flex:1}
+ .prst-alerts-module .prst-alert-rules{grid-template-columns:1fr}
+}
