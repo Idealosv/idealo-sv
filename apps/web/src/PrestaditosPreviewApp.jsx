@@ -560,6 +560,10 @@ function Documents({investorId='i1'}){
   </section>
 
   <Card title={showAll?'Repositorio documental':`Documentos · ${investor.name}`} kicker="EXPEDIENTE PRIVADO">
+   <div className="prst-document-section-head">
+    <div><strong>Expediente documental</strong><small>Consultá y organizá los archivos relacionados con este inversionista.</small></div>
+    <button type="button" className="primary" onClick={openNew}>+ Nuevo documento</button>
+   </div>
    <div className="prst-document-context">
     <div><span>Inversionista seleccionado</span><strong>{investor.name}</strong><small>{investor.code} · DUI {investor.dui}</small></div>
     <button type="button" onClick={()=>setShowAll(x=>!x)}>{showAll?'Ver solo este inversionista':'Ver todos los documentos'}</button>
