@@ -25,11 +25,12 @@ const demoRuntimeProtected =
 const masterCreatesDemo =
   master.includes('demo_mode: false') &&
   master.includes('form.demo_mode') &&
-  master.includes('Crear como DEMO comercial') &&
+  master.includes('Crear como DEMO / desarrollo') &&
   master.includes("request('/api/admin/saas/companies'") &&
   masterApi.includes("import { seedAgencyDemo } from './demo-seed-service.js'") &&
   masterApi.includes('demo_mode:demoMode') &&
-  /if\s*\(demoMode\)\s*await\s+seedAgencyDemo\(\{\s*supabase\s*,\s*companyId\s*:\s*company\.id\s*,\s*createdBy\s*:\s*owner\.id\s*\}\)/.test(masterApi)
+  masterApi.includes("const agencyDemoSeeded=demoMode&&selectedVertical.code==='ADVERTISING'") &&
+  masterApi.includes("if(agencyDemoSeeded)await seedAgencyDemo({supabase,companyId:company.id,createdBy:owner.id})")
 
 const sharedCredentialsProtected =
   security.includes("company?.demo_mode===true") &&
