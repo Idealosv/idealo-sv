@@ -88,3 +88,24 @@ La rama no debe fusionarse a `main` mientras cualquiera de estos puntos siga abi
 - prueba física final en Android/iPhone cuando corresponda.
 
 El ERP muestra estos bloqueos dentro de **Auditoría técnica → Puerta de producción**.
+
+
+## Operación y capacitación
+
+Se añadió un modelo explícito de acceso para Prestadito$:
+- Propietario;
+- Administrador;
+- Operador;
+- Solo lectura.
+
+El rol `staff` de IDEALO SV se interpreta como Operador. Propietario y Administrador conservan las decisiones financieras sensibles. Operador puede trabajar expedientes, registrar solicitudes y cargar documentos. Solo lectura no puede mutar datos.
+
+También se añadieron:
+- módulo **Exportaciones**, restringido a Propietario/Administrador;
+- respaldo JSON estructurado;
+- CSV por conjunto de datos;
+- módulo **Ayuda** con manual interno;
+- modo capacitación con checklist;
+- validación de que rendimientos revertidos no se sumen en el Perfil 360.
+
+Los archivos binarios del bucket privado no se incrustan en las exportaciones; solo se incluyen metadatos y rutas privadas.
