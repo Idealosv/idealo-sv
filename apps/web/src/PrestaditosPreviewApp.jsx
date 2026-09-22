@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
 import './prestaditos-theme.css'
 import PrestaditosDashboardPanel from './PrestaditosDashboardPanel.jsx'
+import PrestaditosCameraCapture from './PrestaditosCameraCapture.jsx'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
@@ -188,6 +189,9 @@ function Investors({onGo,onOpenInvestor}){
  const [editingId,setEditingId]=useState('')
  const [editDraft,setEditDraft]=useState(null)
  const [editNotice,setEditNotice]=useState('')
+ const [faceCapture,setFaceCapture]=useState(null)
+ const [duiFrontCapture,setDuiFrontCapture]=useState(null)
+ const [duiBackCapture,setDuiBackCapture]=useState(null)
  const activeCapital={i1:4000,i2:8000,i3:0}
  const activeCount={i1:1,i2:1,i3:0}
  const q=query.trim().toLowerCase()
@@ -200,7 +204,7 @@ function Investors({onGo,onOpenInvestor}){
   setEditNotice('')
   window.setTimeout(()=>document.querySelector('.prst-preview-investor-edit')?.scrollIntoView({behavior:'smooth',block:'center'}),30)
  }
- const closeEdit=()=>{setEditingId('');setEditDraft(null);setEditNotice('')}
+ const closeEdit=()=>{setEditingId('');setEditDraft(null);setEditNotice('');setFaceCapture(null);setDuiFrontCapture(null);setDuiBackCapture(null)}
  const updateDraft=e=>setEditDraft(current=>({...current,[e.target.name]:e.target.value}))
  const saveDraft=e=>{
   e.preventDefault()
@@ -222,6 +226,7 @@ function Investors({onGo,onOpenInvestor}){
   setEditingId(id)
   setEditDraft({id,code:'INV-DEMO-NUEVO',name:'',dui:'',phone:'',email:'',docs:'0/3',status:'Activo'})
   setEditNotice('Nuevo expediente de demostración. No modifica información real.')
+  setFaceCapture(null);setDuiFrontCapture(null);setDuiBackCapture(null)
   window.setTimeout(()=>document.querySelector('.prst-preview-investor-edit')?.scrollIntoView({behavior:'smooth',block:'center'}),30)
  }
  const saveNew=e=>{
@@ -298,6 +303,14 @@ function Investors({onGo,onOpenInvestor}){
     <label className="prst-field"><span>Correo</span><input name="email" type="email" value={editDraft.email} onChange={updateDraft}/></label>
     <label className="prst-field"><span>Estado</span><select name="status" value={editDraft.status} onChange={updateDraft}><option>Activo</option><option>Inactivo</option></select></label>
     <label className="prst-field"><span>Documentación</span><select name="docs" value={editDraft.docs} onChange={updateDraft}><option>0/3</option><option>1/3</option><option>2/3</option><option>3/3</option></select></label>
+   </div>
+   <div className="prst-preview-camera-section">
+    <div className="prst-section-title">Captura de documentos</div>
+    <div className="prst-preview-camera-grid">
+     <div><span>Foto del rostro</span><PrestaditosCameraCapture label="Tomar foto del rostro" facingMode="user" fileName="rostro" onCapture={file=>{setFaceCapture(file);setEditDraft(current=>({...current,docs:current?.docs==='0/3'?'1/3':current?.docs||'1/3'}))}}/><small>{faceCapture?.name||'Usa la cámara frontal.'}</small></div>
+     <div><span>DUI frente</span><PrestaditosCameraCapture label="Escanear DUI frente" facingMode="environment" fileName="dui-frente" onCapture={file=>{setDuiFrontCapture(file);setEditDraft(current=>({...current,docs:current?.docs==='0/3'?'1/3':current?.docs==='1/3'?'2/3':current?.docs||'2/3'}))}}/><small>{duiFrontCapture?.name||'Usa la cámara trasera.'}</small></div>
+     <div><span>DUI reverso</span><PrestaditosCameraCapture label="Escanear DUI reverso" facingMode="environment" fileName="dui-reverso" onCapture={file=>{setDuiBackCapture(file);setEditDraft(current=>({...current,docs:'3/3'}))}}/><small>{duiBackCapture?.name||'Usa la cámara trasera.'}</small></div>
+    </div>
    </div>
    <div className="prst-preview-edit-actions"><span>{editNotice}</span><div><button type="button" onClick={closeEdit}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
   </form></div>}
