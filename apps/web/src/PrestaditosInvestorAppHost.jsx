@@ -24,6 +24,8 @@ import PrestaditosTechnicalAuditPanel from './PrestaditosTechnicalAuditPanel.jsx
 import PrestaditosInvestor360Panel from './PrestaditosInvestor360Panel.jsx'
 import PrestaditosAgendaPanel from './PrestaditosAgendaPanel.jsx'
 import PrestaditosGlobalSearch from './PrestaditosGlobalSearch.jsx'
+import PrestaditosEndToEndDemoPanel from './PrestaditosEndToEndDemoPanel.jsx'
+import PrestaditosProductionReadinessPanel from './PrestaditosProductionReadinessPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -47,6 +49,8 @@ const TABS=[
  ['Cierre mensual','Snapshot del período'],
  ['Auditoría','Trazabilidad'],
  ['Auditoría técnica','Integridad y seguridad'],
+ ['Prueba integral','3 casos ficticios'],
+ ['Preparación','Cierre para producción'],
  ['Configuración','Reglas del vertical'],
 ]
 
