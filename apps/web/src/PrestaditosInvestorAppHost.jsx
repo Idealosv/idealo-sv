@@ -223,6 +223,8 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Cierre mensual'&&<PrestaditosMonthlyCloseoutPanel company={company} role={role} closeouts={closeouts} saving={saving} act={act}/>}
     {tab==='Auditoría'&&<PrestaditosAuditPanel company={company} audit={audit} investorMap={investorMap}/>} 
     {tab==='Auditoría técnica'&&<PrestaditosTechnicalAuditPanel investors={investors} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} renewals={renewals} documents={documents} contracts={contracts}/>}
+    {tab==='Exportaciones'&&<PrestaditosExportPanel company={company} role={role} investors={investors} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} renewals={renewals} documents={documents} contracts={contracts} audit={audit} settings={settings} notificationStates={notificationStates} closeouts={closeouts}/>} 
+    {tab==='Ayuda'&&<PrestaditosHelpPanel onGo={selectTab}/>} 
     {tab==='Prueba integral'&&<PrestaditosEndToEndDemoPanel/>} 
     {tab==='Preparación'&&<PrestaditosProductionReadinessPanel/>} 
     {tab==='Configuración'&&<PrestaditosConfigurationPanel company={company} role={role} settings={settings} saving={saving} act={act}/>}
