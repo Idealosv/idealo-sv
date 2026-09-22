@@ -122,7 +122,7 @@ export default function PrestaditosPreviewApp(){
    <section className="prst-content">
     {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
     {tab==='Notificaciones'&&<Notifications onGo={selectTab}/>} 
-    {tab==='Agenda'&&<Agenda/>}
+    {tab==='Agenda'&&<Agenda onGo={selectTab}/>} 
     {tab==='Inversionistas'&&<Investors/>}
     {tab==='Perfil 360'&&<Profile360/>}
     {tab==='Solicitudes'&&<Applications/>}
@@ -428,17 +428,68 @@ function PreviewSearch({onOpen}){
  </div>
 }
 
-function Agenda(){return <>
- <section className="prst-investor-summary prst-agenda-summary"><article><span>Vencidos</span><strong>1</strong><small>fechas anteriores a hoy</small></article><article><span>Para hoy</span><strong>2</strong><small>seguimientos sin fecha límite</small></article><article><span>Próximos 7 días</span><strong>3</strong><small>agenda operativa</small></article><article><span>Total activos</span><strong>5</strong><small>eventos derivados del ERP</small></article></section>
- <Card title="Seguimiento diario y semanal" kicker="AGENDA OPERATIVA">
-  <div className="prst-agenda-view-tabs"><button>Hoy / vencidos</button><button className="active">7 días</button><button>30 días</button></div>
-  <div className="prst-agenda-list">
-   <article className="overdue"><div className="prst-agenda-date"><b>10 sep</b><small>Vencido</small></div><div className="prst-agenda-copy"><div><span>Vencimiento</span><b>Crítica</b></div><strong>Vencimiento de inversión</strong><small>José Roberto Hernández · INVEST-20260310-G7H8I9</small></div><button>Abrir</button></article>
-   <article className="high"><div className="prst-agenda-date"><b>Hoy</b><small>Seguimiento sin fecha límite</small></div><div className="prst-agenda-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><button>Abrir</button></article>
-   <article className="medium"><div className="prst-agenda-date"><b>Hoy</b><small>Seguimiento sin fecha límite</small></div><div className="prst-agenda-copy"><div><span>Documentación</span><b>Media</b></div><strong>Completar expediente</strong><small>José Roberto Hernández · falta DUI reverso</small></div><button>Abrir</button></article>
-  </div>
- </Card>
- </>}
+function Agenda({onGo}){
+ const items=[
+  {id:'g1',date:'10 sep',state:'overdue',window:'TODAY',type:'Vencimiento',priority:'Crítica',title:'Vencimiento de inversión',detail:'José Roberto Hernández · INVEST-20260310-G7H8I9',tab:'Vencimientos'},
+  {id:'g2',date:'Hoy',state:'high',window:'TODAY',type:'Contrato',priority:'Alta',title:'Contrato pendiente de firma',detail:'María Elena López · CTR-20260815-EF34GH',tab:'Contratos'},
+  {id:'g3',date:'Hoy',state:'medium',window:'TODAY',type:'Documentación',priority:'Media',title:'Completar expediente',detail:'José Roberto Hernández · falta DUI reverso',tab:'Perfil 360'},
+  {id:'g4',date:'24 sep',state:'high',window:'WEEK',type:'Revisión',priority:'Alta',title:'Revisar solicitud',detail:'Carlos Ernesto Mejía · SOL-20260918-A2F811',tab:'Solicitudes'},
+  {id:'g5',date:'05 oct',state:'medium',window:'MONTH',type:'Renovación',priority:'Media',title:'Gestionar renovación',detail:'José Roberto Hernández · REN-20260910-AB1234',tab:'Renovaciones'},
+ ]
+ const [view,setView]=useState('WEEK')
+ const [search,setSearch]=useState('')
+ const [type,setType]=useState('ALL')
+ const rank={TODAY:0,WEEK:1,MONTH:2}
+ const counts={
+  TODAY:items.filter(x=>rank[x.window]<=0).length,
+  WEEK:items.filter(x=>rank[x.window]<=1).length,
+  MONTH:items.length,
+ }
+ const q=search.trim().toLowerCase()
+ const rows=items
+  .filter(x=>rank[x.window]<=rank[view])
+  .filter(x=>(type==='ALL'||x.type===type)&&(!q||(x.title+' '+x.detail+' '+x.type).toLowerCase().includes(q)))
+ return <section className="prst-agenda-module">
+  <section className="prst-investor-summary prst-agenda-summary">
+   <article><span>Vencidos</span><strong>1</strong><small>fechas anteriores a hoy</small></article>
+   <article><span>Para hoy</span><strong>2</strong><small>seguimientos pendientes</small></article>
+   <article><span>Próximos 7 días</span><strong>{counts.WEEK}</strong><small>agenda operativa</small></article>
+   <article><span>Total activos</span><strong>{items.length}</strong><small>eventos derivados del ERP</small></article>
+  </section>
+
+  <article className="prst-card prst-agenda-center-card">
+   <div className="prst-card-head"><div><small>AGENDA OPERATIVA</small><h2>Seguimiento diario y semanal</h2><p>Una vista de fechas críticas y pendientes operativos del proceso de inversión.</p></div></div>
+
+   <div className="prst-agenda-view-tabs">
+    {[['TODAY','Hoy / vencidos'],['WEEK','7 días'],['MONTH','30 días']].map(([value,label])=><button key={value} type="button" className={view===value?'active':''} onClick={()=>setView(value)}>{label}<span>{counts[value]}</span></button>)}
+   </div>
+
+   <div className="prst-agenda-filters">
+    <input className="prst-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar evento o inversionista"/>
+    <select value={type} onChange={e=>setType(e.target.value)}><option value="ALL">Todos los tipos</option>{['Vencimiento','Contrato','Documentación','Revisión','Renovación'].map(label=><option key={label} value={label}>{label}</option>)}</select>
+    <span>{rows.length} evento{rows.length===1?'':'s'}</span>
+   </div>
+
+   {!rows.length?<div className="prst-empty"><strong>Agenda despejada</strong><p>No hay eventos para los filtros actuales.</p></div>:<div className="prst-agenda-list">
+    {rows.map(row=><article key={row.id} className={row.state}>
+     <div className="prst-agenda-date"><b>{row.date}</b><small>{row.state==='overdue'?'Vencido':row.date==='Hoy'?'Hoy':'Programado'}</small></div>
+     <div className="prst-agenda-copy"><div><span>{row.type}</span><b>{row.priority}</b></div><strong>{row.title}</strong><small>{row.detail}</small></div>
+     <button type="button" onClick={()=>onGo?.(row.tab)}>Abrir</button>
+    </article>)}
+   </div>}
+  </article>
+
+  <article className="prst-card prst-agenda-note prst-agenda-scope-card">
+   <div className="prst-card-head"><div><small>ALCANCE</small><h2>Qué fechas utiliza la agenda</h2><p>Solo muestra fechas existentes en el ERP y pendientes sin fecha límite.</p></div></div>
+   <div className="prst-alert-rules">
+    <span>Vencimiento de cada inversión.</span>
+    <span>Inicio solicitado cuando existe.</span>
+    <span>Vencimiento ligado a renovaciones.</span>
+    <span>Pendientes sin fecha se muestran como seguimiento de hoy.</span>
+   </div>
+  </article>
+ </section>
+}
 
 function Profile360(){return <>
  <Card title="Carlos Ernesto Mejía" kicker="PERFIL 360">
