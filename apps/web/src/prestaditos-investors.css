@@ -2244,3 +2244,120 @@
     padding:12px 15px!important;
   }
 }
+
+
+/* ===== INVESTORS DIRECTORY-FIRST CLEANUP ===== */
+/* Inversionistas: tabla primero, métricas compactas y edición siempre en modal. */
+.prst-investor-module{
+  gap:11px!important;
+}
+.prst-investor-command{
+  min-height:74px!important;
+  padding:13px 16px!important;
+  border-radius:13px!important;
+  box-shadow:0 7px 18px rgba(16,24,40,.09)!important;
+}
+.prst-investor-command h2{
+  margin:3px 0!important;
+  font-size:19px!important;
+}
+.prst-investor-command p{
+  font-size:9px!important;
+}
+.prst-investor-command-actions button{
+  min-height:36px!important;
+}
+
+.prst-investor-summary-pro{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.prst-investor-summary-pro article{
+  min-height:74px!important;
+  padding:11px 13px!important;
+  border-radius:10px!important;
+}
+.prst-investor-summary-pro span{
+  font-size:8px!important;
+}
+.prst-investor-summary-pro strong{
+  margin:4px 0 1px!important;
+  font-size:18px!important;
+}
+.prst-investor-summary-pro small{
+  font-size:8px!important;
+}
+.prst-investor-summary-pro article:nth-child(1){border-top-color:#3975a9!important}
+.prst-investor-summary-pro article:nth-child(2){border-top-color:#d99222!important}
+.prst-investor-summary-pro article:nth-child(3){border-top-color:#2f865b!important}
+.prst-investor-summary-pro article:nth-child(4){border-top-color:#d92d3e!important}
+
+.prst-investor-directory-card{
+  padding:14px!important;
+}
+.prst-investor-directory-card .prst-card-head{
+  margin-bottom:10px!important;
+}
+.prst-investor-directory-head h2{
+  font-size:17px!important;
+}
+.prst-investor-directory-head p{
+  font-size:9px!important;
+}
+.prst-directory-tools-pro{
+  grid-template-columns:minmax(280px,1fr) 145px 175px auto!important;
+  padding:7px!important;
+  margin-bottom:9px!important;
+  border-radius:9px!important;
+}
+.prst-directory-tools-pro input,
+.prst-directory-tools-pro select,
+.prst-directory-tools-pro .prst-filter-clear{
+  min-height:36px!important;
+}
+.prst-investor-table-pro{
+  min-width:1080px!important;
+}
+.prst-investor-table-pro th{
+  padding:8px!important;
+}
+.prst-investor-table-pro td{
+  padding:9px 8px!important;
+}
+.prst-investor-actions.compact{
+  min-width:165px!important;
+}
+.prst-investor-actions.compact>button{
+  white-space:nowrap!important;
+}
+
+/* El editor nunca debe formar parte del flujo vertical del directorio. */
+.prst-investor-form.prst-editor-modal,
+.prst-preview-investor-edit.prst-editor-modal{
+  position:relative!important;
+  top:auto!important;
+}
+.prst-editor-backdrop{
+  z-index:2147483400!important;
+}
+.prst-editor-modal{
+  width:min(980px,calc(100vw - 48px))!important;
+  max-height:calc(100vh - 48px)!important;
+}
+
+/* Bloques de seguimiento antiguos ya no forman parte de la vista principal. */
+.prst-investor-followup-grid{
+  display:none!important;
+}
+
+@media(max-width:1180px){
+  .prst-investor-summary-pro{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .prst-directory-tools-pro{grid-template-columns:1fr 1fr!important}
+  .prst-directory-tools-pro .prst-search{grid-column:1/-1!important;max-width:none!important}
+}
+@media(max-width:680px){
+  .prst-investor-summary-pro{grid-template-columns:1fr!important}
+  .prst-directory-tools-pro{grid-template-columns:1fr!important}
+  .prst-directory-tools-pro .prst-search{grid-column:auto!important}
+  .prst-editor-modal{width:100%!important;max-height:calc(100vh - 20px)!important}
+}
