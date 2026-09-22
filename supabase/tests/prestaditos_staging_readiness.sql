@@ -38,7 +38,7 @@ begin
     'inv_formalize_application_with_rate(uuid,date,numeric,text,numeric,text,text)',
     'inv_record_payment(uuid,text,numeric,date,text,text,text,text)',
     'inv_reverse_payment(uuid,text)',
-    'inv_save_beneficiary(uuid,uuid,text,text,date,text,text,text,text,text,numeric,text)',
+    'inv_save_beneficiary(uuid,uuid,uuid,text,text,date,text,text,text,text,text,numeric,text)',
     'inv_save_renewal_decision(uuid,text,numeric,integer,date,text,text,text)',
     'inv_execute_renewal(uuid,numeric,text)',
     'inv_finalize_withdrawal(uuid,boolean,text)',
@@ -94,6 +94,17 @@ begin
       and privilege_type in ('INSERT','UPDATE','DELETE')
   ) then
     raise exception 'PRESTADITOS_SMOKE: sensitive tables expose direct authenticated writes';
+  end if;
+
+  if exists(
+    select 1
+    from information_schema.routine_privileges rp
+    where rp.specific_schema='public'
+      and rp.grantee='anon'
+      and rp.privilege_type='EXECUTE'
+      and rp.routine_name like 'inv_%'
+  ) then
+    raise exception 'PRESTADITOS_SMOKE: one or more inv_* RPCs expose anonymous execute';
   end if;
 
   raise notice 'PRESTADITOS_SMOKE_OK: schema, RLS, storage and sensitive write controls passed.';
