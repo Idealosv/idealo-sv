@@ -17,7 +17,7 @@ test('dashboard ejecutivo usa colores semánticos y seis KPIs',()=>{
 })
 
 test('dashboard muestra alertas flujo solicitudes vencimientos y resumen financiero',()=>{
- for(const phrase of ['ALERTAS OPERATIVAS','OPERACIÓN','Solicitudes recientes','Próximos vencimientos','Capital vigente por tasa anual','Situación de inversiones','RESUMEN FINANCIERO'])assert.match(dashboard,new RegExp(phrase))
+ for(const phrase of ['ALERTAS OPERATIVAS','OPERACIÓN','Solicitudes recientes','Próximos vencimientos','Capital vigente por tasa anual','Situación de inversiones'])assert.match(dashboard,new RegExp(phrase))
  assert.match(dashboard,/excluye pagos revertidos/)
  assert.match(dashboard,/no inventa prorrateos ni capitalización/)
 })
@@ -56,12 +56,20 @@ test('dashboard usa estética financiera ejecutiva sin neón ni grid cyber',()=>
 
 
 test('dashboard usa tipografía ejecutiva grande y legible',()=>{
- assert.match(css,/LEGIBILITY OVERRIDES · LARGE EXECUTIVE TYPE/)
- assert.match(css,/prst-dash-hero h2\{font-size:42px!important\}/)
- assert.match(css,/prst-dash-kpi strong\{font-size:34px!important\}/)
- assert.match(css,/prst-dash-panel>header h3\{font-size:29px!important\}/)
- assert.match(css,/prst-dash-alert-list strong\{font-size:14px!important\}/)
- assert.match(css,/prst-dash-flow strong\{font-size:14px!important\}/)
- assert.match(css,/prst-dash-list strong\{font-size:14px!important\}/)
- assert.match(css,/prst-dash-summary strong\{font-size:27px!important\}/)
+ assert.match(css,/DASHBOARD EJECUTIVO LIMPIO Y LEGIBLE/)
+ assert.match(css,/prst-dash-hero h2\{[^}]*font-size:46px/)
+ assert.match(css,/prst-dash-kpi strong\{[^}]*font-size:38px/)
+ assert.match(css,/prst-dash-panel>header h3\{[^}]*font-size:32px/)
+ assert.match(css,/prst-dash-alert-list strong\{font-size:16px/)
+ assert.match(css,/prst-dash-flow strong\{font-size:16px/)
+ assert.match(css,/prst-dash-list strong\{[^}]*font-size:16px/)
+ assert.doesNotMatch(dashboard,/prst-dash-financial/)
+})
+
+
+test('dashboard reduce saturación visual y limita listas operativas',()=>{
+ assert.match(dashboard,/\.slice\(0,3\)/)
+ assert.doesNotMatch(dashboard,/prst-dash-financial/)
+ assert.match(css,/gap:24px/)
+ assert.match(css,/font-size:46px/)
 })
