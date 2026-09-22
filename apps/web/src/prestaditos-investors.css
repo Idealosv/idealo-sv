@@ -1996,3 +1996,132 @@
     position:fixed;right:16px;left:16px;top:auto;bottom:16px;min-width:0;padding:8px;border-radius:12px;
   }
 }
+
+
+/* ===== CORE ERP NAVIGATION · 8 MODULES ===== */
+/* El lateral contiene solo áreas de trabajo; las operaciones secundarias viven dentro de cada módulo. */
+.prst-context-bar{
+  position:relative;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:52px;
+  padding:7px 24px;
+  border-bottom:1px solid #dde3e8;
+  background:#fff;
+}
+.prst-context-bar>span{
+  flex:0 0 auto;
+  color:#697586;
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.prst-context-bar>div{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.prst-context-bar>div::-webkit-scrollbar{display:none}
+.prst-context-bar button{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid #d4dbe2;
+  border-radius:8px;
+  background:#fff;
+  color:#344054;
+  font:inherit;
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.prst-context-bar button:hover,
+.prst-context-bar button.active{
+  border-color:#303d4a;
+  background:#303d4a;
+  color:#fff;
+}
+
+.prst-system-menu{position:relative}
+.prst-system-menu>summary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:0 13px;
+  border:1px solid #cfd6dc;
+  border-radius:9px;
+  background:#fff;
+  color:#2d3945;
+  font-size:11px;
+  font-weight:850;
+  cursor:pointer;
+  list-style:none;
+}
+.prst-system-menu>summary::-webkit-details-marker{display:none}
+.prst-system-menu[open]>summary{border-color:#9eabb6;background:#f5f7f9}
+.prst-system-menu>div{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  z-index:80;
+  display:grid;
+  min-width:190px;
+  padding:6px;
+  border:1px solid #dce2e7;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 16px 34px rgba(16,24,40,.18);
+}
+.prst-system-menu>div button{
+  min-height:36px!important;
+  width:100%;
+  padding:0 10px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  color:#344054!important;
+  text-align:left;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+.prst-system-menu>div button:hover{background:#f3f5f7!important}
+
+.prst-investor-actions.compact{
+  min-width:185px!important;
+  justify-content:flex-end;
+}
+.prst-investor-actions.compact>button:not(.primary){
+  min-height:31px!important;
+  padding:0 9px!important;
+  border:1px solid #d4dbe2!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#344054!important;
+  font-size:9px!important;
+  font-weight:850!important;
+}
+
+@media(max-width:900px){
+  .prst-context-bar{
+    padding:7px 12px;
+    align-items:flex-start;
+    flex-direction:column;
+    gap:5px;
+  }
+  .prst-context-bar>div{width:100%}
+  .prst-system-menu>div{
+    position:fixed;
+    right:16px;
+    left:16px;
+    top:72px;
+    min-width:0;
+  }
+}
