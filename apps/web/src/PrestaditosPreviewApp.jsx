@@ -59,6 +59,7 @@ function Table({headers,rows}){return <div className="prst-table-wrap"><table><t
 export default function PrestaditosPreviewApp(){
  const [tab,setTab]=useState('Dashboard')
  const [mobileNavOpen,setMobileNavOpen]=useState(false)
+ const [selectedInvestorId,setSelectedInvestorId]=useState('i1')
  const capital=useMemo(()=>demo.investments.filter(x=>x.status==='Activa').reduce((s,x)=>s+x.capital,0),[])
  const projected=useMemo(()=>demo.investments.filter(x=>x.status==='Activa').reduce((s,x)=>s+x.gain,0),[])
  const yieldPaid=useMemo(()=>demo.payments.filter(x=>x.type==='Rendimiento').reduce((s,x)=>s+x.amount,0),[])
@@ -102,6 +103,7 @@ export default function PrestaditosPreviewApp(){
  },[])
 
  const selectTab=name=>{setTab(name);setMobileNavOpen(false)}
+ const openInvestorTab=(name,investorId)=>{if(investorId)setSelectedInvestorId(investorId);selectTab(name)}
  return <div className="prst-app">
   {mobileNavOpen&&<button type="button" className="prst-mobile-overlay" aria-label="Cerrar menú" onClick={()=>setMobileNavOpen(false)}/>}
   <aside className={`prst-sidebar ${mobileNavOpen?'mobile-open':''}`}>
@@ -124,8 +126,8 @@ export default function PrestaditosPreviewApp(){
     {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
     {tab==='Notificaciones'&&<Notifications onGo={selectTab}/>} 
     {tab==='Agenda'&&<Agenda onGo={selectTab}/>} 
-    {tab==='Inversionistas'&&<Investors onGo={selectTab}/>} 
-    {tab==='Perfil 360'&&<Profile360/>}
+    {tab==='Inversionistas'&&<Investors onGo={selectTab} onOpenInvestor={openInvestorTab}/>} 
+    {tab==='Perfil 360'&&<Profile360 investorId={selectedInvestorId} onGo={selectTab}/>} 
     {tab==='Solicitudes'&&<Applications/>}
     {tab==='Simulador'&&<Simulator/>}
     {tab==='Inversiones'&&<Investments/>}
@@ -136,7 +138,7 @@ export default function PrestaditosPreviewApp(){
     {tab==='Vencimientos'&&<Maturities/>}
     {tab==='Renovaciones'&&<Renewals/>}
     {tab==='Tesorería'&&<Treasury capital={capital} yieldPaid={yieldPaid}/>} 
-    {tab==='Documentos'&&<Documents/>}
+    {tab==='Documentos'&&<Documents investorId={selectedInvestorId}/>} 
     {tab==='Reportes'&&<Reports/>}
     {tab==='Cierre mensual'&&<MonthlyCloseout/>}
     {tab==='Auditoría'&&<Audit/>}
@@ -153,26 +155,73 @@ export default function PrestaditosPreviewApp(){
 
 function Metric({label,value,hint,tone=''}){return <article className={`prst-metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>}
 
-function Investors({onGo}){
+function Investors({onGo,onOpenInvestor}){
+ const [investorRows,setInvestorRows]=useState(demo.investors)
  const [query,setQuery]=useState('')
  const [status,setStatus]=useState('ALL')
  const [docs,setDocs]=useState('ALL')
+ const [editingId,setEditingId]=useState('')
+ const [editDraft,setEditDraft]=useState(null)
+ const [editNotice,setEditNotice]=useState('')
  const activeCapital={i1:4000,i2:8000,i3:0}
  const activeCount={i1:1,i2:1,i3:0}
  const q=query.trim().toLowerCase()
- const rows=demo.investors.filter(x=>(status==='ALL'||x.status===status)&&(docs==='ALL'||(docs==='COMPLETE'?x.docs==='3/3':x.docs!=='3/3'))&&(!q||(x.name+' '+x.code+' '+x.dui+' '+x.phone+' '+x.email).toLowerCase().includes(q)))
- const pending=demo.investors.filter(x=>x.docs!=='3/3')
+ const rows=investorRows.filter(x=>(status==='ALL'||x.status===status)&&(docs==='ALL'||(docs==='COMPLETE'?x.docs==='3/3':x.docs!=='3/3'))&&(!q||(x.name+' '+x.code+' '+x.dui+' '+x.phone+' '+x.email).toLowerCase().includes(q)))
+ const pending=investorRows.filter(x=>x.docs!=='3/3')
+
+ const openEdit=x=>{
+  setEditingId(x.id)
+  setEditDraft({...x})
+  setEditNotice('')
+  window.setTimeout(()=>document.querySelector('.prst-preview-investor-edit')?.scrollIntoView({behavior:'smooth',block:'center'}),30)
+ }
+ const closeEdit=()=>{setEditingId('');setEditDraft(null);setEditNotice('')}
+ const updateDraft=e=>setEditDraft(current=>({...current,[e.target.name]:e.target.value}))
+ const saveDraft=e=>{
+  e.preventDefault()
+  if(!editDraft)return
+  setInvestorRows(current=>current.map(x=>x.id===editingId?{...x,...editDraft}:x))
+  setEditNotice('Cambios guardados en esta vista previa.')
+  window.setTimeout(()=>{setEditingId('');setEditDraft(null);setEditNotice('')},900)
+ }
+ const exportCsv=()=>{
+  const header=['Código','Nombre','DUI','Teléfono','Correo','Documentos','Estado']
+  const quote=v=>`"${String(v??'').replaceAll('"','""')}"`
+  const csv='\ufeff'+[header,...rows.map(x=>[x.code,x.name,x.dui,x.phone,x.email,x.docs,x.status])].map(r=>r.map(quote).join(',')).join('\n')
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+  const a=document.createElement('a')
+  a.href=url;a.download='prestaditos-inversionistas-demo.csv';a.click();URL.revokeObjectURL(url)
+ }
+ const openNew=()=>{
+  const id='demo-'+Date.now()
+  setEditingId(id)
+  setEditDraft({id,code:'INV-DEMO-NUEVO',name:'',dui:'',phone:'',email:'',docs:'0/3',status:'Activo'})
+  setEditNotice('Nuevo expediente de demostración. No modifica información real.')
+  window.setTimeout(()=>document.querySelector('.prst-preview-investor-edit')?.scrollIntoView({behavior:'smooth',block:'center'}),30)
+ }
+ const saveNew=e=>{
+  e.preventDefault()
+  if(!editDraft?.name.trim())return
+  setInvestorRows(current=>current.some(x=>x.id===editingId)?current.map(x=>x.id===editingId?{...x,...editDraft}:x):[{...editDraft},...current])
+  setEditNotice('Expediente agregado únicamente a esta vista previa.')
+  window.setTimeout(()=>{setEditingId('');setEditDraft(null);setEditNotice('')},900)
+ }
+
  return <section className="prst-investor-module">
   <section className="prst-investor-command">
    <div><small>CONTROL DE EXPEDIENTES</small><h2>Directorio de inversionistas</h2><p>Consulta, documentación, capital activo y acceso rápido al expediente de cada inversionista.</p></div>
-   <div className="prst-investor-command-actions"><button>Exportar CSV</button><button onClick={()=>setDocs('PENDING')}>Ver pendientes <span>{pending.length}</span></button><button className="primary">+ Nuevo inversionista</button></div>
+   <div className="prst-investor-command-actions">
+    <button type="button" onClick={exportCsv}>Exportar CSV</button>
+    <button type="button" onClick={()=>setDocs('PENDING')}>Ver pendientes <span>{pending.length}</span></button>
+    <button type="button" className="primary" onClick={openNew}>+ Nuevo inversionista</button>
+   </div>
   </section>
 
   <section className="prst-investor-summary prst-investor-summary-pro">
-   <article><span>Total inversionistas</span><strong>3</strong><small>expedientes registrados</small></article>
-   <article><span>Activos</span><strong>3</strong><small>habilitados actualmente</small></article>
-   <article><span>Documentación completa</span><strong>2</strong><small>rostro + DUI frente/reverso</small></article>
-   <article><span>Pendientes documentales</span><strong>1</strong><small>requieren seguimiento</small></article>
+   <article><span>Total inversionistas</span><strong>{investorRows.length}</strong><small>expedientes registrados</small></article>
+   <article><span>Activos</span><strong>{investorRows.filter(x=>x.status==='Activo').length}</strong><small>habilitados actualmente</small></article>
+   <article><span>Documentación completa</span><strong>{investorRows.filter(x=>x.docs==='3/3').length}</strong><small>rostro + DUI frente/reverso</small></article>
+   <article><span>Pendientes documentales</span><strong>{pending.length}</strong><small>requieren seguimiento</small></article>
    <article><span>Capital activo</span><strong>{money(12000)}</strong><small>2 inversiones vigentes</small></article>
   </section>
 
@@ -182,32 +231,51 @@ function Investors({onGo}){
     <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nombre, DUI, código, teléfono o correo"/>
     <select value={status} onChange={e=>setStatus(e.target.value)}><option value="ALL">Todos los estados</option><option value="Activo">Activos</option></select>
     <select value={docs} onChange={e=>setDocs(e.target.value)}><option value="ALL">Todos los documentos</option><option value="COMPLETE">Documentación completa</option><option value="PENDING">Documentación pendiente</option></select>
-    {(query||status!=='ALL'||docs!=='ALL')&&<button className="prst-filter-clear" onClick={()=>{setQuery('');setStatus('ALL');setDocs('ALL')}}>Limpiar</button>}
+    {(query||status!=='ALL'||docs!=='ALL')&&<button type="button" className="prst-filter-clear" onClick={()=>{setQuery('');setStatus('ALL');setDocs('ALL')}}>Limpiar</button>}
    </div>
    <div className="prst-table-wrap prst-investor-table-wrap"><table className="prst-investor-table prst-investor-table-pro">
     <thead><tr><th>Inversionista</th><th>DUI</th><th>Contacto</th><th>Documentación</th><th>Inversiones</th><th>Capital activo</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody>{rows.map(x=>{
      const n=Number(x.docs.split('/')[0]),pct=Math.round((n/3)*100)
      return <tr key={x.id}>
-      <td><div className="prst-investor-name-cell"><span className="prst-investor-avatar">{x.name.split(' ').map(v=>v[0]).slice(0,2).join('')}</span><span><b>{x.name}</b><small>{x.code}</small></span></div></td>
-      <td><b>{x.dui}</b><small>identificación</small></td>
-      <td><b>{x.phone}</b><small>{x.email}</small></td>
+      <td><div className="prst-investor-name-cell"><span className="prst-investor-avatar">{x.name.split(' ').filter(Boolean).map(v=>v[0]).slice(0,2).join('')||'NV'}</span><span><b>{x.name||'Nuevo inversionista'}</b><small>{x.code}</small></span></div></td>
+      <td><b>{x.dui||'Pendiente'}</b><small>identificación</small></td>
+      <td><b>{x.phone||'Sin teléfono'}</b><small>{x.email||'Sin correo'}</small></td>
       <td><div className="prst-doc-progress"><div><span style={{width:`${pct}%`}}/></div><small>{n===3?'Completo':`${n}/3 documentos`}</small></div></td>
       <td><b>{activeCount[x.id]||0}</b><small>{activeCount[x.id]?'vigentes':'sin inversión activa'}</small></td>
       <td><b>{money(activeCapital[x.id]||0)}</b><small>capital vigente</small></td>
       <td><Status>{x.status}</Status></td>
-      <td><div className="prst-row-actions prst-investor-actions"><button className="primary" onClick={()=>onGo?.('Perfil 360')}>Ver</button><button onClick={()=>onGo?.('Perfil 360')}>Perfil 360</button><button onClick={()=>onGo?.('Documentos')}>Documentos</button>{activeCount[x.id]>0&&<button onClick={()=>onGo?.('Contratos')}>Contratos</button>}<button>Editar</button></div></td>
+      <td><div className="prst-row-actions prst-investor-actions">
+       <button type="button" className="primary" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Ver</button>
+       <button type="button" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Perfil 360</button>
+       <button type="button" onClick={()=>onOpenInvestor?.('Documentos',x.id)}>Documentos</button>
+       {activeCount[x.id]>0&&<button type="button" onClick={()=>onOpenInvestor?.('Contratos',x.id)}>Contratos</button>}
+       <button type="button" onClick={()=>openEdit(x)}>Editar</button>
+      </div></td>
      </tr>
     })}</tbody>
    </table></div>
   </article>
 
+  {editDraft&&<form className="prst-card prst-preview-investor-edit" onSubmit={editingId.startsWith('demo-')?saveNew:saveDraft}>
+   <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>{editingId.startsWith('demo-')?'Nuevo inversionista':'Editar inversionista'}</h2><p>Probá el flujo visual. Estos cambios no modifican información real.</p></div><button type="button" className="prst-mini-button" onClick={closeEdit}>Cerrar</button></div>
+   <div className="prst-form-grid">
+    <label className="prst-field"><span>Nombre completo</span><input name="name" value={editDraft.name} onChange={updateDraft} required/></label>
+    <label className="prst-field"><span>DUI</span><input name="dui" value={editDraft.dui} onChange={updateDraft}/></label>
+    <label className="prst-field"><span>Teléfono</span><input name="phone" value={editDraft.phone} onChange={updateDraft}/></label>
+    <label className="prst-field"><span>Correo</span><input name="email" type="email" value={editDraft.email} onChange={updateDraft}/></label>
+    <label className="prst-field"><span>Estado</span><select name="status" value={editDraft.status} onChange={updateDraft}><option>Activo</option><option>Inactivo</option></select></label>
+    <label className="prst-field"><span>Documentación</span><select name="docs" value={editDraft.docs} onChange={updateDraft}><option>0/3</option><option>1/3</option><option>2/3</option><option>3/3</option></select></label>
+   </div>
+   <div className="prst-preview-edit-actions"><span>{editNotice}</span><div><button type="button" onClick={closeEdit}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
+  </form>}
+
   <section className="prst-investor-followup-grid">
    <Card title="Pendientes prioritarios" kicker="SEGUIMIENTO DOCUMENTAL">
-    <div className="prst-investor-followup-list">{pending.map(x=><button key={x.id}><span><b>{x.name}</b><small>DUI reverso pendiente</small></span><strong>{x.docs}</strong></button>)}</div>
+    <div className="prst-investor-followup-list">{pending.map(x=><button key={x.id} type="button" onClick={()=>onOpenInvestor?.('Documentos',x.id)}><span><b>{x.name}</b><small>DUI reverso pendiente</small></span><strong>{x.docs}</strong></button>)}</div>
    </Card>
    <Card title="Últimos inversionistas" kicker="ACTIVIDAD RECIENTE">
-    <div className="prst-investor-followup-list recent">{demo.investors.map(x=><button key={x.id}><span><b>{x.name}</b><small>{x.code}</small></span><Status>{x.status}</Status></button>)}</div>
+    <div className="prst-investor-followup-list recent">{investorRows.map(x=><button key={x.id} type="button" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}><span><b>{x.name}</b><small>{x.code}</small></span><Status>{x.status}</Status></button>)}</div>
    </Card>
   </section>
  </section>
@@ -267,13 +335,19 @@ function Treasury({capital,yieldPaid}){return <>
  </>}
 
 
-function Documents(){return <>
- <section className="prst-investor-summary"><article><span>Documentos activos</span><strong>3</strong><small>archivos vigentes</small></article><article><span>Contratos</span><strong>1</strong><small>documento contractual</small></article><article><span>Comprobantes</span><strong>1</strong><small>respaldo de pago</small></article><article><span>Inactivos</span><strong>0</strong><small>histórico conservado</small></article></section>
- <Card title="Repositorio documental" kicker="EXPEDIENTE PRIVADO">
-  <Table headers={['Documento','Inversionista','Relación','Tipo','Archivo','Estado']} rows={demo.documents.map(x=><tr key={x.code}><td><b>{x.title}</b><small>{x.code}</small></td><td>{x.investor}</td><td>{x.relation}</td><td>{x.type}</td><td>{x.size}</td><td><Status>{x.status}</Status></td></tr>)}/>
+function Documents({investorId='i1'}){
+ const investor=demo.investors.find(x=>x.id===investorId)||demo.investors[0]
+ const [showAll,setShowAll]=useState(false)
+ const rows=showAll?demo.documents:demo.documents.filter(x=>x.investor===investor.name)
+ const contracts=rows.filter(x=>x.type==='Contrato').length
+ const proofs=rows.filter(x=>x.type==='Comprobante de pago').length
+ return <>
+ <section className="prst-investor-summary"><article><span>Documentos mostrados</span><strong>{rows.length}</strong><small>{showAll?'repositorio completo':investor.name}</small></article><article><span>Contratos</span><strong>{contracts}</strong><small>documentos contractuales</small></article><article><span>Comprobantes</span><strong>{proofs}</strong><small>respaldo de pago</small></article><article><span>Expediente</span><strong>{investor.docs}</strong><small>rostro + DUI</small></article></section>
+ <Card title={showAll?'Repositorio documental':`Documentos · ${investor.name}`} kicker="EXPEDIENTE PRIVADO">
+  <div className="prst-document-context"><div><span>Inversionista seleccionado</span><strong>{investor.name}</strong><small>{investor.code} · DUI {investor.dui}</small></div><button type="button" onClick={()=>setShowAll(x=>!x)}>{showAll?'Ver solo este inversionista':'Ver todos los documentos'}</button></div>
+  {rows.length?<Table headers={['Documento','Inversionista','Relación','Tipo','Archivo','Estado']} rows={rows.map(x=><tr key={x.code}><td><b>{x.title}</b><small>{x.code}</small></td><td>{x.investor}</td><td>{x.relation}</td><td>{x.type}</td><td>{x.size}</td><td><Status>{x.status}</Status></td></tr>)}/>:<div className="prst-empty"><strong>Sin documentos cargados</strong><p>No hay documentos de repositorio para este inversionista en la vista previa.</p></div>}
  </Card>
  </>}
-
 
 function Reports(){return <>
  <section className="prst-metrics">
@@ -568,18 +642,31 @@ function Agenda({onGo}){
  </section>
 }
 
-function Profile360(){return <>
- <Card title="Carlos Ernesto Mejía" kicker="PERFIL 360">
-  <div className="prst-profile360-actions"><button><b>Estado de cuenta</b><small>Resumen y PDF</small></button><button><b>Contrato</b><small>INVEST-20260901-A1B2C3</small></button><button><b>Registrar pago</b><small>Rendimiento o capital</small></button><button><b>Renovación</b><small>Gestionar vencimiento</small></button><button><b>Documentos</b><small>Expediente privado</small></button></div>
+function Profile360({investorId='i1',onGo}){
+ const investor=demo.investors.find(x=>x.id===investorId)||demo.investors[0]
+ const invs=demo.investments.filter(x=>x.name===investor.name)
+ const payments=demo.payments.filter(x=>x.name===investor.name)
+ const contracts=demo.contracts.filter(x=>x.investor===investor.name)
+ const beneficiaries=demo.beneficiaries.filter(x=>x.investor===investor.name)
+ const documents=demo.documents.filter(x=>x.investor===investor.name)
+ const renewals=demo.renewals.filter(x=>x.name===investor.name)
+ const active=invs.filter(x=>x.status==='Activa')
+ const capital=active.reduce((s,x)=>s+x.capital,0)
+ const yields=payments.filter(x=>x.type==='Rendimiento').reduce((s,x)=>s+x.amount,0)
+ const returned=payments.filter(x=>x.type==='Devolución de capital').reduce((s,x)=>s+x.amount,0)
+ const next=active[0]
+ return <>
+ <Card title={investor.name} kicker="PERFIL 360">
+  <div className="prst-profile360-context"><span>{investor.code}</span><b>DUI {investor.dui}</b><small>{investor.phone} · {investor.email}</small></div>
+  <div className="prst-profile360-actions"><button type="button" onClick={()=>onGo?.('Estado de cuenta')}><b>Estado de cuenta</b><small>Resumen y PDF</small></button><button type="button" onClick={()=>onGo?.('Contratos')}><b>Contrato</b><small>{contracts[0]?.code||'Sin contrato activo'}</small></button><button type="button" onClick={()=>onGo?.('Rendimientos')}><b>Registrar pago</b><small>Rendimiento o capital</small></button><button type="button" onClick={()=>onGo?.('Renovaciones')}><b>Renovación</b><small>Gestionar vencimiento</small></button><button type="button" onClick={()=>onGo?.('Documentos')}><b>Documentos</b><small>Expediente privado</small></button></div>
  </Card>
- <section className="prst-investor-summary prst-profile360-summary"><article><span>Capital vigente</span><strong>{money(4000)}</strong><small>1 inversión vigente</small></article><article><span>Rendimientos pagados</span><strong>{money(150)}</strong><small>pagos vigentes</small></article><article><span>Capital devuelto</span><strong>{money(0)}</strong><small>histórico</small></article><article><span>Próximo vencimiento</span><strong>01 sep 2027</strong><small>INVEST-20260901-A1B2C3</small></article></section>
+ <section className="prst-investor-summary prst-profile360-summary"><article><span>Capital vigente</span><strong>{money(capital)}</strong><small>{active.length} inversión{active.length===1?'':'es'} vigente{active.length===1?'':'s'}</small></article><article><span>Rendimientos pagados</span><strong>{money(yields)}</strong><small>pagos vigentes</small></article><article><span>Capital devuelto</span><strong>{money(returned)}</strong><small>histórico</small></article><article><span>Próximo vencimiento</span><strong>{next?.maturity||'Sin fecha próxima'}</strong><small>{next?.code||'sin inversión activa'}</small></article></section>
  <section className="prst-grid two">
-  <Card title="Expediente del inversionista" kicker="DATOS PERSONALES"><div className="prst-profile-grid"><article><small>Nombre</small><b>Carlos Ernesto Mejía</b><span>DUI 01234567-8</span></article><article><small>Contacto</small><b>7788-1122</b><span>carlos@ejemplo.com</span></article><article><small>Documentación</small><b>Completa</b><span>Rostro + DUI frente/reverso</span></article><article><small>Estado</small><b>Activo</b><span>INV-2026-001284</span></article></div></Card>
-  <Card title="Expediente relacionado" kicker="RESUMEN"><div className="prst-profile360-counters"><div><span>Solicitudes</span><strong>1</strong></div><div><span>Contratos</span><strong>1</strong></div><div><span>Beneficiarios</span><strong>2</strong></div><div><span>Documentos</span><strong>2</strong></div><div><span>Pagos</span><strong>1</strong></div><div><span>Renovaciones</span><strong>0</strong></div></div></Card>
+  <Card title="Expediente del inversionista" kicker="DATOS PERSONALES"><div className="prst-profile-grid"><article><small>Nombre</small><b>{investor.name}</b><span>DUI {investor.dui}</span></article><article><small>Contacto</small><b>{investor.phone}</b><span>{investor.email}</span></article><article><small>Documentación</small><b>{investor.docs==='3/3'?'Completa':'Pendiente'}</b><span>{investor.docs} · rostro + DUI</span></article><article><small>Estado</small><b>{investor.status}</b><span>{investor.code}</span></article></div></Card>
+  <Card title="Expediente relacionado" kicker="RESUMEN"><div className="prst-profile360-counters"><div><span>Solicitudes</span><strong>{demo.applications.filter(x=>x.name===investor.name).length}</strong></div><div><span>Contratos</span><strong>{contracts.length}</strong></div><div><span>Beneficiarios</span><strong>{beneficiaries.length}</strong></div><div><span>Documentos</span><strong>{documents.length}</strong></div><div><span>Pagos</span><strong>{payments.length}</strong></div><div><span>Renovaciones</span><strong>{renewals.length}</strong></div></div></Card>
  </section>
- <Card title="Capital y vigencias" kicker="INVERSIONES"><Table headers={['Inversión','Capital','Tasa anual','Inicio','Vence','Capital pendiente','Contrato','Estado']} rows={[<tr key="p360"><td><b>INVEST-20260901-A1B2C3</b></td><td>{money(4000)}</td><td>10% anual</td><td>01 sep 2026</td><td>01 sep 2027</td><td><b>{money(4000)}</b></td><td>Firmado</td><td><Status>Activa</Status></td></tr>]}/></Card>
+ <Card title="Capital y vigencias" kicker="INVERSIONES">{invs.length?<Table headers={['Inversión','Capital','Tasa anual','Inicio','Vence','Referencia anual','Estado']} rows={invs.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{money(x.capital)}</td><td>{x.rate}% anual</td><td>{x.granted}</td><td>{x.maturity}</td><td><b>{money(x.gain)}</b></td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status}</Status></td></tr>)}/>:<div className="prst-empty"><strong>Sin inversiones</strong><p>Este inversionista no tiene inversiones cargadas en la vista previa.</p></div>}</Card>
  </>}
-
 
 function EndToEndDemo(){const cases=[{amount:2000,rate:10,gain:200,name:'Ana Lucía Prueba',end:'Retiro finalizado'},{amount:7500,rate:12,gain:900,name:'Brenda Sofía Ejemplo',end:'Renovación ejecutada'},{amount:15000,rate:15,gain:2250,name:'Carlos Andrés Demostración',end:'No renovación y cierre'}];return <>
  <section className="prst-investor-summary prst-e2e-summary"><article><span>Casos ficticios</span><strong>3</strong><small>10%, 12% y 15% anual</small></article><article><span>Plazo</span><strong>12 meses</strong><small>sin asumir prorrateo</small></article><article><span>Recorrido</span><strong>Completo</strong><small>hasta cierre/renovación</small></article><article><span>Base real</span><strong>No usada</strong><small>prueba sin costo</small></article></section>
