@@ -23,8 +23,16 @@ test('tema unifica sidebar topbar cards forms and tables',()=>{
 })
 
 test('tema mantiene paleta sobria y legible',()=>{
- assert.match(theme,/--ui-bg:#edf1f4/)
- assert.match(theme,/--ui-red:#d92d3e/)
- assert.match(theme,/background:#fff!important/)
+ assert.match(theme,/--ui-bg:#08131f/)
+ assert.match(theme,/--ui-red:#ed1c24/)
+ assert.match(theme,/background:#0b1824!important/)
  assert.doesNotMatch(theme,/neon|cyber/i)
+})
+
+
+test('tema adopta centro de control financiero oscuro',()=>{
+ assert.match(theme,/compact command center/)
+ assert.match(theme,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/)
+ assert.match(theme,/--ui-orange:#f2a11f/)
+ assert.match(theme,/background:linear-gradient\(180deg,#0f1e2b,#0d1a27\)!important/)
 })
