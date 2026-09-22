@@ -510,17 +510,100 @@ function Treasury({capital,yieldPaid}){return <>
 
 function Documents({investorId='i1'}){
  const investor=demo.investors.find(x=>x.id===investorId)||demo.investors[0]
+ const [documentRows,setDocumentRows]=useState(demo.documents)
  const [showAll,setShowAll]=useState(false)
- const rows=showAll?demo.documents:demo.documents.filter(x=>x.investor===investor.name)
- const contracts=rows.filter(x=>x.type==='Contrato').length
- const proofs=rows.filter(x=>x.type==='Comprobante de pago').length
- return <>
- <section className="prst-investor-summary"><article><span>Documentos mostrados</span><strong>{rows.length}</strong><small>{showAll?'repositorio completo':investor.name}</small></article><article><span>Contratos</span><strong>{contracts}</strong><small>documentos contractuales</small></article><article><span>Comprobantes</span><strong>{proofs}</strong><small>respaldo de pago</small></article><article><span>Expediente</span><strong>{investor.docs}</strong><small>rostro + DUI</small></article></section>
- <Card title={showAll?'Repositorio documental':`Documentos · ${investor.name}`} kicker="EXPEDIENTE PRIVADO">
-  <div className="prst-document-context"><div><span>Inversionista seleccionado</span><strong>{investor.name}</strong><small>{investor.code} · DUI {investor.dui}</small></div><button type="button" onClick={()=>setShowAll(x=>!x)}>{showAll?'Ver solo este inversionista':'Ver todos los documentos'}</button></div>
-  {rows.length?<Table headers={['Documento','Inversionista','Relación','Tipo','Archivo','Estado']} rows={rows.map(x=><tr key={x.code}><td><b>{x.title}</b><small>{x.code}</small></td><td>{x.investor}</td><td>{x.relation}</td><td>{x.type}</td><td>{x.size}</td><td><Status>{x.status}</Status></td></tr>)}/>:<div className="prst-empty"><strong>Sin documentos cargados</strong><p>No hay documentos de repositorio para este inversionista en la vista previa.</p></div>}
- </Card>
- </>}
+ const [query,setQuery]=useState('')
+ const [type,setType]=useState('ALL')
+ const [draft,setDraft]=useState(null)
+ const [notice,setNotice]=useState('')
+
+ const baseRows=showAll?documentRows:documentRows.filter(x=>x.investor===investor.name)
+ const q=query.trim().toLowerCase()
+ const rows=baseRows.filter(x=>(type==='ALL'||x.type===type)&&(!q||(x.title+' '+x.investor+' '+x.relation+' '+x.type+' '+x.code).toLowerCase().includes(q)))
+ const contracts=baseRows.filter(x=>x.type==='Contrato').length
+ const proofs=baseRows.filter(x=>x.type==='Comprobante de pago').length
+
+ const openNew=()=>{setDraft({
+  code:'DOC-DEMO-'+String(Date.now()).slice(-6),
+  title:'',
+  investor:investor.name,
+  relation:'Expediente general',
+  type:'Identificación',
+  size:'Sin archivo',
+  status:'Activo',
+  file:null,
+ });setNotice('')}
+ const close=()=>{setDraft(null);setNotice('')}
+ const save=e=>{
+  e.preventDefault()
+  if(!draft?.title.trim()){setNotice('Escribí el nombre del documento.');return}
+  if(!draft?.file){setNotice('Seleccioná un archivo para adjuntar.');return}
+  const kb=draft.file.size/1024
+  const size=kb>=1024?`${(kb/1024).toFixed(1)} MB`:`${Math.max(1,Math.round(kb))} KB`
+  setDocumentRows(current=>[{...draft,title:draft.title.trim(),size,fileName:draft.file.name},...current])
+  setDraft(null)
+  setNotice('')
+ }
+
+ return <section className="prst-documents-module">
+  <section className="prst-document-command">
+   <div><small>EXPEDIENTE PRIVADO</small><h2>Gestión documental</h2><p>Contratos, comprobantes, identificaciones y formularios del inversionista.</p></div>
+   <button type="button" className="primary" onClick={openNew}>+ Nuevo documento</button>
+  </section>
+
+  <section className="prst-investor-summary prst-document-summary">
+   <article><span>Documentos mostrados</span><strong>{baseRows.length}</strong><small>{showAll?'repositorio completo':investor.name}</small></article>
+   <article><span>Contratos</span><strong>{contracts}</strong><small>documentos contractuales</small></article>
+   <article><span>Comprobantes</span><strong>{proofs}</strong><small>respaldo de pago</small></article>
+   <article><span>Expediente</span><strong>{investor.docs}</strong><small>rostro + DUI</small></article>
+  </section>
+
+  <Card title={showAll?'Repositorio documental':`Documentos · ${investor.name}`} kicker="EXPEDIENTE PRIVADO">
+   <div className="prst-document-context">
+    <div><span>Inversionista seleccionado</span><strong>{investor.name}</strong><small>{investor.code} · DUI {investor.dui}</small></div>
+    <button type="button" onClick={()=>setShowAll(x=>!x)}>{showAll?'Ver solo este inversionista':'Ver todos los documentos'}</button>
+   </div>
+
+   <div className="prst-document-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar documento, código, tipo o relación"/>
+    <select value={type} onChange={e=>setType(e.target.value)}>
+     <option value="ALL">Todos los tipos</option>
+     <option value="Contrato">Contratos</option>
+     <option value="Comprobante de pago">Comprobantes</option>
+     <option value="Identificación">Identificación</option>
+     <option value="Formulario">Formularios</option>
+     <option value="Otro">Otros</option>
+    </select>
+    <span>{rows.length} resultado{rows.length===1?'':'s'}</span>
+   </div>
+
+   {rows.length?<Table headers={['Documento','Inversionista','Relación','Tipo','Archivo','Estado','Acción']} rows={rows.map(x=><tr key={x.code}>
+    <td><b>{x.title}</b><small>{x.code}</small></td>
+    <td>{x.investor}</td>
+    <td>{x.relation}</td>
+    <td>{x.type}</td>
+    <td><b>{x.fileName||x.size}</b><small>{x.fileName?x.size:'archivo registrado'}</small></td>
+    <td><Status>{x.status}</Status></td>
+    <td><button type="button" className="prst-document-open" onClick={()=>alert(`Vista previa: ${x.title}\n${x.fileName||x.size}`)}>Ver</button></td>
+   </tr>)}/>:<div className="prst-empty"><strong>Sin documentos cargados</strong><p>No hay documentos que coincidan con los filtros actuales.</p></div>}
+  </Card>
+
+  {draft&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&close()}>
+   <form className="prst-card prst-editor-modal prst-document-modal" onSubmit={save}>
+    <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>Nuevo documento</h2><p>Adjuntá un archivo al expediente del inversionista.</p></div><button type="button" className="prst-mini-button" onClick={close}>Cerrar</button></div>
+    <div className="prst-form-grid">
+     <label className="prst-field span-2"><span>Nombre del documento</span><input value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})} placeholder="Ej. DUI frente, contrato firmado, comprobante" required/></label>
+     <label className="prst-field"><span>Inversionista</span><select value={draft.investor} onChange={e=>setDraft({...draft,investor:e.target.value})}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+     <label className="prst-field"><span>Tipo</span><select value={draft.type} onChange={e=>setDraft({...draft,type:e.target.value})}><option>Identificación</option><option>Contrato</option><option>Comprobante de pago</option><option>Formulario</option><option>Otro</option></select></label>
+     <label className="prst-field span-2"><span>Relación / referencia</span><input value={draft.relation} onChange={e=>setDraft({...draft,relation:e.target.value})} placeholder="Expediente general o código relacionado"/></label>
+     <label className="prst-field span-2"><span>Archivo</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e=>setDraft({...draft,file:e.target.files?.[0]||null})}/><small>{draft.file?draft.file.name:'PDF o imagen. Vista previa demostrativa.'}</small></label>
+    </div>
+    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+    <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
+   </form>
+  </div>}
+ </section>
+}
 
 function Reports(){return <>
  <section className="prst-metrics">
