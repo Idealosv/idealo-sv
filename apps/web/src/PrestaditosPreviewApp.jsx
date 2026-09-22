@@ -323,13 +323,83 @@ function Investors({onGo,onOpenInvestor}){
  </section>
 }
 
-function Applications(){return <>
- <section className="prst-investor-summary"><article><span>Solicitudes</span><strong>3</strong><small>histórico</small></article><article><span>Pendientes / revisión</span><strong>2</strong><small>{money(28000)} solicitado</small></article><article><span>Aprobadas</span><strong>1</strong><small>lista para proceso</small></article><article><span>Formalizadas</span><strong>0</strong><small>desde esta muestra</small></article></section>
- <Card title="Bandeja de solicitudes" kicker="CONTROL">
-  <Table headers={['Solicitud','Inversionista','Monto','Plazo','Lugar','Estado']} rows={demo.applications.map(x=><tr key={x.code}><td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.amount)}</b></td><td>{x.term} meses</td><td>{x.place}</td><td><Status tone={x.status==='Aprobada'?'active':x.status==='Pendiente'?'pending':'review'}>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Applications(){
+ const [rows,setRows]=useState(demo.applications)
+ const [query,setQuery]=useState('')
+ const [status,setStatus]=useState('ALL')
+ const [draft,setDraft]=useState(null)
+ const [selected,setSelected]=useState(null)
+ const [notice,setNotice]=useState('')
+ const q=query.trim().toLowerCase()
+ const filtered=rows.filter(x=>(status==='ALL'||x.status===status)&&(!q||(x.code+' '+x.name+' '+x.place+' '+x.status).toLowerCase().includes(q)))
+ const pending=rows.filter(x=>x.status==='Pendiente'||x.status==='En revisión')
+ const approved=rows.filter(x=>x.status==='Aprobada')
+ const openNew=()=>{setDraft({code:'SOL-DEMO-'+String(Date.now()).slice(-6),name:demo.investors[0]?.name||'',amount:5000,term:12,place:'Transferencia bancaria',status:'Pendiente'});setNotice('')}
+ const close=()=>{setDraft(null);setNotice('')}
+ const save=e=>{
+  e.preventDefault()
+  if(!draft?.name||Number(draft.amount)<=0||Number(draft.term)<=0){setNotice('Completá correctamente los datos de la solicitud.');return}
+  setRows(current=>[{...draft,amount:Number(draft.amount),term:Number(draft.term)},...current])
+  setDraft(null);setNotice('')
+ }
+ const updateStatus=(code,next)=>{
+  setRows(current=>current.map(x=>x.code===code?{...x,status:next}:x))
+  setSelected(current=>current?.code===code?{...current,status:next}:current)
+ }
+ return <section className="prst-applications-module">
+  <section className="prst-investor-summary prst-application-summary">
+   <article><span>Solicitudes</span><strong>{rows.length}</strong><small>histórico</small></article>
+   <article><span>Pendientes / revisión</span><strong>{pending.length}</strong><small>{money(pending.reduce((s,x)=>s+Number(x.amount||0),0))} solicitado</small></article>
+   <article><span>Aprobadas</span><strong>{approved.length}</strong><small>listas para proceso</small></article>
+   <article><span>Formalizadas</span><strong>{rows.filter(x=>x.status==='Formalizada').length}</strong><small>desde esta muestra</small></article>
+  </section>
 
+  <Card title="Bandeja de solicitudes" kicker="CONTROL">
+   <div className="prst-application-head">
+    <div><strong>Gestión de solicitudes</strong><small>Revisá, filtrá y administrá las solicitudes de inversión.</small></div>
+    <button type="button" className="primary" onClick={openNew}>+ Nueva solicitud</button>
+   </div>
+   <div className="prst-application-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar solicitud o inversionista"/>
+    <select value={status} onChange={e=>setStatus(e.target.value)}><option value="ALL">Todos los estados</option><option>Pendiente</option><option>En revisión</option><option>Aprobada</option><option>Formalizada</option></select>
+    <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
+   </div>
+   <Table headers={['Solicitud','Inversionista','Monto','Plazo','Lugar','Estado','Acción']} rows={filtered.map(x=><tr key={x.code}>
+    <td><b>{x.code}</b></td><td>{x.name}</td><td><b>{money(x.amount)}</b></td><td>{x.term} meses</td><td>{x.place}</td>
+    <td><Status tone={x.status==='Aprobada'||x.status==='Formalizada'?'active':x.status==='Pendiente'?'pending':'review'}>{x.status}</Status></td>
+    <td><button type="button" className="prst-application-view" onClick={()=>setSelected(x)}>Ver</button></td>
+   </tr>)}/>
+  </Card>
+
+  {selected&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}>
+   <section className="prst-card prst-editor-modal prst-application-detail">
+    <div className="prst-card-head"><div><small>SOLICITUD</small><h2>{selected.code}</h2><p>Detalle y control de estado.</p></div><button type="button" className="prst-mini-button" onClick={()=>setSelected(null)}>Cerrar</button></div>
+    <div className="prst-application-detail-grid">
+     <article><span>Inversionista</span><b>{selected.name}</b></article><article><span>Monto</span><b>{money(selected.amount)}</b></article>
+     <article><span>Plazo</span><b>{selected.term} meses</b></article><article><span>Lugar</span><b>{selected.place}</b></article>
+    </div>
+    <div className="prst-application-state-actions"><span>Estado actual: <Status tone={selected.status==='Aprobada'?'active':selected.status==='Pendiente'?'pending':'review'}>{selected.status}</Status></span><div>
+     <button type="button" onClick={()=>updateStatus(selected.code,'En revisión')}>En revisión</button>
+     <button type="button" className="primary" onClick={()=>updateStatus(selected.code,'Aprobada')}>Aprobar</button>
+    </div></div>
+   </section>
+  </div>}
+
+  {draft&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&close()}>
+   <form className="prst-card prst-editor-modal prst-application-modal" onSubmit={save}>
+    <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>Nueva solicitud</h2><p>Registrá una solicitud de inversión para revisión.</p></div><button type="button" className="prst-mini-button" onClick={close}>Cerrar</button></div>
+    <div className="prst-form-grid">
+     <label className="prst-field span-2"><span>Inversionista</span><select value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+     <label className="prst-field"><span>Monto solicitado</span><input type="number" min="1" step="0.01" value={draft.amount} onChange={e=>setDraft({...draft,amount:e.target.value})}/></label>
+     <label className="prst-field"><span>Plazo</span><select value={draft.term} onChange={e=>setDraft({...draft,term:Number(e.target.value)})}><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option><option value="18">18 meses</option><option value="24">24 meses</option></select></label>
+     <label className="prst-field span-2"><span>Lugar / medio</span><select value={draft.place} onChange={e=>setDraft({...draft,place:e.target.value})}><option>Transferencia bancaria</option><option>Oficina central</option><option>Depósito bancario</option></select></label>
+    </div>
+    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+    <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
+   </form>
+  </div>}
+ </section>
+}
 function Investments(){return <>
  <section className="prst-investor-summary"><article><span>Inversiones activas</span><strong>2</strong><small>vigentes</small></article><article><span>Capital activo</span><strong>{money(12000)}</strong><small>formalizado</small></article><article><span>Referencia anual</span><strong>{money(1360)}</strong><small>demostrativa</small></article><article><span>Vencidas</span><strong>1</strong><small>requiere gestión</small></article></section>
  <Card title="Portafolio de inversiones" kicker="INVERSIONES">
