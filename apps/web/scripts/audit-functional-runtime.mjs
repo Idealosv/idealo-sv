@@ -47,6 +47,6 @@ requireText(main,"updateViaCache:'none'",'Service worker sin caché obsoleta')
 requireText(main,'window.location.reload()','Recarga de bundle actualizado')
 requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'Runtime diferido cargado desde arranque')
 requireText(mountedRuntime,'MobileRuntimeGuard','Runtime Android dedicado')
-requireText(deferred,'<Safe label="Runtime móvil"><MobileRuntimeGuard/></Safe>','Runtime Android aislado en carga diferida')
+requireText(deferred,'<Safe label="Runtime móvil"><MobileRuntimeGuard /></Safe>','Runtime Android aislado en carga diferida')
 
 console.log('OK auditoría funcional runtime: Clientes/CRM, móvil Android, PWA, runtime diferido y fixtures QA protegidos')
