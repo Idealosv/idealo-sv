@@ -12,8 +12,8 @@ test('dashboard ejecutivo usa colores semánticos y seis KPIs',()=>{
  for(const label of ['Inversionistas','Capital activo','Solicitudes pendientes','Referencia anual','Rendimientos pagados','Próximo vencimiento'])assert.match(dashboard,new RegExp(label))
  for(const tone of ['blue','red','orange','indigo','green','purple'])assert.match(dashboard,new RegExp(`tone="${tone}"`))
  assert.match(css,/\.prst-dash-kpis\{display:grid;grid-template-columns:repeat\(3/)
- assert.match(css,/\.prst-dash-kpi\.red:after/)
- assert.match(css,/\.prst-dash-kpi\.green:after/)
+ assert.match(css,/\.prst-dash-kpi\.red:before,\.prst-dash-kpi\.red:after/)
+ assert.match(css,/\.prst-dash-kpi\.green:before,\.prst-dash-kpi\.green:after/)
 })
 
 test('dashboard muestra alertas flujo solicitudes vencimientos y resumen financiero',()=>{
@@ -40,4 +40,13 @@ test('dashboard se adapta a escritorio tablet y móvil',()=>{
  assert.match(css,/@media\(max-width:720px\)/)
  assert.match(css,/@media\(max-width:460px\)/)
  assert.match(css,/grid-template-columns:1fr 1fr/)
+})
+
+
+test('dashboard cyber mantiene estética tecnológica sin sacrificar legibilidad',()=>{
+ assert.match(css,/CYBER EXECUTIVE DASHBOARD/)
+ assert.match(css,/--cyber-cyan:#32d9ff/)
+ assert.match(css,/background-image:[\s\S]*linear-gradient\(rgba\(70,190,230/)
+ assert.match(css,/box-shadow:0 0 10px rgba\(50,217,255,.55\)/)
+ assert.match(css,/Centro de control|cyber/i)
 })
