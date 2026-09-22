@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import { ANNUAL_RATE_EXAMPLE_TIERS, annualReferenceGain } from './prestaditos-rate-rules.js'
+import { prestaditosRoleLabel } from './prestaditos-permissions.js'
 
 const normalized=value=>String(value||'').trim()
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
@@ -74,21 +75,26 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
 
  const accessRows=[
   ['Consultar información','Sí','Sí','Sí','Sí'],
-  ['Registrar / editar expedientes','Sí','Sí','Sí','Consulta'],
+  ['Registrar / editar expedientes','Sí','Sí','Sí','No'],
   ['Registrar solicitudes','Sí','Sí','Sí','No'],
   ['Aprobar / rechazar solicitudes','Sí','Sí','No','No'],
   ['Formalizar inversiones','Sí','Sí','No','No'],
-  ['Registrar o revertir pagos','Sí','Sí','No','No'],
+  ['Preparar / registrar contrato firmado','Sí','Sí','No','No'],
+  ['Registrar pagos','Sí','Sí','No','No'],
+  ['Revertir pagos','Sí','Sí','No','No'],
   ['Modificar beneficiarios','Sí','Sí','No','No'],
+  ['Cargar documentos','Sí','Sí','Sí','No'],
   ['Cambiar estado de documentos','Sí','Sí','No','No'],
-  ['Gestionar renovaciones','Sí','Sí','No','No'],
-  ['Modificar esta configuración','Sí','Sí','No','No'],
+  ['Gestionar renovaciones / retiros','Sí','Sí','No','No'],
+  ['Generar cierre mensual','Sí','Sí','No','No'],
+  ['Exportar información','Sí','Sí','Sí','Sí'],
+  ['Modificar configuración','Sí','Sí','No','No'],
  ]
 
  return <section className="prst-configuration-module">
   <section className="prst-investor-summary prst-config-summary">
    <article><span>Empresa</span><strong>{company?.name||'Prestadito$'}</strong><small>vertical de inversionistas</small></article>
-   <article><span>Tu rol</span><strong>{role||'—'}</strong><small>permisos efectivos</small></article>
+   <article><span>Tu rol</span><strong>{prestaditosRoleLabel(role)}</strong><small>{role||'rol heredado de IDEALO SV'}</small></article>
    <article><span>Plazos configurados</span><strong>{terms.length}</strong><small>{terms.length?terms.join(', ')+' meses':'sin restricción configurada'}</small></article>
    <article><span>Rendimiento</span><strong>10 · 12 · 15%</strong><small>tasas anuales por monto</small></article>
   </section>
@@ -152,10 +158,10 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
   <article className="prst-card">
    <div className="prst-card-head"><div><small>PERMISOS EFECTIVOS</small><h2>Matriz de acceso</h2><p>Resumen de las restricciones que ya aplica el ERP.</p></div></div>
    <div className="prst-table-wrap"><table className="prst-config-permissions">
-    <thead><tr><th>Acción</th><th>Propietario</th><th>Administrador</th><th>Personal</th><th>Otros miembros</th></tr></thead>
+    <thead><tr><th>Acción</th><th>Propietario</th><th>Administrador</th><th>Operador</th><th>Solo lectura</th></tr></thead>
     <tbody>{accessRows.map(row=><tr key={row[0]}>{row.map((cell,index)=><td key={index}>{index===0?<b>{cell}</b>:<span className={cell==='Sí'?'prst-permission-yes':cell==='No'?'prst-permission-no':'prst-permission-limited'}>{cell}</span>}</td>)}</tr>)}</tbody>
    </table></div>
-   <div className="prst-note"><strong>Seguridad:</strong> la matriz refleja los controles actuales del vertical. Cambiar los roles de usuarios se administra desde IDEALO SV, no desde este módulo.</div>
+   <div className="prst-note"><strong>Seguridad:</strong> Propietario y Administrador conservan las decisiones financieras sensibles. Operador puede trabajar expedientes, registrar solicitudes y cargar documentos. Solo lectura únicamente consulta y exporta. Los roles se cambian desde IDEALO SV.</div>
   </article>
  </section>
 }
