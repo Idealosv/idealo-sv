@@ -282,10 +282,10 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
       <td><b>{date(x.updated_at||x.created_at)}</b><small>{x.updated_at?'última edición':'registro'}</small></td>
       <td><div className="prst-row-actions prst-investor-actions compact">
        <button type="button" className="primary" onClick={()=>setSelectedId(x.id)}>Ver</button>
+       <button type="button" onClick={()=>goProfile(x)}>Perfil 360</button>
        <details className="prst-action-menu">
         <summary>Más</summary>
         <div>
-         <button type="button" onClick={()=>goProfile(x)}>Perfil 360</button>
          <button type="button" onClick={()=>goDocuments(x)}>Documentos</button>
          {inv.count>0&&<button type="button" onClick={()=>goContracts(x)}>Contratos</button>}
          {canEdit&&<button type="button" onClick={()=>startEdit(x)}>Editar</button>}
