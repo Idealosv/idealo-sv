@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
+import PrestaditosDashboardPanel from './PrestaditosDashboardPanel.jsx'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
@@ -60,6 +61,44 @@ export default function PrestaditosPreviewApp(){
  const capital=useMemo(()=>demo.investments.filter(x=>x.status==='Activa').reduce((s,x)=>s+x.capital,0),[])
  const projected=useMemo(()=>demo.investments.filter(x=>x.status==='Activa').reduce((s,x)=>s+x.gain,0),[])
  const yieldPaid=useMemo(()=>demo.payments.filter(x=>x.type==='Rendimiento').reduce((s,x)=>s+x.amount,0),[])
+ const previewDashboard=useMemo(()=>{
+  const investorIds={
+   'Carlos Ernesto Mejía':'i1',
+   'María Elena López':'i2',
+   'José Roberto Hernández':'i3',
+  }
+  const investors=demo.investors.map(row=>{
+   const parts=row.name.split(' ')
+   return {id:row.id,first_names:parts.slice(0,2).join(' '),last_names:parts.slice(2).join(' '),investor_code:row.code,dui:row.dui,status:'ACTIVE'}
+  })
+  const applications=demo.applications.map((row,index)=>({
+   id:'a'+(index+1),investor_id:investorIds[row.name],application_code:row.code,requested_amount:row.amount,requested_term_months:row.term,
+   status:row.status==='Aprobada'?'APPROVED':row.status==='En revisión'?'REVIEW':'PENDING',
+   created_at:['2026-09-18T10:00:00','2026-09-20T10:00:00','2026-09-21T10:00:00'][index],
+  }))
+  const investments=[
+   {id:'n1',investor_id:'i1',investment_code:'INVEST-20260901-A1B2C3',principal:4000,term_months:12,granted_at:'2026-09-01',maturity_date:'2027-09-01',agreed_return_rate:10,status:'ACTIVE'},
+   {id:'n2',investor_id:'i2',investment_code:'INVEST-20260815-D4E5F6',principal:8000,term_months:6,granted_at:'2026-08-15',maturity_date:'2027-02-15',agreed_return_rate:12,status:'ACTIVE'},
+   {id:'n3',investor_id:'i3',investment_code:'INVEST-20260310-G7H8I9',principal:12000,term_months:6,granted_at:'2026-03-10',maturity_date:'2026-09-10',agreed_return_rate:15,status:'MATURED'},
+  ]
+  const payments=[
+   {id:'p1',investor_id:'i1',investment_id:'n1',payment_code:'PAG-20260905-AA1122',payment_type:'YIELD',amount:150,payment_date:'2026-09-05',status:'POSTED'},
+   {id:'p2',investor_id:'i2',investment_id:'n2',payment_code:'PAG-20260915-BB3344',payment_type:'YIELD',amount:120,payment_date:'2026-09-15',status:'POSTED'},
+   {id:'p3',investor_id:'i3',investment_id:'n3',payment_code:'PAG-20260918-CC5566',payment_type:'CAPITAL_RETURN',amount:12000,payment_date:'2026-09-18',status:'POSTED'},
+  ]
+  const contracts=[
+   {id:'c1',investor_id:'i1',investment_id:'n1',contract_code:'CTR-20260901-AB12CD',status:'SIGNED'},
+   {id:'c2',investor_id:'i2',investment_id:'n2',contract_code:'CTR-20260815-EF34GH',status:'GENERATED'},
+  ]
+  const renewals=[{id:'r1',investor_id:'i3',investment_id:'n3',renewal_code:'REN-20260910-AB1234',status:'RECORDED'}]
+  const documents=demo.documents.map((row,index)=>({id:'d'+(index+1),status:'ACTIVE'}))
+  const alerts=[
+   {id:'al1',priority:'CRITICAL',title:'Inversión vencida',detail:'José Roberto Hernández · 11 días vencida',tab:'Vencimientos',investor_id:'i3',investment_id:'n3'},
+   {id:'al2',priority:'HIGH',title:'Contrato pendiente de firma',detail:'María Elena López · CTR-20260815-EF34GH',tab:'Contratos',investor_id:'i2',investment_id:'n2'},
+   {id:'al3',priority:'MEDIUM',title:'Expediente incompleto',detail:'José Roberto Hernández · falta documento de identidad',tab:'Inversionistas',investor_id:'i3'},
+  ]
+  return {investors,applications,investments,payments,contracts,renewals,documents,alerts,investorMap:new Map(investors.map(row=>[row.id,row]))}
+ },[])
 
  const selectTab=name=>{setTab(name);setMobileNavOpen(false)}
  return <div className="prst-app">
@@ -81,7 +120,7 @@ export default function PrestaditosPreviewApp(){
    </header>
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
-    {tab==='Dashboard'&&<Dashboard capital={capital} projected={projected} yieldPaid={yieldPaid} onGo={selectTab}/>} 
+    {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
     {tab==='Notificaciones'&&<Notifications/>}
     {tab==='Agenda'&&<Agenda/>}
     {tab==='Inversionistas'&&<Investors/>}
@@ -110,55 +149,6 @@ export default function PrestaditosPreviewApp(){
   </main>
  </div>
 }
-
-function Dashboard({capital,projected,yieldPaid,onGo}){
- return <>
-  <section className="prst-metrics">
-   <Metric label="Inversionistas" value="3" hint="expedientes registrados"/>
-   <Metric label="Capital activo" value={money(capital)} hint="2 inversiones activas" tone="money"/>
-   <Metric label="Solicitudes pendientes" value="2" hint="por revisar o formalizar" tone="warn"/>
-   <Metric label="Referencia anual" value={money(projected)} hint="proyección demostrativa" tone="money"/>
-   <Metric label="Rendimientos pagados" value={money(yieldPaid)} hint="pagos registrados"/>
-   <Metric label="Próximo vencimiento" value="15 feb 2027" hint="seguimiento automático"/>
-  </section>
-  <section className="prst-grid two">
-   <Card title="Atención requerida" kicker="ALERTAS OPERATIVAS">
-    <div className="prst-dashboard-alerts">
-     <button className="critical"><span>Crítica</span><strong>Inversión vencida</strong><small>José Roberto Hernández · 11 días vencida</small></button>
-     <button className="high"><span>Alta</span><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></button>
-     <button className="medium"><span>Media</span><strong>Expediente incompleto</strong><small>José Roberto Hernández · falta documento de identidad</small></button>
-    </div>
-   </Card>
-   <Card title="Flujo principal" kicker="OPERACIÓN DE INVERSIONISTAS">
-    <div className="prst-flow">
-     {[
-      ['1','Registrar inversionista','Datos, rostro y DUI','Inversionistas'],
-      ['2','Recibir solicitud','Monto, plazo y lugar de pago','Solicitudes'],
-      ['3','Aprobar y formalizar','Contrato, capital y vencimiento','Inversiones'],
-      ['4','Registrar pagos','Rendimientos y devolución de capital','Rendimientos'],
-      ['5','Gestionar vencimiento','Renovar o retirar','Renovaciones'],
-     ].map(([n,t,s,target])=><button key={n} type="button" onClick={()=>onGo(target)}><b>{n}</b><span><strong>{t}</strong><small>{s}</small></span></button>)}
-    </div>
-   </Card>
-   <Card title="Solicitudes recientes" kicker="ACTIVIDAD">
-    <div className="prst-list">{demo.applications.map(x=><article key={x.code}><div><b>{x.name}</b><small>{money(x.amount)} · {x.term} meses</small></div><Status tone={x.status==='Aprobada'?'active':x.status==='Pendiente'?'pending':'review'}>{x.status}</Status></article>)}</div>
-   </Card>
-  </section>
-  <section className="prst-executive-analytics">
-   <section className="prst-grid two">
-    <Card title="Capital vigente por tasa anual" kicker="DISTRIBUCIÓN POR TASA">
-     <div className="prst-exec-bars">
-      <div className="prst-exec-bar"><div><span>10% anual</span><b>{money(4000)}</b></div><div className="prst-exec-track"><i style={{width:'33%'}}/></div><small>1 inversión</small></div>
-      <div className="prst-exec-bar"><div><span>12% anual</span><b>{money(8000)}</b></div><div className="prst-exec-track"><i style={{width:'67%'}}/></div><small>1 inversión</small></div>
-      <div className="prst-exec-bar"><div><span>15% anual</span><b>{money(12000)}</b></div><div className="prst-exec-track"><i style={{width:'100%'}}/></div><small>1 inversión vencida</small></div>
-     </div>
-    </Card>
-    <Card title="Capital por ventana de vencimiento" kicker="VENCIMIENTOS">
-     <div className="prst-exec-bars"><div className="prst-exec-bar"><div><span>Vencidas</span><b>{money(12000)}</b></div><div className="prst-exec-track"><i style={{width:'100%'}}/></div><small>1 inversión</small></div><div className="prst-exec-bar"><div><span>Más de 90 días</span><b>{money(12000)}</b></div><div className="prst-exec-track"><i style={{width:'100%'}}/></div><small>2 inversiones activas</small></div></div>
-    </Card>
-   </section>
-  </section>
- </>}
 
 function Metric({label,value,hint,tone=''}){return <article className={`prst-metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>}
 
