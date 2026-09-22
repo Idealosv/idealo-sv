@@ -252,3 +252,77 @@ button.prst-dash-kpi:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgb
  .prst-dashboard-premium .prst-dash-days{text-align:left}
  .prst-dash-hero-actions{display:grid;grid-template-columns:1fr}
 }
+
+
+/* ===== LEGIBILITY OVERRIDES · LARGE EXECUTIVE TYPE ===== */
+.prst-dashboard-premium .prst-dash-hero h2{font-size:42px!important}
+.prst-dashboard-premium .prst-dash-hero p{font-size:15px!important}
+.prst-dashboard-premium .prst-dash-eyebrow>span{font-size:12px!important;min-height:31px!important}
+.prst-dashboard-premium .prst-dash-eyebrow>b{font-size:12px!important}
+.prst-dashboard-premium .prst-dash-hero-meta>span{font-size:11px!important;min-height:32px!important}
+.prst-dashboard-premium .prst-dash-hero-actions button{font-size:13px!important;min-height:46px!important;padding:0 17px!important}
+
+.prst-dashboard-premium .prst-dash-kpi{min-height:132px!important;padding:20px!important}
+.prst-dashboard-premium .prst-dash-kpi-icon{width:54px!important;height:54px!important;font-size:13px!important}
+.prst-dashboard-premium .prst-dash-kpi>div>span{font-size:12px!important}
+.prst-dashboard-premium .prst-dash-kpi strong{font-size:34px!important}
+.prst-dashboard-premium .prst-dash-kpi small{font-size:12px!important}
+
+.prst-dashboard-premium .prst-dash-panel{padding:24px!important}
+.prst-dashboard-premium .prst-dash-panel>header>div>span{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-panel>header h3{font-size:29px!important}
+.prst-dashboard-premium .prst-dash-panel>header p{font-size:12px!important}
+.prst-dashboard-premium .prst-dash-panel>header>button{font-size:11px!important;min-height:40px!important}
+
+.prst-dashboard-premium .prst-dash-alert-list>button{min-height:74px!important;padding:15px 16px!important}
+.prst-dashboard-premium .prst-dash-alert-list strong{font-size:14px!important}
+.prst-dashboard-premium .prst-dash-alert-list small{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-alert-list>button>b{font-size:10px!important;padding:6px 10px!important}
+
+.prst-dashboard-premium .prst-dash-flow button{min-height:70px!important;padding:13px 14px!important}
+.prst-dashboard-premium .prst-dash-flow button>span{width:40px!important;height:40px!important;font-size:11px!important}
+.prst-dashboard-premium .prst-dash-flow strong{font-size:14px!important}
+.prst-dashboard-premium .prst-dash-flow small{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-flow button>b{font-size:17px!important}
+
+.prst-dashboard-premium .prst-dash-list>button{min-height:76px!important;padding:15px 16px!important}
+.prst-dashboard-premium .prst-dash-list strong{font-size:14px!important}
+.prst-dashboard-premium .prst-dash-list small{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-pill{font-size:10px!important;min-height:30px!important;padding:0 11px!important}
+.prst-dashboard-premium .prst-dash-days b{font-size:12px!important}
+.prst-dashboard-premium .prst-dash-days small{font-size:10px!important}
+
+.prst-dashboard-premium .prst-dash-bar>div:first-child span,
+.prst-dashboard-premium .prst-dash-bar>div:first-child b{font-size:13px!important}
+.prst-dashboard-premium .prst-dash-bar>small{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-bar-track{height:12px!important}
+
+.prst-dashboard-premium .prst-dash-status-grid>div{padding:15px!important}
+.prst-dashboard-premium .prst-dash-status-grid b{font-size:12px!important}
+.prst-dashboard-premium .prst-dash-status-grid strong{font-size:18px!important}
+
+.prst-dashboard-premium .prst-dash-summary>div{min-height:116px!important;padding:17px!important}
+.prst-dashboard-premium .prst-dash-summary span{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-summary strong{font-size:27px!important}
+.prst-dashboard-premium .prst-dash-summary small{font-size:11px!important}
+.prst-dashboard-premium .prst-dash-footnote{font-size:12px!important}
+
+@media(max-width:820px){
+ .prst-dashboard-premium .prst-dash-hero h2{font-size:34px!important}
+ .prst-dashboard-premium .prst-dash-kpi strong{font-size:28px!important}
+ .prst-dashboard-premium .prst-dash-panel>header h3{font-size:25px!important}
+}
+@media(max-width:520px){
+ .prst-dashboard-premium .prst-dash-hero h2{font-size:30px!important}
+ .prst-dashboard-premium .prst-dash-hero p{font-size:13px!important}
+ .prst-dashboard-premium .prst-dash-kpi>div>span{font-size:11px!important}
+ .prst-dashboard-premium .prst-dash-kpi strong{font-size:26px!important}
+ .prst-dashboard-premium .prst-dash-kpi small{font-size:11px!important}
+ .prst-dashboard-premium .prst-dash-panel>header h3{font-size:23px!important}
+ .prst-dashboard-premium .prst-dash-alert-list strong,
+ .prst-dashboard-premium .prst-dash-flow strong,
+ .prst-dashboard-premium .prst-dash-list strong{font-size:13px!important}
+ .prst-dashboard-premium .prst-dash-alert-list small,
+ .prst-dashboard-premium .prst-dash-flow small,
+ .prst-dashboard-premium .prst-dash-list small{font-size:11px!important}
+}
