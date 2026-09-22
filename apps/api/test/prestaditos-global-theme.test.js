@@ -36,3 +36,13 @@ test('tema adopta centro de control financiero oscuro',()=>{
  assert.match(theme,/--ui-orange:#f2a11f/)
  assert.match(theme,/background:linear-gradient\(180deg,#0f1e2b,#0d1a27\)!important/)
 })
+
+
+test('tema aplica aumento tipográfico moderado en todo el ERP',()=>{
+ assert.match(theme,/MODERATE GLOBAL TYPE BUMP/)
+ assert.match(theme,/prst-sidebar nav button strong\{font-size:12px!important\}/)
+ assert.match(theme,/prst-table-wrap td\{font-size:11px!important\}/)
+ assert.match(theme,/prst-field input,[\s\S]*font-size:12px!important/)
+ assert.match(theme,/prst-dash-kpi strong\{font-size:21px!important\}/)
+ assert.match(theme,/prst-dash-panel>header h3\{font-size:19px!important\}/)
+})
