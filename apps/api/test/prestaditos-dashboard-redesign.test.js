@@ -49,7 +49,7 @@ test('dashboard usa estética financiera ejecutiva sin neón ni grid cyber',()=>
  assert.match(css,/EXECUTIVE FINANCIAL DASHBOARD/)
  assert.match(css,/--exec-navy:#17202b/)
  assert.match(css,/background:#fff!important/)
- assert.match(css,/Panel ejecutivo/)
+ assert.match(dashboard,/Panel ejecutivo/)
  assert.doesNotMatch(css,/CYBER EXECUTIVE DASHBOARD/)
  assert.doesNotMatch(css,/--cyber-cyan/)
 })
