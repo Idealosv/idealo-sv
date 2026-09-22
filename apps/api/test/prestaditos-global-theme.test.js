@@ -44,10 +44,11 @@ test('tema mantiene sidebar oscuro y contenido principal claro',()=>{
 })
 
 
-test('tema aplica escala global más fina y menos tosca',()=>{
- assert.match(theme,/COMPACT PREMIUM SCALE · GLOBAL ERP/)
- assert.match(theme,/grid-template-columns:220px minmax\(0,1fr\)!important/)
- assert.match(theme,/prst-top-title h1\{[\s\S]*font-size:24px!important/)
- assert.match(theme,/prst-metric strong[\s\S]*font-size:21px!important/)
- assert.match(theme,/prst-sidebar nav button\{[\s\S]*min-height:34px!important/)
+test('tema conserva la escala normal del ERP y del menú lateral',()=>{
+ assert.doesNotMatch(theme,/COMPACT PREMIUM SCALE · GLOBAL ERP/)
+ assert.match(theme,/grid-template-columns:284px minmax\\(0,1fr\\)!important/)
+ assert.match(theme,/prst-top-title h1\\{[\\s\\S]*font-size:28px!important/)
+ assert.match(theme,/prst-metric strong[\\s\\S]*font-size:26px!important/)
+ assert.match(theme,/prst-sidebar nav button\\{[\\s\\S]*min-height:54px!important/)
+ assert.match(theme,/prst-sidebar nav button strong\\{font-size:12px!important/)
 })
