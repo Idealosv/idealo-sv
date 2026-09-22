@@ -86,8 +86,8 @@ export default function PrestaditosDashboardPanel({
  const nextMaturity=[...activeInvestments].filter(x=>x.maturity_date).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date)))[0]||null
  const maturityDays=nextMaturity?daysUntil(nextMaturity.maturity_date):null
 
- const recentApplications=[...applications].sort((a,b)=>String(b.created_at||b.requested_at||'').localeCompare(String(a.created_at||a.requested_at||''))).slice(0,5)
- const upcomingMaturities=[...activeInvestments].filter(x=>x.maturity_date).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date))).slice(0,5)
+ const recentApplications=[...applications].sort((a,b)=>String(b.created_at||b.requested_at||'').localeCompare(String(a.created_at||a.requested_at||''))).slice(0,3)
+ const upcomingMaturities=[...activeInvestments].filter(x=>x.maturity_date).sort((a,b)=>String(a.maturity_date).localeCompare(String(b.maturity_date))).slice(0,3)
 
  const rates=[10,12,15].map(rate=>{
   const rows=activeInvestments.filter(x=>Number(x.agreed_return_rate)===rate)
@@ -140,7 +140,7 @@ export default function PrestaditosDashboardPanel({
   <section className="prst-dash-grid primary-grid">
    <article className="prst-dash-panel prst-dash-alert-panel">
     <header><div><span>ALERTAS OPERATIVAS</span><h3>Atención requerida</h3><p>{criticalAlerts?criticalAlerts+' crítica'+(criticalAlerts===1?'':'s'):'Sin alertas críticas'} · {highAlerts} alta{highAlerts===1?'':'s'}</p></div><button type="button" onClick={()=>onGo?.('Notificaciones')}>Ver todas</button></header>
-    {!alerts.length?<Empty>No hay alertas abiertas. La operación está al día.</Empty>:<div className="prst-dash-alert-list">{alerts.slice(0,5).map(row=><button key={row.id} type="button" className={String(row.priority||'MEDIUM').toLowerCase()} onClick={()=>onAlert?.(row.tab,row)}>
+    {!alerts.length?<Empty>No hay alertas abiertas. La operación está al día.</Empty>:<div className="prst-dash-alert-list">{alerts.slice(0,3).map(row=><button key={row.id} type="button" className={String(row.priority||'MEDIUM').toLowerCase()} onClick={()=>onAlert?.(row.tab,row)}>
      <span className="prst-dash-alert-dot"/>
      <div><strong>{row.title}</strong><small>{row.detail}</small></div>
      <b>{row.priority==='CRITICAL'?'Crítica':row.priority==='HIGH'?'Alta':'Media'}</b>
@@ -192,18 +192,6 @@ export default function PrestaditosDashboardPanel({
    </article>
   </section>
 
-  <article className="prst-dash-panel prst-dash-financial">
-   <header><div><span>RESUMEN FINANCIERO</span><h3>Vista general del vertical</h3><p>Indicadores operativos con información registrada en el ERP.</p></div></header>
-   <div className="prst-dash-summary">
-    <div><span>Capital vigente</span><strong>{money(activeCapital)}</strong><small>inversiones activas y por vencer</small></div>
-    <div><span>Rendimientos pagados</span><strong>{money(yieldPaid)}</strong><small>excluye pagos revertidos</small></div>
-    <div><span>Capital devuelto</span><strong>{money(capitalReturned)}</strong><small>devoluciones registradas</small></div>
-    <div><span>Renovaciones pendientes</span><strong>{pendingRenewals}</strong><small>decisiones registradas</small></div>
-    <div><span>Contratos por firmar</span><strong>{pendingContracts}</strong><small>contratos preparados</small></div>
-    <div><span>Documentos activos</span><strong>{activeDocuments}</strong><small>expediente privado</small></div>
-   </div>
-  </article>
-
-  <div className="prst-dash-footnote"><strong>Referencia anual:</strong> usa las tasas anuales registradas en cada inversión. Para plazos distintos de 12 meses, el Dashboard no inventa prorrateos ni capitalización.</div>
+  <div className="prst-dash-footnote"><strong>Nota:</strong> las tasas 10%, 12% y 15% son anuales. El sistema no aplica prorrateos para otros plazos hasta recibir la regla real.</div>
  </section>
 }
