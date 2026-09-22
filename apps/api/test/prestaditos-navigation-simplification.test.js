@@ -20,10 +20,14 @@ test('menu lateral contiene solo ocho modulos principales',()=>{
 test('operaciones secundarias pasan a acciones contextuales',()=>{
  for(const source of [preview,host]){
   assert.match(source,/const MODULE_ACTIONS=/)
-  assert.match(source,/Inversionistas:\['Perfil 360','Beneficiarios','Estado de cuenta','Documentos'\]/)
+  assert.match(source,/Dashboard:\['Notificaciones','Agenda'\]/)
+  assert.match(source,/Inversionistas:\['Perfil 360','Beneficiarios','Documentos'\]/)
   assert.match(source,/Solicitudes:\['Simulador'\]/)
-  assert.match(source,/Inversiones:\['Contratos','Renovaciones'\]/)
-  assert.match(source,/Reportes:\['Cierre mensual','Auditoría','Auditoría técnica','Exportaciones'\]/)
+  assert.match(source,/Inversiones:\['Contratos'\]/)
+  assert.match(source,/Rendimientos:\['Estado de cuenta'\]/)
+  assert.match(source,/Vencimientos:\['Renovaciones'\]/)
+  assert.match(source,/Tesorería:\['Cierre mensual','Exportaciones'\]/)
+  assert.match(source,/Reportes:\['Auditoría','Auditoría técnica'\]/)
   assert.match(source,/prst-context-bar/)
  }
 })
@@ -37,7 +41,7 @@ test('perfil 360 deja de ser modulo y queda como boton del inversionista',()=>{
 
 test('herramientas del sistema salen del menu lateral',()=>{
  for(const source of [preview,host]){
-  assert.match(source,/const SYSTEM_TABS=\['Notificaciones','Agenda','Configuración','Ayuda','Prueba integral','Preparación'\]/)
+  assert.match(source,/const SYSTEM_TABS=\['Configuración','Ayuda','Prueba integral','Preparación'\]/)
   assert.match(source,/prst-system-menu/)
  }
 })
