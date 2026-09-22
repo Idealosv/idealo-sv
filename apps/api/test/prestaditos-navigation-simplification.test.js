@@ -6,6 +6,8 @@ const read=path=>readFileSync(new URL('../../../'+path,import.meta.url),'utf8')
 const preview=read('apps/web/src/PrestaditosPreviewApp.jsx')
 const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
 const investors=read('apps/web/src/PrestaditosInvestorsPanel.jsx')
+const applications=read('apps/web/src/PrestaditosApplicationsPanel.jsx')
+const reports=read('apps/web/src/PrestaditosReportsPanel.jsx')
 const css=read('apps/web/src/prestaditos-investors.css')
 
 test('menu lateral contiene solo ocho modulos principales',()=>{
@@ -59,4 +61,17 @@ test('estilos soportan la arquitectura simplificada',()=>{
  assert.match(css,/prst-system-menu/)
  assert.match(css,/prst-action-menu/)
  assert.match(css,/prst-investor-actions\.compact/)
+})
+
+
+test('solicitudes evita botonera repetida por fila',()=>{
+ assert.match(applications,/className="primary" onClick=\{\(\)=>setSelectedId\(row\.id\)\}>Gestionar<\/button>/)
+ assert.doesNotMatch(applications,/row\.status==='REVIEW'&&<><button type="button" className="approve"/)
+})
+
+test('reportes usa selector en vez de una fila de siete botones',()=>{
+ assert.match(reports,/prst-report-picker/)
+ assert.match(reports,/<select value=\{report\} onChange=\{e=>setReport\(e\.target\.value\)\}>/)
+ assert.doesNotMatch(reports,/className="prst-report-tabs"/)
+ assert.match(css,/SIMPLE REPORT PICKER/)
 })
