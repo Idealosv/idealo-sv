@@ -2893,3 +2893,29 @@
  .prst-investment-tools{grid-template-columns:1fr}
  .prst-investment-tools>span{text-align:left}
 }
+
+
+/* ===== CONTRACTS · CONTROL WORKSPACE ===== */
+.prst-contracts-module{display:grid;gap:10px}
+.prst-contract-command{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;border:1px solid var(--prst-border);border-radius:11px;background:#fff}
+.prst-contract-command small{display:block;color:var(--prst-red);font-size:8px;font-weight:950;letter-spacing:.08em}
+.prst-contract-command h2{margin:2px 0 2px;font-size:16px}
+.prst-contract-command p{margin:0;color:#727980;font-size:8px}
+.prst-contract-command .primary{min-height:36px;padding:0 13px;border:1px solid var(--prst-red);border-radius:8px;background:var(--prst-red);color:#fff;font:inherit;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
+.prst-contracts-summary article{padding:11px 13px}
+.prst-contracts-summary strong{font-size:19px}
+.prst-contract-rate-note{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 11px;border:1px solid #ead1a5;border-radius:9px;background:#fffaf1;color:#6f5a2c;font-size:8px}
+.prst-contract-tools{display:grid;grid-template-columns:minmax(260px,1fr) 180px auto;gap:8px;align-items:center;margin-bottom:10px}
+.prst-contract-tools select{min-height:38px;padding:7px 9px;border:1px solid #cfd4d8;border-radius:8px;background:#fff;font:inherit;font-size:9px}
+.prst-contract-tools>span{color:#72787e;font-size:8px;font-weight:850;text-align:right}
+.prst-contracts-module .prst-table-wrap table{min-width:1120px}
+.prst-contracts-module .prst-table-wrap th{padding:8px 9px}
+.prst-contracts-module .prst-table-wrap td{padding:9px}
+.prst-contract-detail,.prst-contract-editor{width:min(900px,100%)}
+.prst-contract-form{margin-top:14px}
+@media(max-width:900px){
+ .prst-contract-command{align-items:flex-start;flex-direction:column}
+ .prst-contract-command .primary{width:100%}
+ .prst-contract-tools{grid-template-columns:1fr}
+ .prst-contract-tools>span{text-align:left}
+}
