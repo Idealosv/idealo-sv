@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import PrestaditosDuiOcr from './PrestaditosDuiOcr.jsx'
+import PrestaditosCameraCapture from './PrestaditosCameraCapture.jsx'
 import { canPrestaditos } from './prestaditos-permissions.js'
 
 const EMPTY_FORM={
@@ -331,9 +332,27 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
 
    <div className="prst-investor-form-section"><div className="prst-section-title">4 · Documentos privados</div>
     <div className="prst-capture-grid">
-     <Field label={editingId?'Reemplazar foto del rostro':'Foto del rostro'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="user" onChange={e=>setFace(e.target.files?.[0]||null)}/><small>{face?.name||'Cámara frontal o galería'}</small></Field>
-     <Field label={editingId?'Reemplazar DUI frente':'DUI frente'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{setDuiFront(e.target.files?.[0]||null);setOcrApplied(false)}}/><small>{duiFront?.name||'Cámara trasera o galería'}</small></Field>
-     <Field label={editingId?'Reemplazar DUI reverso':'DUI reverso'}><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>setDuiBack(e.target.files?.[0]||null)}/><small>{duiBack?.name||'Cámara trasera o galería'}</small></Field>
+     <Field label={editingId?'Reemplazar foto del rostro':'Foto del rostro'}>
+      <div className="prst-capture-actions">
+       <PrestaditosCameraCapture label="Tomar foto del rostro" facingMode="user" fileName="rostro" onCapture={setFace}/>
+       <input type="file" accept="image/jpeg,image/png,image/webp" capture="user" onChange={e=>setFace(e.target.files?.[0]||null)}/>
+      </div>
+      <small>{face?.name||'Usá la cámara frontal o seleccioná una imagen.'}</small>
+     </Field>
+     <Field label={editingId?'Reemplazar DUI frente':'DUI frente'}>
+      <div className="prst-capture-actions">
+       <PrestaditosCameraCapture label="Escanear DUI frente" facingMode="environment" fileName="dui-frente" onCapture={file=>{setDuiFront(file);setOcrApplied(false)}}/>
+       <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{setDuiFront(e.target.files?.[0]||null);setOcrApplied(false)}}/>
+      </div>
+      <small>{duiFront?.name||'Usá la cámara trasera o seleccioná una imagen.'}</small>
+     </Field>
+     <Field label={editingId?'Reemplazar DUI reverso':'DUI reverso'}>
+      <div className="prst-capture-actions">
+       <PrestaditosCameraCapture label="Escanear DUI reverso" facingMode="environment" fileName="dui-reverso" onCapture={setDuiBack}/>
+       <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>setDuiBack(e.target.files?.[0]||null)}/>
+      </div>
+      <small>{duiBack?.name||'Usá la cámara trasera o seleccioná una imagen.'}</small>
+     </Field>
     </div>
     <PrestaditosDuiOcr file={duiFront} onApply={({dui,birth_date})=>{setForm(current=>({...current,dui:dui||current.dui,birth_date:birth_date||current.birth_date}));setOcrApplied(true)}}/>
    </div>
