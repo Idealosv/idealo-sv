@@ -73,3 +73,12 @@ test('dashboard reduce saturación visual y limita listas operativas',()=>{
  assert.match(css,/gap:24px/)
  assert.match(css,/font-size:46px/)
 })
+
+
+test('dashboard aísla botones de estilos globales oscuros',()=>{
+ assert.match(css,/DASHBOARD BUTTON RESET · KEEP CARDS LIGHT/)
+ assert.match(css,/button\.prst-dash-kpi\{[\s\S]*background:#fff!important/)
+ assert.match(css,/\.prst-dash-flow>button\{[\s\S]*background:#f8fafc!important/)
+ assert.match(css,/\.prst-dash-list>button\{[\s\S]*background:#f8fafc!important/)
+ assert.match(css,/\.prst-dash-alert-list>button\{[\s\S]*background:#f8fafc!important/)
+})
