@@ -12,7 +12,9 @@ const CHECKS=[
  {area:'Contrato legal definitivo',status:'PENDING',detail:'Existe borrador operativo y PDF, pero falta el texto legal definitivo aprobado por Prestadito$.'},
  {area:'Firma electrónica criptográfica',status:'PENDING',detail:'Actualmente se registra el documento firmado. La firma electrónica formal depende de la decisión y proveedor de la empresa.'},
  {area:'Base aislada de staging',status:'BLOCKED',detail:'No se crea por ahora para evitar costos. El smoke test y runbook quedan preparados para usarla más adelante.'},
- {area:'CI heredado del proyecto',status:'PENDING',detail:'Se están corrigiendo pruebas heredadas y regresiones móviles para dejar la rama técnicamente limpia antes de producción.'},
+ {area:'Validación continua',status:'READY',detail:'Pruebas API, auditorías frontend y compilación web están en verde para el commit actual.'},
+ {area:'Validación iPhone',status:'READY',detail:'La compilación para simulador iPhone terminó correctamente.'},
+ {area:'Validación Android',status:'READY',detail:'APK debug y AAB de validación se generaron correctamente; la firma de tienda sigue fuera de este cierre.'},
 ]
 
 export default function PrestaditosProductionReadinessPanel(){
