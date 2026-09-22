@@ -1744,3 +1744,112 @@
   background:#eff9f2!important;
   border-color:#abd6b8!important;
 }
+
+
+/* ===== INVESTOR ACTIONS · FUNCTIONAL PREVIEW ===== */
+.prst-preview-investor-edit{
+  padding:18px!important;
+  border:1px solid #dfe5ea!important;
+  border-left:4px solid #d92d3e!important;
+  background:#fff!important;
+}
+.prst-preview-investor-edit .prst-card-head{
+  align-items:flex-start!important;
+}
+.prst-preview-edit-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid #e5e9ed;
+}
+.prst-preview-edit-actions>span{
+  color:#667085;
+  font-size:10px;
+}
+.prst-preview-edit-actions>div{
+  display:flex;
+  gap:7px;
+}
+.prst-preview-edit-actions button{
+  min-height:36px;
+  padding:0 11px;
+  border:1px solid #d3d9df;
+  border-radius:8px;
+  background:#fff;
+  color:#344054;
+  font:inherit;
+  font-size:9px;
+  font-weight:900;
+  cursor:pointer;
+}
+.prst-preview-edit-actions button.primary{
+  border-color:#d92d3e!important;
+  background:#d92d3e!important;
+  color:#fff!important;
+}
+.prst-profile360-context{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin:-4px 0 14px;
+  color:#667085;
+  font-size:10px;
+}
+.prst-profile360-context span{
+  padding:5px 8px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#315d9f;
+  font-weight:900;
+}
+.prst-profile360-context b{color:#344054}
+.prst-document-context{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:#f6f8fa;
+  box-shadow:inset 0 0 0 1px #e4e8ec;
+}
+.prst-document-context>div{
+  display:grid;
+  gap:2px;
+}
+.prst-document-context span{
+  color:#d92d3e;
+  font-size:8px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.prst-document-context strong{
+  color:#17212b;
+  font-size:11px;
+}
+.prst-document-context small{
+  color:#6b7683;
+  font-size:9px;
+}
+.prst-document-context button{
+  min-height:34px;
+  padding:0 10px;
+  border:1px solid #d1d8df;
+  border-radius:8px;
+  background:#fff;
+  color:#344054;
+  font:inherit;
+  font-size:9px;
+  font-weight:900;
+  cursor:pointer;
+}
+@media(max-width:760px){
+  .prst-preview-edit-actions,
+  .prst-document-context{align-items:flex-start;flex-direction:column}
+}
