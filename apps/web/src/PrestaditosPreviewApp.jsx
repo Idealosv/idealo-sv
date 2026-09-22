@@ -349,15 +349,21 @@ function Beneficiaries(){
  const covered=new Set(active.map(x=>x.investor)).size
  const totals=active.reduce((acc,x)=>{acc[x.investor]=(acc[x.investor]||0)+Number(x.pct||0);return acc},{})
  const complete=Object.values(totals).filter(v=>Math.abs(v-100)<0.01).length
- const openNew=()=>{setDraft({code:'BEN-DEMO-'+String(Date.now()).slice(-6),name:'',investor:demo.investors[0]?.name||'',relation:'',pct:100,status:'Activo'});setNotice('')}
+ const availableFor=investor=>Math.max(0,100-Number(totals[investor]||0))
+ const openNew=()=>{
+  const investor=demo.investors.find(x=>availableFor(x.name)>0)?.name||demo.investors[0]?.name||''
+  setDraft({code:'BEN-DEMO-'+String(Date.now()).slice(-6),name:'',investor,relation:'',pct:availableFor(investor),status:'Activo'})
+  setNotice(availableFor(investor)<=0?'Este inversionista ya tiene el 100% asignado. Elegí otro inversionista o ajustá las designaciones existentes.':'')
+ }
  const close=()=>{setDraft(null);setNotice('')}
  const save=e=>{
   e.preventDefault()
   const pct=Number(draft?.pct||0)
-  const already=rows.filter(x=>x.status==='Activo'&&x.investor===draft.investor).reduce((s,x)=>s+Number(x.pct||0),0)
+  const already=Number(totals[draft?.investor]||0)
+  const available=Math.max(0,100-already)
   if(!draft?.name.trim()||!draft?.relation.trim()){setNotice('Completá nombre y relación.');return}
-  if(pct<=0||pct>100){setNotice('El porcentaje debe ser mayor que 0 y no superar 100%.');return}
-  if(already+pct>100.001){setNotice(`La asignación de ${draft.investor} superaría el 100%.`);return}
+  if(available<=0){setNotice(`${draft.investor} ya tiene el 100% asignado.`);return}
+  if(pct<=0||pct>available){setNotice(`El porcentaje disponible para ${draft.investor} es ${available.toFixed(2)}%.`);return}
   setRows(current=>[{...draft,pct},...current])
   setDraft(null)
   setNotice('')
@@ -388,12 +394,17 @@ function Beneficiaries(){
    <div className="prst-card-head"><div><small>VISTA PREVIA</small><h2>Nuevo beneficiario</h2><p>La suma activa por inversionista no puede superar el 100%.</p></div><button type="button" className="prst-mini-button" onClick={close}>Cerrar</button></div>
    <div className="prst-form-grid">
     <label className="prst-field"><span>Nombre completo</span><input value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})} required/></label>
-    <label className="prst-field"><span>Inversionista</span><select value={draft.investor} onChange={e=>setDraft({...draft,investor:e.target.value})}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+    <label className="prst-field"><span>Inversionista</span><select value={draft.investor} onChange={e=>{const investor=e.target.value;setDraft({...draft,investor,pct:availableFor(investor)});setNotice(availableFor(investor)<=0?'Este inversionista ya tiene el 100% asignado.':'')}}>{demo.investors.map(x=><option key={x.id} value={x.name}>{x.name} · {availableFor(x.name).toFixed(0)}% disponible</option>)}</select></label>
     <label className="prst-field"><span>Relación</span><input value={draft.relation} onChange={e=>setDraft({...draft,relation:e.target.value})} placeholder="Ej. esposa, hijo, madre" required/></label>
-    <label className="prst-field"><span>Porcentaje</span><input type="number" min="0.01" max="100" step="0.01" value={draft.pct} onChange={e=>setDraft({...draft,pct:e.target.value})}/></label>
+    <label className="prst-field"><span>Porcentaje</span><input type="number" min="0.01" max={availableFor(draft.investor)||100} step="0.01" value={draft.pct} onChange={e=>setDraft({...draft,pct:e.target.value})} disabled={availableFor(draft.investor)<=0}/></label>
+   </div>
+   <div className="prst-beneficiary-allocation">
+    <div><span>Asignado actualmente</span><strong>{Number(totals[draft.investor]||0).toFixed(2)}%</strong></div>
+    <div><span>Disponible</span><strong>{availableFor(draft.investor).toFixed(2)}%</strong></div>
+    <div className="prst-beneficiary-allocation-bar"><span style={{width:`${Math.min(100,Number(totals[draft.investor]||0))}%`}}/></div>
    </div>
    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
-   <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary">Guardar demo</button></div></div>
+   <div className="prst-preview-edit-actions"><span>Solo modifica esta vista previa.</span><div><button type="button" onClick={close}>Cancelar</button><button type="submit" className="primary" disabled={availableFor(draft.investor)<=0}>Guardar demo</button></div></div>
   </form></div>}
  </section>
 }
