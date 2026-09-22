@@ -5,6 +5,12 @@ import PrestaditosDashboardPanel from './PrestaditosDashboardPanel.jsx'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
 const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360','Solicitudes','Simulador','Inversiones','Contratos','Beneficiarios','Estado de cuenta','Rendimientos','Vencimientos','Renovaciones','Tesorería','Documentos','Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
+const TAB_DESCRIPTIONS={
+ Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Agenda:'Vencimientos y tareas',Inversionistas:'Expedientes y documentos','Perfil 360':'Vista integral del inversionista',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Exportaciones:'Respaldo y CSV',Ayuda:'Manual y capacitación','Prueba integral':'3 casos ficticios',Preparación:'Cierre para producción',Configuración:'Reglas del vertical'
+}
+const PRIMARY_TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos']
+const OPERATION_TABS=['Perfil 360','Simulador','Contratos','Beneficiarios','Estado de cuenta','Renovaciones','Tesorería','Documentos']
+const ADMIN_TABS=['Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
 
 const demo={
  investors:[
@@ -104,14 +110,23 @@ export default function PrestaditosPreviewApp(){
 
  const selectTab=name=>{setTab(name);setMobileNavOpen(false)}
  const openInvestorTab=(name,investorId)=>{if(investorId)setSelectedInvestorId(investorId);selectTab(name)}
+ const navButton=name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{TAB_DESCRIPTIONS[name]}</small></button>
  return <div className="prst-app">
   {mobileNavOpen&&<button type="button" className="prst-mobile-overlay" aria-label="Cerrar menú" onClick={()=>setMobileNavOpen(false)}/>}
   <aside className={`prst-sidebar ${mobileNavOpen?'mobile-open':''}`}>
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
-   <nav>{TABS.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{({
-    Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Agenda:'Vencimientos y tareas',Inversionistas:'Expedientes y documentos','Perfil 360':'Vista integral del inversionista',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Exportaciones:'Respaldo y CSV',Ayuda:'Manual y capacitación','Prueba integral':'3 casos ficticios',Preparación:'Cierre para producción',Configuración:'Reglas del vertical'
-   })[name]}</small></button>)}</nav>
+   <nav>
+    <div className="prst-nav-primary">{PRIMARY_TABS.map(navButton)}</div>
+    <details className="prst-nav-group" open={OPERATION_TABS.includes(tab)||undefined}>
+     <summary>Más operación <span>{OPERATION_TABS.length}</span></summary>
+     <div>{OPERATION_TABS.map(navButton)}</div>
+    </details>
+    <details className="prst-nav-group" open={ADMIN_TABS.includes(tab)||undefined}>
+     <summary>Administración <span>{ADMIN_TABS.length}</span></summary>
+     <div>{ADMIN_TABS.map(navButton)}</div>
+    </details>
+   </nav>
   </aside>
 
   <main className="prst-main">
@@ -211,9 +226,14 @@ function Investors({onGo,onOpenInvestor}){
   <section className="prst-investor-command">
    <div><small>CONTROL DE EXPEDIENTES</small><h2>Directorio de inversionistas</h2><p>Consulta, documentación, capital activo y acceso rápido al expediente de cada inversionista.</p></div>
    <div className="prst-investor-command-actions">
-    <button type="button" onClick={exportCsv}>Exportar CSV</button>
-    <button type="button" onClick={()=>setDocs('PENDING')}>Ver pendientes <span>{pending.length}</span></button>
     <button type="button" className="primary" onClick={openNew}>+ Nuevo inversionista</button>
+    <details className="prst-action-menu top">
+     <summary>Más</summary>
+     <div>
+      <button type="button" onClick={exportCsv}>Exportar CSV</button>
+      <button type="button" onClick={()=>setDocs('PENDING')}>Ver pendientes <span>{pending.length}</span></button>
+     </div>
+    </details>
    </div>
   </section>
 
@@ -245,12 +265,17 @@ function Investors({onGo,onOpenInvestor}){
       <td><b>{activeCount[x.id]||0}</b><small>{activeCount[x.id]?'vigentes':'sin inversión activa'}</small></td>
       <td><b>{money(activeCapital[x.id]||0)}</b><small>capital vigente</small></td>
       <td><Status>{x.status}</Status></td>
-      <td><div className="prst-row-actions prst-investor-actions">
+      <td><div className="prst-row-actions prst-investor-actions compact">
        <button type="button" className="primary" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Ver</button>
-       <button type="button" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Perfil 360</button>
-       <button type="button" onClick={()=>onOpenInvestor?.('Documentos',x.id)}>Documentos</button>
-       {activeCount[x.id]>0&&<button type="button" onClick={()=>onOpenInvestor?.('Contratos',x.id)}>Contratos</button>}
-       <button type="button" onClick={()=>openEdit(x)}>Editar</button>
+       <details className="prst-action-menu">
+        <summary>Más</summary>
+        <div>
+         <button type="button" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Perfil 360</button>
+         <button type="button" onClick={()=>onOpenInvestor?.('Documentos',x.id)}>Documentos</button>
+         {activeCount[x.id]>0&&<button type="button" onClick={()=>onOpenInvestor?.('Contratos',x.id)}>Contratos</button>}
+         <button type="button" onClick={()=>openEdit(x)}>Editar</button>
+        </div>
+       </details>
       </div></td>
      </tr>
     })}</tbody>
