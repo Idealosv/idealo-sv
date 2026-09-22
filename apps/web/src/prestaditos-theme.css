@@ -1,572 +1,379 @@
 /* PRESTADITO$ · GLOBAL EXECUTIVE DESIGN SYSTEM
-   Dark financial command-center aesthetic inspired by professional monitoring platforms. */
+   Paleta clara oficial restaurada: fondo claro, sidebar grafito, rojo, azul, verde, ámbar y morado. */
 .prst-app{
-  --ui-bg:#08131f;
-  --ui-bg-2:#0b1724;
-  --ui-surface:#0e1c2a;
-  --ui-surface-2:#122231;
-  --ui-surface-3:#162837;
-  --ui-line:#203447;
-  --ui-line-soft:#172a3a;
-  --ui-ink:#f3f7fb;
-  --ui-muted:#91a3b5;
-  --ui-red:#ed1c24;
-  --ui-orange:#f2a11f;
-  --ui-yellow:#e7b73a;
-  --ui-blue:#3282d8;
-  --ui-green:#2aa873;
-  --ui-purple:#765cc6;
-  --ui-danger:#ef4f50;
-  --ui-shadow:0 14px 34px rgba(0,0,0,.24);
-  grid-template-columns:248px minmax(0,1fr)!important;
-  background:
-    radial-gradient(circle at 78% 0%,rgba(50,130,216,.045),transparent 23%),
-    linear-gradient(180deg,var(--ui-bg),var(--ui-bg-2))!important;
+  --ui-bg:#edf1f4;
+  --ui-surface:#ffffff;
+  --ui-surface-soft:#f7f9fb;
+  --ui-ink:#16202a;
+  --ui-muted:#697586;
+  --ui-line:#dfe5ea;
+  --ui-line-soft:#e9edf1;
+  --ui-red:#d92d3e;
+  --ui-red-soft:#fbecef;
+  --ui-navy:#151d26;
+  --ui-navy-2:#202a35;
+  --ui-green:#24865d;
+  --ui-amber:#c88717;
+  --ui-blue:#3f6fc5;
+  --ui-purple:#7358bb;
+  grid-template-columns:284px minmax(0,1fr)!important;
+  background:var(--ui-bg)!important;
   color:var(--ui-ink)!important;
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  color-scheme:dark;
 }
-.prst-app *{scrollbar-color:#33485b #0b1724}
-.prst-app *::selection{background:#354c61;color:#fff}
 
-/* ===== Left navigation ===== */
+/* Sidebar */
 .prst-app .prst-sidebar{
-  background:linear-gradient(180deg,#09131d 0%,#0b1620 100%)!important;
-  border-right:1px solid #1d3041!important;
-  box-shadow:10px 0 28px rgba(0,0,0,.12)!important;
+  background:linear-gradient(180deg,#151a20 0%,#10151a 100%)!important;
+  border-right:1px solid #252c33!important;
 }
 .prst-app .prst-brand{
-  gap:12px!important;
-  padding:22px 17px 18px!important;
-  border-bottom:1px solid #1d3041!important;
+  gap:13px!important;
+  padding:24px 18px 20px!important;
+  border-bottom:1px solid #303840!important;
 }
 .prst-app .prst-mark{
-  width:42px!important;height:42px!important;border-radius:9px!important;
-  background:linear-gradient(145deg,#f12832,#ce1620)!important;
-  color:#fff!important;
-  box-shadow:0 8px 20px rgba(237,28,36,.22)!important;
-  font-size:22px!important;
+  width:46px!important;
+  height:46px!important;
+  border-radius:12px!important;
+  background:var(--ui-red)!important;
+  box-shadow:0 8px 18px rgba(217,45,62,.24)!important;
+  font-size:23px!important;
 }
 .prst-app .prst-brand strong{
-  color:#fff!important;font-size:17px!important;letter-spacing:.045em!important
+  font-size:18px!important;
+  letter-spacing:.045em!important;
 }
 .prst-app .prst-brand small{
-  margin-top:3px!important;color:#8fa0b0!important;font-size:9px!important
+  margin-top:3px!important;
+  color:#aab3bc!important;
+  font-size:10px!important;
 }
 .prst-app .prst-company{
   gap:4px!important;
-  margin:13px 10px 10px!important;
-  padding:12px!important;
-  border:1px solid #203447!important;
-  border-radius:8px!important;
-  background:#0f1d29!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important;
+  margin:15px 12px 12px!important;
+  padding:14px!important;
+  border:1px solid #303840!important;
+  border-radius:10px!important;
+  background:#1b2229!important;
+  box-shadow:none!important;
 }
-.prst-app .prst-company span{color:#f2646b!important;font-size:8px!important;letter-spacing:.1em!important}
-.prst-app .prst-company strong{color:#eaf1f7!important;font-size:12px!important}
-.prst-app .prst-company small{color:#7f92a4!important;font-size:9px!important}
-.prst-app .prst-sidebar nav{gap:2px!important;padding:3px 8px 18px!important}
+.prst-app .prst-company span{font-size:9px!important;color:#ff6f7b!important}
+.prst-app .prst-company strong{font-size:13px!important;color:#fff!important}
+.prst-app .prst-company small{font-size:10px!important;color:#9ca7b2!important}
+.prst-app .prst-sidebar nav{
+  gap:3px!important;
+  padding:4px 10px 20px!important;
+}
 .prst-app .prst-sidebar nav button{
-  min-height:48px!important;
-  padding:9px 10px!important;
+  min-height:54px!important;
+  padding:10px 12px!important;
   border:0!important;
-  border-left:2px solid transparent!important;
-  border-radius:6px!important;
+  border-left:3px solid transparent!important;
+  border-radius:8px!important;
   background:transparent!important;
-  color:#bcc8d3!important;
+  color:#d7dde2!important;
   box-shadow:none!important;
 }
 .prst-app .prst-sidebar nav button:hover{
-  background:#112331!important;color:#fff!important
+  background:#20272e!important;
+  color:#fff!important;
 }
 .prst-app .prst-sidebar nav button.active{
-  border-left-color:var(--ui-orange)!important;
-  background:linear-gradient(90deg,#132536,#0f1e2a)!important;
+  border-left-color:var(--ui-red)!important;
+  background:#252d35!important;
   color:#fff!important;
-  box-shadow:inset 0 0 0 1px rgba(50,130,216,.08)!important;
 }
-.prst-app .prst-sidebar nav button strong{font-size:11px!important;line-height:1.25!important}
-.prst-app .prst-sidebar nav button small{margin-top:2px!important;color:#6f8496!important;font-size:8px!important;line-height:1.3!important}
-.prst-app .prst-sidebar nav button.active small{color:#e2a947!important}
+.prst-app .prst-sidebar nav button strong{font-size:12px!important;line-height:1.25!important}
+.prst-app .prst-sidebar nav button small{margin-top:2px!important;color:#8c98a3!important;font-size:9px!important;line-height:1.3!important}
+.prst-app .prst-sidebar nav button.active small{color:#ff9ca5!important}
 .prst-app .prst-back{
-  margin:7px 10px 15px!important;min-height:40px!important;display:grid!important;place-items:center!important;
-  border:1px solid #203447!important;border-radius:7px!important;background:#0f1d29!important;
-  color:#b7c5d0!important;font-size:9px!important
+  margin:8px 12px 16px!important;
+  min-height:42px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:1px solid #303840!important;
+  border-radius:8px!important;
+  background:#1a2026!important;
+  color:#dce2e7!important;
+  font-size:10px!important;
 }
 
-/* ===== Header / search ===== */
-.prst-app .prst-main{
-  background:
-    linear-gradient(rgba(32,52,71,.06) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(32,52,71,.05) 1px,transparent 1px),
-    radial-gradient(circle at 88% 4%,rgba(242,161,31,.035),transparent 24%),
-    linear-gradient(180deg,#08131f,#0a1723)!important;
-  background-size:42px 42px,42px 42px,auto,auto!important;
-}
+/* Top bar */
+.prst-app .prst-main{background:var(--ui-bg)!important}
 .prst-app .prst-topbar{
-  padding:16px 20px!important;
-  gap:16px!important;
-  border-bottom:1px solid #203447!important;
-  background:rgba(9,20,31,.96)!important;
-  box-shadow:0 8px 20px rgba(0,0,0,.16)!important;
-  backdrop-filter:blur(10px)!important;
+  padding:18px 24px!important;
+  gap:18px!important;
+  border-bottom:1px solid var(--ui-line)!important;
+  background:rgba(255,255,255,.97)!important;
+  box-shadow:0 4px 12px rgba(16,24,40,.035)!important;
+  backdrop-filter:blur(8px)!important;
 }
 .prst-app .prst-top-title>span{
-  color:#f0a62b!important;font-size:9px!important;letter-spacing:.11em!important
+  color:var(--ui-red)!important;
+  font-size:10px!important;
+  letter-spacing:.08em!important;
 }
 .prst-app .prst-top-title h1{
-  margin:3px 0 0!important;color:#f6f8fb!important;font-size:26px!important;line-height:1.08!important;letter-spacing:-.035em!important
+  margin:3px 0 0!important;
+  color:var(--ui-ink)!important;
+  font-size:28px!important;
+  line-height:1.08!important;
+  letter-spacing:-.035em!important;
 }
 .prst-app .prst-top-title p{
-  margin:4px 0 0!important;color:#7f93a5!important;font-size:10px!important
+  margin:4px 0 0!important;
+  color:var(--ui-muted)!important;
+  font-size:11px!important;
 }
-.prst-app .prst-global-search{max-width:620px!important}
-.prst-app .prst-global-search-input{
-  min-height:42px!important;border:1px solid #263b4e!important;border-radius:8px!important;
-  background:#0d1a26!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important
-}
-.prst-app .prst-global-search-input input{
-  background:transparent!important;color:#dfe8ef!important;font-size:11px!important
-}
-.prst-app .prst-global-search-input input::placeholder{color:#6f8294!important}
 .prst-app .prst-top-actions button,
 .prst-app .prst-mobile-menu{
-  min-height:40px!important;border:1px solid #2c4052!important;border-radius:7px!important;
-  background:#101f2c!important;color:#dce5ec!important;font-size:10px!important;font-weight:850!important
+  min-height:42px!important;
+  border:1px solid #cfd6dc!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#2d3945!important;
+  font-size:11px!important;
+  font-weight:850!important;
 }
 .prst-app .prst-content{
-  max-width:1780px!important;
-  padding:18px 20px 48px!important;
+  max-width:1740px!important;
+  padding:22px 24px 56px!important;
 }
 .prst-app>.prst-main>.prst-alert{
-  margin:10px 16px 0!important;padding:10px 12px!important;border-radius:7px!important;font-size:9px!important
-}
-.prst-app>.prst-main>.prst-alert.success{
-  border:1px solid rgba(42,168,115,.28)!important;
-  background:rgba(42,168,115,.08)!important;
-  color:#94d6b8!important;
-}
-.prst-app>.prst-main>.prst-alert.error{
-  border:1px solid rgba(239,79,80,.30)!important;
-  background:rgba(239,79,80,.08)!important;
-  color:#f2a3a4!important;
+  margin:12px 18px 0!important;
+  padding:11px 13px!important;
+  border-radius:9px!important;
+  font-size:10px!important;
 }
 
-/* ===== Cards / KPI panels ===== */
+/* Cards / panels */
 .prst-app .prst-card,
 .prst-app .prst-metric,
 .prst-app .prst-investor-summary>article{
-  border:1px solid var(--ui-line)!important;
-  border-radius:10px!important;
-  background:linear-gradient(180deg,#0f1e2b,#0d1a27)!important;
-  color:var(--ui-ink)!important;
-  box-shadow:var(--ui-shadow)!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:var(--ui-surface)!important;
+  box-shadow:
+    0 7px 18px rgba(16,24,40,.045),
+    inset 0 0 0 1px var(--ui-line)!important;
 }
-.prst-app .prst-card{padding:18px!important}
-.prst-app .prst-card-head{margin-bottom:15px!important}
+.prst-app .prst-card{padding:20px!important}
+.prst-app .prst-card-head{margin-bottom:16px!important}
 .prst-app .prst-card-head small{
-  color:#f0a62b!important;font-size:8px!important;font-weight:950!important;letter-spacing:.09em!important
+  color:var(--ui-red)!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  letter-spacing:.08em!important;
 }
 .prst-app .prst-card-head h2{
-  margin:4px 0 0!important;color:#f3f7fb!important;font-size:19px!important;line-height:1.16!important;letter-spacing:-.018em!important
+  margin:4px 0 0!important;
+  color:var(--ui-ink)!important;
+  font-size:21px!important;
+  line-height:1.15!important;
+  letter-spacing:-.02em!important;
 }
 .prst-app .prst-card-head p{
-  margin:5px 0 0!important;color:#8195a8!important;font-size:10px!important;line-height:1.5!important
+  margin:5px 0 0!important;
+  color:var(--ui-muted)!important;
+  font-size:11px!important;
+  line-height:1.5!important;
 }
 .prst-app .prst-metrics,
-.prst-app .prst-investor-summary{gap:10px!important}
+.prst-app .prst-investor-summary{
+  gap:12px!important;
+}
 .prst-app .prst-metric,
 .prst-app .prst-investor-summary>article{
-  min-height:96px!important;padding:14px 15px!important
+  min-height:108px!important;
+  padding:16px 18px!important;
 }
 .prst-app .prst-metric span,
 .prst-app .prst-investor-summary>article span{
-  color:#8296a8!important;font-size:9px!important;font-weight:900!important;letter-spacing:.05em!important;text-transform:uppercase!important
+  color:var(--ui-muted)!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:.045em!important;
+  text-transform:uppercase!important;
 }
 .prst-app .prst-metric strong,
 .prst-app .prst-investor-summary>article strong{
-  margin:7px 0 4px!important;color:#f4f7fa!important;font-size:24px!important;line-height:1.05!important;letter-spacing:-.035em!important
+  margin:8px 0 5px!important;
+  color:var(--ui-ink)!important;
+  font-size:26px!important;
+  line-height:1.05!important;
+  letter-spacing:-.035em!important;
 }
 .prst-app .prst-metric small,
 .prst-app .prst-investor-summary>article small{
-  color:#6f8496!important;font-size:9px!important
+  color:#7a8591!important;
+  font-size:10px!important;
 }
-.prst-app .prst-metric.money{border-top:2px solid var(--ui-red)!important}
-.prst-app .prst-metric.warn{border-top:2px solid var(--ui-orange)!important}
 
-/* ===== Forms ===== */
-.prst-app .prst-field>span{color:#aebdca!important;font-size:10px!important;font-weight:850!important}
-.prst-app .prst-field>small{color:#72869a!important;font-size:9px!important}
+/* Forms */
+.prst-app .prst-field>span{
+  color:#344054!important;
+  font-size:11px!important;
+  font-weight:850!important;
+}
+.prst-app .prst-field>small{
+  color:#7a8591!important;
+  font-size:10px!important;
+}
 .prst-app .prst-field input,
 .prst-app .prst-field select,
 .prst-app .prst-field textarea,
 .prst-app .prst-search,
-.prst-app .prst-alert-filters select,
-.prst-app .prst-agenda-filters select{
-  border:1px solid #2b4052!important;border-radius:7px!important;
-  background:#0b1824!important;color:#e4ebf1!important;font-size:11px!important
+.prst-app .prst-global-search-input,
+.prst-app .prst-global-search-input input{
+  border-color:#cfd7df!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#24313d!important;
+  font-size:12px!important;
 }
 .prst-app .prst-field input,
 .prst-app .prst-field select,
-.prst-app .prst-search{min-height:40px!important}
-.prst-app .prst-field textarea{min-height:96px!important}
-.prst-app input::placeholder,
-.prst-app textarea::placeholder{color:#62778a!important}
+.prst-app .prst-search{min-height:44px!important}
+.prst-app .prst-field textarea{min-height:100px!important}
 .prst-app .prst-field input:focus,
 .prst-app .prst-field select:focus,
 .prst-app .prst-field textarea:focus,
 .prst-app .prst-search:focus{
-  outline:none!important;border-color:#49657d!important;box-shadow:0 0 0 2px rgba(50,130,216,.10)!important
+  outline:none!important;
+  border-color:#8ba4bc!important;
+  box-shadow:0 0 0 3px rgba(63,111,197,.08)!important;
 }
 
-/* ===== Tables ===== */
+/* Tables */
 .prst-app .prst-table-wrap{
-  border:1px solid #203447!important;border-radius:8px!important;
-  background:#0b1824!important;box-shadow:none!important
+  border:1px solid var(--ui-line)!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  box-shadow:none!important;
 }
-.prst-app .prst-table-wrap table{background:#0b1824!important}
-.prst-app .prst-table-wrap thead{background:#101f2d!important}
+.prst-app .prst-table-wrap table{background:#fff!important}
+.prst-app .prst-table-wrap thead{background:#f4f6f8!important}
 .prst-app .prst-table-wrap th{
-  padding:10px 9px!important;border-bottom:1px solid #253a4c!important;
-  color:#91a4b5!important;font-size:9px!important;font-weight:900!important;letter-spacing:.045em!important;text-transform:uppercase!important
+  padding:11px 10px!important;
+  border-bottom:1px solid var(--ui-line)!important;
+  color:#536171!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:.04em!important;
+  text-transform:uppercase!important;
 }
 .prst-app .prst-table-wrap td{
-  padding:11px 9px!important;border-bottom:1px solid #172a3a!important;
-  color:#cad5de!important;font-size:10px!important;vertical-align:middle!important
+  padding:12px 10px!important;
+  border-bottom:1px solid #edf0f2!important;
+  color:#26323d!important;
+  font-size:11px!important;
+  vertical-align:middle!important;
 }
-.prst-app .prst-table-wrap tbody tr:hover{background:#0f2030!important}
-.prst-app .prst-table-wrap td b{color:#f0f4f7!important}
-.prst-app .prst-table-wrap td small{color:#71869a!important;font-size:8px!important}
+.prst-app .prst-table-wrap tbody tr:hover{background:#fafbfc!important}
+.prst-app .prst-table-wrap td b{color:#17212b!important}
+.prst-app .prst-table-wrap td small{color:#7a8591!important;font-size:9px!important}
 
-/* ===== Buttons / tabs ===== */
+/* Buttons */
 .prst-app .prst-row-actions button,
 .prst-app .prst-mini-button,
-.prst-app .prst-card button,
+.prst-app .prst-card button:not(.prst-dash-kpi):not(.prst-operational-alert),
 .prst-app .prst-report-tabs button{
-  border-radius:7px!important;font-weight:850!important
+  border-radius:8px!important;
+  font-weight:850!important;
 }
 .prst-app .prst-row-actions button,
 .prst-app .prst-mini-button{
-  min-height:34px!important;padding:0 10px!important;font-size:9px!important
+  min-height:36px!important;
+  padding:0 11px!important;
+  font-size:10px!important;
 }
 .prst-app button.primary,
 .prst-app .primary.prst-mini-button{
-  border-color:#d42029!important;background:linear-gradient(145deg,#ef2e38,#c91821)!important;color:#fff!important
+  border-color:var(--ui-red)!important;
+  background:var(--ui-red)!important;
+  color:#fff!important;
 }
 .prst-app button.secondary{
-  border-color:#2a3f52!important;background:#10202e!important;color:#cbd6df!important
-}
-.prst-app .prst-report-tabs,
-.prst-app .prst-notification-tabs,
-.prst-app .prst-agenda-view-tabs{
-  gap:4px!important;padding:4px!important;border-radius:8px!important;background:#0a1722!important;border:1px solid #203447!important
-}
-.prst-app .prst-report-tabs button,
-.prst-app .prst-notification-tabs button,
-.prst-app .prst-agenda-view-tabs button{
-  border:0!important;background:transparent!important;color:#879aab!important
-}
-.prst-app .prst-report-tabs button.active,
-.prst-app .prst-notification-tabs button.active,
-.prst-app .prst-agenda-view-tabs button.active{
-  background:#142739!important;color:#fff!important;box-shadow:inset 0 0 0 1px #2c4357!important
+  border-color:#cfd6dc!important;
+  background:#fff!important;
+  color:#344054!important;
 }
 
-/* ===== Status / badges ===== */
+/* Status */
 .prst-app .prst-status{
-  min-height:25px!important;padding:0 8px!important;border-radius:999px!important;font-size:8px!important;font-weight:900!important
+  min-height:27px!important;
+  padding:0 9px!important;
+  border-radius:999px!important;
+  font-size:9px!important;
+  font-weight:900!important;
 }
 .prst-app .prst-status.active,
-.prst-app .prst-status.posted{background:rgba(42,168,115,.14)!important;color:#79d4ab!important}
-.prst-app .prst-status.pending{background:rgba(242,161,31,.14)!important;color:#f4c067!important}
+.prst-app .prst-status.posted{background:#eaf7f0!important;color:#216a49!important}
+.prst-app .prst-status.pending{background:#fff5df!important;color:#8a6219!important}
 .prst-app .prst-status.review,
-.prst-app .prst-status.maturing{background:rgba(50,130,216,.14)!important;color:#83b4e9!important}
+.prst-app .prst-status.maturing{background:#edf3ff!important;color:#315b9f!important}
 .prst-app .prst-status.rejected,
-.prst-app .prst-status.matured{background:rgba(239,79,80,.14)!important;color:#ef9a9b!important}
-.prst-app .prst-chip-list span,
-.prst-app .prst-doc-badge,
-.prst-app .prst-audit-category{
-  border-color:#2b4052!important;background:#10202e!important;color:#b6c4d0!important
-}
+.prst-app .prst-status.matured{background:#fdecee!important;color:#9c3340!important}
 
-/* ===== Utility panels ===== */
-.prst-app .prst-note,
-.prst-app .prst-empty,
+/* Utilities */
+.prst-app .prst-note{
+  border-radius:9px!important;
+  background:#f6f8fa!important;
+  color:#5d6874!important;
+}
+.prst-app .prst-empty{
+  border-radius:10px!important;
+  background:#f8fafb!important;
+  color:#667085!important;
+}
+.prst-app .prst-grid{gap:14px!important}
+
+/* Reduce visual noise in individual specialized modules */
 .prst-app .prst-alert-rules span,
 .prst-app .prst-profile-grid article,
 .prst-app .prst-profile360-counters>div,
 .prst-app .prst-readiness-list article,
 .prst-app .prst-export-grid article{
-  border:1px solid #203447!important;border-radius:8px!important;
-  background:#0b1824!important;color:#9fb0bf!important;box-shadow:none!important
+  border:0!important;
+  border-radius:10px!important;
+  background:#f7f9fb!important;
+  box-shadow:inset 0 0 0 1px #e6eaee!important;
 }
-.prst-app .prst-note strong,
-.prst-app .prst-empty strong{color:#eef3f7!important}
-
-/* ===== Dashboard: compact command center ===== */
-.prst-app .prst-dashboard-premium{
-  gap:12px!important;
-  padding:12px!important;
-  border-radius:14px!important;
-  background:linear-gradient(180deg,#08131f,#0b1724)!important;
-  color:#edf3f8!important;
+.prst-app .prst-report-tabs{
+  gap:5px!important;
+  padding:4px!important;
+  border-radius:10px!important;
+  background:#f1f3f5!important;
 }
-.prst-app .prst-dashboard-premium .prst-dash-hero{
-  min-height:118px!important;padding:20px 22px!important;border:1px solid #22384b!important;border-radius:10px!important;
-  background:
-    radial-gradient(circle at 92% 20%,rgba(237,28,36,.11),transparent 23%),
-    linear-gradient(135deg,#0d1b28,#122333)!important;
-  box-shadow:0 12px 26px rgba(0,0,0,.20)!important
+.prst-app .prst-report-tabs button{
+  border:0!important;
+  background:transparent!important;
+  color:#59636d!important;
 }
-.prst-app .prst-dashboard-premium .prst-dash-eyebrow>span{
-  min-height:25px!important;padding:0 9px!important;background:#d91f29!important;color:#fff!important;font-size:9px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-eyebrow>b{color:#8297a9!important;font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-hero h2{
-  color:#fff!important;font-size:30px!important;line-height:1.05!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-hero p{
-  margin-top:6px!important;color:#91a5b7!important;font-size:11px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-hero-meta{margin-top:10px!important;gap:6px!important}
-.prst-app .prst-dashboard-premium .prst-dash-hero-meta>span{
-  min-height:27px!important;padding:0 9px!important;border:1px solid #263b4e!important;
-  background:#10202e!important;color:#b7c6d2!important;font-size:8px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-hero-actions button{
-  min-height:38px!important;padding:0 13px!important;border:1px solid #2d4255!important;
-  background:#10202e!important;color:#dbe5ec!important;font-size:9px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-hero-actions button.primary{
-  border-color:#cf2028!important;background:#d8202a!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-kpis{
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-kpi{
-  grid-template-columns:36px minmax(0,1fr)!important;gap:9px!important;min-height:88px!important;padding:11px!important;
-  border:1px solid #203447!important;border-radius:8px!important;
-  background:linear-gradient(180deg,#0f1e2b,#0c1925)!important;color:#eff4f8!important;box-shadow:0 8px 18px rgba(0,0,0,.15)!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-kpi:before{top:0!important;bottom:auto!important;left:0!important;width:100%!important;height:2px!important;border-radius:8px 8px 0 0!important}
-.prst-app .prst-dashboard-premium .prst-dash-kpi-icon{
-  width:34px!important;height:34px!important;border-radius:7px!important;
-  background:#132536!important;color:#9fc1df!important;font-size:9px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-kpi>div>span{color:#768ca0!important;font-size:8px!important}
-.prst-app .prst-dashboard-premium .prst-dash-kpi strong{margin-top:3px!important;color:#fff!important;font-size:20px!important}
-.prst-app .prst-dashboard-premium .prst-dash-kpi small{margin-top:3px!important;color:#6f8395!important;font-size:8px!important}
-.prst-app .prst-dashboard-premium .prst-dash-grid{gap:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel{
-  padding:14px!important;border:1px solid #203447!important;border-radius:9px!important;
-  background:linear-gradient(180deg,#0e1c29,#0c1925)!important;color:#e8eef3!important;box-shadow:0 9px 20px rgba(0,0,0,.15)!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header{margin-bottom:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header>div>span{color:#e7a532!important;font-size:8px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header h3{margin:3px 0!important;color:#f2f6f9!important;font-size:18px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header p{color:#758b9e!important;font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header>button{
-  min-height:32px!important;border:1px solid #2a4052!important;background:#10202e!important;color:#bac9d4!important;font-size:8px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list>button,
-.prst-app .prst-dashboard-premium .prst-dash-flow>button,
-.prst-app .prst-dashboard-premium .prst-dash-list>button{
-  min-height:56px!important;padding:9px 10px!important;border:1px solid #1c3042!important;border-radius:7px!important;
-  background:#0b1824!important;color:#dce5ec!important;box-shadow:none!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list>button.critical{
-  background:linear-gradient(90deg,rgba(239,79,80,.09),#0b1824 35%)!important;border-left:2px solid #ef4f50!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list>button.high{
-  background:linear-gradient(90deg,rgba(242,161,31,.08),#0b1824 35%)!important;border-left:2px solid #f2a11f!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list>button.medium{
-  border-left:2px solid #3282d8!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list strong,
-.prst-app .prst-dashboard-premium .prst-dash-flow strong,
-.prst-app .prst-dashboard-premium .prst-dash-list strong{color:#eef3f7!important;font-size:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list small,
-.prst-app .prst-dashboard-premium .prst-dash-flow small,
-.prst-app .prst-dashboard-premium .prst-dash-list small{color:#71869a!important;font-size:8px!important}
-.prst-app .prst-dashboard-premium .prst-dash-flow button>span{
-  width:30px!important;height:30px!important;border-radius:6px!important;background:#132536!important;font-size:8px!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-days b{color:#eaf0f5!important;font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-days small{color:#71869a!important;font-size:8px!important}
-.prst-app .prst-dashboard-premium .prst-dash-bar>div:first-child span,
-.prst-app .prst-dashboard-premium .prst-dash-bar>div:first-child b{color:#e8eef3!important;font-size:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-bar>small{color:#71869a!important;font-size:8px!important}
-.prst-app .prst-dashboard-premium .prst-dash-bar-track,
-.prst-app .prst-dashboard-premium .prst-dash-status-grid .track{background:#152737!important}
-.prst-app .prst-dashboard-premium .prst-dash-status-grid>div{
-  padding:10px!important;border:1px solid #203447!important;background:#0b1824!important
-}
-.prst-app .prst-dashboard-premium .prst-dash-status-grid b{color:#b8c6d1!important;font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-status-grid strong{color:#fff!important;font-size:14px!important}
-.prst-app .prst-dashboard-premium .prst-dash-footnote{
-  border:1px solid #26394b!important;background:#0d1b28!important;color:#8296a8!important;font-size:8px!important
+.prst-app .prst-report-tabs button.active{
+  background:#1f2933!important;
+  color:#fff!important;
 }
 
-/* ===== Agenda / notifications dark panels ===== */
+/* Keep Dashboard/Agenda/Notifications module-specific designs intact where needed */
+.prst-app .prst-dashboard-premium,
 .prst-app .prst-agenda-module,
 .prst-app .prst-alerts-module{
-  gap:12px!important;padding:12px!important;border-radius:12px!important;background:#091521!important
+  font-family:inherit!important;
 }
-.prst-app .prst-agenda-module .prst-agenda-summary article,
-.prst-app .prst-alerts-module .prst-alert-summary article{
-  min-height:86px!important;padding:12px 13px!important;border:1px solid #203447!important;border-radius:8px!important;
-  background:#0e1c29!important;box-shadow:0 8px 18px rgba(0,0,0,.15)!important
-}
-.prst-app .prst-agenda-module .prst-agenda-summary strong,
-.prst-app .prst-alerts-module .prst-alert-summary strong{
-  color:#fff!important;font-size:22px!important
-}
-.prst-app .prst-agenda-module .prst-agenda-summary span,
-.prst-app .prst-alerts-module .prst-alert-summary span{color:#8195a7!important;font-size:8px!important}
-.prst-app .prst-agenda-module .prst-agenda-summary small,
-.prst-app .prst-alerts-module .prst-alert-summary small{color:#6d8294!important;font-size:8px!important}
-.prst-app .prst-agenda-module>.prst-card,
-.prst-app .prst-alerts-module>.prst-card{
-  border:1px solid #203447!important;background:#0e1c29!important;box-shadow:0 10px 22px rgba(0,0,0,.17)!important
-}
-.prst-app .prst-agenda-module .prst-agenda-list>article,
-.prst-app .prst-alerts-module .prst-operational-alert{
-  border:1px solid #1d3142!important;background:#0b1824!important;color:#dce5ec!important;box-shadow:none!important
-}
-.prst-app .prst-agenda-module .prst-agenda-list>article.overdue,
-.prst-app .prst-alerts-module .prst-operational-alert.critical{
-  background:linear-gradient(90deg,rgba(239,79,80,.08),#0b1824 34%)!important;border-left:2px solid #ef4f50!important
-}
-.prst-app .prst-agenda-module .prst-agenda-list>article.high,
-.prst-app .prst-alerts-module .prst-operational-alert.high{
-  background:linear-gradient(90deg,rgba(242,161,31,.07),#0b1824 34%)!important;border-left:2px solid #f2a11f!important
-}
-.prst-app .prst-agenda-module .prst-agenda-date b,
-.prst-app .prst-agenda-module .prst-agenda-copy>strong,
-.prst-app .prst-alerts-module .prst-alert-copy>strong{color:#f0f4f7!important}
-.prst-app .prst-agenda-module .prst-agenda-date small,
-.prst-app .prst-agenda-module .prst-agenda-copy>small,
-.prst-app .prst-alerts-module .prst-alert-copy>small{color:#72879a!important}
 
-/* ===== Responsive ===== */
-@media(max-width:1450px){
-  .prst-app .prst-dashboard-premium .prst-dash-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-}
+/* Responsive */
 @media(max-width:1100px){
-  .prst-app{grid-template-columns:225px minmax(0,1fr)!important}
-  .prst-app .prst-content{padding:14px 14px 40px!important}
-  .prst-app .prst-dashboard-premium .prst-dash-grid.primary-grid,
-  .prst-app .prst-dashboard-premium .prst-dash-grid.secondary-grid,
-  .prst-app .prst-dashboard-premium .prst-dash-grid.analytics-grid{grid-template-columns:1fr!important}
+  .prst-app{grid-template-columns:250px minmax(0,1fr)!important}
+  .prst-app .prst-content{padding:18px 18px 44px!important}
 }
 @media(max-width:900px){
   .prst-app{grid-template-columns:1fr!important}
-  .prst-app .prst-topbar{padding:11px 12px!important}
-  .prst-app .prst-content{padding:10px 8px 34px!important}
-  .prst-app .prst-card{padding:14px!important}
-  .prst-app .prst-dashboard-premium .prst-dash-hero{grid-template-columns:1fr!important}
-  .prst-app .prst-dashboard-premium .prst-dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
-@media(max-width:560px){
-  .prst-app .prst-dashboard-premium .prst-dash-kpis{grid-template-columns:1fr!important}
-  .prst-app .prst-investor-summary{grid-template-columns:1fr!important}
-}
-
-
-/* ===== MODERATE GLOBAL TYPE BUMP ===== */
-/* Aumento leve de legibilidad en todo el ERP: +1 px aprox., sin agrandar de más. */
-.prst-app .prst-brand strong{font-size:18px!important}
-.prst-app .prst-brand small{font-size:10px!important}
-.prst-app .prst-company span{font-size:9px!important}
-.prst-app .prst-company strong{font-size:13px!important}
-.prst-app .prst-company small{font-size:10px!important}
-
-.prst-app .prst-sidebar nav button strong{font-size:12px!important}
-.prst-app .prst-sidebar nav button small{font-size:9px!important}
-.prst-app .prst-back{font-size:10px!important}
-
-.prst-app .prst-top-title>span{font-size:10px!important}
-.prst-app .prst-top-title h1{font-size:27px!important}
-.prst-app .prst-top-title p{font-size:11px!important}
-.prst-app .prst-global-search-input input{font-size:12px!important}
-.prst-app .prst-top-actions button,
-.prst-app .prst-mobile-menu{font-size:11px!important}
-.prst-app>.prst-main>.prst-alert{font-size:10px!important}
-
-.prst-app .prst-card-head small{font-size:9px!important}
-.prst-app .prst-card-head h2{font-size:20px!important}
-.prst-app .prst-card-head p{font-size:11px!important}
-.prst-app .prst-metric span,
-.prst-app .prst-investor-summary>article span{font-size:10px!important}
-.prst-app .prst-metric strong,
-.prst-app .prst-investor-summary>article strong{font-size:25px!important}
-.prst-app .prst-metric small,
-.prst-app .prst-investor-summary>article small{font-size:10px!important}
-
-.prst-app .prst-field>span{font-size:11px!important}
-.prst-app .prst-field>small{font-size:10px!important}
-.prst-app .prst-field input,
-.prst-app .prst-field select,
-.prst-app .prst-field textarea,
-.prst-app .prst-search,
-.prst-app .prst-alert-filters select,
-.prst-app .prst-agenda-filters select{font-size:12px!important}
-
-.prst-app .prst-table-wrap th{font-size:10px!important}
-.prst-app .prst-table-wrap td{font-size:11px!important}
-.prst-app .prst-table-wrap td small{font-size:9px!important}
-.prst-app .prst-row-actions button,
-.prst-app .prst-mini-button{font-size:10px!important}
-.prst-app .prst-status{font-size:9px!important}
-
-/* Dashboard: apenas un incremento, manteniendo la densidad tipo centro de control. */
-.prst-app .prst-dashboard-premium .prst-dash-eyebrow>span,
-.prst-app .prst-dashboard-premium .prst-dash-eyebrow>b{font-size:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-hero h2{font-size:32px!important}
-.prst-app .prst-dashboard-premium .prst-dash-hero p{font-size:12px!important}
-.prst-app .prst-dashboard-premium .prst-dash-hero-meta>span{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-hero-actions button{font-size:10px!important}
-
-.prst-app .prst-dashboard-premium .prst-dash-kpi>div>span{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-kpi strong{font-size:21px!important}
-.prst-app .prst-dashboard-premium .prst-dash-kpi small{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-kpi-icon{font-size:10px!important}
-
-.prst-app .prst-dashboard-premium .prst-dash-panel>header>div>span{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header h3{font-size:19px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header p{font-size:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-panel>header>button{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list strong,
-.prst-app .prst-dashboard-premium .prst-dash-flow strong,
-.prst-app .prst-dashboard-premium .prst-dash-list strong{font-size:11px!important}
-.prst-app .prst-dashboard-premium .prst-dash-alert-list small,
-.prst-app .prst-dashboard-premium .prst-dash-flow small,
-.prst-app .prst-dashboard-premium .prst-dash-list small{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-days b{font-size:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-days small{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-bar>div:first-child span,
-.prst-app .prst-dashboard-premium .prst-dash-bar>div:first-child b{font-size:11px!important}
-.prst-app .prst-dashboard-premium .prst-dash-bar>small{font-size:9px!important}
-.prst-app .prst-dashboard-premium .prst-dash-status-grid b{font-size:10px!important}
-.prst-app .prst-dashboard-premium .prst-dash-status-grid strong{font-size:15px!important}
-.prst-app .prst-dashboard-premium .prst-dash-footnote{font-size:9px!important}
-
-/* Agenda y notificaciones */
-.prst-app .prst-agenda-module .prst-agenda-summary span,
-.prst-app .prst-alerts-module .prst-alert-summary span{font-size:9px!important}
-.prst-app .prst-agenda-module .prst-agenda-summary strong,
-.prst-app .prst-alerts-module .prst-alert-summary strong{font-size:23px!important}
-.prst-app .prst-agenda-module .prst-agenda-summary small,
-.prst-app .prst-alerts-module .prst-alert-summary small{font-size:9px!important}
-.prst-app .prst-agenda-module .prst-agenda-date b,
-.prst-app .prst-agenda-module .prst-agenda-copy>strong,
-.prst-app .prst-alerts-module .prst-alert-copy>strong{font-size:12px!important}
-.prst-app .prst-agenda-module .prst-agenda-date small,
-.prst-app .prst-agenda-module .prst-agenda-copy>small,
-.prst-app .prst-alerts-module .prst-alert-copy>small{font-size:10px!important}
-
-@media(max-width:900px){
-  .prst-app .prst-top-title h1{font-size:25px!important}
-  .prst-app .prst-dashboard-premium .prst-dash-hero h2{font-size:29px!important}
+  .prst-app .prst-topbar{padding:12px!important}
+  .prst-app .prst-content{padding:12px 10px 36px!important}
+  .prst-app .prst-card{padding:15px!important}
+  .prst-app .prst-card-head h2{font-size:18px!important}
+  .prst-app .prst-metric strong,
+  .prst-app .prst-investor-summary>article strong{font-size:22px!important}
 }
