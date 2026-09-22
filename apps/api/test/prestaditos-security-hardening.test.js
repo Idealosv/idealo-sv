@@ -7,6 +7,7 @@ const hardening=read('supabase/migrations/20260921224500_prestaditos_security_ha
 const smoke=read('supabase/tests/prestaditos_staging_readiness.sql')
 const technicalAudit=read('apps/web/src/PrestaditosTechnicalAuditPanel.jsx')
 const integrity=read('apps/web/src/prestaditos-integrity.js')
+const readiness=read('apps/web/src/prestaditos-production-readiness.js')
 
 test('todas las funciones inv_* se revocan a public y anon antes de conceder el mínimo necesario',()=>{
  assert.match(hardening,/p\.proname like 'inv_%'/)
@@ -39,4 +40,15 @@ test('auditoría técnica cubre integridad crítica de capital contratos documen
  }
  assert.match(technicalAudit,/Integridad del vertical/)
  assert.match(technicalAudit,/ARQUITECTURA DE SEGURIDAD/)
+})
+
+
+test('puerta de producción mantiene bloqueados los requisitos aún no confirmados',()=>{
+ assert.match(readiness,/OFFICIAL_AMOUNT_TIERS/)
+ assert.match(readiness,/NON_12_MONTH_RULE/)
+ assert.match(readiness,/LEGAL_CONTRACT/)
+ assert.match(readiness,/STAGING_DATABASE/)
+ assert.match(readiness,/FULL_CI/)
+ assert.match(readiness,/status:'BLOCKED'/)
+ assert.match(readiness,/usuario no desea pagar por el momento/i)
 })
