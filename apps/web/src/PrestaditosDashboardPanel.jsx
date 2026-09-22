@@ -112,10 +112,15 @@ export default function PrestaditosDashboardPanel({
 
  return <section className="prst-dashboard-premium">
   <section className="prst-dash-hero">
-   <div>
-    <span>RESUMEN EJECUTIVO</span>
+   <div className="prst-dash-hero-copy">
+    <div className="prst-dash-eyebrow"><span>PRESTADITO$</span><b>Panel ejecutivo</b></div>
     <h2>Control financiero de inversionistas</h2>
-    <p>Capital, solicitudes, pagos, vencimientos y alertas importantes en una sola pantalla.</p>
+    <p>Una vista gerencial para supervisar capital, solicitudes, pagos, vencimientos y alertas operativas.</p>
+    <div className="prst-dash-hero-meta">
+     <span><i className="green"/> Operación activa</span>
+     <span>{activeInvestments.length} inversiones vigentes</span>
+     <span>{criticalAlerts+highAlerts} alertas prioritarias</span>
+    </div>
    </div>
    <div className="prst-dash-hero-actions">
     <button type="button" onClick={()=>onGo?.('Simulador')}>Simular inversión</button>
@@ -143,7 +148,7 @@ export default function PrestaditosDashboardPanel({
    </article>
 
    <article className="prst-dash-panel prst-dash-flow-panel">
-    <header><div><span>OPERACIÓN DE INVERSIONISTAS</span><h3>Flujo principal</h3><p>Accesos rápidos a los cinco pasos principales.</p></div></header>
+    <header><div><span>OPERACIÓN</span><h3>Flujo principal</h3><p>Los cinco pasos principales del proceso de inversión.</p></div></header>
     <div className="prst-dash-flow">{flowSteps.map(step=><button key={step.number} type="button" className={step.tone} onClick={()=>onGo?.(step.target)}>
      <span>{step.number}</span><div><strong>{step.title}</strong><small>{step.subtitle}</small></div><b>→</b>
     </button>)}</div>
