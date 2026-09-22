@@ -40,3 +40,12 @@ test('notificaciones reduce espacio vacio y mejora legibilidad interna',()=>{
  assert.match(css,/grid-template-columns:minmax\(260px,380px\) 180px 180px auto!important/)
  assert.match(css,/prst-notification-actions button\{[\s\S]*min-height:34px!important/)
 })
+
+
+test('notificaciones aplica pulido final de alineacion y contraste',()=>{
+ assert.match(css,/NOTIFICATIONS FINAL POLISH/)
+ assert.match(css,/grid-template-columns:minmax\(260px,360px\) 170px 170px auto!important/)
+ assert.match(css,/prst-alert-copy>small\{[\s\S]*color:#536273!important/)
+ assert.match(css,/prst-notification-rules-card\{[\s\S]*padding:16px 18px!important/)
+ assert.match(css,/prst-notification-rules-card \.prst-alert-rules span\{[\s\S]*min-height:42px!important/)
+})
