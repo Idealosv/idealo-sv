@@ -81,7 +81,7 @@ export default function PrestaditosPreviewApp(){
    </header>
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
-    {tab==='Dashboard'&&<Dashboard capital={capital} projected={projected} yieldPaid={yieldPaid}/>}
+    {tab==='Dashboard'&&<Dashboard capital={capital} projected={projected} yieldPaid={yieldPaid} onGo={selectTab}/>} 
     {tab==='Notificaciones'&&<Notifications/>}
     {tab==='Agenda'&&<Agenda/>}
     {tab==='Inversionistas'&&<Investors/>}
@@ -107,7 +107,7 @@ export default function PrestaditosPreviewApp(){
  </div>
 }
 
-function Dashboard({capital,projected,yieldPaid}){
+function Dashboard({capital,projected,yieldPaid,onGo}){
  return <>
   <section className="prst-metrics">
    <Metric label="Inversionistas" value="3" hint="expedientes registrados"/>
@@ -128,12 +128,12 @@ function Dashboard({capital,projected,yieldPaid}){
    <Card title="Flujo principal" kicker="OPERACIÓN DE INVERSIONISTAS">
     <div className="prst-flow">
      {[
-      ['1','Registrar inversionista','Datos, rostro y DUI'],
-      ['2','Recibir solicitud','Monto, plazo y lugar de pago'],
-      ['3','Aprobar y formalizar','Contrato, capital y vencimiento'],
-      ['4','Registrar pagos','Rendimientos y devolución de capital'],
-      ['5','Gestionar vencimiento','Renovar o retirar'],
-     ].map(([n,t,s])=><button key={n} type="button"><b>{n}</b><span><strong>{t}</strong><small>{s}</small></span></button>)}
+      ['1','Registrar inversionista','Datos, rostro y DUI','Inversionistas'],
+      ['2','Recibir solicitud','Monto, plazo y lugar de pago','Solicitudes'],
+      ['3','Aprobar y formalizar','Contrato, capital y vencimiento','Inversiones'],
+      ['4','Registrar pagos','Rendimientos y devolución de capital','Rendimientos'],
+      ['5','Gestionar vencimiento','Renovar o retirar','Renovaciones'],
+     ].map(([n,t,s,target])=><button key={n} type="button" onClick={()=>onGo(target)}><b>{n}</b><span><strong>{t}</strong><small>{s}</small></span></button>)}
     </div>
    </Card>
    <Card title="Solicitudes recientes" kicker="ACTIVIDAD">
