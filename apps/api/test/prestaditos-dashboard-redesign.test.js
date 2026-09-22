@@ -11,9 +11,9 @@ const preview=read('apps/web/src/PrestaditosPreviewApp.jsx')
 test('dashboard ejecutivo usa colores semánticos y seis KPIs',()=>{
  for(const label of ['Inversionistas','Capital activo','Solicitudes pendientes','Referencia anual','Rendimientos pagados','Próximo vencimiento'])assert.match(dashboard,new RegExp(label))
  for(const tone of ['blue','red','orange','indigo','green','purple'])assert.match(dashboard,new RegExp(`tone="${tone}"`))
- assert.match(css,/\.prst-dash-kpis\{display:grid;grid-template-columns:repeat\(6/)
- assert.match(css,/\.prst-dash-kpi\.red/)
- assert.match(css,/\.prst-dash-kpi\.green/)
+ assert.match(css,/\.prst-dash-kpis\{display:grid;grid-template-columns:repeat\(3/)
+ assert.match(css,/\.prst-dash-kpi\.red:after/)
+ assert.match(css,/\.prst-dash-kpi\.green:after/)
 })
 
 test('dashboard muestra alertas flujo solicitudes vencimientos y resumen financiero',()=>{
@@ -36,7 +36,7 @@ test('dashboard nuevo está montado tanto en host real como en vista previa',()=
 
 test('dashboard se adapta a escritorio tablet y móvil',()=>{
  assert.match(css,/@media\(max-width:1380px\)/)
- assert.match(css,/@media\(max-width:980px\)/)
+ assert.match(css,/@media\(max-width:1080px\)/)
  assert.match(css,/@media\(max-width:720px\)/)
  assert.match(css,/@media\(max-width:460px\)/)
  assert.match(css,/grid-template-columns:1fr 1fr/)
