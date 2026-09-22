@@ -147,7 +147,10 @@ export default function PrestaditosPreviewApp(){
      <button type="button" onClick={()=>selectTab('Dashboard')}>Inicio</button>
     </div>
    </header>
-   {moduleActions.length>0&&<div className="prst-context-bar"><span>{moduleParent}</span><div>{moduleActions.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}>{name}</button>)}</div></div>}
+   {moduleActions.length>0&&<div className="prst-context-bar">
+    <button type="button" className={`prst-context-parent ${tab===moduleParent?'active':''}`} onClick={()=>selectTab(moduleParent)} aria-pressed={tab===moduleParent}>{moduleParent}</button>
+    <div>{moduleActions.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)} aria-pressed={tab===name}>{name}</button>)}</div>
+   </div>}
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
     {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
