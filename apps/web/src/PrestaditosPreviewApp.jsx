@@ -275,11 +275,10 @@ function Investors({onGo,onOpenInvestor}){
       <td><b>{money(activeCapital[x.id]||0)}</b><small>capital vigente</small></td>
       <td><Status>{x.status}</Status></td>
       <td><div className="prst-row-actions prst-investor-actions compact">
-       <button type="button" className="primary" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Ver</button>
+       <button type="button" className="primary" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Perfil 360</button>
        <details className="prst-action-menu">
         <summary>Más</summary>
         <div>
-         <button type="button" onClick={()=>onOpenInvestor?.('Perfil 360',x.id)}>Perfil 360</button>
          <button type="button" onClick={()=>onOpenInvestor?.('Documentos',x.id)}>Documentos</button>
          {activeCount[x.id]>0&&<button type="button" onClick={()=>onOpenInvestor?.('Contratos',x.id)}>Contratos</button>}
          <button type="button" onClick={()=>openEdit(x)}>Editar</button>
