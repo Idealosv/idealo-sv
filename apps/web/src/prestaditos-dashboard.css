@@ -112,3 +112,61 @@ button.prst-dash-kpi{cursor:pointer}
 @media(max-width:1080px){.prst-dash-grid.primary-grid,.prst-dash-grid.secondary-grid,.prst-dash-grid.analytics-grid{grid-template-columns:1fr}.prst-dash-hero{grid-template-columns:1fr}.prst-dash-hero-actions{justify-content:flex-start}}
 @media(max-width:820px){.prst-dashboard-premium{padding:14px;gap:16px}.prst-dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.prst-dash-hero h2{font-size:36px}}
 @media(max-width:620px){.prst-dash-kpis{grid-template-columns:1fr}.prst-dash-status-grid{grid-template-columns:1fr}.prst-dash-panel>header{flex-direction:column}.prst-dash-list>button{align-items:flex-start;flex-direction:column}.prst-dash-days{text-align:left}.prst-dash-hero-actions{display:grid;grid-template-columns:1fr}.prst-dash-hero-actions button{width:100%}}
+
+
+/* ===== DASHBOARD BUTTON RESET · KEEP CARDS LIGHT ===== */
+/* El ERP global estiliza botones oscuros. Estas reglas aíslan el Dashboard. */
+.prst-dashboard-premium button.prst-dash-kpi{
+  background:#fff!important;
+  color:#101828!important;
+  border:0!important;
+  box-shadow:0 8px 22px rgba(16,24,40,.055),inset 0 0 0 1px var(--exec-line)!important;
+}
+.prst-dashboard-premium button.prst-dash-kpi:hover{
+  background:#fff!important;
+  color:#101828!important;
+}
+
+.prst-dashboard-premium .prst-dash-alert-list>button{
+  background:#f8fafc!important;
+  color:#17202a!important;
+  border:0!important;
+}
+.prst-dashboard-premium .prst-dash-alert-list>button.critical{
+  background:#fff7f7!important;
+  color:#17202a!important;
+}
+.prst-dashboard-premium .prst-dash-alert-list>button.high{
+  background:#fffaf5!important;
+  color:#17202a!important;
+}
+.prst-dashboard-premium .prst-dash-alert-list>button.medium{
+  background:#fffdf7!important;
+  color:#17202a!important;
+}
+
+.prst-dashboard-premium .prst-dash-flow>button{
+  background:#f8fafc!important;
+  color:#17202a!important;
+  border:0!important;
+}
+.prst-dashboard-premium .prst-dash-flow>button:hover{
+  background:#fff!important;
+  color:#17202a!important;
+}
+
+.prst-dashboard-premium .prst-dash-list>button{
+  background:#f8fafc!important;
+  color:#17202a!important;
+  border:0!important;
+}
+.prst-dashboard-premium .prst-dash-list>button:hover{
+  background:#fff!important;
+  color:#17202a!important;
+}
+
+.prst-dashboard-premium .prst-dash-panel>header>button{
+  background:#f2f4f7!important;
+  color:#344054!important;
+  border:0!important;
+}
