@@ -63,8 +63,8 @@ export default function PrestaditosGlobalSearch({
     type="button"
     key={row.type+'-'+row.id}
     className={index===active?'active':''}
-    onMouseEnter={()=>setActive(index)}
     onClick={()=>choose(row)}
+    onMouseEnter={()=>setActive(index)}
    >
     <span className="prst-search-icon">{ICONS[row.type]||'•'}</span>
     <span className="prst-search-copy"><b>{row.title}</b><small>{row.subtitle}</small></span>
