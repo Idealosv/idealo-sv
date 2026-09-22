@@ -1853,3 +1853,96 @@
   .prst-preview-edit-actions,
   .prst-document-context{align-items:flex-start;flex-direction:column}
 }
+
+
+/* ===== SIDEBAR MENU · LESS SATURATED ===== */
+/* Mantiene todos los módulos visibles, pero reduce ruido visual: una línea por módulo y detalle solo en el activo. */
+.prst-app{
+  grid-template-columns:245px minmax(0,1fr)!important;
+}
+.prst-brand{
+  gap:10px!important;
+  padding:16px 14px!important;
+}
+.prst-mark{
+  width:38px!important;
+  height:38px!important;
+  border-radius:10px!important;
+  font-size:20px!important;
+}
+.prst-brand strong{
+  font-size:15px!important;
+}
+.prst-brand small{
+  font-size:8px!important;
+}
+.prst-company{
+  gap:2px!important;
+  margin:10px!important;
+  padding:10px 11px!important;
+  border-radius:9px!important;
+}
+.prst-company span{
+  font-size:7px!important;
+}
+.prst-company strong{
+  font-size:10px!important;
+}
+.prst-company small{
+  font-size:8px!important;
+}
+
+.prst-sidebar nav{
+  gap:1px!important;
+  padding:2px 8px 14px!important;
+}
+.prst-sidebar nav button{
+  position:relative;
+  display:grid!important;
+  gap:1px!important;
+  min-height:36px!important;
+  padding:7px 9px!important;
+  border-left-width:2px!important;
+  border-radius:7px!important;
+}
+.prst-sidebar nav button strong{
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+.prst-sidebar nav button small{
+  display:none!important;
+  margin-top:1px!important;
+  font-size:7px!important;
+  line-height:1.25!important;
+}
+.prst-sidebar nav button.active{
+  min-height:46px!important;
+  padding-top:7px!important;
+  padding-bottom:7px!important;
+  background:#272a2e!important;
+}
+.prst-sidebar nav button.active small{
+  display:block!important;
+}
+
+/* Separadores discretos entre áreas funcionales sin agregar más texto al menú. */
+.prst-sidebar nav button:nth-child(4),
+.prst-sidebar nav button:nth-child(8),
+.prst-sidebar nav button:nth-child(17),
+.prst-sidebar nav button:nth-child(20){
+  margin-top:7px!important;
+  padding-top:9px!important;
+  border-top:1px solid rgba(255,255,255,.08)!important;
+}
+
+.prst-back{
+  margin:8px 10px 12px!important;
+  padding:9px!important;
+  font-size:8px!important;
+}
+
+@media(max-width:900px){
+  .prst-app{
+    grid-template-columns:1fr!important;
+  }
+}
