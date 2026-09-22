@@ -22,6 +22,11 @@ export default function PrestaditosAgendaPanel({investors,applications,investmen
  const overdue=events.filter(x=>x.date<current&&!x.floating).length
  const todayCount=events.filter(x=>x.date===current).length
  const weekCount=agendaWindow(events,'WEEK').length
+ const viewCounts=useMemo(()=>({
+  TODAY:agendaWindow(events,'TODAY').length,
+  WEEK:agendaWindow(events,'WEEK').length,
+  MONTH:agendaWindow(events,'MONTH').length,
+ }),[events])
 
  return <section className="prst-agenda-module">
   <section className="prst-investor-summary prst-agenda-summary">
@@ -31,11 +36,11 @@ export default function PrestaditosAgendaPanel({investors,applications,investmen
    <article><span>Total activos</span><strong>{events.length}</strong><small>eventos derivados del ERP</small></article>
   </section>
 
-  <article className="prst-card">
+  <article className="prst-card prst-agenda-center-card">
    <div className="prst-card-head"><div><small>AGENDA OPERATIVA</small><h2>Seguimiento diario y semanal</h2><p>Vencimientos, firmas, revisiones, renovaciones y documentación pendiente sin inventar fechas de pago de rendimientos.</p></div></div>
 
    <div className="prst-agenda-view-tabs">
-    {[['TODAY','Hoy / vencidos'],['WEEK','7 días'],['MONTH','30 días']].map(([value,label])=><button key={value} type="button" className={view===value?'active':''} onClick={()=>setView(value)}>{label}</button>)}
+    {[['TODAY','Hoy / vencidos'],['WEEK','7 días'],['MONTH','30 días']].map(([value,label])=><button key={value} type="button" className={view===value?'active':''} onClick={()=>setView(value)}>{label}<span>{viewCounts[value]}</span></button>)}
    </div>
 
    <div className="prst-agenda-filters">
@@ -54,7 +59,7 @@ export default function PrestaditosAgendaPanel({investors,applications,investmen
    })}</div>}
   </article>
 
-  <article className="prst-card prst-agenda-note">
+  <article className="prst-card prst-agenda-note prst-agenda-scope-card">
    <div className="prst-card-head"><div><small>ALCANCE</small><h2>Fechas que sí utiliza la agenda</h2></div></div>
    <div className="prst-alert-rules">
     <span>Fecha de vencimiento de cada inversión.</span>
