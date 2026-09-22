@@ -568,3 +568,25 @@
 .prst-readiness-status.ready{background:#e9f5ec;color:#2e6d42;border:1px solid #b8dbc2}.prst-readiness-status.pending{background:#fff8e8;color:#85621a;border:1px solid #e6d09a}.prst-readiness-status.blocked{background:#fff0ef;color:#963b34;border:1px solid #e3b4b0}
 @media(max-width:800px){.prst-e2e-case-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.prst-readiness-list article{grid-template-columns:1fr}.prst-readiness-status{justify-self:start}}
+
+
+.prst-export-module,.prst-help-module{display:grid;gap:15px}
+.prst-export-summary article:nth-child(1){border-top-color:#2b6f9f}
+.prst-export-summary article:nth-child(2){border-top-color:#2f7b49}
+.prst-export-summary article:nth-child(3){border-top-color:#8a4e96}
+.prst-export-summary article:nth-child(4){border-top-color:#d99222}
+.prst-export-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.prst-export-grid article{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid #dfe3e6;border-radius:9px;background:#fafbfc}
+.prst-export-grid article>div{display:grid;gap:3px}.prst-export-grid strong{font-size:9px;text-transform:capitalize}.prst-export-grid small{font-size:7px;color:#737a80}
+.prst-export-grid button{min-height:32px;padding:0 10px;border:1px solid #cfd4d8;border-radius:7px;background:#fff;font:inherit;font-size:8px;font-weight:900;cursor:pointer}
+.prst-help-summary article:nth-child(1){border-top-color:#2b6f9f}.prst-help-summary article:nth-child(2){border-top-color:#2f7b49}.prst-help-summary article:nth-child(3){border-top-color:#8a4e96}.prst-help-summary article:nth-child(4){border-top-color:#d99222}
+.prst-grid.help-layout{grid-template-columns:minmax(250px,.7fr) minmax(0,1.3fr)}
+.prst-help-guide-list{display:grid;gap:7px}
+.prst-help-guide-list button{display:grid;gap:3px;width:100%;padding:10px;border:1px solid #dfe3e6;border-radius:8px;background:#fafbfc;text-align:left;cursor:pointer}
+.prst-help-guide-list button.active{border-color:#1f2225;background:#1f2225;color:#fff}.prst-help-guide-list strong{font-size:9px}.prst-help-guide-list small{font-size:7px;color:#737a80}.prst-help-guide-list button.active small{color:#d6dadd}
+.prst-training-steps{display:grid;gap:7px}.prst-training-steps label{display:grid;grid-template-columns:32px minmax(0,1fr);gap:9px;align-items:center;padding:10px;border:1px solid #dfe3e6;border-radius:8px;background:#fafbfc}
+.prst-training-steps label>span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#1f2225;color:#fff;font-size:8px;font-weight:950}.prst-training-steps input{width:18px;height:18px}
+.prst-training-steps label>div{display:grid;gap:2px}.prst-training-steps b{font-size:9px}.prst-training-steps small{font-size:7px;color:#727980}.prst-training-steps label.done{border-color:#b8dbc2;background:#f3faf5}
+.prst-training-progress{display:flex;align-items:center;gap:10px;margin-top:10px}.prst-training-progress>div{flex:1;height:8px;border-radius:999px;background:#eceff1;overflow:hidden}.prst-training-progress i{display:block;height:100%;background:#2f7b49}.prst-training-progress span{font-size:8px;font-weight:900;color:#5f666d}
+.prst-help-faq{display:grid;gap:7px}.prst-help-faq details{border:1px solid #dfe3e6;border-radius:8px;background:#fafbfc;padding:10px}.prst-help-faq summary{cursor:pointer;font-size:9px;font-weight:900}.prst-help-faq p{margin:7px 0 0;color:#666d73;font-size:8px;line-height:1.45}
+@media(max-width:850px){.prst-grid.help-layout{grid-template-columns:1fr}.prst-export-grid{grid-template-columns:1fr}}
