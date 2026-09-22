@@ -58,7 +58,7 @@ test('dashboard usa estética financiera ejecutiva sin neón ni grid cyber',()=>
 test('dashboard usa tipografía ejecutiva grande y legible',()=>{
  assert.match(css,/DASHBOARD EJECUTIVO LIMPIO Y LEGIBLE/)
  assert.match(css,/prst-dash-hero h2\{[^}]*font-size:46px/)
- assert.match(css,/prst-dash-kpi strong\{[^}]*font-size:32px/)
+ assert.match(css,/prst-dash-kpi strong\{[^}]*font-size:27px/)
  assert.match(css,/prst-dash-panel>header h3\{[^}]*font-size:32px/)
  assert.match(css,/prst-dash-alert-list strong\{font-size:16px/)
  assert.match(css,/prst-dash-flow strong\{font-size:16px/)
