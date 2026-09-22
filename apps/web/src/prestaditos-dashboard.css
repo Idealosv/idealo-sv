@@ -1,6 +1,6 @@
 /* PRESTADITO$ · DASHBOARD EJECUTIVO LIMPIO Y LEGIBLE */
 .prst-dashboard-premium{
-  --exec-bg:#f4f6f8;
+  --exec-bg:#eef1f4;
   --exec-card:#fff;
   --exec-ink:#111827;
   --exec-muted:#667085;
@@ -15,7 +15,7 @@
   gap:24px;
   padding:22px;
   border-radius:24px;
-  background:#f4f6f8;
+  background:#eef1f4;
   color:var(--exec-ink);
 }
 
