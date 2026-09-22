@@ -165,7 +165,7 @@ export default function PrestaditosPreviewApp(){
     {tab==='Beneficiarios'&&<Beneficiaries/>}
     {tab==='Estado de cuenta'&&<Statement/>}
     {tab==='Rendimientos'&&<Payments/>}
-    {tab==='Vencimientos'&&<Maturities/>}
+    {tab==='Vencimientos'&&<Maturities onGo={selectTab}/>}
     {tab==='Renovaciones'&&<Renewals/>}
     {tab==='Tesorería'&&<Treasury capital={capital} yieldPaid={yieldPaid}/>} 
     {tab==='Documentos'&&<Documents investorId={selectedInvestorId}/>} 
@@ -909,13 +909,110 @@ function Payments(){
  </section>
 }
 
-function Maturities(){return <>
- <section className="prst-investor-summary"><article><span>Vencidas</span><strong>1</strong><small>requiere decisión</small></article><article><span>Próximos 7 días</span><strong>0</strong><small>atención inmediata</small></article><article><span>Próximos 30 días</span><strong>0</strong><small>gestión preventiva</small></article><article><span>Próximos 90 días</span><strong>0</strong><small>planificación</small></article></section>
- <Card title="Control de vencimientos" kicker="CALENDARIO">
-  <Table headers={['Inversión','Inversionista','Capital','Vencimiento','Situación']} rows={demo.investments.map(x=><tr key={x.code}><td>{x.code}</td><td>{x.name}</td><td><b>{money(x.capital)}</b></td><td>{x.maturity}</td><td><Status tone={x.status==='Vencida'?'rejected':'active'}>{x.status==='Vencida'?'Vencida':'Vigente'}</Status></td></tr>)}/>
- </Card>
- </>}
+function Maturities({onGo}){
+ const [query,setQuery]=useState('')
+ const [windowFilter,setWindowFilter]=useState('ALL')
+ const [selected,setSelected]=useState(null)
+ const dueDates={
+  'INVEST-20260901-A1B2C3':'2027-09-01',
+  'INVEST-20260815-D4E5F6':'2027-02-15',
+  'INVEST-20260310-G7H8I9':'2026-09-10',
+ }
+ const grantedDates={
+  'INVEST-20260901-A1B2C3':'2026-09-01',
+  'INVEST-20260815-D4E5F6':'2026-08-15',
+  'INVEST-20260310-G7H8I9':'2026-03-10',
+ }
+ const asDate=value=>new Date(value+'T12:00:00')
+ const daysLeft=value=>Math.ceil((asDate(value).getTime()-new Date().setHours(12,0,0,0))/86400000)
+ const fmtDate=value=>asDate(value).toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'})
+ const rows=demo.investments.map(x=>({...x,dueIso:dueDates[x.code],grantedIso:grantedDates[x.code],days:daysLeft(dueDates[x.code])}))
+ const summary={
+  overdue:rows.filter(x=>x.days<0).length,
+  d7:rows.filter(x=>x.days>=0&&x.days<=7).length,
+  d30:rows.filter(x=>x.days>=0&&x.days<=30).length,
+  d90:rows.filter(x=>x.days>=0&&x.days<=90).length,
+ }
+ const capitalOverdue=rows.filter(x=>x.days<0).reduce((sum,x)=>sum+x.capital,0)
+ const nextDue=[...rows].filter(x=>x.days>=0).sort((a,b)=>a.days-b.days)[0]
+ const q=query.trim().toLowerCase()
+ const filtered=rows.filter(x=>{
+  if(windowFilter==='OVERDUE'&&x.days>=0)return false
+  if(windowFilter==='7'&&(x.days<0||x.days>7))return false
+  if(windowFilter==='30'&&(x.days<0||x.days>30))return false
+  if(windowFilter==='90'&&(x.days<0||x.days>90))return false
+  return !q||(x.code+' '+x.name+' '+x.capital+' '+x.maturity).toLowerCase().includes(q)
+ }).sort((a,b)=>a.dueIso.localeCompare(b.dueIso))
 
+ const tone=x=>x.days<0?'overdue':x.days<=7?'urgent':x.days<=30?'warning':'normal'
+ const timeLabel=x=>x.days<0?(x.days===-1?'1 día vencida':Math.abs(x.days)+' días vencida'):x.days===0?'Vence hoy':x.days===1?'Vence mañana':x.days+' días'
+
+ return <section className="prst-maturity-module">
+  <section className="prst-investor-command">
+   <div><small>CALENDARIO FINANCIERO</small><h2>Control de vencimientos</h2><p>Revisá qué inversiones requieren seguimiento y gestioná las decisiones antes de su fecha crítica.</p></div>
+   <div className="prst-investor-command-actions">
+    <button type="button" className="primary" onClick={()=>onGo?.('Renovaciones')}>Gestionar renovaciones</button>
+   </div>
+  </section>
+
+  <section className="prst-investor-summary prst-maturity-summary">
+   <article><span>Vencidas</span><strong>{summary.overdue}</strong><small>{money(capitalOverdue)} por resolver</small></article>
+   <article><span>Próximos 7 días</span><strong>{summary.d7}</strong><small>atención inmediata</small></article>
+   <article><span>Próximos 30 días</span><strong>{summary.d30}</strong><small>gestión preventiva</small></article>
+   <article><span>Próximos 90 días</span><strong>{summary.d90}</strong><small>{nextDue?'próxima: '+fmtDate(nextDue.dueIso):'sin fechas próximas'}</small></article>
+  </section>
+
+  <article className="prst-card">
+   <div className="prst-card-head"><div><small>SEGUIMIENTO</small><h2>Agenda de vencimientos</h2><p>Buscá, filtrá y abrí cada inversión para revisar su situación sin saturar la pantalla.</p></div></div>
+   <div className="prst-directory-tools prst-maturity-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar inversión, inversionista o capital"/>
+    <select value={windowFilter} onChange={e=>setWindowFilter(e.target.value)}>
+     <option value="ALL">Todos los vencimientos</option>
+     <option value="OVERDUE">Vencidas</option>
+     <option value="7">Próximos 7 días</option>
+     <option value="30">Próximos 30 días</option>
+     <option value="90">Próximos 90 días</option>
+    </select>
+    <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
+   </div>
+
+   {filtered.length?<div className="prst-table-wrap"><table className="prst-maturity-table">
+    <thead><tr><th>Inversión</th><th>Inversionista</th><th>Capital</th><th>Vencimiento</th><th>Tiempo</th><th>Situación</th><th>Acción</th></tr></thead>
+    <tbody>{filtered.map(x=>{
+     const level=tone(x)
+     return <tr key={x.code} className={'prst-maturity-row '+level}>
+      <td><b>{x.code}</b><small>Otorgada {fmtDate(x.grantedIso)}</small></td>
+      <td><b>{x.name}</b><small>Plazo {x.term} meses</small></td>
+      <td><b>{money(x.capital)}</b><small>{x.rate}% anual</small></td>
+      <td><b>{fmtDate(x.dueIso)}</b><small>{x.maturity}</small></td>
+      <td><span className={'prst-maturity-badge '+level}>{timeLabel(x)}</span></td>
+      <td><Status tone={x.days<0?'rejected':x.days<=30?'review':'active'}>{x.days<0?'Vencida':x.days<=30?'Por vencer':'Vigente'}</Status></td>
+      <td><div className="prst-row-actions"><button type="button" onClick={()=>setSelected(x)}>Ver detalle</button>{x.days<=30&&<button type="button" className="approve" onClick={()=>onGo?.('Renovaciones')}>Gestionar</button>}</div></td>
+     </tr>
+    })}</tbody>
+   </table></div>:<div className="prst-empty"><strong>Sin vencimientos en este filtro</strong><p>Probá otro rango o limpiá la búsqueda.</p></div>}
+  </article>
+
+  {selected&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}>
+   <section className="prst-card prst-editor-modal">
+    <div className="prst-card-head"><div><small>DETALLE DE VENCIMIENTO</small><h2>{selected.code}</h2><p>{selected.name}</p></div><button type="button" className="prst-mini-button" onClick={()=>setSelected(null)}>Cerrar</button></div>
+    <section className="prst-investor-summary prst-maturity-summary">
+     <article><span>Capital</span><strong>{money(selected.capital)}</strong><small>monto formalizado</small></article>
+     <article><span>Tasa anual</span><strong>{selected.rate}%</strong><small>referencia registrada</small></article>
+     <article><span>Plazo</span><strong>{selected.term}</strong><small>meses</small></article>
+     <article><span>Tiempo</span><strong>{timeLabel(selected)}</strong><small>{fmtDate(selected.dueIso)}</small></article>
+    </section>
+    <div className="prst-profile-grid">
+     <article><small>Inversionista</small><b>{selected.name}</b><span>Expediente demostrativo</span></article>
+     <article><small>Otorgamiento</small><b>{fmtDate(selected.grantedIso)}</b><span>Inicio de la inversión</span></article>
+     <article><small>Vencimiento</small><b>{fmtDate(selected.dueIso)}</b><span>{selected.days<0?'Requiere decisión':'Seguimiento programado'}</span></article>
+     <article><small>Rendimiento proyectado</small><b>{money(selected.gain)}</b><span>Dato de referencia</span></article>
+    </div>
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setSelected(null)}>Cerrar</button><button type="button" className="primary" onClick={()=>onGo?.('Renovaciones')}>Ir a renovaciones</button></div>
+   </section>
+  </div>}
+ </section>
+}
 function Renewals(){return <>
  <section className="prst-investor-summary"><article><span>Por gestionar</span><strong>1</strong><small>vencida / ≤30 días</small></article><article><span>Decisiones registradas</span><strong>1</strong><small>pendiente de ejecución</small></article><article><span>Intención de renovar</span><strong>1</strong><small>capital</small></article><article><span>No renovar</span><strong>0</strong><small>retiros</small></article></section>
  <Card title="Decisiones de renovación" kicker="RENOVACIONES">
