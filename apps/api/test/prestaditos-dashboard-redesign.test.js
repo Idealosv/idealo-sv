@@ -53,3 +53,15 @@ test('dashboard usa estética financiera ejecutiva sin neón ni grid cyber',()=>
  assert.doesNotMatch(css,/CYBER EXECUTIVE DASHBOARD/)
  assert.doesNotMatch(css,/--cyber-cyan/)
 })
+
+
+test('dashboard usa tipografía ejecutiva grande y legible',()=>{
+ assert.match(css,/LEGIBILITY OVERRIDES · LARGE EXECUTIVE TYPE/)
+ assert.match(css,/prst-dash-hero h2\{font-size:42px!important\}/)
+ assert.match(css,/prst-dash-kpi strong\{font-size:34px!important\}/)
+ assert.match(css,/prst-dash-panel>header h3\{font-size:29px!important\}/)
+ assert.match(css,/prst-dash-alert-list strong\{font-size:14px!important\}/)
+ assert.match(css,/prst-dash-flow strong\{font-size:14px!important\}/)
+ assert.match(css,/prst-dash-list strong\{font-size:14px!important\}/)
+ assert.match(css,/prst-dash-summary strong\{font-size:27px!important\}/)
+})
