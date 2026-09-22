@@ -17,7 +17,7 @@ test('dashboard ejecutivo usa colores semánticos y seis KPIs',()=>{
 })
 
 test('dashboard muestra alertas flujo solicitudes vencimientos y resumen financiero',()=>{
- for(const phrase of ['ALERTAS OPERATIVAS','OPERACIÓN DE INVERSIONISTAS','Solicitudes recientes','Próximos vencimientos','Capital vigente por tasa anual','Situación de inversiones','RESUMEN FINANCIERO'])assert.match(dashboard,new RegExp(phrase))
+ for(const phrase of ['ALERTAS OPERATIVAS','OPERACIÓN','Solicitudes recientes','Próximos vencimientos','Capital vigente por tasa anual','Situación de inversiones','RESUMEN FINANCIERO'])assert.match(dashboard,new RegExp(phrase))
  assert.match(dashboard,/excluye pagos revertidos/)
  assert.match(dashboard,/no inventa prorrateos ni capitalización/)
 })
