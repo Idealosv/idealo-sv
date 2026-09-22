@@ -1171,3 +1171,185 @@
  .prst-agenda-module .prst-agenda-list>article>button{width:100%}
  .prst-agenda-module .prst-alert-rules{grid-template-columns:1fr}
 }
+
+
+/* ===== NOTIFICATIONS POLISH · COMPACT + LEGIBLE ===== */
+/* Ajuste fino: menos espacio vacío, mejor lectura y controles más compactos. */
+.prst-alerts-module{
+  gap:14px!important;
+  padding:14px!important;
+}
+.prst-alerts-module .prst-alert-summary{
+  gap:12px!important;
+}
+.prst-alerts-module .prst-alert-summary article{
+  min-height:96px!important;
+  padding:15px 17px!important;
+  border-radius:14px!important;
+}
+.prst-alerts-module .prst-alert-summary span{
+  font-size:10px!important;
+}
+.prst-alerts-module .prst-alert-summary strong{
+  margin-top:7px!important;
+  font-size:26px!important;
+}
+.prst-alerts-module .prst-alert-summary small{
+  margin-top:6px!important;
+  font-size:10px!important;
+}
+
+.prst-alerts-module .prst-notification-center-card{
+  padding:20px!important;
+}
+.prst-alerts-module .prst-card-head{
+  margin-bottom:14px!important;
+}
+.prst-alerts-module .prst-card-head small{
+  font-size:10px!important;
+}
+.prst-alerts-module .prst-card-head h2{
+  font-size:24px!important;
+}
+.prst-alerts-module .prst-card-head p{
+  font-size:12px!important;
+}
+
+.prst-alerts-module .prst-notification-tabs{
+  margin-bottom:12px!important;
+}
+.prst-alerts-module .prst-notification-tabs button{
+  min-height:38px!important;
+  padding:0 12px!important;
+  font-size:11px!important;
+}
+.prst-alerts-module .prst-notification-tabs button span{
+  min-width:21px!important;
+  height:21px!important;
+  font-size:9px!important;
+}
+
+.prst-alerts-module .prst-alert-filters{
+  grid-template-columns:minmax(260px,380px) 180px 180px auto!important;
+  justify-content:start!important;
+  gap:8px!important;
+  margin-bottom:12px!important;
+}
+.prst-alerts-module .prst-alert-filters .prst-search,
+.prst-alerts-module .prst-alert-filters select{
+  min-height:42px!important;
+  padding:0 12px!important;
+  font-size:11px!important;
+}
+.prst-alerts-module .prst-alert-filters>span{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:32px!important;
+  padding:0 10px!important;
+  border-radius:999px!important;
+  background:#f1f4f7!important;
+  color:#52606f!important;
+  font-size:10px!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+}
+
+.prst-alerts-module .prst-alert-list{
+  gap:9px!important;
+}
+.prst-alerts-module .prst-operational-alert{
+  grid-template-columns:44px minmax(0,1fr) auto!important;
+  gap:12px!important;
+  min-height:82px!important;
+  padding:14px 15px!important;
+  border-radius:12px!important;
+}
+.prst-alerts-module .prst-alert-icon{
+  width:38px!important;
+  height:38px!important;
+  border-radius:10px!important;
+  font-size:14px!important;
+}
+.prst-alerts-module .prst-alert-copy{
+  gap:4px!important;
+}
+.prst-alerts-module .prst-alert-copy>div{
+  gap:7px!important;
+}
+.prst-alerts-module .prst-alert-copy>div span{
+  font-size:10px!important;
+}
+.prst-alerts-module .prst-alert-copy>div b{
+  min-height:22px!important;
+  padding:0 8px!important;
+  font-size:9px!important;
+}
+.prst-alerts-module .prst-alert-copy>strong{
+  font-size:16px!important;
+  line-height:1.22!important;
+}
+.prst-alerts-module .prst-alert-copy>small{
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+
+.prst-alerts-module .prst-notification-actions{
+  gap:6px!important;
+  flex-wrap:nowrap!important;
+}
+.prst-alerts-module .prst-notification-actions button{
+  min-height:34px!important;
+  padding:0 10px!important;
+  border-radius:8px!important;
+  font-size:10px!important;
+  white-space:nowrap!important;
+}
+.prst-alerts-module .prst-notification-actions button.primary{
+  min-width:54px!important;
+}
+.prst-alerts-module .prst-notification-actions button.secondary{
+  min-width:102px!important;
+}
+.prst-alerts-module .prst-notification-actions button.archive{
+  min-width:68px!important;
+}
+
+.prst-alerts-module .prst-notification-rules-card{
+  padding:18px 20px!important;
+}
+.prst-alerts-module .prst-alert-rules{
+  gap:8px!important;
+}
+.prst-alerts-module .prst-alert-rules span{
+  min-height:50px!important;
+  padding:10px 12px!important;
+  font-size:10px!important;
+}
+.prst-alerts-module .prst-note{
+  margin-top:10px!important;
+  font-size:10px!important;
+}
+
+@media(max-width:1180px){
+  .prst-alerts-module .prst-alert-filters{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .prst-alerts-module .prst-alert-filters .prst-search{
+    grid-column:1/-1!important;
+    max-width:none!important;
+  }
+  .prst-alerts-module .prst-alert-filters>span{
+    justify-self:start!important;
+  }
+}
+@media(max-width:820px){
+  .prst-alerts-module .prst-operational-alert{
+    grid-template-columns:40px minmax(0,1fr)!important;
+  }
+  .prst-alerts-module .prst-notification-actions{
+    grid-column:1/-1!important;
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+  }
+}
