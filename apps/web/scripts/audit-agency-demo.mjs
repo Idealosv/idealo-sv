@@ -52,7 +52,7 @@ const demoMetricProtected =
 
 const checks = [
   ['runtime diferido conectado', main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))")],
-  ['guard demo montado', deferred.includes("import AgencyDemoGuard from './AgencyDemoGuard.jsx'") && deferred.includes('<AgencyDemoGuard/>')],
+  ['guard demo montado', deferred.includes('const AgencyDemoGuard = lazy') && deferred.includes('<AgencyDemoGuard />')],
   ['marca ENTORNO DEMO', guard.includes('ENTORNO DEMO')],
   ['guía comercial', guard.includes('RECORRIDO RECOMENDADO') && guard.includes('Cotizaciones') && guard.includes('Producción')],
   ['consulta demo por empresa', guard.includes(".select('id,name,demo_mode,demo_label,demo_expires_at')")],
