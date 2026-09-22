@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import './prestaditos-investors.css'
+import './prestaditos-theme.css'
 import PrestaditosDashboardPanel from './PrestaditosDashboardPanel.jsx'
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
