@@ -75,3 +75,17 @@ test('reportes usa selector en vez de una fila de siete botones',()=>{
  assert.doesNotMatch(reports,/className="prst-report-tabs"/)
  assert.match(css,/SIMPLE REPORT PICKER/)
 })
+
+
+test('editor de inversionista abre como modal y no empuja el contenido',()=>{
+ assert.match(investors,/prst-editor-backdrop/)
+ assert.match(investors,/prst-editor-modal/)
+ assert.match(preview,/prst-editor-backdrop/)
+ assert.match(preview,/prst-editor-modal-preview/)
+ assert.match(css,/INVESTOR EDITOR MODAL · CLEAN WORKSPACE/)
+})
+
+test('acciones superiores se mantienen en una sola fila',()=>{
+ assert.match(css,/\.prst-top-actions\{[\s\S]*flex-direction:row!important/)
+ assert.match(css,/flex-wrap:nowrap!important/)
+})
