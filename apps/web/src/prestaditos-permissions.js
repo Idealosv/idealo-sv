@@ -35,9 +35,8 @@ const grants={
   'EDIT_INVESTOR',
   'CREATE_APPLICATION',
   'UPLOAD_DOCUMENT',
-  'EXPORT',
  ]),
- READ_ONLY:new Set(['VIEW','EXPORT']),
+ READ_ONLY:new Set(['VIEW']),
 }
 
 export const prestaditosRoleLevel=role=>PRESTADITOS_ROLE_LEVELS[String(role||'').toLowerCase()]||'READ_ONLY'
