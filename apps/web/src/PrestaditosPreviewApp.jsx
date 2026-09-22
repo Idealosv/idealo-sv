@@ -157,8 +157,8 @@ function Investors({onGo}){
  const [query,setQuery]=useState('')
  const [status,setStatus]=useState('ALL')
  const [docs,setDocs]=useState('ALL')
- const activeCapital={1:4000,2:8000,3:0}
- const activeCount={1:1,2:1,3:0}
+ const activeCapital={i1:4000,i2:8000,i3:0}
+ const activeCount={i1:1,i2:1,i3:0}
  const q=query.trim().toLowerCase()
  const rows=demo.investors.filter(x=>(status==='ALL'||x.status===status)&&(docs==='ALL'||(docs==='COMPLETE'?x.docs==='3/3':x.docs!=='3/3'))&&(!q||(x.name+' '+x.code+' '+x.dui+' '+x.phone+' '+x.email).toLowerCase().includes(q)))
  const pending=demo.investors.filter(x=>x.docs!=='3/3')
@@ -196,7 +196,7 @@ function Investors({onGo}){
       <td><b>{activeCount[x.id]||0}</b><small>{activeCount[x.id]?'vigentes':'sin inversión activa'}</small></td>
       <td><b>{money(activeCapital[x.id]||0)}</b><small>capital vigente</small></td>
       <td><Status>{x.status}</Status></td>
-      <td><div className="prst-row-actions prst-investor-actions"><button className="primary">Ver</button><button onClick={()=>onGo?.('Perfil 360')}>Perfil 360</button><button onClick={()=>onGo?.('Documentos')}>Documentos</button><button>Editar</button></div></td>
+      <td><div className="prst-row-actions prst-investor-actions"><button className="primary" onClick={()=>onGo?.('Perfil 360')}>Ver</button><button onClick={()=>onGo?.('Perfil 360')}>Perfil 360</button><button onClick={()=>onGo?.('Documentos')}>Documentos</button>{activeCount[x.id]>0&&<button onClick={()=>onGo?.('Contratos')}>Contratos</button>}<button>Editar</button></div></td>
      </tr>
     })}</tbody>
    </table></div>
