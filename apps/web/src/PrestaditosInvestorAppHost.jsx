@@ -26,6 +26,8 @@ import PrestaditosAgendaPanel from './PrestaditosAgendaPanel.jsx'
 import PrestaditosGlobalSearch from './PrestaditosGlobalSearch.jsx'
 import PrestaditosEndToEndDemoPanel from './PrestaditosEndToEndDemoPanel.jsx'
 import PrestaditosProductionReadinessPanel from './PrestaditosProductionReadinessPanel.jsx'
+import PrestaditosExportPanel from './PrestaditosExportPanel.jsx'
+import PrestaditosHelpPanel from './PrestaditosHelpPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -49,6 +51,8 @@ const TABS=[
  ['Cierre mensual','Snapshot del período'],
  ['Auditoría','Trazabilidad'],
  ['Auditoría técnica','Integridad y seguridad'],
+ ['Exportaciones','Respaldo y CSV'],
+ ['Ayuda','Manual y capacitación'],
  ['Prueba integral','3 casos ficticios'],
  ['Preparación','Cierre para producción'],
  ['Configuración','Reglas del vertical'],
@@ -219,6 +223,8 @@ export default function PrestaditosInvestorAppHost(){
     {tab==='Cierre mensual'&&<PrestaditosMonthlyCloseoutPanel company={company} role={role} closeouts={closeouts} saving={saving} act={act}/>}
     {tab==='Auditoría'&&<PrestaditosAuditPanel company={company} audit={audit} investorMap={investorMap}/>} 
     {tab==='Auditoría técnica'&&<PrestaditosTechnicalAuditPanel investors={investors} applications={applications} investments={investments} beneficiaries={beneficiaries} payments={payments} renewals={renewals} documents={documents} contracts={contracts}/>}
+    {tab==='Prueba integral'&&<PrestaditosEndToEndDemoPanel/>} 
+    {tab==='Preparación'&&<PrestaditosProductionReadinessPanel/>} 
     {tab==='Configuración'&&<PrestaditosConfigurationPanel company={company} role={role} settings={settings} saving={saving} act={act}/>}
    </section>
   </main>
