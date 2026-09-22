@@ -516,6 +516,7 @@ function Documents({investorId='i1'}){
  const [type,setType]=useState('ALL')
  const [draft,setDraft]=useState(null)
  const [notice,setNotice]=useState('')
+ const [viewDoc,setViewDoc]=useState(null)
 
  const baseRows=showAll?documentRows:documentRows.filter(x=>x.investor===investor.name)
  const q=query.trim().toLowerCase()
@@ -584,9 +585,26 @@ function Documents({investorId='i1'}){
     <td>{x.type}</td>
     <td><b>{x.fileName||x.size}</b><small>{x.fileName?x.size:'archivo registrado'}</small></td>
     <td><Status>{x.status}</Status></td>
-    <td><button type="button" className="prst-document-open" onClick={()=>alert(`Vista previa: ${x.title}\n${x.fileName||x.size}`)}>Ver</button></td>
+    <td><div className="prst-document-actions"><button type="button" className="prst-document-open" onClick={()=>setViewDoc(x)}>Ver</button><button type="button" className="prst-document-more" title="Más opciones">•••</button></div></td>
    </tr>)}/>:<div className="prst-empty"><strong>Sin documentos cargados</strong><p>No hay documentos que coincidan con los filtros actuales.</p></div>}
   </Card>
+
+  {viewDoc&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setViewDoc(null)}>
+   <section className="prst-card prst-editor-modal prst-document-viewer">
+    <div className="prst-card-head"><div><small>DOCUMENTO</small><h2>{viewDoc.title}</h2><p>{viewDoc.code}</p></div><button type="button" className="prst-mini-button" onClick={()=>setViewDoc(null)}>Cerrar</button></div>
+    <div className="prst-document-view-meta">
+     <article><span>Inversionista</span><b>{viewDoc.investor}</b></article>
+     <article><span>Tipo</span><b>{viewDoc.type}</b></article>
+     <article><span>Relación</span><b>{viewDoc.relation}</b></article>
+     <article><span>Archivo</span><b>{viewDoc.fileName||viewDoc.size}</b></article>
+    </div>
+    <div className="prst-document-preview-area">
+     <strong>{viewDoc.fileName||viewDoc.title}</strong>
+     <span>{viewDoc.fileName?'Archivo cargado en esta vista previa':'Documento registrado · '+viewDoc.size}</span>
+     <small>En producción, este panel mostrará el PDF o imagen almacenada en el expediente privado.</small>
+    </div>
+   </section>
+  </div>}
 
   {draft&&<div className="prst-editor-backdrop" onMouseDown={e=>e.target===e.currentTarget&&close()}>
    <form className="prst-card prst-editor-modal prst-document-modal" onSubmit={save}>
