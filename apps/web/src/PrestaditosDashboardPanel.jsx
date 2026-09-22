@@ -142,7 +142,7 @@ export default function PrestaditosDashboardPanel({
     </button>)}</div>}
    </article>
 
-   <article className="prst-dash-panel">
+   <article className="prst-dash-panel prst-dash-flow-panel">
     <header><div><span>OPERACIÓN DE INVERSIONISTAS</span><h3>Flujo principal</h3><p>Accesos rápidos a los cinco pasos principales.</p></div></header>
     <div className="prst-dash-flow">{flowSteps.map(step=><button key={step.number} type="button" className={step.tone} onClick={()=>onGo?.(step.target)}>
      <span>{step.number}</span><div><strong>{step.title}</strong><small>{step.subtitle}</small></div><b>→</b>
