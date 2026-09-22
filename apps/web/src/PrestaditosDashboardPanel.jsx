@@ -113,9 +113,9 @@ export default function PrestaditosDashboardPanel({
  return <section className="prst-dashboard-premium">
   <section className="prst-dash-hero">
    <div className="prst-dash-hero-copy">
-    <div className="prst-dash-eyebrow"><span>PRESTADITO$</span><b>Panel ejecutivo</b></div>
+    <div className="prst-dash-eyebrow"><span>PRESTADITO$</span><b>Centro de control</b></div>
     <h2>Control financiero de inversionistas</h2>
-    <p>Una vista gerencial para supervisar capital, solicitudes, pagos, vencimientos y alertas operativas.</p>
+    <p>Centro de control financiero para supervisar capital, solicitudes, pagos, vencimientos y alertas en tiempo real.</p>
     <div className="prst-dash-hero-meta">
      <span><i className="green"/> Operación activa</span>
      <span>{activeInvestments.length} inversiones vigentes</span>
