@@ -1708,3 +1708,39 @@
   .prst-investor-command-actions{width:100%}
   .prst-investor-command-actions button{flex:1}
 }
+
+
+/* ===== INVESTORS VISUAL POLISH · PREVIEW CONSISTENCY ===== */
+/* Corrige contraste visual de bloques inferiores y reduce saturación de acciones. */
+.prst-investor-module .prst-investor-actions button:not(.primary){
+  border-color:#d4dbe2!important;
+  background:#ffffff!important;
+  color:#344054!important;
+}
+.prst-investor-module .prst-investor-actions button:not(.primary):hover{
+  background:#f5f7f9!important;
+}
+.prst-investor-module .prst-investor-followup-list>button{
+  border:1px solid #e0e5e9!important;
+  background:#f8fafb!important;
+  color:#17212b!important;
+  box-shadow:none!important;
+}
+.prst-investor-module .prst-investor-followup-list>button:hover{
+  background:#f1f4f6!important;
+  border-color:#d4dbe1!important;
+}
+.prst-investor-module .prst-investor-followup-list>button b{
+  color:#17212b!important;
+}
+.prst-investor-module .prst-investor-followup-list>button small{
+  color:#667482!important;
+}
+.prst-investor-module .prst-investor-followup-list>button>strong{
+  color:#8b5a12!important;
+}
+.prst-investor-module .prst-investor-followup-list.recent>button .prst-status{
+  color:#2d7044!important;
+  background:#eff9f2!important;
+  border-color:#abd6b8!important;
+}
