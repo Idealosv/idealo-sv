@@ -50,7 +50,7 @@ export default function PrestaditosApplicationsPanel({
  const [decision,setDecision]=useState(null)
 
  const normalizedRole=String(role||'').toLowerCase()
- const canSubmit=['owner','admin','staff'].includes(normalizedRole)
+ const canSubmit=['owner','admin','staff','operator'].includes(normalizedRole)
  const canReview=['owner','admin'].includes(normalizedRole)
  const selected=applications.find(x=>x.id===selectedId)||null
 
