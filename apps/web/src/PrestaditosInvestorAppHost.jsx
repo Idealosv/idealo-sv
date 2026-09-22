@@ -61,15 +61,16 @@ const TABS=[
 
 const MAIN_TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos','Tesorería','Reportes']
 const MODULE_ACTIONS={
- Inversionistas:['Perfil 360','Beneficiarios','Estado de cuenta','Documentos'],
+ Dashboard:['Notificaciones','Agenda'],
+ Inversionistas:['Perfil 360','Beneficiarios','Documentos'],
  Solicitudes:['Simulador'],
- Inversiones:['Contratos','Renovaciones'],
+ Inversiones:['Contratos'],
  Rendimientos:['Estado de cuenta'],
- Vencimientos:['Renovaciones','Agenda'],
+ Vencimientos:['Renovaciones'],
  Tesorería:['Cierre mensual','Exportaciones'],
- Reportes:['Cierre mensual','Auditoría','Auditoría técnica','Exportaciones'],
+ Reportes:['Auditoría','Auditoría técnica'],
 }
-const SYSTEM_TABS=['Notificaciones','Agenda','Configuración','Ayuda','Prueba integral','Preparación']
+const SYSTEM_TABS=['Configuración','Ayuda','Prueba integral','Preparación']
 const TAB_DESCRIPTIONS=Object.fromEntries(TABS)
 
 const money=value=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(value||0))
