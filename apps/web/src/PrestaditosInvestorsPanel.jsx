@@ -191,12 +191,6 @@ export default function PrestaditosInvestorsPanel({company,role,investors,invest
   capital:activeInvestments.reduce((sum,x)=>sum+Number(x.principal||0),0),
  }),[investors,activeInvestments])
 
- const pendingDocs=useMemo(()=>investors
-  .map(x=>({...x,_docs:[x.face_photo_path,x.dui_front_path,x.dui_back_path].filter(Boolean).length}))
-  .filter(x=>x._docs<3)
-  .sort((a,b)=>a._docs-b._docs)
-  .slice(0,3),[investors])
- const recentInvestors=useMemo(()=>[...investors].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,3),[investors])
  const clearFilters=()=>{setQuery('');setStatusFilter('ALL');setDocsFilter('ALL')}
  const hasFilters=Boolean(query.trim()||statusFilter!=='ALL'||docsFilter!=='ALL')
  const openNew=()=>{
