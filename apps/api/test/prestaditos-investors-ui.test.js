@@ -81,3 +81,34 @@ test('bloques inferiores conservan fondo claro y acciones menos saturadas',()=>{
  assert.match(css,/prst-investor-followup-list>button\{[\s\S]*background:#f8fafb!important/)
  assert.match(css,/prst-investor-actions button:not\(\.primary\)\{[\s\S]*background:#ffffff!important/)
 })
+
+
+test('tres acciones de fila funcionan en la vista previa',()=>{
+ assert.match(preview,/onOpenInvestor\?\.\('Perfil 360',x\.id\)/)
+ assert.match(preview,/onOpenInvestor\?\.\('Documentos',x\.id\)/)
+ assert.match(preview,/onClick=\{\(\)=>openEdit\(x\)\}/)
+ assert.match(preview,/type="button" onClick=\{\(\)=>openEdit\(x\)\}/)
+})
+
+test('perfil y documentos conservan el inversionista seleccionado',()=>{
+ assert.match(preview,/selectedInvestorId/)
+ assert.match(preview,/openInvestorTab/)
+ assert.match(preview,/Profile360 investorId=\{selectedInvestorId\}/)
+ assert.match(preview,/Documents investorId=\{selectedInvestorId\}/)
+ assert.match(preview,/function Profile360\(\{investorId='i1',onGo\}\)/)
+ assert.match(preview,/function Documents\(\{investorId='i1'\}\)/)
+})
+
+test('editar abre formulario funcional en la vista previa',()=>{
+ assert.match(preview,/prst-preview-investor-edit/)
+ assert.match(preview,/saveDraft/)
+ assert.match(preview,/Guardar demo/)
+ assert.match(preview,/setInvestorRows/)
+})
+
+test('estilos cubren edición y contexto seleccionado',()=>{
+ assert.match(css,/INVESTOR ACTIONS · FUNCTIONAL PREVIEW/)
+ assert.match(css,/prst-preview-investor-edit/)
+ assert.match(css,/prst-profile360-context/)
+ assert.match(css,/prst-document-context/)
+})
