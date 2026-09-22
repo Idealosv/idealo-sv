@@ -87,7 +87,7 @@ export default function PrestaditosConfigurationPanel({company,role,settings,sav
   ['Cambiar estado de documentos','Sí','Sí','No','No'],
   ['Gestionar renovaciones / retiros','Sí','Sí','No','No'],
   ['Generar cierre mensual','Sí','Sí','No','No'],
-  ['Exportar información','Sí','Sí','Sí','Sí'],
+  ['Exportar información','Sí','Sí','No','No'],
   ['Modificar configuración','Sí','Sí','No','No'],
  ]
 
