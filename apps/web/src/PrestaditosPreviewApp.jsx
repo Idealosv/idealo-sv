@@ -121,7 +121,7 @@ export default function PrestaditosPreviewApp(){
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
     {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
-    {tab==='Notificaciones'&&<Notifications/>}
+    {tab==='Notificaciones'&&<Notifications onGo={selectTab}/>} 
     {tab==='Agenda'&&<Agenda/>}
     {tab==='Inversionistas'&&<Investors/>}
     {tab==='Perfil 360'&&<Profile360/>}
@@ -332,17 +332,82 @@ function TechnicalAudit(){return <>
  <Card title="Controles implementados" kicker="ARQUITECTURA DE SEGURIDAD"><div className="prst-security-checks">{['Aislamiento por empresa','Pagos protegidos','Inversiones protegidas','Documentos privados','Contratos auditados','Cierres no destructivos'].map(x=><article key={x}><span>✓</span><div><strong>{x}</strong><small>Control activo en el vertical de inversionistas.</small></div></article>)}</div></Card>
  </>}
 
-function Notifications(){return <>
- <section className="prst-investor-summary prst-alert-summary"><article><span>Críticas abiertas</span><strong>1</strong><small>acción inmediata</small></article><article><span>Altas abiertas</span><strong>2</strong><small>requieren atención</small></article><article><span>Revisadas</span><strong>1</strong><small>siguen activas</small></article><article><span>Archivadas</span><strong>2</strong><small>historial personal</small></article></section>
- <Card title="Centro de notificaciones" kicker="SEGUIMIENTO OPERATIVO">
-  <div className="prst-notification-tabs"><button className="active">Abiertas</button><button>Revisadas</button><button>Archivadas</button></div>
-  <div className="prst-alert-list">
-   <article className="prst-operational-alert critical"><div className="prst-alert-icon">!</div><div className="prst-alert-copy"><div><span>Vencimiento</span><b>Crítica</b></div><strong>Inversión vencida</strong><small>José Roberto Hernández · INVEST-20260310-G7H8I9</small></div><div className="prst-notification-actions"><button>Abrir</button><button>Revisada</button><button>Archivar</button></div></article>
-   <article className="prst-operational-alert high"><div className="prst-alert-icon">↑</div><div className="prst-alert-copy"><div><span>Contrato</span><b>Alta</b></div><strong>Contrato pendiente de firma</strong><small>María Elena López · CTR-20260815-EF34GH</small></div><div className="prst-notification-actions"><button>Abrir</button><button>Revisada</button><button>Archivar</button></div></article>
-  </div>
- </Card>
- </>}
+function Notifications({onGo}){
+ const typeLabels={MATURITY:'Vencimiento',CONTRACT:'Contrato',APPLICATION:'Solicitud',DOCUMENTS:'Documentación',PAYMENT:'Liquidación',RENEWAL:'Renovación'}
+ const priorityLabels={CRITICAL:'Crítica',HIGH:'Alta',MEDIUM:'Media'}
+ const items=[
+  {id:'n1',priority:'CRITICAL',type:'MATURITY',title:'Inversión vencida',detail:'José Roberto Hernández · INVEST-20260310-G7H8I9 · 11 días vencida',tab:'Vencimientos'},
+  {id:'n2',priority:'HIGH',type:'CONTRACT',title:'Contrato pendiente de firma',detail:'María Elena López · CTR-20260815-EF34GH',tab:'Contratos'},
+  {id:'n3',priority:'HIGH',type:'APPLICATION',title:'Solicitud pendiente de firma',detail:'Carlos Ernesto Mejía · SOL-20260918-A2F811',tab:'Solicitudes'},
+  {id:'n4',priority:'MEDIUM',type:'DOCUMENTS',title:'Expediente revisado',detail:'José Roberto Hernández · documentación en seguimiento',tab:'Inversionistas'},
+  {id:'n5',priority:'MEDIUM',type:'DOCUMENTS',title:'Documento archivado',detail:'Carlos Ernesto Mejía · comprobante anterior',tab:'Documentos'},
+  {id:'n6',priority:'MEDIUM',type:'RENEWAL',title:'Seguimiento archivado',detail:'José Roberto Hernández · renovación registrada',tab:'Renovaciones'},
+ ]
+ const [states,setStates]=useState({n1:'OPEN',n2:'OPEN',n3:'OPEN',n4:'READ',n5:'DISMISSED',n6:'DISMISSED'})
+ const [view,setView]=useState('OPEN')
+ const [search,setSearch]=useState('')
+ const [priority,setPriority]=useState('ALL')
+ const [type,setType]=useState('ALL')
+ const counts={
+  OPEN:items.filter(x=>states[x.id]==='OPEN').length,
+  READ:items.filter(x=>states[x.id]==='READ').length,
+  DISMISSED:items.filter(x=>states[x.id]==='DISMISSED').length,
+ }
+ const criticalOpen=items.filter(x=>states[x.id]==='OPEN'&&x.priority==='CRITICAL').length
+ const highOpen=items.filter(x=>states[x.id]==='OPEN'&&x.priority==='HIGH').length
+ const q=search.trim().toLowerCase()
+ const rows=items.filter(x=>states[x.id]===view)
+  .filter(x=>(priority==='ALL'||x.priority===priority)&&(type==='ALL'||x.type===type)&&(!q||(x.title+' '+x.detail+' '+typeLabels[x.type]).toLowerCase().includes(q)))
+ const move=(id,next)=>setStates(current=>({...current,[id]:next}))
+ return <section className="prst-alerts-module">
+  <section className="prst-investor-summary prst-alert-summary">
+   <article><span>Críticas abiertas</span><strong>{criticalOpen}</strong><small>acción inmediata</small></article>
+   <article><span>Altas abiertas</span><strong>{highOpen}</strong><small>requieren atención</small></article>
+   <article><span>Revisadas</span><strong>{counts.READ}</strong><small>siguen activas</small></article>
+   <article><span>Archivadas</span><strong>{counts.DISMISSED}</strong><small>historial personal</small></article>
+  </section>
 
+  <article className="prst-card prst-notification-center-card">
+   <div className="prst-card-head"><div><small>SEGUIMIENTO OPERATIVO</small><h2>Centro de notificaciones</h2><p>Priorizá lo urgente, revisá pendientes y conservá un historial sin alterar la operación financiera.</p></div></div>
+
+   <div className="prst-notification-tabs">
+    {[['OPEN','Abiertas'],['READ','Revisadas'],['DISMISSED','Archivadas']].map(([value,label])=><button key={value} type="button" className={view===value?'active':''} onClick={()=>setView(value)}>{label}<span>{counts[value]}</span></button>)}
+   </div>
+
+   <div className="prst-alert-filters">
+    <input className="prst-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar notificación o inversionista"/>
+    <select value={priority} onChange={e=>setPriority(e.target.value)}><option value="ALL">Todas las prioridades</option><option value="CRITICAL">Críticas</option><option value="HIGH">Altas</option><option value="MEDIUM">Medias</option></select>
+    <select value={type} onChange={e=>setType(e.target.value)}><option value="ALL">Todos los tipos</option>{Object.entries(typeLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
+    <span>{rows.length} resultado{rows.length===1?'':'s'}</span>
+   </div>
+
+   {!rows.length?<div className="prst-empty"><strong>Sin notificaciones</strong><p>No hay elementos que coincidan con los filtros actuales.</p></div>:<div className="prst-alert-list">
+    {rows.map(row=><article key={row.id} className={'prst-operational-alert '+row.priority.toLowerCase()}>
+     <div className="prst-alert-icon">{row.priority==='CRITICAL'?'!':row.priority==='HIGH'?'↑':'•'}</div>
+     <div className="prst-alert-copy"><div><span>{typeLabels[row.type]}</span><b>{priorityLabels[row.priority]}</b></div><strong>{row.title}</strong><small>{row.detail}</small></div>
+     <div className="prst-notification-actions">
+      {view!=='DISMISSED'&&<button type="button" className="primary" onClick={()=>onGo?.(row.tab)}>Abrir</button>}
+      {view==='OPEN'&&<button type="button" className="secondary" onClick={()=>move(row.id,'READ')}>Marcar revisada</button>}
+      {view!=='DISMISSED'&&<button type="button" className="archive" onClick={()=>move(row.id,'DISMISSED')}>Archivar</button>}
+      {view==='DISMISSED'&&<button type="button" className="restore" onClick={()=>move(row.id,'OPEN')}>Restaurar</button>}
+     </div>
+    </article>)}
+   </div>}
+  </article>
+
+  <article className="prst-card prst-alert-scope prst-notification-rules-card">
+   <div className="prst-card-head"><div><small>CRITERIOS ACTUALES</small><h2>Qué está vigilando el sistema</h2><p>Controles que alimentan automáticamente este centro de seguimiento.</p></div></div>
+   <div className="prst-alert-rules">
+    <span>Inversiones vencidas y próximas a vencer.</span>
+    <span>Contratos pendientes de preparación o firma.</span>
+    <span>Expedientes con foto o DUI incompletos.</span>
+    <span>Fondos recibidos sin formalizar.</span>
+    <span>Capital pendiente de devolución.</span>
+    <span>Renovaciones pendientes de ejecutar.</span>
+   </div>
+  </article>
+ </section>
+}
 
 function PreviewSearch({onOpen}){
  const [query,setQuery]=useState('')
