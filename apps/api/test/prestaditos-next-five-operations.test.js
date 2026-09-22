@@ -7,7 +7,7 @@ const read=path=>readFileSync(new URL(`../../../${path}`,import.meta.url),'utf8'
 const host=read('apps/web/src/PrestaditosInvestorAppHost.jsx')
 const statement=read('apps/web/src/PrestaditosInvestorStatementPanel.jsx')
 const notifications=read('apps/web/src/PrestaditosAlertsPanel.jsx')
-const analytics=read('apps/web/src/PrestaditosExecutiveAnalytics.jsx')
+const dashboard=read('apps/web/src/PrestaditosDashboardPanel.jsx')
 const closeout=read('apps/web/src/PrestaditosMonthlyCloseoutPanel.jsx')
 const technicalAudit=read('apps/web/src/PrestaditosTechnicalAuditPanel.jsx')
 const integrity=read('apps/web/src/prestaditos-integrity.js')
@@ -28,19 +28,18 @@ test('centro de notificaciones persiste revisadas y archivadas por usuario',()=>
  assert.match(migration,/READ','DISMISSED/)
  assert.match(migration,/inv_set_notification_state/)
  assert.match(migration,/inv_clear_notification_state/)
- assert.match(notifications,/CENTRO DE NOTIFICACIONES/)
+ assert.match(notifications,/Centro de notificaciones/i)
  assert.match(notifications,/Revisadas/)
  assert.match(notifications,/Archivadas/)
  assert.match(notifications,/Restaurar/)
 })
 
-test('dashboard ejecutivo analiza tasas rangos vencimientos y flujo de seis meses',()=>{
- assert.match(analytics,/Capital vigente por tasa anual/)
- assert.match(analytics,/Capital por rango provisional/)
- assert.match(analytics,/Capital por ventana de vencimiento/)
- assert.match(analytics,/FLUJO 6 MESES/)
- assert.match(analytics,/status\|\|'POSTED'/)
- assert.match(host,/PrestaditosExecutiveAnalytics/)
+test('dashboard ejecutivo integra analítica financiera vigente',()=>{
+ assert.match(dashboard,/Capital vigente por tasa anual/)
+ assert.match(dashboard,/Situación de inversiones/)
+ assert.match(dashboard,/Próximos vencimientos/)
+ assert.match(dashboard,/postedPayments/)
+ assert.match(host,/PrestaditosDashboardPanel/)
 })
 
 test('cierre mensual crea snapshots versionados sin modificar movimientos',()=>{
@@ -69,5 +68,5 @@ test('navegación expone los cinco bloques nuevos',()=>{
  for(const label of ['Notificaciones','Estado de cuenta','Cierre mensual','Auditoría técnica']){
   assert.match(host,new RegExp(label))
  }
- assert.match(host,/PrestaditosExecutiveAnalytics/)
+ assert.match(host,/PrestaditosDashboardPanel/)
 })

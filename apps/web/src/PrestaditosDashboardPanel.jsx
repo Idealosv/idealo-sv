@@ -192,6 +192,6 @@ export default function PrestaditosDashboardPanel({
    </article>
   </section>
 
-  <div className="prst-dash-footnote"><strong>Nota:</strong> las tasas 10%, 12% y 15% son anuales. El sistema no aplica prorrateos para otros plazos hasta recibir la regla real.</div>
+  <div className="prst-dash-footnote"><strong>Nota:</strong> el resumen excluye pagos revertidos. Las tasas 10%, 12% y 15% son anuales; el sistema no inventa prorrateos ni capitalización para otros plazos hasta recibir la regla real.</div>
  </section>
 }

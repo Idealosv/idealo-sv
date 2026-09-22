@@ -11,7 +11,7 @@ const css=read('apps/web/src/prestaditos-investors.css')
 test('directorio de inversionistas incorpora resumen financiero y documental',()=>{
  assert.match(panel,/CONTROL DE EXPEDIENTES/)
  assert.match(panel,/Capital activo/)
- assert.match(panel,/Pendientes documentales/)
+ assert.match(panel,/Documentación pendiente/)
  assert.match(panel,/investorInvestmentMap/)
  assert.match(panel,/activeInvestments/)
 })
@@ -26,7 +26,7 @@ test('directorio permite buscar filtrar exportar y limpiar filtros',()=>{
 })
 
 test('tabla de inversionistas muestra expediente documentos capital y acciones',()=>{
- assert.match(panel,/DUI \/ NIT/)
+ assert.match(panel,/Identificación \/ contacto/)
  assert.match(panel,/prst-doc-progress/)
  assert.match(panel,/Inversiones/)
  assert.match(panel,/Capital activo/)
@@ -54,11 +54,11 @@ test('acciones rápidas navegan a módulos relacionados',()=>{
 })
 
 test('vista previa refleja el nuevo directorio profesional',()=>{
- assert.match(preview,/function Investors\(\{onGo\}\)/)
+ assert.match(preview,/function Investors\(\{onGo,onOpenInvestor\}\)/)
  assert.match(preview,/prst-investor-command/)
  assert.match(preview,/prst-investor-table-pro/)
- assert.match(preview,/Pendientes prioritarios/)
- assert.match(preview,/Últimos inversionistas/)
+ assert.match(preview,/Documentación pendiente/)
+ assert.match(preview,/Inversionistas registrados/)
 })
 
 test('estilos de inversionistas mantienen diseño ejecutivo claro',()=>{

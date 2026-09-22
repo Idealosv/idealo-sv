@@ -149,7 +149,7 @@ export default function PrestaditosAlertsPanel({company,investors,applications,i
       </div>
      </section>
 
-     <div className="prst-notification-scope-note"><strong>Rendimientos</strong><span>El sistema no inventa fechas ni cuotas mientras falte la regla real para plazos distintos de 12 meses.</span></div>
+     <div className="prst-notification-scope-note"><strong>Rendimientos</strong><span>El sistema no inventa fechas ni cuotas de pago mientras no esté definida la regla de prorrateo para plazos distintos de 12 meses.</span></div>
     </aside>
    </div>
   </article>

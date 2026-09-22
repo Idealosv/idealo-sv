@@ -1,4 +1,4 @@
-/* PRESTADITO$ · DASHBOARD EJECUTIVO LIMPIO Y LEGIBLE */
+/* PRESTADITO$ · DASHBOARD EJECUTIVO LIMPIO Y LEGIBLE · EXECUTIVE FINANCIAL DASHBOARD */
 .prst-dashboard-premium{
   --exec-bg:#eef1f4;
   --exec-card:#fff;
@@ -6,7 +6,7 @@
   --exec-muted:#667085;
   --exec-line:#e4e8ed;
   --exec-red:#d92d3e;
-  --exec-navy:#18212c;
+  --exec-navy:#17202b;
   --exec-blue:#3d6fd8;
   --exec-green:#1e9a68;
   --exec-orange:#d99618;
@@ -329,4 +329,13 @@ button.prst-dash-kpi{cursor:pointer}
   .prst-dashboard-premium{padding:10px!important}
   .prst-dash-hero{padding:20px!important}
   .prst-dash-hero h2{font-size:28px!important}
+}
+
+@media(max-width:460px){
+  .prst-dashboard-premium{padding:8px!important;gap:10px!important}
+  .prst-dash-hero{padding:16px!important;border-radius:14px!important}
+  .prst-dash-hero h2{font-size:25px!important}
+  .prst-dash-kpi{grid-template-columns:40px minmax(0,1fr)!important;padding:13px!important}
+  .prst-dash-kpi-icon{width:38px!important;height:38px!important}
+  .prst-dash-panel{padding:14px!important}
 }
