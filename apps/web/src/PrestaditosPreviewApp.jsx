@@ -8,9 +8,17 @@ const TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Perfil 360',
 const TAB_DESCRIPTIONS={
  Dashboard:'Resumen ejecutivo',Notificaciones:'Seguimiento operativo',Agenda:'Vencimientos y tareas',Inversionistas:'Expedientes y documentos','Perfil 360':'Vista integral del inversionista',Solicitudes:'Solicitudes de inversión',Simulador:'Tasas anuales por monto',Inversiones:'Capital y vigencias',Contratos:'PDF y firma',Beneficiarios:'Designaciones','Estado de cuenta':'Resumen por inversionista',Rendimientos:'Pagos al inversionista',Vencimientos:'Fechas críticas',Renovaciones:'Decisiones al vencimiento',Tesorería:'Entradas y salidas',Documentos:'Expediente privado',Reportes:'Indicadores gerenciales','Cierre mensual':'Snapshot del período',Auditoría:'Trazabilidad','Auditoría técnica':'Integridad y seguridad',Exportaciones:'Respaldo y CSV',Ayuda:'Manual y capacitación','Prueba integral':'3 casos ficticios',Preparación:'Cierre para producción',Configuración:'Reglas del vertical'
 }
-const PRIMARY_TABS=['Dashboard','Notificaciones','Agenda','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos']
-const OPERATION_TABS=['Perfil 360','Simulador','Contratos','Beneficiarios','Estado de cuenta','Renovaciones','Tesorería','Documentos']
-const ADMIN_TABS=['Reportes','Cierre mensual','Auditoría','Auditoría técnica','Exportaciones','Ayuda','Prueba integral','Preparación','Configuración']
+const MAIN_TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos','Tesorería','Reportes']
+const MODULE_ACTIONS={
+ Inversionistas:['Perfil 360','Beneficiarios','Estado de cuenta','Documentos'],
+ Solicitudes:['Simulador'],
+ Inversiones:['Contratos','Renovaciones'],
+ Rendimientos:['Estado de cuenta'],
+ Vencimientos:['Renovaciones','Agenda'],
+ Tesorería:['Cierre mensual','Exportaciones'],
+ Reportes:['Cierre mensual','Auditoría','Auditoría técnica','Exportaciones'],
+}
+const SYSTEM_TABS=['Notificaciones','Agenda','Configuración','Ayuda','Prueba integral','Preparación']
 
 const demo={
  investors:[
@@ -110,22 +118,16 @@ export default function PrestaditosPreviewApp(){
 
  const selectTab=name=>{setTab(name);setMobileNavOpen(false)}
  const openInvestorTab=(name,investorId)=>{if(investorId)setSelectedInvestorId(investorId);selectTab(name)}
- const navButton=name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{TAB_DESCRIPTIONS[name]}</small></button>
+ const moduleParent=Object.entries(MODULE_ACTIONS).find(([,items])=>items.includes(tab))?.[0]||tab
+ const moduleActions=MODULE_ACTIONS[moduleParent]||[]
+ const navButton=name=><button key={name} type="button" className={moduleParent===name?'active':''} onClick={()=>selectTab(name)}><strong>{name}</strong><small>{TAB_DESCRIPTIONS[name]}</small></button>
  return <div className="prst-app">
   {mobileNavOpen&&<button type="button" className="prst-mobile-overlay" aria-label="Cerrar menú" onClick={()=>setMobileNavOpen(false)}/>}
   <aside className={`prst-sidebar ${mobileNavOpen?'mobile-open':''}`}>
    <div className="prst-brand"><span className="prst-mark">$</span><div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div></div>
    <div className="prst-company"><span>IDEALO SV · VISTA PREVIA</span><strong>Prestadito$ El Salvador</strong><small>ERP de inversionistas</small></div>
    <nav>
-    <div className="prst-nav-primary">{PRIMARY_TABS.map(navButton)}</div>
-    <details className="prst-nav-group" open={OPERATION_TABS.includes(tab)||undefined}>
-     <summary>Más operación <span>{OPERATION_TABS.length}</span></summary>
-     <div>{OPERATION_TABS.map(navButton)}</div>
-    </details>
-    <details className="prst-nav-group" open={ADMIN_TABS.includes(tab)||undefined}>
-     <summary>Administración <span>{ADMIN_TABS.length}</span></summary>
-     <div>{ADMIN_TABS.map(navButton)}</div>
-    </details>
+    <div className="prst-nav-primary">{MAIN_TABS.map(navButton)}</div>
    </nav>
   </aside>
 
@@ -134,8 +136,15 @@ export default function PrestaditosPreviewApp(){
     <button type="button" className="prst-mobile-menu" onClick={()=>setMobileNavOpen(true)} aria-label="Abrir menú">☰</button>
     <div className="prst-top-title"><span>IDEALO SV · FINANCIERA / INVERSIONISTAS</span><h1>{tab}</h1><p>Vista previa con datos demostrativos. No modifica información real.</p></div>
     <PreviewSearch onOpen={()=>selectTab('Perfil 360')}/>
-    <div className="prst-top-actions"><button type="button" onClick={()=>selectTab('Dashboard')}>Inicio</button></div>
+    <div className="prst-top-actions">
+     <details className="prst-system-menu">
+      <summary>Sistema</summary>
+      <div>{SYSTEM_TABS.map(name=><button key={name} type="button" onClick={()=>selectTab(name)}>{name}</button>)}</div>
+     </details>
+     <button type="button" onClick={()=>selectTab('Dashboard')}>Inicio</button>
+    </div>
    </header>
+   {moduleActions.length>0&&<div className="prst-context-bar"><span>{moduleParent}</span><div>{moduleActions.map(name=><button key={name} type="button" className={tab===name?'active':''} onClick={()=>selectTab(name)}>{name}</button>)}</div></div>}
    <div className="prst-alert success">VISTA PREVIA · Esta pantalla sirve para revisar diseño, orden y funcionamiento visual antes de integrar Prestadito$ a producción.</div>
    <section className="prst-content">
     {tab==='Dashboard'&&<PrestaditosDashboardPanel {...previewDashboard} onGo={selectTab} onAlert={target=>selectTab(target)}/>} 
