@@ -24,10 +24,11 @@ test('roles se normalizan a propietario administrador operador y solo lectura',(
 })
 
 test('operador puede expedientes solicitudes documentos y exportar pero no decisiones financieras',()=>{
- for(const permission of ['VIEW','EDIT_INVESTOR','CREATE_APPLICATION','UPLOAD_DOCUMENT','EXPORT'])assert.equal(canPrestaditos('staff',permission),true)
+ for(const permission of ['VIEW','EDIT_INVESTOR','CREATE_APPLICATION','UPLOAD_DOCUMENT'])assert.equal(canPrestaditos('staff',permission),true)
  for(const permission of ['REVIEW_APPLICATION','FORMALIZE_INVESTMENT','REGISTER_PAYMENT','REVERSE_PAYMENT','MANAGE_BENEFICIARY','MANAGE_RENEWAL','MONTHLY_CLOSEOUT','CONFIGURE'])assert.equal(canPrestaditos('staff',permission),false)
  assert.equal(canPrestaditos('viewer','VIEW'),true)
- assert.equal(canPrestaditos('viewer','EXPORT'),true)
+ assert.equal(canPrestaditos('staff','EXPORT'),false)
+ assert.equal(canPrestaditos('viewer','EXPORT'),false)
  assert.equal(canPrestaditos('viewer','EDIT_INVESTOR'),false)
 })
 
@@ -49,7 +50,7 @@ test('matriz visible coincide con permisos conservadores',()=>{
  assert.match(configuration,/Solo lectura/)
  assert.match(configuration,/Registrar pagos','Sí','Sí','No','No'/)
  assert.match(configuration,/Cargar documentos','Sí','Sí','Sí','No'/)
- assert.match(configuration,/Exportar información','Sí','Sí','Sí','Sí'/)
+ assert.match(configuration,/Exportar información','Sí','Sí','No','No'/)
 })
 
 test('exportación total incluye datos estructurados y excluye binarios privados',()=>{
