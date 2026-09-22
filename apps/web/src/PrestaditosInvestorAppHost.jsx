@@ -18,7 +18,6 @@ import PrestaditosSimulatorPanel from './PrestaditosSimulatorPanel.jsx'
 import PrestaditosAlertsPanel from './PrestaditosAlertsPanel.jsx'
 import { buildPrestaditosAlerts } from './prestaditos-alerts.js'
 import PrestaditosInvestorStatementPanel from './PrestaditosInvestorStatementPanel.jsx'
-import PrestaditosExecutiveAnalytics from './PrestaditosExecutiveAnalytics.jsx'
 import PrestaditosMonthlyCloseoutPanel from './PrestaditosMonthlyCloseoutPanel.jsx'
 import PrestaditosTechnicalAuditPanel from './PrestaditosTechnicalAuditPanel.jsx'
 import PrestaditosInvestor360Panel from './PrestaditosInvestor360Panel.jsx'
@@ -28,6 +27,7 @@ import PrestaditosEndToEndDemoPanel from './PrestaditosEndToEndDemoPanel.jsx'
 import PrestaditosProductionReadinessPanel from './PrestaditosProductionReadinessPanel.jsx'
 import PrestaditosExportPanel from './PrestaditosExportPanel.jsx'
 import PrestaditosHelpPanel from './PrestaditosHelpPanel.jsx'
+import PrestaditosDashboardPanel from './PrestaditosDashboardPanel.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
@@ -203,7 +203,7 @@ export default function PrestaditosInvestorAppHost(){
    {notice&&<div className="prst-alert success">{notice}</div>}
 
    <section className="prst-content">
-    {tab==='Dashboard'&&<Dashboard investors={investors} applications={applications} investments={investments} payments={payments} totalPrincipal={totalPrincipal} projectedGain={projectedGain} yieldPaid={yieldPaid} pendingApps={pendingApps} nextMaturity={nextMaturity} investorMap={investorMap} alerts={openAlerts} onGo={selectTab} onAlert={goFromAlert}/>}
+    {tab==='Dashboard'&&<PrestaditosDashboardPanel investors={investors} applications={applications} investments={investments} payments={payments} contracts={contracts} renewals={renewals} documents={documents} investorMap={investorMap} alerts={openAlerts} onGo={selectTab} onAlert={goFromAlert}/>} 
     {tab==='Notificaciones'&&<PrestaditosAlertsPanel company={company} investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} renewals={renewals} investorMap={investorMap} notificationStates={notificationStates} act={act} onGo={goFromAlert}/>} 
     {tab==='Agenda'&&<PrestaditosAgendaPanel investors={investors} applications={applications} investments={investments} contracts={contracts} renewals={renewals} investorMap={investorMap} onGo={goFromAlert}/>} 
     {tab==='Inversionistas'&&<PrestaditosInvestorsPanel company={company} role={role} investors={investors} investments={investments} beneficiaries={beneficiaries} payments={payments} query={query} setQuery={setQuery} saving={saving} act={act}/>}
@@ -232,42 +232,3 @@ export default function PrestaditosInvestorAppHost(){
   </main>
  </div>
 }
-
-function Dashboard({investors,applications,investments,payments,totalPrincipal,projectedGain,yieldPaid,pendingApps,nextMaturity,investorMap,alerts,onGo,onAlert}){
- const maturityDays=nextMaturity?daysUntil(nextMaturity.maturity_date):null
- const recent=applications.slice(0,5)
- return <>
-  <section className="prst-metrics">
-   <Metric label="Inversionistas" value={investors.length} hint="Expedientes registrados"/>
-   <Metric label="Capital activo" value={money(totalPrincipal)} hint={`${investments.filter(x=>['ACTIVE','MATURING'].includes(x.status)).length} inversiones activas`} tone="money"/>
-   <Metric label="Alertas abiertas" value={alerts.length} hint={alerts.some(x=>x.priority==='CRITICAL')?'Hay alertas críticas':'Seguimiento operativo'} tone={alerts.length?'warn':''}/>
-   <Metric label="Solicitudes pendientes" value={pendingApps} hint="Por revisar o formalizar" tone="warn"/>
-   <Metric label="Rendimientos pagados" value={money(yieldPaid)} hint="Pagos tipo rendimiento"/>
-   <Metric label="Próximo vencimiento" value={nextMaturity?date(nextMaturity.maturity_date):'—'} hint={maturityDays===null?'Sin vencimientos':maturityDays<0?'Vencido':`${maturityDays} días restantes`} tone={maturityDays!==null&&maturityDays<=30?'warn':''}/>
-  </section>
-
-  <section className="prst-grid two">
-   <article className="prst-card">
-    <div className="prst-card-head"><div><small>ALERTAS OPERATIVAS</small><h2>Atención requerida</h2></div><button type="button" className="prst-mini-button" onClick={()=>onGo('Notificaciones')}>Ver todas ({alerts.length})</button></div>
-    {!alerts.length?<Empty title="Sin alertas abiertas">No hay situaciones pendientes con los criterios actuales.</Empty>:<div className="prst-dashboard-alerts">{alerts.slice(0,5).map(row=><button key={row.id} type="button" className={row.priority.toLowerCase()} onClick={()=>onAlert(row.tab,row)}><span>{row.priority==='CRITICAL'?'Crítica':row.priority==='HIGH'?'Alta':'Media'}</span><strong>{row.title}</strong><small>{row.detail}</small></button>)}</div>}
-   </article>
-
-   <article className="prst-card">
-    <div className="prst-card-head"><div><small>FLUJO PRINCIPAL</small><h2>Operación de inversionistas</h2></div><button type="button" className="prst-mini-button" onClick={()=>onGo('Simulador')}>Abrir simulador</button></div>
-    <div className="prst-flow">
-     <button onClick={()=>onGo('Inversionistas')}><b>1</b><span><strong>Registrar inversionista</strong><small>Generales, rostro y DUI</small></span></button>
-     <button onClick={()=>onGo('Solicitudes')}><b>2</b><span><strong>Recibir solicitud</strong><small>Monto, plazo y lugar de pago</small></span></button>
-     <button onClick={()=>onGo('Inversiones')}><b>3</b><span><strong>Formalizar inversión</strong><small>Otorgamiento, vencimiento y contrato</small></span></button>
-     <button onClick={()=>onGo('Rendimientos')}><b>4</b><span><strong>Registrar pagos</strong><small>Rendimientos y devolución de capital</small></span></button>
-    </div>
-   </article>
-  </section>
-
-  <article className="prst-card">
-   <div className="prst-card-head"><div><small>SOLICITUDES RECIENTES</small><h2>Actividad</h2></div></div>
-   {!recent.length?<Empty title="Aún no hay solicitudes">Cuando un inversionista envíe una solicitud aparecerá aquí.</Empty>:<div className="prst-list">{recent.map(x=><article key={x.id}><div><b>{fullName(investorMap.get(x.investor_id))}</b><small>{money(x.requested_amount)} · {x.requested_term_months} meses</small></div><Status value={x.status}/></article>)}</div>}
-  </article>
-
-  <PrestaditosExecutiveAnalytics investments={investments} payments={payments} applications={applications}/>
- </>}
-
