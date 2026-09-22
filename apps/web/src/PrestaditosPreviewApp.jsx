@@ -39,8 +39,9 @@ const demo={
   {code:'INVEST-20260310-G7H8I9',name:'José Roberto Hernández',capital:12000,term:6,granted:'10 mar 2026',maturity:'10 sep 2026',gain:1800,rate:15,status:'Vencida'},
  ],
  contracts:[
-  {code:'CTR-20260901-AB12CD',number:'PS-2026-001',investor:'Carlos Ernesto Mejía',investment:'INVEST-20260901-A1B2C3',capital:4000,rate:10,status:'Firmado'},
-  {code:'CTR-20260815-EF34GH',number:'PS-2026-002',investor:'María Elena López',investment:'INVEST-20260815-D4E5F6',capital:8000,rate:12,status:'Preparado'},
+  {code:'CTR-20260901-AB12CD',number:'PS-2026-001',investor:'Carlos Ernesto Mejía',investment:'INVEST-20260901-A1B2C3',capital:4000,rate:10,status:'Firmado',date:'01 sep 2026',notes:'Documento firmado y archivado.'},
+  {code:'CTR-20260815-EF34GH',number:'PS-2026-002',investor:'María Elena López',investment:'INVEST-20260815-D4E5F6',capital:8000,rate:12,status:'Preparado',date:'15 ago 2026',notes:'Pendiente de firma presencial.'},
+  {code:'CTR-20260310-IJ56KL',number:'PS-2026-003',investor:'José Roberto Hernández',investment:'INVEST-20260310-G7H8I9',capital:12000,rate:15,status:'Pendiente de firma',date:'10 mar 2026',notes:'Listo para revisión final.'},
  ],
  beneficiaries:[
   {code:'BEN-20260901-11AB22',name:'Ana Mejía',investor:'Carlos Ernesto Mejía',relation:'Esposa',pct:60,status:'Activo'},
@@ -957,13 +958,139 @@ function Configuration(){return <>
  </>}
 
 
-function Contracts(){return <>
- <section className="prst-investor-summary prst-contracts-summary"><article><span>Contratos preparados</span><strong>2</strong><small>documentos operativos</small></article><article><span>Firmados</span><strong>1</strong><small>con documento archivado</small></article><article><span>Pendientes de firma</span><strong>1</strong><small>requieren seguimiento</small></article><article><span>Porcentajes disponibles</span><strong>10 · 12 · 15%</strong><small>tasas anuales</small></article></section>
- <Card title="Control contractual" kicker="CONTRATOS / PDF / FIRMA">
-  <div className="prst-note"><strong>Confirmado:</strong> 10%, 12% y 15% son tasas anuales. Por ahora usamos como ejemplo: $1,000–$4,999.99 = 10%, $5,000–$9,999.99 = 12% y $10,000+ = 15%.</div>
-  <Table headers={['Contrato','Inversionista','Inversión','Capital','Porcentaje','Estado']} rows={demo.contracts.map(x=><tr key={x.code}><td><b>{x.code}</b><small>{x.number}</small></td><td>{x.investor}</td><td>{x.investment}</td><td>{money(x.capital)}</td><td><b>{x.rate}% anual</b><small>según monto de ejemplo</small></td><td><Status tone={x.status==='Firmado'?'active':'review'}>{x.status}</Status></td></tr>)}/>
- </Card>
- </>}
+function Contracts(){
+ const [rows,setRows]=useState(demo.contracts)
+ const [query,setQuery]=useState('')
+ const [status,setStatus]=useState('ALL')
+ const [selected,setSelected]=useState(null)
+ const [draft,setDraft]=useState(null)
+ const [notice,setNotice]=useState('')
+
+ const signed=rows.filter(x=>x.status==='Firmado')
+ const prepared=rows.filter(x=>x.status==='Preparado')
+ const pending=rows.filter(x=>x.status==='Pendiente de firma')
+ const totalCapital=rows.reduce((s,x)=>s+Number(x.capital||0),0)
+ const q=query.trim().toLowerCase()
+ const filtered=rows.filter(x=>
+  (status==='ALL'||x.status===status)&&
+  (!q||(x.code+' '+x.number+' '+x.investor+' '+x.investment+' '+x.status).toLowerCase().includes(q))
+ )
+
+ const rateFor=capital=>{
+  const value=Number(capital||0)
+  return value>=10000?15:value>=5000?12:10
+ }
+
+ const openNew=()=>{
+  const inv=demo.investments[0]
+  setDraft({
+   code:'CTR-DEMO-'+String(Date.now()).slice(-6),
+   number:'PS-2026-'+String(rows.length+1).padStart(3,'0'),
+   investor:inv?.name||'',
+   investment:inv?.code||'',
+   capital:inv?.capital||4000,
+   rate:inv?.rate||10,
+   status:'Preparado',
+   date:new Date().toISOString().slice(0,10),
+   notes:''
+  })
+  setNotice('')
+ }
+
+ const save=e=>{
+  e.preventDefault()
+  if(!draft)return
+  if(!draft.investor||!draft.investment||Number(draft.capital||0)<=0){
+   setNotice('Completá inversionista, inversión y capital.')
+   return
+  }
+  const dateLabel=new Date(draft.date+'T12:00:00').toLocaleDateString('es-SV',{day:'2-digit',month:'short',year:'numeric'}).replace('.','')
+  setRows(current=>[{...draft,capital:Number(draft.capital),rate:Number(draft.rate),date:dateLabel},...current])
+  setDraft(null)
+  setNotice('')
+ }
+
+ const changeInvestor=name=>{
+  const inv=demo.investments.find(x=>x.name===name)
+  setDraft(current=>({...current,investor:name,investment:inv?.code||'',capital:inv?.capital||'',rate:inv?.rate||rateFor(inv?.capital||0)}))
+ }
+
+ return <section className="prst-contracts-module">
+  <section className="prst-contract-command">
+   <div><small>CONTRATOS / PDF / FIRMA</small><h2>Control contractual</h2><p>Prepará, consultá y da seguimiento a los contratos de inversión.</p></div>
+   <button type="button" className="primary" onClick={openNew}>+ Nuevo contrato</button>
+  </section>
+
+  <section className="prst-investor-summary prst-contracts-summary">
+   <article><span>Preparados</span><strong>{prepared.length}</strong><small>listos para gestión</small></article>
+   <article><span>Firmados</span><strong>{signed.length}</strong><small>documentos archivados</small></article>
+   <article><span>Pendientes de firma</span><strong>{pending.length}</strong><small>requieren seguimiento</small></article>
+   <article><span>Capital contratado</span><strong>{money(totalCapital)}</strong><small>total registrado</small></article>
+  </section>
+
+  <div className="prst-contract-rate-note"><strong>Tasas anuales:</strong><span>$1,000–$4,999.99 = 10% · $5,000–$9,999.99 = 12% · $10,000+ = 15%</span></div>
+
+  <Card title="Contratos registrados" kicker="CONTROL CONTRACTUAL">
+   <div className="prst-contract-tools">
+    <input className="prst-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar contrato, inversionista o inversión"/>
+    <select value={status} onChange={e=>setStatus(e.target.value)}>
+     <option value="ALL">Todos los estados</option>
+     <option value="Preparado">Preparados</option>
+     <option value="Firmado">Firmados</option>
+     <option value="Pendiente de firma">Pendientes de firma</option>
+    </select>
+    <span>{filtered.length} resultado{filtered.length===1?'':'s'}</span>
+   </div>
+   <Table headers={['Contrato','Inversionista','Inversión','Capital','Tasa','Fecha','Estado','Acción']} rows={filtered.map(x=><tr key={x.code}>
+    <td><b>{x.code}</b><small>{x.number}</small></td>
+    <td><b>{x.investor}</b></td>
+    <td>{x.investment}</td>
+    <td><b>{money(x.capital)}</b></td>
+    <td><b>{x.rate}% anual</b></td>
+    <td>{x.date||'—'}</td>
+    <td><Status tone={x.status==='Firmado'?'active':x.status==='Pendiente de firma'?'rejected':'review'}>{x.status}</Status></td>
+    <td><button type="button" className="prst-mini-button" onClick={()=>setSelected(x)}>Ver detalle</button></td>
+   </tr>)}/>
+  </Card>
+
+  {selected&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setSelected(null)}>
+   <section className="prst-investor-modal prst-contract-detail">
+    <header><div><small>DETALLE CONTRACTUAL</small><h2>{selected.code}</h2><p>{selected.investor}</p></div><button type="button" onClick={()=>setSelected(null)}>×</button></header>
+    <section className="prst-profile-metrics">
+     <article><span>Capital</span><strong>{money(selected.capital)}</strong></article>
+     <article><span>Tasa anual</span><strong>{selected.rate}%</strong></article>
+     <article><span>Estado</span><strong>{selected.status}</strong></article>
+     <article><span>Número</span><strong>{selected.number}</strong></article>
+    </section>
+    <div className="prst-profile-grid">
+     <article><small>Inversión vinculada</small><b>{selected.investment}</b><span>Referencia de la inversión asociada.</span></article>
+     <article><small>Fecha</small><b>{selected.date||'Pendiente'}</b><span>Fecha de preparación o formalización.</span></article>
+     <article><small>Documento</small><b>{selected.status==='Firmado'?'Firmado y archivado':'En proceso'}</b><span>Estado documental del contrato.</span></article>
+     <article><small>Observación</small><b>{selected.notes||'Sin observaciones'}</b><span>Seguimiento interno.</span></article>
+    </div>
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setSelected(null)}>Cerrar</button></div>
+   </section>
+  </div>}
+
+  {draft&&<div className="prst-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setDraft(null)}>
+   <form className="prst-investor-modal prst-contract-editor" onSubmit={save}>
+    <header><div><small>VISTA PREVIA</small><h2>Nuevo contrato</h2><p>Registro demostrativo para validar el flujo contractual.</p></div><button type="button" onClick={()=>setDraft(null)}>×</button></header>
+    <div className="prst-form-grid prst-contract-form">
+     <label className="prst-field"><span>Inversionista</span><select value={draft.investor} onChange={e=>changeInvestor(e.target.value)}>{demo.investors.map(x=><option key={x.id}>{x.name}</option>)}</select></label>
+     <label className="prst-field"><span>Inversión</span><select value={draft.investment} onChange={e=>{const inv=demo.investments.find(x=>x.code===e.target.value);setDraft({...draft,investment:e.target.value,capital:inv?.capital||draft.capital,rate:inv?.rate||rateFor(inv?.capital||draft.capital)})}}>{demo.investments.filter(x=>x.name===draft.investor).map(x=><option key={x.code} value={x.code}>{x.code}</option>)}</select></label>
+     <label className="prst-field"><span>Número interno</span><input value={draft.number} onChange={e=>setDraft({...draft,number:e.target.value})}/></label>
+     <label className="prst-field"><span>Capital</span><input type="number" min="1" step="0.01" value={draft.capital} onChange={e=>setDraft({...draft,capital:e.target.value,rate:rateFor(e.target.value)})}/></label>
+     <label className="prst-field"><span>Tasa anual</span><input readOnly value={draft.rate+'%'}/></label>
+     <label className="prst-field"><span>Fecha</span><input type="date" value={draft.date} onChange={e=>setDraft({...draft,date:e.target.value})}/></label>
+     <label className="prst-field"><span>Estado</span><select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value})}><option>Preparado</option><option>Firmado</option><option>Pendiente de firma</option></select></label>
+     <label className="prst-field span-2"><span>Observaciones</span><textarea value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})} placeholder="Notas internas del contrato"/></label>
+    </div>
+    {notice&&<div className="prst-beneficiary-notice">{notice}</div>}
+    <div className="prst-modal-actions"><button type="button" onClick={()=>setDraft(null)}>Cancelar</button><button type="submit" className="primary">Guardar contrato demo</button></div>
+   </form>
+  </div>}
+ </section>
+}
 
 
 function Simulator(){
