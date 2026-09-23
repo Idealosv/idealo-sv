@@ -11,13 +11,11 @@ function buildPagedPdf(streams){const count=streams.length;const font1=3+count*2
 
 export function quotePdfLineValues(item){
  const calc=calculateItem(item)
- const taxRate=item?.taxable===false?0:Math.max(0,number(item?.tax_rate,13))
- const grossFactor=taxRate>0?1+taxRate/100:1
  return {
   ...calc,
-  customerUnit:round2(calc.unitPrice*grossFactor),
-  customerRatePerM2:number(item?.price_per_m2)>0?round2(number(item.price_per_m2)*grossFactor):0,
-  customerLineTotal:round2(calc.total)
+  customerUnit:round2(calc.unitPrice),
+  customerRatePerM2:number(item?.price_per_m2)>0?round2(number(item.price_per_m2)):0,
+  customerLineTotal:round2(calc.subtotal)
  }
 }
 
@@ -60,14 +58,14 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  if(quote?.title){text(42,y,'PROYECTO / SERVICIO',8,true,ORANGE);y-=18;text(42,y,quote.title,17,true,BLACK);y-=30}
 
  fill(36,y-2,523,30,BLACK)
- text(55,y+7,'DESCRIPCION',8,true,WHITE);text(390,y+7,'CANT.',8,true,WHITE);text(431,y+7,'P. UNIT. C/IVA',7,true,WHITE);text(503,y+7,'TOTAL C/IVA',7,true,WHITE)
+ text(55,y+7,'DESCRIPCION',8,true,WHITE);text(390,y+7,'CANT.',8,true,WHITE);text(431,y+7,'P. UNIT.',7,true,WHITE);text(503,y+7,'SUBTOTAL',7,true,WHITE)
  y-=24
  items.forEach((item,index)=>{
    const metrics=quotePdfLineValues(item)
    const desc=clean(item.description)||`Partida ${index+1}`
    const rows=wrap(desc,60)
    const details=[]
-   if(metrics.area>0&&number(item.price_per_m2)>0){const unit=clean(item.dimension_unit||'m');details.push(`Medida: ${number(item.width)} x ${number(item.height)} ${unit} · Area: ${metrics.area} m2 · ${money(metrics.customerRatePerM2)}/m2 c/IVA`)}
+   if(metrics.area>0&&number(item.price_per_m2)>0){const unit=clean(item.dimension_unit||'m');details.push(`Medida: ${number(item.width)} x ${number(item.height)} ${unit} · Area: ${metrics.area} m2 · ${money(metrics.customerRatePerM2)}/m2`)}
    if(metrics.discount>0)details.push(`Descuento aplicado: ${money(metrics.discount)}`)
    if(metrics.surcharge>0)details.push(`Recargo aplicado: ${money(metrics.surcharge)}`)
    const detailRows=details.flatMap(value=>wrap(value,68))
@@ -91,8 +89,8 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  if(quote?.promised_delivery_date){text(51,y-58,'Entrega estimada',7,true,MID);text(51,y-72,quote.promised_delivery_date,9,true,BLACK)}
 
  fill(329,y-111,230,119,LIGHT);stroke(329,y-111,230,119,BORDER,.7)
- text(346,y-18,'Subtotal',8,false,MID);text(481,y-18,money(totals.subtotal),9,true,BLACK)
- text(346,y-42,'IVA',8,false,MID);text(481,y-42,money(totals.tax),9,true,BLACK)
+ text(346,y-18,'Subtotal sin IVA',8,false,MID);text(481,y-18,money(totals.subtotal),9,true,BLACK)
+ text(346,y-42,'IVA (13%)',8,false,MID);text(481,y-42,money(totals.tax),9,true,BLACK)
  line(346,y-54,542,y-54,'0.70 0.70 0.70',.7)
  fill(329,y-111,230,42,BLACK)
  text(346,y-96,'TOTAL',11,true,WHITE);text(461,y-96,money(totals.total),14,true,ORANGE)
