@@ -7,7 +7,7 @@ const svDate = (offsetDays = 0) => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/El_Salvador', year: 'numeric', month: '2-digit', day: '2-digit',
 }).format(new Date(Date.now() + offsetDays * 86400000))
 const emptyItem = () => ({ product_id: '', description: '', quantity: 1, unit: 'unidad', unit_price: 0, minimum_price: 0, width: '', height: '', dimension_unit: 'm', price_per_m2: 0, discount_percent: 0, discount_fixed: 0, surcharge_percent: 0, surcharge_fixed: 0, taxable: true, tax_rate: 13, unit_cost: 0, labor_unit_cost: 0, installation_unit_cost: 0, requires_production: true, specifications: '', internal_notes: '' })
-const emptyQuote = (clientId) => ({ id: '', client_id: clientId || '', code: '', number: null, status: 'DRAFT', title: '', valid_until: svDate(15), payment_method: 'TRANSFERENCIA', payment_terms: 'Contado', customer_notes: '', internal_notes: '', discount_percent: 0, discount_fixed: 0, surcharge_percent: 0, surcharge_fixed: 0, minimum_margin: 25, promised_delivery_date: '', include_tax: true, tax_mode: 'INCLUDED' })
+const emptyQuote = (clientId) => ({ id: '', client_id: clientId || '', code: '', number: null, status: 'DRAFT', title: '', valid_until: svDate(15), payment_method: 'TRANSFERENCIA', payment_terms: 'Contado', customer_notes: '', internal_notes: '', discount_percent: 0, discount_fixed: 0, surcharge_percent: 0, surcharge_fixed: 0, minimum_margin: 25, promised_delivery_date: '', include_tax: true, tax_mode: 'ADDED' })
 const editableStatus = (status) => ['DRAFT', 'PREPARED', 'NEGOTIATION'].includes(status || 'DRAFT')
 function Field({ label, children, wide = false }) { return <label className={`qq-field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</label> }
 function Status({ value }) { return <span className={`q360-status st-${String(value || '').toLowerCase()}`}>{STATUS_LABELS[value] || value}</span> }
@@ -93,7 +93,7 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
   const clientById = useMemo(() => new Map(clients.map((row) => [row.id, row])), [clients])
   const quoteClientName = (row) => clientById.get(row.client_id)?.name || 'Cliente'
   const clientOptions = useMemo(() => clients.filter((row) => row.status === 'active' || row.id === form.client_id), [clients, form.client_id])
-  const calculatedItems = useMemo(() => items.map((item) => itemForTaxMode(item, form.tax_mode || 'INCLUDED')), [items, form.tax_mode])
+  const calculatedItems = useMemo(() => items.map((item) => itemForTaxMode(item, 'ADDED')), [items])
   const totals = useMemo(() => calculateQuote(calculatedItems, form), [calculatedItems, form.discount_percent, form.discount_fixed, form.surcharge_percent, form.surcharge_fixed])
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -141,9 +141,9 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
     try {
       const { data, error } = await supabase.from('quote_items').select('*').eq('quote_id', row.id).order('sort_order')
       if (error) throw error
-      const taxMode = row.tax_mode || (row.include_tax === false ? 'ADDED' : 'INCLUDED')
-      setForm({ ...emptyQuote(row.client_id), ...row, include_tax: true, tax_mode: taxMode })
-      setItems((data || []).length ? data.map((item) => storedItemToEditor(item, taxMode)) : [emptyItem()])
+      const storedTaxMode = row.tax_mode || (row.include_tax === false ? 'ADDED' : 'INCLUDED')
+      setForm({ ...emptyQuote(row.client_id), ...row, include_tax: true, tax_mode: 'ADDED' })
+      setItems((data || []).length ? data.map((item) => storedItemToEditor(item, storedTaxMode)) : [emptyItem()])
       setView('EDITOR')
       if (!(data || []).length) setMessage({ type: 'error', text: 'Esta cotización no tiene partidas. Revisá el expediente antes de continuar.' })
     } catch (_error) {
@@ -154,7 +154,7 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
   }
 
   const itemPayload = (item, index) => {
-    const effective = itemForTaxMode(item, form.tax_mode || 'INCLUDED')
+    const effective = itemForTaxMode(item, 'ADDED')
     const calculated = calculateItem(effective)
     return {
       product_id: item.product_id || null,
@@ -210,7 +210,7 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
         promised_delivery_date: form.promised_delivery_date || null,
         customer_notes: form.customer_notes || null,
         internal_notes: form.internal_notes || null,
-        tax_mode: form.tax_mode || 'INCLUDED',
+        tax_mode: 'ADDED',
         subtotal: totals.subtotal,
         tax_total: totals.tax,
         total: totals.total,
@@ -231,7 +231,7 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
       })
       if (error) throw error
 
-      setForm((current) => ({ ...current, ...data, id: data.id, include_tax: true, tax_mode: data.tax_mode || current.tax_mode || 'INCLUDED' }))
+      setForm((current) => ({ ...current, ...data, id: data.id, include_tax: true, tax_mode: 'ADDED' }))
       setView('EDITOR')
       await load()
       setMessage({ type: 'success', text: 'Cotización guardada completa y correctamente.' })
@@ -336,14 +336,14 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
           <div className="qq-step-title"><h3>Productos o trabajos</h3><button type="button" disabled={fieldLocked} className="secondary" onClick={() => setItems((rows) => [...rows, emptyItem()])}>+ Agregar</button></div>
           <div className="qq-items">
             {items.map((item, index) => {
-              const calculated = calculateItem(itemForTaxMode(item, form.tax_mode || 'INCLUDED'))
+              const calculated = calculateItem(itemForTaxMode(item, 'ADDED'))
               return <article className="qq-item" key={item.id || index}>
                 <div className="qq-item-main">
                   <Field label="Producto"><select disabled={fieldLocked} value={item.product_id || ''} onChange={(event) => chooseProduct(index, event.target.value)}><option value="">Personalizado</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></Field>
                   <Field label="Descripción" wide><input disabled={fieldLocked} value={item.description || ''} onChange={(event) => updateItem(index, 'description', event.target.value)} placeholder="Qué se le cotiza al cliente" /></Field>
                   <Field label="Cantidad"><input disabled={fieldLocked} type="number" min="0.01" step="0.01" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} /></Field>
                   <Field label="Precio unitario"><input disabled={fieldLocked} type="number" min="0" step="0.01" value={item.unit_price} onChange={(event) => updateItem(index, 'unit_price', event.target.value)} /></Field>
-                  <div className="qq-line-total"><span>Total</span><strong>{money(calculated.total)}</strong></div>
+                  <div className="qq-line-total"><span>Subtotal</span><strong>{money(calculated.subtotal)}</strong></div>
                 </div>
                 <div className="qq-item-actions"><button type="button" disabled={fieldLocked} className="secondary" onClick={() => setItems((rows) => [...rows.slice(0, index + 1), cloneItem(item), ...rows.slice(index + 1)])}>Duplicar</button>{items.length > 1 && <button type="button" disabled={fieldLocked} className="danger ghost" onClick={() => setItems((rows) => rows.filter((_, rowIndex) => rowIndex !== index))}>Quitar</button>}</div>
               </article>
@@ -359,11 +359,11 @@ export default function QuotesQuickModule({ company, supabase, initialClientId =
           <div className="qq-final">
             <div className="qq-grid">
               <Field label="Forma de pago"><select disabled={fieldLocked} value={form.payment_method || ''} onChange={(event) => update('payment_method', event.target.value)}><option>TRANSFERENCIA</option><option>EFECTIVO</option><option>TARJETA</option><option>CHEQUE</option><option>MIXTO</option></select></Field>
-              <Field label="IVA"><select disabled={fieldLocked} value={form.tax_mode || 'INCLUDED'} onChange={(event) => update('tax_mode', event.target.value)}><option value="INCLUDED">IVA incluido en el precio (mantener total)</option><option value="ADDED">Agregar IVA al precio (13%)</option></select></Field>
+              <Field label="IVA"><select disabled value="ADDED"><option value="ADDED">Agregar IVA al precio (13%)</option></select></Field>
               <Field label="Fecha de entrega"><input disabled={fieldLocked} type="date" value={form.promised_delivery_date || ''} onChange={(event) => update('promised_delivery_date', event.target.value)} /></Field>
               <Field label="Nota para el cliente" wide><textarea disabled={fieldLocked} rows="3" value={form.customer_notes || ''} onChange={(event) => update('customer_notes', event.target.value)} placeholder="Opcional" /></Field>
             </div>
-            <aside className="qq-total"><div><span>Subtotal</span><b>{money(totals.subtotal)}</b></div><div><span>{form.tax_mode === 'ADDED' ? 'IVA agregado (13%)' : 'IVA incluido (13%)'}</span><b>{money(totals.tax)}</b></div><div className="grand"><span>Total</span><b>{money(totals.total)}</b></div></aside>
+            <aside className="qq-total"><div><span>Subtotal sin IVA</span><b>{money(totals.subtotal)}</b></div><div><span>IVA agregado (13%)</span><b>{money(totals.tax)}</b></div><div className="grand"><span>Total con IVA</span><b>{money(totals.total)}</b></div></aside>
           </div>
         </div>
       </section>
