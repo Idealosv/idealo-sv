@@ -1,4 +1,4 @@
-const CACHE='idealo-mobile-v6'
+const CACHE='idealo-mobile-v7'
 const CORE=['/','/mobile','/manifest.webmanifest']
 
 self.addEventListener('install',(event)=>{
