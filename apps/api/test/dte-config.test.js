@@ -10,13 +10,13 @@ const valid = {
   DTE_SIGNER_PASSWORD: 'certificate-secret',
 }
 
-test('usa ambiente de pruebas y límites oficiales por defecto', () => {
+test('usa ambiente de pruebas y timeout endurecido por defecto', () => {
   const config = getDteConfig(valid)
   assert.equal(config.environment, 'test')
   assert.equal(config.mhBaseUrl, 'https://apitest.dtes.mh.gob.sv')
   assert.equal(config.signerUrl, 'http://firmador:8113')
   assert.equal(config.signerToken, 'transport-secret')
-  assert.equal(config.requestTimeoutMs, 8000)
+  assert.equal(config.requestTimeoutMs, 45000)
   assert.equal(config.maxResends, 2)
 })
 

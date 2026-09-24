@@ -18,8 +18,8 @@ const requireText=(source,text,message)=>{if(!source.includes(text))failures.pus
 
 requireText(main,"import './financial-alerts-dashboard.css'",'main.jsx debe cargar estilos de alertas financieras')
 requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'main.jsx debe diferir los hosts secundarios')
-requireText(deferred,"import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'",'DeferredRuntimeHosts debe importar ExecutiveDashboardHost')
-requireText(deferred,'<Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost/></Safe>','DeferredRuntimeHosts debe montar una sola vez el Dashboard ejecutivo')
+requireText(deferred,'const ExecutiveDashboardHost = lazy','DeferredRuntimeHosts debe diferir ExecutiveDashboardHost con lazy')
+requireText(deferred,'<Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost /></Safe>','DeferredRuntimeHosts debe montar una sola vez el Dashboard ejecutivo')
 if(runtime.includes("import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'")||runtime.includes('<ExecutiveDashboardHost'))failures.push('ModuleRuntime no debe duplicar el Dashboard ejecutivo')
 requireText(host,"import FinancialAlertsDashboard from './FinancialAlertsDashboard.jsx'",'ExecutiveDashboardHost debe integrar alertas financieras')
 requireText(host,"window.addEventListener('idealo-module-change',onModule)",'ExecutiveDashboardHost debe escuchar el cambio de módulo')
