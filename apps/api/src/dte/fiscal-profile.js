@@ -30,6 +30,26 @@ const text = (value) => String(value || '').trim()
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value))
 const normalizedNrc = (value) => digits(value).replace(/^0+(?=\d)/, '')
 
+const DTE01_RECEIVER_REQUIRED_THRESHOLD = 1095
+
+function fiscalValidationError(message) {
+  const error = new Error(message)
+  error.statusCode = 400
+  error.code = 'DTE_FISCAL_VALIDATION_ERROR'
+  return error
+}
+
+function dte01OperationTotal(sale = {}) {
+  const items = Array.isArray(sale.items) ? sale.items : []
+  const lineTotal = items.reduce((sum, item) => {
+    const quantity = Number(item?.cantidad || 0)
+    const unitPrice = Number(item?.precioUni || 0)
+    const discount = Number(item?.montoDescu || 0)
+    return sum + Math.max(0, quantity * unitPrice - discount)
+  }, 0)
+  return Number((lineTotal + Number(sale.totalNoGravado || 0)).toFixed(2))
+}
+
 function validateIssuer(company = {}) {
   const errors = []
   const nit = digits(company.nit)
@@ -91,7 +111,7 @@ export function mapCompanyToDteIssuer(company) {
   const status = getIssuerReadiness(company)
   if (!status.ready) {
     const problems = [...status.missing, ...status.invalid]
-    throw new Error(`Expediente fiscal del emisor inválido o incompleto: ${problems.join(', ')}.`)
+    throw fiscalValidationError(`Expediente fiscal del emisor inválido o incompleto: ${problems.join(', ')}.`)
   }
   return {
     nit: digits(company.nit), nrc: digits(company.nrc), nombre: text(company.name),
@@ -107,7 +127,7 @@ export function mapClientToDteReceiver(client) {
   const status = getReceiverReadiness(client)
   if (!status.ready) {
     const problems = [...status.missing, ...status.invalid]
-    throw new Error(`Expediente fiscal del receptor inválido o incompleto: ${problems.join(', ')}.`)
+    throw fiscalValidationError(`Expediente fiscal del receptor inválido o incompleto: ${problems.join(', ')}.`)
   }
   const tipoDocumento = text(client.document_type)
   const numDocumento = ['13', '36'].includes(tipoDocumento) ? digits(client.document_number) : text(client.document_number)
@@ -130,7 +150,7 @@ export function mapClientToCcfReceiver(client) {
   const status = getCcfReceiverReadiness(client)
   if (!status.ready) {
     const problems = [...status.missing, ...status.invalid]
-    throw new Error(`Para Crédito Fiscal completa en Clientes: ${problems.join(', ')}.`)
+    throw fiscalValidationError(`Para Crédito Fiscal completa en Clientes: ${problems.join(', ')}.`)
   }
   return {
     nit: digits(client.tax_id), nrc: digits(client.nrc), nombre: text(client.name),
@@ -142,7 +162,21 @@ export function mapClientToCcfReceiver(client) {
 }
 
 export function buildFacturaFromRecords({ company, client = null, ...sale }) {
-  return buildFacturaElectronica({ ...sale, emisor: mapCompanyToDteIssuer(company), receptor: client ? mapClientToDteReceiver(client) : null })
+  const operationTotal = dte01OperationTotal(sale)
+  const receiverRequired = operationTotal > DTE01_RECEIVER_REQUIRED_THRESHOLD
+  let receptor = null
+
+  if (client) {
+    const status = getReceiverReadiness(client)
+    if (status.ready) {
+      receptor = mapClientToDteReceiver(client)
+    } else if (receiverRequired) {
+      const problems = [...status.missing, ...status.invalid]
+      throw fiscalValidationError(`Para Factura Electrónica mayor a $1,095.00 completa en Clientes: ${problems.join(', ')}.`)
+    }
+  }
+
+  return buildFacturaElectronica({ ...sale, emisor: mapCompanyToDteIssuer(company), receptor })
 }
 
 export function buildCreditoFiscalFromRecords({ company, client, ...sale }) {
