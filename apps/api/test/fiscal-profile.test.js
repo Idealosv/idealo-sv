@@ -91,6 +91,38 @@ test('impide construir DTE-01 cuando el emisor tiene datos inválidos', () => {
   }), /NIT debe contener 9 o 14 dígitos/)
 })
 
+
+test('permite DTE-01 hasta $1,095 sin identificación completa del receptor', () => {
+  const incompleteClient = { ...client, document_number: '' }
+  const dte = buildFacturaFromRecords({
+    company,
+    client: incompleteClient,
+    numeroControl: 'DTE-01-M001P001-000000000000005',
+    totalLetras: 'NOVENTA Y OCHO 88/100 DÓLARES',
+    items: [{ descripcion: 'Servicio de prueba', cantidad: 1, precioUni: 98.88 }],
+  })
+
+  assert.equal(dte.resumen.montoTotalOperacion, 98.88)
+  assert.equal(dte.receptor, null)
+})
+
+test('exige identificación completa del receptor en DTE-01 mayor a $1,095', () => {
+  const incompleteClient = { ...client, document_number: '' }
+  assert.throws(() => buildFacturaFromRecords({
+    company,
+    client: incompleteClient,
+    numeroControl: 'DTE-01-M001P001-000000000000006',
+    totalLetras: 'MIL NOVENTA Y CINCO 01/100 DÓLARES',
+    items: [{ descripcion: 'Servicio de prueba', cantidad: 1, precioUni: 1095.01 }],
+  }), (error) => {
+    assert.equal(error.statusCode, 400)
+    assert.equal(error.code, 'DTE_FISCAL_VALIDATION_ERROR')
+    assert.match(error.message, /mayor a \$1,095\.00/)
+    assert.match(error.message, /número de documento/)
+    return true
+  })
+})
+
 test('no incorpora secretos de firma ni credenciales al DTE', () => {
   const contaminated = { ...company, certificate_password: 'secreto', api_password: 'secreto' }
   const dte = buildFacturaFromRecords({
