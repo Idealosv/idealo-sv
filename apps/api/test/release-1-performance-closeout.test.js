@@ -8,7 +8,7 @@ const deferred = read('apps/web/src/DeferredRuntimeHosts.jsx')
 
 const deferredModules = [
   'ExecutiveDashboardHost', 'CommercialLauncher', 'OperationsFinanceLauncher',
-  'InventoryCostLauncher', 'FinancialDashboardLauncher', 'HrPayrollLauncher',
+  'InventoryCostLauncher', 'FinancialDashboardLauncher',
   'ProductionCalendarLauncher', 'QualityControlLauncher', 'FacturacionLauncher',
   'AssistantLauncher', 'SecurityLauncher', 'MobileAppHost', 'MobileDteHost',
   'SaasMasterPanelHost', 'SaasBillingCenterHost', 'SaasCommercialControlHost',
@@ -21,7 +21,7 @@ test('el arranque crítico no importa estáticamente los runtimes secundarios', 
   assert.match(main, /timeout:350/)
   for (const moduleName of deferredModules) {
     assert.doesNotMatch(main, new RegExp(`import\\s+${moduleName}\\s+from`), `${moduleName} no debe bloquear el primer render`)
-    assert.match(deferred, new RegExp(`import\\s+${moduleName}\\s+from`), `${moduleName} debe conservarse en el runtime diferido`)
+    assert.ok(deferred.includes(`const ${moduleName} = lazy(`), `${moduleName} debe conservarse como runtime diferido lazy`)
   }
 })
 

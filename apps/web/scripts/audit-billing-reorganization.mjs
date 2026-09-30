@@ -16,7 +16,7 @@ need(launcher,"label: 'Nueva factura'",'Facturación debe separar la emisión di
 need(launcher,"id: 'cobros'",'Facturación debe separar cobranza')
 need(launcher,"helper: 'Cuentas por cobrar'",'La sección Cobros debe identificar Cuentas por cobrar')
 need(launcher,"label: 'Hacienda'",'Facturación debe separar Hacienda técnico')
-need(launcher,"import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'",'Facturación debe integrar Cuentas por cobrar')
+need(launcher,"const BillingReceivablesPanel = lazy(() => import('./BillingReceivablesPanel.jsx'))",'Facturación debe integrar Cuentas por cobrar de forma diferida')
 need(launcher,'<BillingReceivablesPanel','Facturación debe renderizar Cuentas por cobrar')
 for(const table of ['accounts_receivable','customer_payments'])need(receivables,`.from('${table}')`,`CxC debe consultar ${table}`)
 need(receivables,".eq('company_id',company.id)",'CxC debe aislar datos por company_id')

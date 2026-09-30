@@ -35,6 +35,7 @@ import { createEggOrderDteDraft } from './eggs/egg-dte-service.js'
 import { generateEggPdfDocument } from './eggs/egg-document-service.js'
 import { askEggAssistant } from './eggs/egg-ai-service.js'
 import { resolveEggCompanyContext } from './eggs/egg-context-service.js'
+import { resolveInvestorCompanyContext } from './investors/investor-context-service.js'
 
 const app=express();const port=Number(process.env.PORT||4000)
 const configuredOrigins=(process.env.CORS_ORIGIN||'').split(',').map(v=>v.trim()).filter(Boolean)
@@ -71,6 +72,7 @@ app.post('/api/admin/saas/companies/:companyId/payments',async(q,r,n)=>{try{r.st
 app.post('/api/admin/saas/companies/:companyId/access',async(q,r,n)=>{try{r.json(await grantMasterCompanyAccess({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/admin/saas/companies/:companyId/owner-access',async(q,r,n)=>{try{r.json(await sendMasterOwnerAccess({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/eggs/context',async(q,r,n)=>{try{r.json(await resolveEggCompanyContext({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/investors/context',async(q,r,n)=>{try{r.json(await resolveInvestorCompanyContext({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/eggs/orders/:orderId/dte-draft',async(q,r,n)=>{try{r.status(201).json(await createEggOrderDteDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/eggs/ai/ask',async(q,r,n)=>{try{const companyId=String(q.body?.company_id||'').trim();await requireSaasFeature({request:q,supabase:db(),companyId,moduleCode:'AI',featureLabel:'Asistente IA'});r.json(await askEggAssistant({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/eggs/documents/:type',async(q,r,n)=>{try{const result=await generateEggPdfDocument({request:q,supabase:db()});r.setHeader('Content-Type','application/pdf');r.setHeader('Content-Disposition',`attachment; filename="${result.filename}"`);r.send(result.buffer)}catch(e){n(e)}})

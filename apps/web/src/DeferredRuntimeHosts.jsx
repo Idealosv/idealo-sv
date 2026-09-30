@@ -35,6 +35,7 @@ const AgencyDemoGuard = lazy(() => import('./AgencyDemoGuard.jsx'))
 const PurchaseTaxAssistant = lazy(() => import('./PurchaseTaxAssistant.jsx'))
 const ModuleRuntime = lazy(() => import('./ModuleRuntime.jsx'))
 const EggWholesaleAppHost = lazy(() => import('./EggWholesaleAppHost.jsx'))
+const PrestaditosInvestorAppHost = lazy(() => import('./PrestaditosInvestorAppHost.jsx'))
 
 const Safe = ({ label, children }) => (
   <RuntimeBoundary label={label}>
@@ -85,6 +86,7 @@ export default function DeferredRuntimeHosts() {
   const isMasterRoute = pathname === '/master' || pathname.startsWith('/master/')
   const isAccountRoute = pathname === '/cuenta' || pathname === '/mi-cuenta'
   const isEggWholesaleRoute = pathname === '/eggs' || pathname.startsWith('/eggs/')
+  const isInvestorRoute = pathname === '/investors' || pathname.startsWith('/investors/')
 
   return <>
     <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge /></Safe>
@@ -137,5 +139,6 @@ export default function DeferredRuntimeHosts() {
     </>}
     {isAccountRoute && <Safe label="Cuenta SaaS"><SaasCustomerAccountHost /></Safe>}
     {isEggWholesaleRoute && <Safe label="IDEALO Eggs"><EggWholesaleAppHost /></Safe>}
+    {isInvestorRoute && <Safe label="Prestadito$ Inversionistas"><PrestaditosInvestorAppHost /></Safe>}
   </>
 }

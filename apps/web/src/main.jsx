@@ -6,6 +6,7 @@ import MainMenuController from './MainMenuController.jsx'
 import MfaSessionGate from './MfaSessionGate.jsx'
 import NavigationEventBridge from './NavigationEventBridge.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
+import PrestaditosPreviewApp from './PrestaditosPreviewApp.jsx'
 import './styles.css'
 import './facturacion-feedback.css'
 import './facturacion.css'
@@ -92,8 +93,12 @@ function DeferredRuntimeLoader(){
  return <Suspense fallback={null}><DeferredRuntimeHosts/></Suspense>
 }
 
+const prestaditosPreview = new URLSearchParams(window.location.search).get('preview') === 'prestaditos'
+
 createRoot(document.getElementById('root')).render(
- <StrictMode>
+ prestaditosPreview
+  ? <StrictMode><PrestaditosPreviewApp /></StrictMode>
+  : <StrictMode>
   <Safe label="ERP principal" fatal><App/></Safe>
   <Safe label="Verificación 2FA"><MfaSessionGate/></Safe>
   <Safe label="Control de accesos"><AccessControlRuntime/></Safe>
