@@ -10,7 +10,7 @@ const failures=[]
 
 if(!billing.includes("const [priceMode,setPriceMode]=useState('sin_iva')")) failures.push('Falta selector de modalidad de precio con/sin IVA')
 if(!billing.includes('Precio con IVA incluido')||!billing.includes('Precio sin IVA')) failures.push('Faltan ambas opciones visibles de IVA')
-if(!billing.includes("dteType==='03'?'Seleccionar cliente contribuyente':'Consumidor final / seleccionar cliente'")) failures.push('Crédito Fiscal no cambia el placeholder a cliente contribuyente')
+if(!billing.includes("const clientPlaceholder=dteType==='03'?'Seleccionar cliente contribuyente':'Consumidor final / seleccionar cliente'")) failures.push('Crédito Fiscal no cambia el placeholder a cliente contribuyente')
 if(billing.includes("if(value==='03'&&!selectedClient)")) failures.push('Crédito Fiscal vuelve a exigir cliente antes de poder seleccionarlo')
 if(!billing.includes("dteType==='03'?'Cliente contribuyente pendiente':'Consumidor final'")) failures.push('El resumen puede volver a mostrar Consumidor final en Crédito Fiscal')
 if(!billing.includes('needsTaxIncluded')||!billing.includes('enteredTaxIncluded')) failures.push('Falta conversión fiscal entre precios con/sin IVA')
