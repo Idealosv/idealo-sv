@@ -18,8 +18,8 @@ const requireText=(source,text,message)=>{if(!source.includes(text))failures.pus
 
 requireText(main,"import './financial-alerts-dashboard.css'",'main.jsx debe cargar estilos de alertas financieras')
 requireText(main,"lazy(()=>import('./DeferredRuntimeHosts.jsx'))",'main.jsx debe diferir los hosts secundarios')
-requireText(deferred,"import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'",'DeferredRuntimeHosts debe importar ExecutiveDashboardHost')
-requireText(deferred,'<Safe label="Dashboard ejecutivo"><ExecutiveDashboardHost/></Safe>','DeferredRuntimeHosts debe montar una sola vez el Dashboard ejecutivo')
+requireText(deferred,"const ExecutiveDashboardHost = lazy(() => import('./ExecutiveDashboardHost.jsx'))",'DeferredRuntimeHosts debe cargar ExecutiveDashboardHost de forma diferida')
+requireText(deferred,"moduleName === 'Dashboard' && <Safe label=\"Dashboard ejecutivo\"><ExecutiveDashboardHost /></Safe>",'DeferredRuntimeHosts debe montar el Dashboard ejecutivo solo cuando Dashboard está activo')
 if(runtime.includes("import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'")||runtime.includes('<ExecutiveDashboardHost'))failures.push('ModuleRuntime no debe duplicar el Dashboard ejecutivo')
 requireText(host,"import FinancialAlertsDashboard from './FinancialAlertsDashboard.jsx'",'ExecutiveDashboardHost debe integrar alertas financieras')
 requireText(host,"window.addEventListener('idealo-module-change',onModule)",'ExecutiveDashboardHost debe escuchar el cambio de módulo')
@@ -28,7 +28,7 @@ requireText(host,'if(!content||!visible)return null','ExecutiveDashboardHost deb
 requireText(host,'<FinancialAlertsDashboard company={company} supabase={supabase}/>','ExecutiveDashboardHost debe renderizar las alertas')
 if(host.includes('new MutationObserver')||host.includes('observe(document.body'))failures.push('ExecutiveDashboardHost no debe reintroducir MutationObserver global')
 
-const mounts=(deferred.match(/<ExecutiveDashboardHost\s*\/?>/g)||[]).length
+const mounts=(deferred.match(/<ExecutiveDashboardHost\s*\/>/g)||[]).length
 if(mounts!==1)failures.push(`ExecutiveDashboardHost debe montarse exactamente una vez en DeferredRuntimeHosts; encontrados ${mounts}`)
 if(main.includes("import ExecutiveDashboardHost from './ExecutiveDashboardHost.jsx'")||main.includes('<ExecutiveDashboardHost'))failures.push('ExecutiveDashboardHost no debe volver a bloquear el arranque crítico')
 
