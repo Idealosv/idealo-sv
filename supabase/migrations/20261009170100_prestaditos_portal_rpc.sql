@@ -131,7 +131,7 @@ begin
  where id=r.id;
  insert into public.inv_audit_log(company_id,investor_id,investment_id,action,detail,created_by)
  values(r.company_id,r.investor_id,r.investment_id,'PORTAL_WITHDRAWAL_'||p_status,jsonb_build_object('request_id',r.id,'payment_id',p_payment,'from',r.status,'to',p_status),auth.uid());
-end $;
+end $$;
 
 revoke all on function public.inv_portal_link_account(uuid,uuid),
  public.inv_portal_reject_enrollment(uuid,text),
