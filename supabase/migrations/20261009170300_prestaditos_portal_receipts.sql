@@ -27,8 +27,7 @@ for select to authenticated using (
   ((storage.foldername(name))[2]=auth.uid()::text
    and exists(select 1 from public.inv_portal_links l
       join public.inv_portal_enrollments e on e.company_id=l.company_id and e.user_id=l.user_id and e.status='APPROVED'
-      join public.inv_investors i on i.id=l.investor_id and i.company_id=l.company_id and i.status='ACTIVE'
-      where l.company_id::text=(storage.foldername(name))[1] and l.user_id=auth.uid()))
+         where l.company_id::text=(storage.foldername(name))[1] and l.user_id=auth.uid()))
   or exists(select 1 from public.companies c
     where c.id::text=(storage.foldername(name))[1] and public.inv_company_can_review(c.id))
  )
