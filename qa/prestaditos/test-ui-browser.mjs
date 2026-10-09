@@ -14,7 +14,7 @@ try{
  page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1})
  await page.goto(origin+'/prestaditos/app?demo=1',{waitUntil:'domcontentloaded'})
  await test('Demo móvil muestra nombre, inversiones y marca',async()=>{
-  await page.getByRole('heading',{name:'Mis inversiones'}).waitFor()
+  await page.getByRole('heading',{name:'Mis inversiones'}).first().waitFor()
   assert.ok(await page.getByText('PRESTADITO$').count()>0)
   assert.ok(await page.getByText('INV-DEMO-100').count()>0)
  })
