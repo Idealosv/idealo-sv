@@ -1,0 +1,1 @@
+Prestaditos Inversionistas: desarrollo en la rama feature/prestaditos-inversionistas. La integración se prepara sin desplegar servicios nuevos ni habilitar pagos automáticos. Los formularios y el panel administrativo requieren reglas de acceso independientes y revisión antes de producción.
