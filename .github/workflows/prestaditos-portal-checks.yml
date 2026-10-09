@@ -20,6 +20,8 @@ jobs:
           node-version: '22'
       - name: Tres escenarios ficticios y controles estáticos del portal
         run: node apps/web/scripts/audit-prestaditos-portal.mjs
+      - name: Controles de seguridad de autorización, privacidad y auditoría
+        run: node apps/web/scripts/audit-prestaditos-portal-security.mjs
       - name: Instalar dependencias existentes
         run: npm install
       - name: Compilar app y ERP sin modificar backend ni producción
