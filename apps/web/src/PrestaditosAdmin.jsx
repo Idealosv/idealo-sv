@@ -52,7 +52,7 @@ export default function PrestaditosAdmin({session}) {
   const action=async(fn)=>{
     if(working)return
     setWorking(true);setError('');setMessage('')
-    try{await fn();setMessage('Operación registrada correctamente.');await reload()}
+    try{await fn();setSelected(null);setMessage('Operación registrada correctamente.');await reload()}
     catch(e){setError(e.message)}
     finally{setWorking(false)}
   }
