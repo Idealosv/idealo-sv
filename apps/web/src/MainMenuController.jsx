@@ -62,6 +62,7 @@ export default function MainMenuController() {
     <nav className="idealo-main-menu" aria-label="Módulos principales IDEALO SV">
       {role && <div className="idealo-role-strip"><span>Perfil</span><strong>{ROLE_LABEL[role] || role}</strong></div>}
       <div className="idealo-menu-list">
+        {['owner','admin'].includes(role) && <button type="button" className="idealo-main-menu-item" onClick={() => window.location.assign('/investors')}>Prestaditos Inversionistas</button>}
         {ERP_MODULES.map((name) => {
           const allowed = !role || canAccessModule(role, name)
           const className = [
