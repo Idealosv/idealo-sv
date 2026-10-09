@@ -23,10 +23,15 @@ checksums() {
 }
 echo 'Backup ONLY fake-data postgres to a temporary artifact'
 checksums "$PGDATABASE" > "$tmp/before.txt"
-pg_dump --format=custom --no-owner --file="$backup" --dbname="$PGDATABASE"
+# Runner has pg_dump 16 while ephemeral service is PostgreSQL 17.
+# Use client tools from the SAME 17-alpine image already pulled for the service.
+docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
+ pg_dump --format=custom --no-owner -h 127.0.0.1 -p 5432 -U postgres -d "$PGDATABASE" > "$backup"
 test -s "$backup"
 createdb "$restored"
-pg_restore --exit-on-error --no-owner --dbname="$restored" "$backup" >"$tmp/pgrestore.log" 2>&1 || {
+docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
+ pg_restore --exit-on-error --no-owner -h 127.0.0.1 -p 5432 -U postgres -d "$restored" \
+ < "$backup" >"$tmp/pgrestore.log" 2>&1 || {
  cat "$tmp/pgrestore.log"; exit 1
 }
 checksums "$restored" > "$tmp/after.txt"
