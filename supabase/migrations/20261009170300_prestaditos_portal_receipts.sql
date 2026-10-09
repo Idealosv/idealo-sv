@@ -15,6 +15,9 @@ for insert to authenticated with check (
   where l.user_id=auth.uid() and e.status='APPROVED'
   and l.company_id::text=(storage.foldername(name))[1]
   and l.user_id::text=(storage.foldername(name))[2]
+  and exists (select 1 from public.inv_applications a
+    where a.id::text=(storage.foldername(name))[3] and a.company_id=l.company_id
+    and a.investor_id=l.investor_id and a.created_by=auth.uid() and a.status='PENDING')
  )
 );
 create policy inv_portal_receipt_read on storage.objects
@@ -32,7 +35,7 @@ as $$
 declare a public.inv_applications%rowtype;
 begin
  select * into a from public.inv_applications where id=p_application for update;
- if not found or a.status<>'PENDING' or a.created_by<>auth.uid()
+ if not found or a.status<>'PENDING' or a.created_by<>auth.uid() or a.portal_receipt_path is not null
  then raise exception 'Solicitud sin permiso para adjuntar'; end if;
  if not exists (select 1 from public.inv_portal_links l
    join public.inv_portal_enrollments e on e.user_id=l.user_id and e.company_id=l.company_id and e.status='APPROVED'
