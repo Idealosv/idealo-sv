@@ -52,15 +52,24 @@ export default function PrestaditosAdmin({session}) {
   const action=async(fn)=>{
     if(working)return
     setWorking(true);setError('');setMessage('')
-    try{await fn();setSelected(null);setMessage('Operación registrada correctamente.');await reload()}
-    catch(e){setError(e.message)}
+    try{await fn();setSelected(null);setMessage('Operación registrada correctamente.');await reload();return true}
+    catch(e){setError(e.message);return false}
     finally{setWorking(false)}
   }
   const rpc=(name,args)=>action(async()=>{
     const {error:e}=await supabase.rpc(name,args)
     if(e)throw e
   })
-  const review=(id,status)=>rpc('prestaditos_review_request',{p_id:id,p_status:status,p_notes:status==='rejected'?(window.prompt('Motivo del rechazo:')||'Solicitud rechazada'):''})
+  const review=(id,status)=>{
+    let notes=''
+    if(status==='rejected'){
+      const answer=window.prompt('Motivo del rechazo:')
+      if(answer===null)return
+      if(!answer.trim()){setError('Indica un motivo para el rechazo.');return}
+      notes=answer.trim()
+    }
+    return rpc('prestaditos_review_request',{p_id:id,p_status:status,p_notes:notes})
+  }
   const process=(r)=>{
     if(!window.confirm('¿Confirmas que la operación bancaria ya fue verificada? Esto registrará un movimiento contable real en Prestaditos.'))return
     rpc('prestaditos_process_request',{p_id:r.id})
@@ -77,8 +86,8 @@ export default function PrestaditosAdmin({session}) {
     e.preventDefault()
     const n=Number(yieldForm.amount)
     if(!Number.isFinite(n)||n<=0){setError('Monto inválido');return}
-    await rpc('prestaditos_record_yield',{p_investor:yieldForm.investor_id,p_amount:n,p_notes:yieldForm.notes})
-    setYieldForm({investor_id:'',amount:'',notes:''})
+    const saved=await rpc('prestaditos_record_yield',{p_investor:yieldForm.investor_id,p_amount:n,p_notes:yieldForm.notes})
+    if(saved)setYieldForm({investor_id:'',amount:'',notes:''})
   }
   if(!ready)return <div className="pt-loading">Comprobando permisos de Prestaditos…</div>
   if(!staff)return <div className="pt-blocked"><Logo/><h2>Acceso restringido</h2><p>Tu cuenta no está designada como administradora de Prestaditos. Un responsable autorizado debe habilitarla; ser administrador de IDEALO SV no concede acceso financiero automáticamente.</p>{error&&<p className="pt-error">{error}</p>}<a href="/">Volver a IDEALO SV</a></div>
