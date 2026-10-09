@@ -12,6 +12,7 @@ const demoData={
  withdrawals:[]
 }
 function Brand(){return <div className="pti-brand"><img src="/prestaditos-logo.svg" alt="Logo de Prestaditos"/><div><b>PRESTADITO$</b><small>INVERSIONISTAS · EL SALVADOR</small></div></div>}
+const todaySv=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/El_Salvador',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 const date=s=>s?new Date((s.length===10?s+'T12:00:00':s)).toLocaleDateString('es-SV'):'—'
 const errorText=e=>e?.message||String(e||'No fue posible completar la operación')
 export default function PrestaditosPortalApp(){
@@ -27,7 +28,7 @@ export default function PrestaditosPortalApp(){
  const [data,setData]=useState(demo?demoData:null)
  const [registration,setRegistration]=useState({full_name:'',dui:'',phone:''})
  const [view,setView]=useState('inicio')
- const [form,setForm]=useState({type:'contribution',amount:'',months:'12',start:new Date().toISOString().slice(0,10),method:'Transferencia bancaria',place:'',investment_id:'',payment_type:'CAPITAL_RETURN',notes:''})
+ const [form,setForm]=useState({type:'contribution',amount:'',months:'12',start:todaySv(),method:'Transferencia bancaria',place:'',investment_id:'',payment_type:'CAPITAL_RETURN',notes:''})
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -133,7 +134,7 @@ export default function PrestaditosPortalApp(){
     <form className="pti-form" onSubmit={send}>
      <label>Inversionista<input readOnly value={info.investor.name}/></label>
      <label>Monto solicitado (USD)<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}/></label>
-     {form.type==='contribution'?<><label>Plazo solicitado (meses)<input required type="number" min="1" max="60" value={form.months} onChange={e=>setForm({...form,months:e.target.value})}/></label><label>Fecha de inicio deseada<input required type="date" min={new Date().toISOString().slice(0,10)} value={form.start} onChange={e=>setForm({...form,start:e.target.value})}/></label><label>Lugar de aporte (opcional)<input maxLength="120" value={form.place} onChange={e=>setForm({...form,place:e.target.value})}/></label></>:
+     {form.type==='contribution'?<><label>Plazo solicitado (meses)<input required type="number" min="1" max="60" value={form.months} onChange={e=>setForm({...form,months:e.target.value})}/></label><label>Fecha de inicio deseada<input required type="date" min={todaySv()} value={form.start} onChange={e=>setForm({...form,start:e.target.value})}/></label><label>Lugar de aporte (opcional)<input maxLength="120" value={form.place} onChange={e=>setForm({...form,place:e.target.value})}/></label></>:
       <><label>Inversión relacionada<select required value={form.investment_id} onChange={e=>setForm({...form,investment_id:e.target.value})}><option value="">Seleccionar inversión</option>{active.map(i=><option key={i.id} value={i.id}>{i.code} · {money(i.principal)}</option>)}</select></label><label>Tipo de retiro<select value={form.payment_type} onChange={e=>setForm({...form,payment_type:e.target.value})}><option value="CAPITAL_RETURN">Capital</option><option value="YIELD">Rendimientos</option></select></label></>}
      <label>Forma de pago solicitada<select value={form.method} onChange={e=>setForm({...form,method:e.target.value})}><option>Transferencia bancaria</option><option>Depósito bancario</option><option>Pago presencial</option></select></label>
      <label>Observaciones<textarea rows="3" maxLength="1000" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
