@@ -93,13 +93,13 @@ insert into storage.objects(bucket_id,name) values
 select test.assert_true((select count(*)=1 from storage.objects where bucket_id='prestaditos-portal-receipts'),'A sees own storage object');
 select public.inv_portal_attach_receipt(:'a_app_id'::uuid,
  '11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/test-proof.pdf');
-select test.expect_error('select public.inv_portal_attach_receipt('''||:'a_app_id'||''',''11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/test-proof.pdf'')','same application cannot attach a different receipt again');
+select test.expect_error(format('select public.inv_portal_attach_receipt(%L::uuid,%L)', :'a_app_id', '11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/test-proof.pdf'),'same application cannot attach a different receipt again');
 reset role;
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',false);
 select set_config('request.jwt.claim.email','investor-b@example.invalid',false);
 set role authenticated;
 select test.assert_true((select count(*)=0 from storage.objects where bucket_id='prestaditos-portal-receipts'),'B cannot see A receipt');
-select test.expect_error('insert into storage.objects(bucket_id,name) values (''prestaditos-portal-receipts'',''11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/forged.pdf'')','B cannot upload to A folder');
+select test.expect_error(format('insert into storage.objects(bucket_id,name) values (%L,%L)','prestaditos-portal-receipts','11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/forged.pdf'),'B cannot upload to A folder');
 reset role;
 select set_config('request.jwt.claim.sub','cccccccc-cccc-4ccc-8ccc-cccccccccccc',false);
 select set_config('request.jwt.claim.email','admin-a@example.invalid',false);
@@ -120,19 +120,19 @@ select public.inv_portal_submit_withdrawal(
  '11111111-1111-4111-8111-111111111111',
  'a4444444-4444-4444-8444-444444444444','CAPITAL_RETURN',600,'Transferencia','Fake capital request') as a_withdraw_id \gset
 select test.expect_error('select public.inv_portal_submit_withdrawal(''11111111-1111-4111-8111-111111111111'',''a4444444-4444-4444-8444-444444444444'',''CAPITAL_RETURN'',500,''Transferencia'','''')','second capital withdrawal would exceed reserved balance');
-select test.expect_error('update public.inv_portal_withdrawals set status=''COMPLETED'' where id='''||:'a_withdraw_id'||'''','A cannot finalize own withdrawal');
+select test.expect_error(format('update public.inv_portal_withdrawals set status=%L where id=%L::uuid','COMPLETED',:'a_withdraw_id'),'A cannot finalize own withdrawal');
 reset role;
 select set_config('request.jwt.claim.sub','dddddddd-dddd-4ddd-8ddd-dddddddddddd',false);
 select set_config('request.jwt.claim.email','staff-a@example.invalid',false);
 set role authenticated;
-select test.expect_error('select public.inv_portal_review_withdrawal('''||:'a_withdraw_id'||''',''REVIEW'')','staff cannot review capital withdrawal');
+select test.expect_error(format('select public.inv_portal_review_withdrawal(%L::uuid,%L)',:'a_withdraw_id','REVIEW'),'staff cannot review capital withdrawal');
 reset role;
 select set_config('request.jwt.claim.sub','cccccccc-cccc-4ccc-8ccc-cccccccccccc',false);
 select set_config('request.jwt.claim.email','admin-a@example.invalid',false);
 set role authenticated;
 select public.inv_portal_review_withdrawal(:'a_withdraw_id'::uuid,'REVIEW');
 select public.inv_portal_review_withdrawal(:'a_withdraw_id'::uuid,'APPROVED');
-select test.expect_error('select public.inv_portal_review_withdrawal('''||:'a_withdraw_id'||''',''COMPLETED'','''',null)','cannot mark complete without real matching posted payment');
+select test.expect_error(format('select public.inv_portal_review_withdrawal(%L::uuid,%L,%L,null)',:'a_withdraw_id','COMPLETED',''),'cannot mark complete without real matching posted payment');
 reset role;
 -- Administrative posted-payment fixture; NOT a real money transfer.
 insert into public.inv_payments(id,company_id,investor_id,investment_id,payment_type,amount,payment_date,reference,status,payment_code)
@@ -144,7 +144,7 @@ select set_config('request.jwt.claim.email','admin-a@example.invalid',false);
 set role authenticated;
 select public.inv_portal_review_withdrawal(:'a_withdraw_id'::uuid,'COMPLETED','Payment in mock ledger','a9999999-9999-4999-8999-999999999999');
 select test.assert_true((select count(*)=1 from public.inv_portal_withdrawals where status='COMPLETED'),'capital withdrawal completed after matching payment');
-select test.expect_error('select public.inv_portal_review_withdrawal('''||:'a_withdraw_id'||''',''COMPLETED'','''',''a9999999-9999-4999-8999-999999999999'')','cannot complete same withdrawal twice');
+select test.expect_error(format('select public.inv_portal_review_withdrawal(%L::uuid,%L,%L,%L::uuid)',:'a_withdraw_id','COMPLETED','','a9999999-9999-4999-8999-999999999999'),'cannot complete same withdrawal twice');
 reset role;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
 select set_config('request.jwt.claim.email','investor-a@example.invalid',false);
