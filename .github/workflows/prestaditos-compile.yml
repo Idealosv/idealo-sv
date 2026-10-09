@@ -1,0 +1,34 @@
+name: Prestaditos · compilación aislada
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/web/src/Prestaditos*'
+      - 'apps/web/src/prestaditos.css'
+      - 'apps/web/src/main.jsx'
+      - 'apps/web/src/MainMenuController.jsx'
+      - 'apps/web/src/SaasMasterPanelHost.jsx'
+      - 'apps/web/public/prestaditos-logo.svg'
+      - 'supabase/migrations/20261009*'
+      - '.github/workflows/prestaditos-compile.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: Validar rutas y compilar frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dependencias
+        run: npm install
+      - name: Compilar React / Vite
+        working-directory: apps/web
+        run: npx vite build
