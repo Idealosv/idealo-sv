@@ -49,6 +49,8 @@ begin
  if length(p_path)>280 or not exists(select 1 from storage.objects where bucket_id='prestaditos-portal-receipts' and name=p_path)
  then raise exception 'Archivo no encontrado'; end if;
  update public.inv_applications set portal_receipt_path=p_path where id=p_application;
+ insert into public.inv_audit_log(company_id,investor_id,action,detail,created_by)
+ values(a.company_id,a.investor_id,'PORTAL_RECEIPT_ATTACHED',jsonb_build_object('application_id',a.id),auth.uid());
 end $$;
 revoke all on function public.inv_portal_attach_receipt(uuid,text) from public,anon;
 grant execute on function public.inv_portal_attach_receipt(uuid,text) to authenticated;
