@@ -13,6 +13,10 @@ create table auth.users(id uuid primary key, email text unique);
 create function auth.uid() returns uuid language sql stable as $$
  select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid
 $$;
+create function auth.jwt() returns jsonb language sql stable as $
+ select jsonb_build_object('email',coalesce(current_setting('request.jwt.claim.email',true),''))
+$;
+grant execute on function auth.jwt() to authenticated,anon;
 -- PostgreSQL with a trusted test-only JWT subject emulates auth.uid().
 -- No real tokens or real users are used in these tests.
 create table public.companies(id uuid primary key, name text not null);
