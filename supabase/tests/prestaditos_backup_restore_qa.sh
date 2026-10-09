@@ -29,7 +29,7 @@ docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
  pg_dump --format=custom --no-owner -h 127.0.0.1 -p 5432 -U postgres -d "$PGDATABASE" > "$backup"
 test -s "$backup"
 createdb "$restored"
-docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
+docker run --rm -i --network host -e PGPASSWORD="$PGPASSWORD" postgres:17-alpine \
  pg_restore --exit-on-error --no-owner -h 127.0.0.1 -p 5432 -U postgres -d "$restored" \
  < "$backup" >"$tmp/pgrestore.log" 2>&1 || {
  cat "$tmp/pgrestore.log"; exit 1
