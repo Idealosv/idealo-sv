@@ -7,6 +7,7 @@ import MfaSessionGate from './MfaSessionGate.jsx'
 import NavigationEventBridge from './NavigationEventBridge.jsx'
 import RuntimeBoundary from './RuntimeBoundary.jsx'
 import PrestaditosPreviewApp from './PrestaditosPreviewApp.jsx'
+import PrestaditosPortalApp from './PrestaditosPortalApp.jsx'
 import './styles.css'
 import './facturacion-feedback.css'
 import './facturacion.css'
@@ -94,9 +95,12 @@ function DeferredRuntimeLoader(){
 }
 
 const prestaditosPreview = new URLSearchParams(window.location.search).get('preview') === 'prestaditos'
+const prestaditosPortal = window.location.pathname === '/prestaditos/app' || window.location.pathname.startsWith('/prestaditos/app/')
 
 createRoot(document.getElementById('root')).render(
- prestaditosPreview
+ prestaditosPortal
+  ? <StrictMode><PrestaditosPortalApp /></StrictMode>
+  : prestaditosPreview
   ? <StrictMode><PrestaditosPreviewApp /></StrictMode>
   : <StrictMode>
   <Safe label="ERP principal" fatal><App/></Safe>
