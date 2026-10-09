@@ -73,6 +73,13 @@ export default function DeferredRuntimeHosts() {
 
   useEffect(() => subscribeNavigation(setNavigation), [])
 
+  // Financial ERP resolves its own tenant via the investor API. Do not gate it
+  // behind an unrelated IDEALO workspace company selection.
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/'
+  const investorStandalone = path === '/investors' || path.startsWith('/investors/')
+  if (investorStandalone) {
+    return <Safe label="Prestadito$ Inversionistas"><PrestaditosInvestorAppHost /></Safe>
+  }
   if (!companyReady) return null
 
   const moduleName = currentModuleName(navigation)
@@ -86,7 +93,6 @@ export default function DeferredRuntimeHosts() {
   const isMasterRoute = pathname === '/master' || pathname.startsWith('/master/')
   const isAccountRoute = pathname === '/cuenta' || pathname === '/mi-cuenta'
   const isEggWholesaleRoute = pathname === '/eggs' || pathname.startsWith('/eggs/')
-  const isInvestorRoute = pathname === '/investors' || pathname.startsWith('/investors/')
 
   return <>
     <Safe label="Compatibilidad Workspace"><WorkspaceNavigationBridge /></Safe>
@@ -139,6 +145,5 @@ export default function DeferredRuntimeHosts() {
     </>}
     {isAccountRoute && <Safe label="Cuenta SaaS"><SaasCustomerAccountHost /></Safe>}
     {isEggWholesaleRoute && <Safe label="IDEALO Eggs"><EggWholesaleAppHost /></Safe>}
-    {isInvestorRoute && <Safe label="Prestadito$ Inversionistas"><PrestaditosInvestorAppHost /></Safe>}
   </>
 }
