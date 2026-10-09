@@ -86,7 +86,7 @@ check('Descarga de comprobantes exige propietario o administrador',
  sql.receipts.includes("e.status='APPROVED'") &&
  sql.receipts.includes("i.status='ACTIVE'"))
 check('Comprobante solo de solicitud pendiente, propia y de la misma empresa',
- sql.receipts.includes('a.created_by=auth.uid()')&&sql.receipts.includes("a.status='PENDING'")&&
+ sql.receipts.includes('a.created_by=l.user_id')&&sql.receipts.includes("a.status='PENDING'")&&
  receipt.includes("a.portal_receipt_path is not null")&&receipt.includes("a.created_by<>auth.uid()"))
 check('Datos de cuenta anterior se limpian al cambiar de sesión',
  frontend.includes('setProfile(null);setData(null);setLoading(Boolean(s));setSession(s)'))
