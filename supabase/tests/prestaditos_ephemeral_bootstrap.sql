@@ -73,6 +73,11 @@ begin
   raise exception 'TEST FAIL: expected rejection: %',detail;
  exception when others then
   if sqlerrm like 'TEST FAIL:%' then raise; end if;
+  -- Reject malformed test SQL: only permission denied and explicit business guard
+  -- errors count as genuine security denials.
+  if sqlstate not in ('42501','P0001') then
+   raise exception 'TEST FAIL: unexpected SQLSTATE % for %: %',sqlstate,detail,sqlerrm;
+  end if;
   raise notice 'PASS: % (rejected: %)',detail,sqlerrm;
  end;
 end $$;
