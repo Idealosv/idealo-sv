@@ -82,16 +82,29 @@ create policy inv_portal_links_select on public.inv_portal_links
 for select to authenticated using (
  user_id=(select auth.uid()) or public.inv_company_can_review(company_id)
 );
+-- Account-active helper reads the ERP investor record as definer without
+-- granting general inv_investors SELECT or bypassing tenant boundaries.
+create function public.inv_portal_account_active(p_company uuid,p_investor uuid)
+returns boolean language sql stable security definer set search_path=''
+as $$
+ select exists (
+  select 1 from public.inv_portal_links l
+  join public.inv_portal_enrollments e on e.company_id=l.company_id
+    and e.user_id=l.user_id and e.status='APPROVED'
+  join public.inv_investors i on i.company_id=l.company_id
+    and i.id=l.investor_id and i.status='ACTIVE'
+  where l.company_id=p_company and l.investor_id=p_investor
+    and l.user_id=auth.uid()
+    and public.inv_portal_company_available(l.company_id)
+ );
+$$;
+revoke all on function public.inv_portal_account_active(uuid,uuid) from public,anon;
+grant execute on function public.inv_portal_account_active(uuid,uuid) to authenticated;
+
 create policy inv_portal_withdrawals_select on public.inv_portal_withdrawals
 for select to authenticated using (
  public.inv_company_can_review(company_id)
- or exists (
-   select 1 from public.inv_portal_links l
-   join public.inv_portal_enrollments e on e.company_id=l.company_id and e.user_id=l.user_id and e.status='APPROVED'
-   where l.company_id=inv_portal_withdrawals.company_id
-   and l.investor_id=inv_portal_withdrawals.investor_id
-   and l.user_id=(select auth.uid())
- )
+ or public.inv_portal_account_active(company_id,investor_id)
 );
 -- Financial insert/update/delete are not granted directly to investor accounts.
 -- All transitions must go through security-definer RPCs in next migration.
