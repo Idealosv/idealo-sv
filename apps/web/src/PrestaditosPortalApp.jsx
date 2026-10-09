@@ -115,6 +115,7 @@ export default function PrestaditosPortalApp(){
   {!companyId&&!demo?<main className="pti-card pti-centered"><h2>Se necesita un enlace de invitación</h2><p>Solicita a Prestaditos el enlace oficial para inversionistas. No debes registrarte como empresa comercial en IDEALO SV.</p></main>:
   !ready?<main className="pti-centered">Verificando cuenta…</main>:
   !demo&&!supabase?<main className="pti-centered">Falta configurar Supabase.</main>:
+  !demo&&!supabase?<main className="pti-card pti-centered"><h2>No se configuró Supabase</h2><p>El sistema no puede iniciar sesión hasta que se configure la conexión existente.</p></main>:
   !demo&&!session?<main className="pti-card pti-centered"><p className="pti-kicker">ACCESO PRIVADO</p><h1>{signup?'Crear mi cuenta':'Ingresar como inversionista'}</h1><p>Tu acceso debe ser aprobado por Prestaditos. Registrarte no constituye una inversión.</p>
    <form onSubmit={signIn} className="pti-form"><label>Correo<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="pti-primary" disabled={busy}>{busy?'Procesando…':signup?'Solicitar cuenta':'Ingresar'}</button></form>
    <button className="pti-text-button" onClick={()=>{setSignup(!signup);setError('');setNotice('')}}>{signup?'Ya tengo una cuenta':'Quiero registrarme'}</button></main>:
