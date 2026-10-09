@@ -9,7 +9,7 @@ begin
  if not public.inv_company_can_review(e.company_id) then raise exception 'Acceso denegado'; end if;
  select * into i from public.inv_investors where id=p_investor and company_id=e.company_id and status='ACTIVE';
  if not found then raise exception 'Inversionista no encontrado o inactivo'; end if;
- if regexp_replace(i.dui,'[^0-9]','','g')<>regexp_replace(e.dui,'[^0-9]','','g')
+ if length(regexp_replace(e.dui,'[^0-9]','','g'))<>9 or regexp_replace(i.dui,'[^0-9]','','g')<>regexp_replace(e.dui,'[^0-9]','','g')
  then raise exception 'El DUI no coincide con el expediente'; end if;
  if trim(coalesce(i.email,''))<>'' and lower(trim(i.email))<>lower(trim(e.email))
  then raise exception 'El correo no coincide con el expediente'; end if;
@@ -51,7 +51,7 @@ begin
  then raise exception 'Empresa no disponible'; end if;
  if p_amount is null or p_amount<=0 or p_amount>999999999999.99 or p_months is null or p_months not between 1 and 60
  then raise exception 'Monto o plazo inválido'; end if;
- if p_start is null or p_start<current_date then raise exception 'Fecha prevista inválida'; end if;
+ if p_start is null or p_start<(now() at time zone 'America/El_Salvador')::date then raise exception 'Fecha prevista inválida'; end if;
  if length(trim(coalesce(p_method,'')))<3 or length(p_method)>80
   or length(coalesce(p_place,''))>120 or length(coalesce(p_notes,''))>1000 then raise exception 'Campos inválidos'; end if;
  insert into public.inv_applications(company_id,investor_id,requested_amount,requested_term_months,requested_start_date,
