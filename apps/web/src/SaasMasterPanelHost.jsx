@@ -305,6 +305,7 @@ export default function SaasMasterPanelHost() {
         <div className="saas-master-actions">
           <a href="/master/cobros">Cobros</a>
           <a href="/master/finanzas">Finanzas</a>
+          <a href="/prestaditos/admin">Prestaditos</a>
           <a href="/">Volver al ERP</a>
           <button onClick={reload} disabled={loading}>Actualizar</button>
         </div>
