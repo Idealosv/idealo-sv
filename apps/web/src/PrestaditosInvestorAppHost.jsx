@@ -233,7 +233,7 @@ export default function PrestaditosInvestorAppHost(){
    {notice&&<div className="prst-alert success">{notice}</div>}
 
    <section className="prst-content">
-    {tab==='App inversionistas'&&<PrestaditosPortalInbox company={company} role={role} investors={investors} payments={payments} onChanged={load} onGoPayment={investmentId=>{setFocusInvestmentId(investmentId);selectTab('Rendimientos')}}/>}
+    {tab==='App inversionistas'&&<PrestaditosPortalInbox company={company} role={role} investors={investors} applications={applications} payments={payments} onChanged={load} onGoPayment={investmentId=>{setFocusInvestmentId(investmentId);selectTab('Rendimientos')}}/>}
     {tab==='Dashboard'&&<PrestaditosDashboardPanel investors={investors} applications={applications} investments={investments} payments={payments} contracts={contracts} renewals={renewals} documents={documents} investorMap={investorMap} alerts={openAlerts} onGo={selectTab} onAlert={goFromAlert}/>} 
     {tab==='Notificaciones'&&<PrestaditosAlertsPanel company={company} investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} renewals={renewals} investorMap={investorMap} notificationStates={notificationStates} act={act} onGo={goFromAlert}/>} 
     {tab==='Agenda'&&<PrestaditosAgendaPanel investors={investors} applications={applications} investments={investments} contracts={contracts} renewals={renewals} investorMap={investorMap} onGo={goFromAlert}/>} 
