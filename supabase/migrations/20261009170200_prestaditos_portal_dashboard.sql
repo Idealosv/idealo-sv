@@ -5,6 +5,7 @@ as $$
 declare v_investor uuid;v_data jsonb;
 begin
  select l.investor_id into v_investor from public.inv_portal_links l
+ join public.inv_investors i on i.id=l.investor_id and i.company_id=l.company_id and i.status='ACTIVE'
  join public.inv_portal_enrollments e on e.company_id=l.company_id and e.user_id=l.user_id
  where l.company_id=p_company and l.user_id=auth.uid() and e.status='APPROVED';
  if v_investor is null then raise exception 'Cuenta no aprobada'; end if;
