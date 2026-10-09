@@ -117,7 +117,8 @@ export default function PrestaditosInvestorAppHost(){
  const [mobileNavOpen,setMobileNavOpen]=useState(false)
 
  const resolveContext=useCallback(async()=>{
-  if(!enabled||!supabase)return
+  if(!enabled)return
+  if(!supabase){setLoading(false);setError('Supabase no está configurado para el ERP de Prestaditos.');return}
   setLoading(true);setError('')
   try{
    const {data:{session}}=await supabase.auth.getSession()
