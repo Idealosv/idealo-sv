@@ -37,7 +37,9 @@ export default function PrestaditosPortalApp(){
  useEffect(()=>{
   if(demo||!supabase){setReady(true);return}
   supabase.auth.getSession().then(({data:auth})=>{setSession(auth.session);setReady(true)})
-  const {data:sub}=supabase.auth.onAuthStateChange((_event,s)=>setSession(s))
+  const {data:sub}=supabase.auth.onAuthStateChange((_event,s)=>{
+   setProfile(null);setData(null);setLoading(Boolean(s));setSession(s)
+  })
   return ()=>sub.subscription.unsubscribe()
  },[demo])
  const reload=useCallback(async()=>{
