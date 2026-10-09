@@ -40,7 +40,7 @@ check('Cuenta requiere identidad coincidente y correo ERP presente',
  link.includes("regexp_replace(i.dui")&&link.includes("length(regexp_replace(e.dui")&&
  link.includes("trim(coalesce(i.email,''))='' or lower(trim(i.email))<>lower(trim(e.email))"))
 check('Aprobación requiere inversionista activo de la misma empresa',
- link.includes('company_id=e.company_id and status=\\'ACTIVE\\'')&&
+ link.includes("company_id=e.company_id and status='ACTIVE'")&&
  sql.access.includes('unique(company_id,investor_id)')&&sql.access.includes('unique(company_id,user_id)'))
 check('Solicitud de aporte usa libro ERP original y cuenta aprobada',
  apply.includes("e.status='APPROVED'")&&apply.includes("i.status='ACTIVE'")&&
