@@ -5,7 +5,7 @@ import PrestaditosAdmin from './PrestaditosAdmin.jsx'
 import './prestaditos.css'
 
 const adminRoute = window.location.pathname.startsWith('/prestaditos/admin')
-const Logo = () => <div className="pt-logo"><img src="/prestaditos-logo.png" alt="Símbolo Prestaditos" /><div><strong>PRESTADITO$</strong><small>INVERSIONISTAS · EL SALVADOR</small></div></div>
+const Logo = () => <div className="pt-logo"><img src="/prestaditos-logo.svg" alt="Símbolo Prestaditos" /><div><strong>PRESTADITO$</strong><small>INVERSIONISTAS · EL SALVADOR</small></div></div>
 export { Logo }
 
 export default function PrestaditosPortal() {
