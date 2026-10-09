@@ -38,7 +38,9 @@ begin
   ),'[]'::jsonb),
   'withdrawals',coalesce((
     select jsonb_agg(jsonb_build_object('id',w.id,'amount',w.amount,'type',w.payment_type,
-    'status',w.status,'investment_id',w.investment_id,'created_at',w.created_at,
+    'status',case when w.status='COMPLETED' and exists(
+      select 1 from public.inv_payments p where p.id=w.payment_id and p.status='REVERSED'
+     ) then 'PAYMENT_REVERSED' else w.status end,'investment_id',w.investment_id,'created_at',w.created_at,
     'decision_notes',w.decision_notes) order by w.created_at desc)
     from public.inv_portal_withdrawals w where w.investor_id=i.id and w.company_id=p_company
   ),'[]'::jsonb)
