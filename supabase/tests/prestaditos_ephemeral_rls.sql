@@ -80,7 +80,7 @@ reset role;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
 set role authenticated;
 insert into storage.objects(bucket_id,name) values
- ('prestaditos-portal-receipts','11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/:'a_app_id'/test-proof.pdf');
+ ('prestaditos-portal-receipts','11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/test-proof.pdf');
 select test.assert_true((select count(*)=1 from storage.objects where bucket_id='prestaditos-portal-receipts'),'A sees own storage object');
 select public.inv_portal_attach_receipt(:'a_app_id'::uuid,
  '11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/'||:'a_app_id'||'/test-proof.pdf');
