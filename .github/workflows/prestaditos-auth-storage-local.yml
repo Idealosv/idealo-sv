@@ -31,8 +31,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Instalar dependencias Node con lockfile
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Instalar dependencias Node del repositorio sin bloquear por lockfile ausente
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Iniciar Supabase LOCAL sin Studio ni servicios innecesarios
         run: |
           set -euo pipefail
