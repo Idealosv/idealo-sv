@@ -54,7 +54,7 @@ grant insert on public.inv_portal_enrollments to authenticated;
 -- Validate eligibility without granting investors direct access to private SaaS membership tables.
 create function public.inv_portal_company_available(p_company uuid)
 returns boolean language sql stable security definer set search_path=''
-as $
+as $$
  select exists (
   select 1 from public.saas_company_subscriptions s
   join public.saas_verticals v on v.id=s.vertical_id
@@ -62,7 +62,7 @@ as $
   and (s.status in ('active','trial') or
        (s.status='past_due' and s.grace_ends_at>now()))
  );
-$;
+$$;
 revoke all on function public.inv_portal_company_available(uuid) from public,anon;
 grant execute on function public.inv_portal_company_available(uuid) to authenticated;
 
