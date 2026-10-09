@@ -9,6 +9,7 @@ const entry=read('../src/main.jsx')
 const base=read('../../../supabase/migrations/20261009170000_prestaditos_portal_access.sql')
 const rpc=read('../../../supabase/migrations/20261009170100_prestaditos_portal_rpc.sql')
 const snapshot=read('../../../supabase/migrations/20261009170200_prestaditos_portal_dashboard.sql')
+const receipts=read('../../../supabase/migrations/20261009170300_prestaditos_portal_receipts.sql')
 const checks=[
  ['App tiene formulario de inversión y retiro',portal.includes("inv_portal_submit_application")&&portal.includes("inv_portal_submit_withdrawal")],
  ['App muestra demo local sin dinero real',portal.includes('SOLICITUD SIMULADA')&&portal.includes("params.get('demo')==='1'")],
@@ -18,6 +19,8 @@ const checks=[
  ['Retiros NO asientan pagos automáticamente',rpc.includes('insert into public.inv_portal_withdrawals')&&!rpc.includes('insert into public.inv_payments')],
  ['Retiros completados requieren pago real registrado',rpc.includes("p.status='POSTED'")&&rpc.includes('p.payment_type=r.payment_type')&&rpc.includes('p.amount=r.amount')],
  ['Datos de la app salen del libro ERP existente',snapshot.includes('public.inv_investments')&&snapshot.includes('public.inv_payments')&&snapshot.includes('public.inv_applications')],
+ ['Comprobantes privados vinculados a la solicitud del ERP',portal.includes('inv_portal_attach_receipt')&&receipts.includes('portal_receipt_path')&&receipts.includes('public=false')],
+ ['Acceso al comprobante solo con cuenta o administrador verificado',receipts.includes('inv_portal_receipt_read')&&receipts.includes('inv_portal_links')],
  ['No hay una segunda contabilidad',![base,rpc,snapshot].some(x=>x.includes('prestaditos_ledger'))],
  ['Acceso ligado a un usuario autenticado',snapshot.includes('auth.uid()')&&base.includes('enable row level security')],
  ['No se habilita acceso financiero sin expediente aprobado',rpc.includes("e.status='APPROVED'")&&rpc.includes("i.status='ACTIVE'")],
