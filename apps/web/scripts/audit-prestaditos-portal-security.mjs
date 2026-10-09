@@ -48,6 +48,14 @@ check('Solicitud de aporte usa libro ERP original y cuenta aprobada',
 check('Solicitud de retiro solo en inversión y empresa verificadas',
  withdraw.includes('investor_id=v_investor')&&withdraw.includes("e.status='APPROVED'")&&
  withdraw.includes("v.code='FINANCIAL_INVESTORS'")&&withdraw.includes("status in ('ACTIVE','MATURING','MATURED')"))
+check('Solicitudes concurrentes de capital respetan pagos y retiros abiertos',
+ withdraw.includes('for update;')&&withdraw.includes('v_paid')&&withdraw.includes('v_reserved')&&
+ withdraw.includes("w.status in ('PENDING','REVIEW','APPROVED')")&&
+ withdraw.includes('p_amount>v_balance-v_paid-v_reserved'))
+check('Un retiro completado con pago revertido exige conciliacion',
+ dash.includes("w.status='COMPLETED'")&&dash.includes("p.status='REVERSED'")&&
+ dash.includes("'PAYMENT_REVERSED'")&&frontend.includes('PAYMENT_REVERSED')&&
+ inbox.includes('PAGO REVERTIDO · CONCILIAR'))
 check('Solicitud de retiro jamás genera un pago directo',
  withdraw.includes('insert into public.inv_portal_withdrawals')&&!withdraw.includes('insert into public.inv_payments'))
 check('Solo admins pueden revisar retiros y las transiciones son controladas',
