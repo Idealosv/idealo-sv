@@ -51,6 +51,21 @@ revoke all on public.inv_portal_enrollments,public.inv_portal_links,public.inv_p
 grant select on public.inv_portal_enrollments,public.inv_portal_links,public.inv_portal_withdrawals to authenticated;
 grant insert on public.inv_portal_enrollments to authenticated;
 
+-- Validate eligibility without granting investors direct access to private SaaS membership tables.
+create function public.inv_portal_company_available(p_company uuid)
+returns boolean language sql stable security definer set search_path=''
+as $
+ select exists (
+  select 1 from public.saas_company_subscriptions s
+  join public.saas_verticals v on v.id=s.vertical_id
+  where s.company_id=p_company and v.code='FINANCIAL_INVESTORS'
+  and (s.status in ('active','trial') or
+       (s.status='past_due' and s.grace_ends_at>now()))
+ );
+$;
+revoke all on function public.inv_portal_company_available(uuid) from public,anon;
+grant execute on function public.inv_portal_company_available(uuid) to authenticated;
+
 -- Readable to registered user (self) or the authorized ERP owner/admin for that company.
 create policy inv_portal_enrollment_select on public.inv_portal_enrollments
 for select to authenticated using (
@@ -61,13 +76,7 @@ for insert to authenticated with check (
  user_id=(select auth.uid()) and status='PENDING' and reviewed_by is null
  and reviewed_at is null and decision_notes=''
  and lower(email)=lower(coalesce((select auth.jwt()->>'email'),''))
- and exists (
-  select 1 from public.saas_company_subscriptions s
-  join public.saas_verticals v on v.id=s.vertical_id
-  where s.company_id=inv_portal_enrollments.company_id and v.code='FINANCIAL_INVESTORS'
-  and (s.status in ('trial','active') or
-      (s.status='past_due' and s.grace_ends_at>now()))
- )
+ and public.inv_portal_company_available(company_id)
 );
 create policy inv_portal_links_select on public.inv_portal_links
 for select to authenticated using (
