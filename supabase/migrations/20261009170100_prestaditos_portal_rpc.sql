@@ -17,6 +17,8 @@ begin
  values(e.company_id,e.user_id,i.id,auth.uid());
  update public.inv_portal_enrollments set status='APPROVED',reviewed_by=auth.uid(),reviewed_at=now()
  where id=e.id;
+ insert into public.inv_audit_log(company_id,investor_id,action,detail,created_by)
+ values(e.company_id,i.id,'PORTAL_ACCESS_APPROVED',jsonb_build_object('enrollment_id',e.id,'user_id',e.user_id),auth.uid());
 end $$;
 
 create function public.inv_portal_reject_enrollment(p_enrollment uuid,p_reason text)
@@ -30,6 +32,8 @@ begin
  if length(trim(coalesce(p_reason,'')))<3 or length(p_reason)>1000 then raise exception 'Motivo obligatorio (3 a 1000 caracteres)'; end if;
  update public.inv_portal_enrollments set status='REJECTED',decision_notes=trim(p_reason),
  reviewed_by=auth.uid(),reviewed_at=now() where id=e.id;
+ insert into public.inv_audit_log(company_id,action,detail,created_by)
+ values(e.company_id,'PORTAL_ACCESS_REJECTED',jsonb_build_object('enrollment_id',e.id),auth.uid());
 end $$;
 
 -- Investor requests use existing inv_applications (no duplicate approvals or accounts).
@@ -58,6 +62,8 @@ begin
  payment_method,payment_place,observations,created_by,status)
  values(p_company,v_investor,p_amount,p_months,p_start,trim(p_method),trim(coalesce(p_place,'')),
  trim(coalesce(p_notes,'')),auth.uid(),'PENDING') returning id into v_id;
+ insert into public.inv_audit_log(company_id,investor_id,action,detail,created_by)
+ values(p_company,v_investor,'PORTAL_APPLICATION_SUBMITTED',jsonb_build_object('application_id',v_id),auth.uid());
  return v_id;
 end $$;
 
@@ -93,6 +99,8 @@ begin
  insert into public.inv_portal_withdrawals(company_id,investor_id,investment_id,payment_type,amount,payment_method,notes)
  values(p_company,v_investor,p_investment,p_type,p_amount,trim(p_method),trim(coalesce(p_notes,'')))
  returning id into v_id;
+ insert into public.inv_audit_log(company_id,investor_id,investment_id,action,detail,created_by)
+ values(p_company,v_investor,p_investment,'PORTAL_WITHDRAWAL_REQUESTED',jsonb_build_object('request_id',v_id,'amount',p_amount,'type',p_type),auth.uid());
  return v_id;
 end $$;
 
@@ -121,7 +129,9 @@ begin
  reviewed_at=now(),reviewed_by=auth.uid(),
  payment_id=case when p_status='COMPLETED' then p_payment else payment_id end
  where id=r.id;
-end $$;
+ insert into public.inv_audit_log(company_id,investor_id,investment_id,action,detail,created_by)
+ values(r.company_id,r.investor_id,r.investment_id,'PORTAL_WITHDRAWAL_'||p_status,jsonb_build_object('request_id',r.id,'payment_id',p_payment,'from',r.status,'to',p_status),auth.uid());
+end $;
 
 revoke all on function public.inv_portal_link_account(uuid,uuid),
  public.inv_portal_reject_enrollment(uuid,text),
