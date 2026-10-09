@@ -4,6 +4,7 @@ on:
     branches: [feature/prestaditos-portal-unificado]
     paths:
       - 'supabase/tests/prestaditos_ephemeral_*.sql'
+      - 'supabase/tests/prestaditos_concurrent_withdrawals.sh'
       - 'supabase/migrations/20261009*prestaditos*'
       - '.github/workflows/prestaditos-rls-postgres.yml'
   workflow_dispatch:
@@ -62,5 +63,9 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_ephemeral_seed.sql
       - name: Probar acceso RLS, fondos y archivos con sesiones de usuarios simuladas
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_ephemeral_rls.sql
+      - name: Ejecutar dos retiros simultaneos y comprobar serializacion
+        run: bash supabase/tests/prestaditos_concurrent_withdrawals.sh
+      - name: Comprobar revocacion de acceso al bloquear inversionista
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_ephemeral_revocation.sql
       - name: Inspeccionar permisos en catalogos, sin alterar datos
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_portal_security_readonly.sql
