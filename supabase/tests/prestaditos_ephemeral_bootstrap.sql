@@ -21,6 +21,11 @@ grant execute on function auth.jwt() to authenticated,anon;
 -- No real tokens or real users are used in these tests.
 create table public.companies(id uuid primary key, name text not null);
 create table public.company_members(company_id uuid not null references public.companies(id), user_id uuid not null references auth.users(id),role text not null,primary key(company_id,user_id));
+-- Match existing ERP membership SELECT entitlement, but only expose own roles.
+alter table public.company_members enable row level security;
+grant select on public.company_members to authenticated;
+create policy qa_member_self on public.company_members for select to authenticated
+ using(user_id=auth.uid());
 create table public.saas_verticals(id uuid primary key default gen_random_uuid(), code text not null unique,name text not null,description text not null default '',active boolean not null default true,updated_at timestamptz not null default now());
 create table public.saas_modules(id uuid primary key default gen_random_uuid(),code text not null unique,name text not null,description text not null default '',is_core boolean default false,active boolean default true);
 create table public.saas_vertical_modules(vertical_id uuid references public.saas_verticals(id),module_id uuid references public.saas_modules(id),enabled_by_default boolean,primary key(vertical_id,module_id));
