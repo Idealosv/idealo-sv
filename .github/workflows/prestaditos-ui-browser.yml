@@ -1,0 +1,44 @@
+name: Prestadito$ · navegacion visual local
+on:
+  push:
+    branches: [feature/prestaditos-portal-unificado]
+    paths:
+      - 'qa/prestaditos/test-ui-browser.mjs'
+      - 'apps/web/src/DeferredRuntimeHosts.jsx'
+      - 'apps/web/src/PrestaditosInvestorAppHost.jsx'
+      - 'apps/web/src/PrestaditosPortalApp.jsx'
+      - '.github/workflows/prestaditos-ui-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: prestaditos-ui-local
+  cancel-in-progress: true
+jobs:
+  browser-ui:
+    name: Navegar app movil y ERP en Chromium, sin datos reales
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar frontend y navegador local de pruebas
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Levantar Vite local para QA (sin red exterior)
+        run: |
+          set -euo pipefail
+          (cd apps/web && npx vite --host 127.0.0.1 --port 4173 --strictPort > "$RUNNER_TEMP/prestaditos-vite.log" 2>&1) &
+          for i in $(seq 1 50); do
+            if curl --fail --silent http://127.0.0.1:4173/prestaditos/app?demo=1 >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/prestaditos/app?demo=1 > /dev/null
+      - name: Interaccion visual con datos completamente ficticios
+        env:
+          PRESTADITOS_QA_URL: http://127.0.0.1:4173
+        run: node qa/prestaditos/test-ui-browser.mjs

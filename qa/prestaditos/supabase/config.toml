@@ -1,0 +1,41 @@
+# SOLO QA local. No vincular con el proyecto remoto de IDEALO SV.
+project_id = "prestaditos-qa-local"
+
+[api]
+enabled = true
+port = 55321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 55322
+shadow_port = 55320
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:55321"
+additional_redirect_urls = ["http://127.0.0.1:55321"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[studio]
+enabled = false
+
+[realtime]
+enabled = false
+
+[analytics]
+enabled = false
+
+[inbucket]
+enabled = false

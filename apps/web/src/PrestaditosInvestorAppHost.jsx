@@ -29,10 +29,12 @@ import PrestaditosProductionReadinessPanel from './PrestaditosProductionReadines
 import PrestaditosExportPanel from './PrestaditosExportPanel.jsx'
 import PrestaditosHelpPanel from './PrestaditosHelpPanel.jsx'
 import PrestaditosDashboardPanel from './PrestaditosDashboardPanel.jsx'
+import PrestaditosPortalInbox from './PrestaditosPortalInbox.jsx'
 
 const API=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
 const TABS=[
  ['Dashboard','Resumen de inversiones'],
+ ['App inversionistas','Registro móvil y solicitudes de retiro'],
  ['Notificaciones','Seguimiento operativo'],
  ['Agenda','Vencimientos y tareas'],
  ['Inversionistas','Expedientes y documentos'],
@@ -59,7 +61,7 @@ const TABS=[
  ['Configuración','Reglas del vertical'],
 ]
 
-const MAIN_TABS=['Dashboard','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos','Tesorería','Reportes']
+const MAIN_TABS=['Dashboard','App inversionistas','Inversionistas','Solicitudes','Inversiones','Rendimientos','Vencimientos','Tesorería','Reportes']
 const MODULE_ACTIONS={
  Dashboard:['Notificaciones','Agenda'],
  Inversionistas:['Perfil 360','Beneficiarios','Documentos'],
@@ -115,7 +117,8 @@ export default function PrestaditosInvestorAppHost(){
  const [mobileNavOpen,setMobileNavOpen]=useState(false)
 
  const resolveContext=useCallback(async()=>{
-  if(!enabled||!supabase)return
+  if(!enabled)return
+  if(!supabase){setLoading(false);setError('Supabase no está configurado para el ERP de Prestaditos.');return}
   setLoading(true);setError('')
   try{
    const {data:{session}}=await supabase.auth.getSession()
@@ -203,7 +206,7 @@ export default function PrestaditosInvestorAppHost(){
   {mobileNavOpen&&<button type="button" className="prst-mobile-overlay" aria-label="Cerrar menú" onClick={()=>setMobileNavOpen(false)}/>}
   <aside className={`prst-sidebar ${mobileNavOpen?'mobile-open':''}`}>
    <div className="prst-brand">
-    <span className="prst-mark">$</span>
+    <span className="prst-mark"><img src="/prestaditos-logo.svg" alt="Logo de Prestaditos" style={{maxWidth:40,maxHeight:40,objectFit:"contain"}}/></span>
     <div><strong>PRESTADITO$</strong><small>El Préstamo a tu Crecimiento</small></div>
    </div>
    <div className="prst-company"><span>EMPRESA</span><strong>{company?.name||'Prestadito$ El Salvador'}</strong><small>{role||'Usuario autorizado'}</small></div>
@@ -231,6 +234,7 @@ export default function PrestaditosInvestorAppHost(){
    {notice&&<div className="prst-alert success">{notice}</div>}
 
    <section className="prst-content">
+    {tab==='App inversionistas'&&<PrestaditosPortalInbox company={company} role={role} investors={investors} applications={applications} payments={payments} onChanged={load} onGoPayment={investmentId=>{setFocusInvestmentId(investmentId);selectTab('Rendimientos')}}/>}
     {tab==='Dashboard'&&<PrestaditosDashboardPanel investors={investors} applications={applications} investments={investments} payments={payments} contracts={contracts} renewals={renewals} documents={documents} investorMap={investorMap} alerts={openAlerts} onGo={selectTab} onAlert={goFromAlert}/>} 
     {tab==='Notificaciones'&&<PrestaditosAlertsPanel company={company} investors={investors} applications={applications} investments={investments} contracts={contracts} payments={payments} renewals={renewals} investorMap={investorMap} notificationStates={notificationStates} act={act} onGo={goFromAlert}/>} 
     {tab==='Agenda'&&<PrestaditosAgendaPanel investors={investors} applications={applications} investments={investments} contracts={contracts} renewals={renewals} investorMap={investorMap} onGo={goFromAlert}/>} 

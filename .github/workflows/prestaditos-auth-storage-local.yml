@@ -1,0 +1,76 @@
+name: Prestadito$ · Auth y Storage local (sin producción)
+on:
+  push:
+    branches: [feature/prestaditos-portal-unificado]
+    paths:
+      - 'qa/prestaditos/**'
+      - '.github/workflows/prestaditos-auth-storage-local.yml'
+      - 'supabase/migrations/20261009*prestaditos*'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: prestaditos-auth-storage-qa
+  cancel-in-progress: true
+jobs:
+  auth-storage-local:
+    name: Supabase Auth y Storage reales, exclusivamente en Docker local
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_DB_PASSWORD: ''
+      SUPABASE_PROJECT_ID: ''
+      PGHOST: 127.0.0.1
+      PGPORT: '55322'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias Node del repositorio sin bloquear por lockfile ausente
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Iniciar Supabase LOCAL sin Studio ni servicios innecesarios
+        run: |
+          set -euo pipefail
+          cd qa/prestaditos
+          npx --yes supabase@2 start -x realtime,imgproxy,inbucket,studio,edge-runtime,logflare,vector,supavisor
+      - name: Aplicar migraciones REALES solo al PostgreSQL local
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f qa/prestaditos/prerequisites.sql
+          for migration in \
+            supabase/migrations/20260921154000_prestaditos_investor_vertical.sql \
+            supabase/migrations/20260921170500_prestaditos_application_workflow.sql \
+            supabase/migrations/20260921184500_prestaditos_payment_ledger.sql \
+            supabase/migrations/20261009170000_prestaditos_portal_access.sql \
+            supabase/migrations/20261009170100_prestaditos_portal_rpc.sql \
+            supabase/migrations/20261009170200_prestaditos_portal_dashboard.sql \
+            supabase/migrations/20261009170300_prestaditos_portal_receipts.sql
+          do
+            echo "Migración local: $migration"
+            psql -X -v ON_ERROR_STOP=1 -f "$migration" > /dev/null
+          done
+          psql -X -v ON_ERROR_STOP=1 -f qa/prestaditos/seed-company.sql
+      - name: Ejecutar login real, registro y comprobantes vía Auth y Storage API
+        run: |
+          set -euo pipefail
+          file="$RUNNER_TEMP/prestaditos-local-auth.env"
+          trap 'rm -f "$file"' EXIT
+          (cd qa/prestaditos && npx --yes supabase@2 status -o env) > "$file"
+          set -a
+          source "$file"
+          set +a
+          if [[ -z "$API_URL" || -z "$ANON_KEY" || -z "$SERVICE_ROLE_KEY" ]]; then
+            echo "Local Supabase no devolvió claves de Auth/Storage QA"
+            exit 1
+          fi
+          node qa/prestaditos/test-auth-storage.mjs
+      - name: Apagar contenedores QA sin respaldo
+        if: always()
+        run: |
+          cd qa/prestaditos
+          npx --yes supabase@2 stop --no-backup || true

@@ -1,0 +1,28 @@
+name: Prestadito$ portal · pruebas gratuitas
+on:
+  push:
+    branches:
+      - feature/prestaditos-portal-unificado
+  pull_request:
+    branches:
+      - feat/prestaditos-inversionistas
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Simulaciones y compilación web
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tres escenarios ficticios y controles estáticos del portal
+        run: node apps/web/scripts/audit-prestaditos-portal.mjs
+      - name: Controles de seguridad de autorización, privacidad y auditoría
+        run: node apps/web/scripts/audit-prestaditos-portal-security.mjs
+      - name: Instalar dependencias existentes
+        run: npm install
+      - name: Compilar app y ERP sin modificar backend ni producción
+        run: npm exec --workspace=@idealo-sv/web -- vite build
