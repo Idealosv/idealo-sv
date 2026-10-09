@@ -5,7 +5,7 @@ create extension if not exists pgcrypto;
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('prestaditos-portal-receipts','prestaditos-portal-receipts',false,5242880,
 array['image/jpeg','image/png','application/pdf'])
-on conflict(id) do nothing;
+on conflict(id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
 create policy inv_portal_receipt_upload on storage.objects
 for insert to authenticated with check (
  bucket_id='prestaditos-portal-receipts'
@@ -25,8 +25,12 @@ for select to authenticated using (
  bucket_id='prestaditos-portal-receipts'
  and (
   ((storage.foldername(name))[2]=auth.uid()::text
-   and exists(select 1 from public.inv_portal_links l where l.company_id::text=(storage.foldername(name))[1] and l.user_id=auth.uid()))
-  or public.inv_company_can_review(((storage.foldername(name))[1])::uuid)
+   and exists(select 1 from public.inv_portal_links l
+      join public.inv_portal_enrollments e on e.company_id=l.company_id and e.user_id=l.user_id and e.status='APPROVED'
+      join public.inv_investors i on i.id=l.investor_id and i.company_id=l.company_id and i.status='ACTIVE'
+      where l.company_id::text=(storage.foldername(name))[1] and l.user_id=auth.uid()))
+  or exists(select 1 from public.companies c
+    where c.id::text=(storage.foldername(name))[1] and public.inv_company_can_review(c.id))
  )
 );
 create function public.inv_portal_attach_receipt(p_application uuid,p_path text)
