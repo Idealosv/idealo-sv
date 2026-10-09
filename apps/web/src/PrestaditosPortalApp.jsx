@@ -3,7 +3,7 @@ import { supabase } from './lib/supabase.js'
 import './prestaditos-portal.css'
 
 const money=n=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(Number(n)||0)
-const labels={PENDING:'Pendiente',REVIEW:'En revisión',APPROVED:'Aprobada',REJECTED:'Rechazada',SIGNATURE:'En firma',FUNDS_RECEIVED:'Fondos recibidos',ACTIVE:'Activa',MATURING:'Próxima a vencer',MATURED:'Vencida',RENEWED:'Renovada',CLOSED:'Cerrada',COMPLETED:'Completada',POSTED:'Registrado',REVERSED:'Revertido'}
+const labels={PENDING:'Pendiente',REVIEW:'En revisión',APPROVED:'Aprobada',REJECTED:'Rechazada',SIGNATURE:'En firma',FUNDS_RECEIVED:'Fondos recibidos',ACTIVE:'Activa',MATURING:'Próxima a vencer',MATURED:'Vencida',RENEWED:'Renovada',CLOSED:'Cerrada',COMPLETED:'Completada',PAYMENT_REVERSED:'Pago revertido · revisar',POSTED:'Registrado',REVERSED:'Revertido'}
 const demoData={
  investor:{id:'demo',name:'María Elena López',investor_code:'INV-DEMO-001',status:'ACTIVE'},
  investments:[{id:'demo-inv',code:'INV-DEMO-100',principal:5000,rate:12,status:'ACTIVE',granted_at:'2026-02-01',maturity_date:'2027-02-01',term_months:12}],
