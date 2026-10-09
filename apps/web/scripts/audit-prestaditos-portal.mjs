@@ -19,7 +19,7 @@ const checks=[
  ['Retiros NO asientan pagos automáticamente',rpc.includes('insert into public.inv_portal_withdrawals')&&!rpc.includes('insert into public.inv_payments')],
  ['Retiros completados requieren pago real registrado',rpc.includes("p.status='POSTED'")&&rpc.includes('p.payment_type=r.payment_type')&&rpc.includes('p.amount=r.amount')],
  ['Datos de la app salen del libro ERP existente',snapshot.includes('public.inv_investments')&&snapshot.includes('public.inv_payments')&&snapshot.includes('public.inv_applications')],
- ['Comprobantes privados vinculados a la solicitud del ERP',portal.includes('inv_portal_attach_receipt')&&receipts.includes('portal_receipt_path')&&receipts.includes('public=false')],
+ ['Comprobantes privados vinculados a la solicitud del ERP',portal.includes('inv_portal_attach_receipt')&&receipts.includes('portal_receipt_path')&&receipts.includes('false,5242880')],
  ['Acceso al comprobante solo con cuenta o administrador verificado',receipts.includes('inv_portal_receipt_read')&&receipts.includes('inv_portal_links')],
  ['No hay una segunda contabilidad',![base,rpc,snapshot].some(x=>x.includes('prestaditos_ledger'))],
  ['Acceso ligado a un usuario autenticado',snapshot.includes('auth.uid()')&&base.includes('enable row level security')],
