@@ -11,7 +11,7 @@ begin
  if not found then raise exception 'Inversionista no encontrado o inactivo'; end if;
  if length(regexp_replace(e.dui,'[^0-9]','','g'))<>9 or regexp_replace(i.dui,'[^0-9]','','g')<>regexp_replace(e.dui,'[^0-9]','','g')
  then raise exception 'El DUI no coincide con el expediente'; end if;
- if trim(coalesce(i.email,''))<>'' and lower(trim(i.email))<>lower(trim(e.email))
+ if trim(coalesce(i.email,''))='' or lower(trim(i.email))<>lower(trim(e.email))
  then raise exception 'El correo no coincide con el expediente'; end if;
  insert into public.inv_portal_links(company_id,user_id,investor_id,created_by)
  values(e.company_id,e.user_id,i.id,auth.uid());
@@ -73,6 +73,10 @@ begin
  join public.inv_portal_enrollments e on e.user_id=l.user_id and e.company_id=l.company_id and e.status='APPROVED'
  where l.user_id=auth.uid() and l.company_id=p_company and i.status='ACTIVE';
  if v_investor is null then raise exception 'Cuenta no aprobada'; end if;
+ if not exists(select 1 from public.saas_company_subscriptions s join public.saas_verticals v on v.id=s.vertical_id
+  where s.company_id=p_company and v.code='FINANCIAL_INVESTORS'
+  and (s.status in ('active','trial') or (s.status='past_due' and s.grace_ends_at>now())))
+ then raise exception 'Empresa no disponible'; end if;
  if not exists(select 1 from public.inv_investments
  where id=p_investment and company_id=p_company and investor_id=v_investor and status in ('ACTIVE','MATURING','MATURED'))
  then raise exception 'La inversión seleccionada no está disponible'; end if;
