@@ -79,7 +79,6 @@ for select to authenticated using (
  or exists (
    select 1 from public.inv_portal_links l
    join public.inv_portal_enrollments e on e.company_id=l.company_id and e.user_id=l.user_id and e.status='APPROVED'
-   join public.inv_investors i on i.id=l.investor_id and i.company_id=l.company_id and i.status='ACTIVE'
    where l.company_id=inv_portal_withdrawals.company_id
    and l.investor_id=inv_portal_withdrawals.investor_id
    and l.user_id=(select auth.uid())
