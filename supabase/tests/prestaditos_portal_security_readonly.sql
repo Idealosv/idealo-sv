@@ -54,8 +54,18 @@ with checks(name, passed) as (
   ('RPC de consulta con SECURITY DEFINER', (
    select prosecdef from pg_proc where oid='public.inv_portal_dashboard(uuid)'::regprocedure
   )),
+  ('Ayudantes privados para formularios', (
+   not has_function_privilege('anon','public.inv_portal_company_available(uuid)','EXECUTE') and
+   not has_function_privilege('anon','public.inv_portal_receipt_upload_allowed(text)','EXECUTE') and
+   not has_function_privilege('anon','public.inv_portal_receipt_read_allowed(text)','EXECUTE')
+  )),
+  ('Ayudantes implementados con SECURITY DEFINER', (
+   (select prosecdef from pg_proc where oid='public.inv_portal_company_available(uuid)'::regprocedure) and
+   (select prosecdef from pg_proc where oid='public.inv_portal_receipt_upload_allowed(text)'::regprocedure) and
+   (select prosecdef from pg_proc where oid='public.inv_portal_receipt_read_allowed(text)'::regprocedure)
+  )),
   ('Comprobantes en bucket privado', (
-   select not public from storage.buckets where id='prestaditos-portal-receipts'
+   select not b.public from storage.buckets b where b.id='prestaditos-portal-receipts'
   )),
   ('Tamaño y formatos de comprobantes limitados', (
    select file_size_limit=5242880 and
