@@ -25,6 +25,7 @@ export default function PrestaditosPortalApp(){
  const [password,setPassword]=useState('')
  const [signup,setSignup]=useState(false)
  const [profile,setProfile]=useState(null)
+ const [receipt,setReceipt]=useState(null)
  const [data,setData]=useState(demo?demoData:null)
  const [registration,setRegistration]=useState({full_name:'',dui:'',phone:''})
  const [view,setView]=useState('inicio')
@@ -79,6 +80,9 @@ export default function PrestaditosPortalApp(){
   const amount=Number(form.amount)
   if(!Number.isFinite(amount)||amount<=0){setError('Ingresa un monto válido.');return}
   if(!demo&&!data)return
+  if(form.type==='contribution'&&receipt&&(!['image/jpeg','image/png','application/pdf'].includes(receipt.type)||receipt.size>5242880)){
+   setError('El comprobante debe ser JPG, PNG o PDF y pesar menos de 5 MB.');return
+  }
   setBusy(true);setError('');setNotice('')
   if(demo){
    const id='demo-'+Date.now()
@@ -97,9 +101,21 @@ export default function PrestaditosPortalApp(){
     p_company:companyId,p_investment:form.investment_id,p_type:form.payment_type,
     p_amount:amount,p_method:form.method,p_notes:form.notes
    }
-   const {error:err}=await supabase.rpc(rpcName,args)
+   const {data:applicationId,error:err}=await supabase.rpc(rpcName,args)
    if(err){setError(err.message);setBusy(false);return}
-   setNotice('Solicitud recibida. Aparecerá en el ERP de Prestaditos para revisión.')
+   let attachMessage='Solicitud recibida. Aparecerá en el ERP de Prestaditos para revisión.'
+   if(form.type==='contribution'&&receipt){
+    const ext={'image/jpeg':'jpg','image/png':'png','application/pdf':'pdf'}[receipt.type]
+    const path=[companyId,session.user.id,applicationId,crypto.randomUUID()+'.'+ext].join('/')
+    const uploaded=await supabase.storage.from('prestaditos-portal-receipts').upload(path,receipt,{contentType:receipt.type,upsert:false})
+    if(uploaded.error){attachMessage='Solicitud recibida, pero el comprobante no se pudo adjuntar: '+uploaded.error.message}
+    else{
+     const linked=await supabase.rpc('inv_portal_attach_receipt',{p_application:applicationId,p_path:path})
+     if(linked.error)attachMessage='Solicitud recibida, pero falló el enlace del comprobante: '+linked.error.message
+    }
+   }
+   setNotice(attachMessage)
+   setReceipt(null)
    await reload()
   }
   setBusy(false);setView('solicitudes');setForm(s=>({...s,amount:'',notes:''}))
@@ -114,7 +130,6 @@ export default function PrestaditosPortalApp(){
   <header className="pti-header"><Brand/><div>{demo?<span className="pti-demo">DEMO FICTICIA</span>:session?<button onClick={()=>supabase.auth.signOut()}>Salir</button>:<a href="/">IDEALO SV</a>}</div></header>
   {!companyId&&!demo?<main className="pti-card pti-centered"><h2>Se necesita un enlace de invitación</h2><p>Solicita a Prestaditos el enlace oficial para inversionistas. No debes registrarte como empresa comercial en IDEALO SV.</p></main>:
   !ready?<main className="pti-centered">Verificando cuenta…</main>:
-  !demo&&!supabase?<main className="pti-centered">Falta configurar Supabase.</main>:
   !demo&&!supabase?<main className="pti-card pti-centered"><h2>No se configuró Supabase</h2><p>El sistema no puede iniciar sesión hasta que se configure la conexión existente.</p></main>:
   !demo&&!session?<main className="pti-card pti-centered"><p className="pti-kicker">ACCESO PRIVADO</p><h1>{signup?'Crear mi cuenta':'Ingresar como inversionista'}</h1><p>Tu acceso debe ser aprobado por Prestaditos. Registrarte no constituye una inversión.</p>
    <form onSubmit={signIn} className="pti-form"><label>Correo<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="pti-primary" disabled={busy}>{busy?'Procesando…':signup?'Solicitar cuenta':'Ingresar'}</button></form>
@@ -135,7 +150,7 @@ export default function PrestaditosPortalApp(){
     <form className="pti-form" onSubmit={send}>
      <label>Inversionista<input readOnly value={info.investor.name}/></label>
      <label>Monto solicitado (USD)<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}/></label>
-     {form.type==='contribution'?<><label>Plazo solicitado (meses)<input required type="number" min="1" max="60" value={form.months} onChange={e=>setForm({...form,months:e.target.value})}/></label><label>Fecha de inicio deseada<input required type="date" min={todaySv()} value={form.start} onChange={e=>setForm({...form,start:e.target.value})}/></label><label>Lugar de aporte (opcional)<input maxLength="120" value={form.place} onChange={e=>setForm({...form,place:e.target.value})}/></label></>:
+     {form.type==='contribution'?<><label>Plazo solicitado (meses)<input required type="number" min="1" max="60" value={form.months} onChange={e=>setForm({...form,months:e.target.value})}/></label><label>Fecha de inicio deseada<input required type="date" min={todaySv()} value={form.start} onChange={e=>setForm({...form,start:e.target.value})}/></label><label>Lugar de aporte (opcional)<input maxLength="120" value={form.place} onChange={e=>setForm({...form,place:e.target.value})}/></label><label>Adjuntar comprobante (opcional, JPG / PNG / PDF, máximo 5 MB)<input type="file" accept="image/jpeg,image/png,application/pdf" onChange={e=>setReceipt(e.target.files?.[0]||null)}/></label></>:
       <><label>Inversión relacionada<select required value={form.investment_id} onChange={e=>setForm({...form,investment_id:e.target.value})}><option value="">Seleccionar inversión</option>{active.map(i=><option key={i.id} value={i.id}>{i.code} · {money(i.principal)}</option>)}</select></label><label>Tipo de retiro<select value={form.payment_type} onChange={e=>setForm({...form,payment_type:e.target.value})}><option value="CAPITAL_RETURN">Capital</option><option value="YIELD">Rendimientos</option></select></label></>}
      <label>Forma de pago solicitada<select value={form.method} onChange={e=>setForm({...form,method:e.target.value})}><option>Transferencia bancaria</option><option>Depósito bancario</option><option>Pago presencial</option></select></label>
      <label>Observaciones<textarea rows="3" maxLength="1000" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
