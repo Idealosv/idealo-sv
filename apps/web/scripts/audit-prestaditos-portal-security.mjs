@@ -70,6 +70,21 @@ check('Bucket de comprobantes privado y restringido en tamaño/tipo',
  sql.receipts.includes('false,5242880')&&
  sql.receipts.includes('on conflict(id) do update set public=false')&&
  sql.receipts.includes("array['image/jpeg','image/png','application/pdf']"))
+check('Registro no exige permisos sobre SaaS comercial',
+ sql.access.includes('create function public.inv_portal_company_available') &&
+ sql.access.includes('public.inv_portal_company_available(company_id)') &&
+ sql.access.includes('security definer set search_path='))
+check('Carga de comprobantes consulta expediente mediante funcion restringida',
+ sql.receipts.includes('create function public.inv_portal_receipt_upload_allowed') &&
+ sql.receipts.includes('public.inv_portal_receipt_upload_allowed(name)') &&
+ sql.receipts.includes('join public.inv_applications a') &&
+ sql.receipts.includes('a.created_by=l.user_id') &&
+ sql.receipts.includes('security definer set search_path='))
+check('Descarga de comprobantes exige propietario o administrador',
+ sql.receipts.includes('create function public.inv_portal_receipt_read_allowed') &&
+ sql.receipts.includes('public.inv_portal_receipt_read_allowed(name)') &&
+ sql.receipts.includes("e.status='APPROVED'") &&
+ sql.receipts.includes("i.status='ACTIVE'"))
 check('Comprobante solo de solicitud pendiente, propia y de la misma empresa',
  sql.receipts.includes('a.created_by=auth.uid()')&&sql.receipts.includes("a.status='PENDING'")&&
  receipt.includes("a.portal_receipt_path is not null")&&receipt.includes("a.created_by<>auth.uid()"))
