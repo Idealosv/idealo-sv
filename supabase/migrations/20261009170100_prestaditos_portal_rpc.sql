@@ -72,7 +72,7 @@ create function public.inv_portal_submit_withdrawal(
  p_company uuid,p_investment uuid,p_type text,p_amount numeric,p_method text,p_notes text default ''
 ) returns uuid language plpgsql security definer set search_path=''
 as $$
-declare v_investor uuid;v_id uuid;v_balance numeric;
+declare v_investor uuid;v_id uuid;v_balance numeric;v_reserved numeric;
 begin
  select l.investor_id into v_investor from public.inv_portal_links l
  join public.inv_investors i on i.id=l.investor_id and i.company_id=l.company_id
@@ -91,10 +91,20 @@ begin
  if length(trim(coalesce(p_method,'')))<3 or length(p_method)>80 or length(coalesce(p_notes,''))>1000
  then raise exception 'Campos inválidos'; end if;
  if p_type='CAPITAL_RETURN' then
-  select inv.principal-coalesce((select sum(p.amount) from public.inv_payments p
-   where p.investment_id=inv.id and p.payment_type='CAPITAL_RETURN' and p.status='POSTED'),0)
-  into v_balance from public.inv_investments inv where inv.id=p_investment;
-  if p_amount>v_balance then raise exception 'Monto mayor al capital pendiente'; end if;
+  -- Serialize requests for this investment to prevent parallel reservations
+  -- from exceeding capital after posted payments and open withdrawal requests.
+  select inv.principal into v_balance from public.inv_investments inv
+  where inv.id=p_investment and inv.company_id=p_company and inv.investor_id=v_investor
+  for update;
+  select v_balance-coalesce(sum(p.amount),0) into v_balance
+    from public.inv_payments p
+    where p.investment_id=p_investment and p.payment_type='CAPITAL_RETURN' and p.status='POSTED';
+  select coalesce(sum(w.amount),0) into v_reserved
+    from public.inv_portal_withdrawals w where w.investment_id=p_investment
+    and w.payment_type='CAPITAL_RETURN' and w.status in ('PENDING','REVIEW','APPROVED');
+  if p_amount>v_balance-v_reserved then
+    raise exception 'Capital disponible insuficiente (incluye retiros pendientes)';
+  end if;
  end if;
  insert into public.inv_portal_withdrawals(company_id,investor_id,investment_id,payment_type,amount,payment_method,notes)
  values(p_company,v_investor,p_investment,p_type,p_amount,trim(p_method),trim(coalesce(p_notes,'')))
