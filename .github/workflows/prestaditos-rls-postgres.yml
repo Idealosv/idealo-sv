@@ -1,0 +1,66 @@
+name: Prestadito$ · PostgreSQL RLS aislado
+on:
+  push:
+    branches: [feature/prestaditos-portal-unificado]
+    paths:
+      - 'supabase/tests/prestaditos_ephemeral_*.sql'
+      - 'supabase/migrations/20261009*prestaditos*'
+      - '.github/workflows/prestaditos-rls-postgres.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: prestaditos-rls-postgres
+  cancel-in-progress: true
+jobs:
+  rls-postgres:
+    name: RLS real con usuarios ficticios
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ephemeral-only-qa
+          POSTGRES_DB: prestaditos_ephemeral
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d prestaditos_ephemeral"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 8
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: ephemeral-only-qa
+      PGDATABASE: prestaditos_ephemeral
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirmar cliente PostgreSQL
+        run: psql --version
+      - name: Preparar usuarios falsos e infraestructura mínima
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_ephemeral_bootstrap.sql
+      - name: Aplicar migraciones REALES del ERP de Prestaditos en PostgreSQL efímero
+        run: |
+          set -euo pipefail
+          for migration in \
+            supabase/migrations/20260921154000_prestaditos_investor_vertical.sql \
+            supabase/migrations/20260921170500_prestaditos_application_workflow.sql \
+            supabase/migrations/20260921184500_prestaditos_payment_ledger.sql \
+            supabase/migrations/20261009170000_prestaditos_portal_access.sql \
+            supabase/migrations/20261009170100_prestaditos_portal_rpc.sql \
+            supabase/migrations/20261009170200_prestaditos_portal_dashboard.sql \
+            supabase/migrations/20261009170300_prestaditos_portal_receipts.sql
+          do
+            echo "Applying ephemeral migration $migration"
+            psql -X -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Sembrar empresas e inversionistas inventados
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_ephemeral_seed.sql
+      - name: Probar acceso RLS, fondos y archivos con sesiones de usuarios simuladas
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_ephemeral_rls.sql
+      - name: Inspeccionar permisos en catalogos, sin alterar datos
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_portal_security_readonly.sql
