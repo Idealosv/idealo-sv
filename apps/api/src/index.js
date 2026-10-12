@@ -6,7 +6,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './lib/supabase.js'
 import { getDteConfigurationStatus, getDteProductionPreflightStatus } from './dte/config.js'
 import { createTestDteDraft } from './dte/draft-service.js'
 import { createInvoiceDraft } from './dte/invoice-service.js'
-import { getCertificationEditor, saveCertificationDraft } from './dte/certification-document-service.js'
+import { getCertificationEditor, validateCertificationDraft, saveCertificationDraft } from './dte/certification-document-service.js'
 import { prepareDteContingency } from './dte/prepare-contingency-service.js'
 import { signTestDteDraft, signProductionDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
@@ -86,6 +86,7 @@ app.post('/api/dte/invoice-email-self-test',async(q,r)=>{try{await requireDteAdm
 app.get('/api/dte/invoice-email-status',async(q,r,n)=>{try{r.json(await getInvoiceEmailStatus({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoice-email-resend',async(q,r,n)=>{try{r.json(await resendInvoiceEmail({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/drafts',async(q,r,n)=>{try{r.status(201).json(await createTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoices',async(q,r,n)=>{try{r.status(201).json(await createInvoiceDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/certification/template',async(q,r,n)=>{try{r.json(await getCertificationEditor({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/certification/validate',async(q,r,n)=>{try{r.json(await validateCertificationDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/certification/drafts',async(q,r,n)=>{try{r.status(201).json(await saveCertificationDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/prepare-contingency',async(q,r,n)=>{try{r.json(await prepareDteContingency({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/sign-test',async(q,r,n)=>{try{r.json(await signTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/sign-production',async(q,r,n)=>{try{r.json(await signProductionDteDraft({request:q,supabase:db()}))}catch(e){n(e)}})
