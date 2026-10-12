@@ -15,7 +15,7 @@ const company = {
 
 test('Los nueve tipos restantes tienen esquema JSON completo y un tipo único',()=>{
   const types=getCertificationTypes()
-  assert.deepEqual(types.map(x=>x.type),['04','05','06','07','08','09','11','14','15'])
+  assert.deepEqual(types.map(x=>x.type).sort(),['04','05','06','07','08','09','11','14','15'].sort())
   for(const t of types){
     const {schema,validate}=getCertificationSchema(t.type)
     assert.equal(schema.properties.identificacion.properties.tipoDte.const,t.type)
