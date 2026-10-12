@@ -98,11 +98,11 @@ function catalogProductToInvoiceItem(product,current){
   }
 }
 
-export default function FacturacionDte({session,supabase,company,initialClientId=''}){
+export default function FacturacionDte({session,supabase,company,initialClientId='',initialDteType='01'}){
   const [clients,setClients]=useState([])
   const [catalogProducts,setCatalogProducts]=useState([])
   const [clientId,setClientId]=useState(initialClientId||'')
-  const [dteType,setDteType]=useState('01')
+  const [dteType,setDteType]=useState(initialDteType==='03'?'03':'01')
   const [priceMode,setPriceMode]=useState('sin_iva')
   const [items,setItems]=useState([emptyItem()])
   const [condicionOperacion,setCondicionOperacion]=useState('1')
