@@ -117,7 +117,7 @@ export default function MhCertificationCenter({ supabase, company, onPrepareInvo
               </div>
               <strong style={{ color: met ? '#047857' : '#334155' }}>{count === null ? '—' : count} / {goal}</strong>
             </div>
-            <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }} role="progressbar" aria-label={requirement.name} aria-valuemin={0} aria-valuemax={goal} aria-valuenow={count || 0}>
+            <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }} role="progressbar" aria-label={requirement.name} aria-valuemin={0} aria-valuemax={goal} aria-valuenow={Math.min(goal, count || 0)}>
               <div style={{ width: percent + '%', height: '100%', background: met ? '#059669' : '#ea580c' }} />
             </div>
             {requirement.implemented
