@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import DteCertificationEditor from './DteCertificationEditor.jsx'
+import MhAdditionalEventEditor from './MhAdditionalEventEditor.jsx'
 
 /*
  * Metas referenciales del plan de pruebas del Sistema de Transmisión DTE.
@@ -21,8 +22,8 @@ export const MH_CERTIFICATION_REQUIREMENTS = [
   { key: 'DTE:15', name: 'Comprobante de Donación', goal: 25, action: 'advanced', implemented: true },
   { key: 'EVENT:CONTINGENCY', name: 'Evento de Contingencia', goal: 5, action: 'documents', implemented: true },
   { key: 'EVENT:INVALIDATION', name: 'Evento de Invalidación', goal: 5, action: 'documents', implemented: true },
-  { key: 'EVENT:RETURN', name: 'Evento de Retorno', goal: 5 },
-  { key: 'EVENT:SPECIAL_OPERATIONS', name: 'Evento de Operaciones Especiales', goal: 5 },
+  { key: 'EVENT:RETURN', name: 'Evento de Retorno', goal: 5, action:'event_draft', implemented: true },
+  { key: 'EVENT:SPECIAL_OPERATIONS', name: 'Evento de Operaciones Especiales', goal: 5, action:'event_draft', implemented: true },
 ]
 
 const card = { border: '1px solid #d3dbe5', borderRadius: 14, padding: 14, background: '#fff' }
@@ -49,6 +50,7 @@ export default function MhCertificationCenter({ supabase, company, session, onPr
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
   const [editorType, setEditorType] = useState('')
+  const [eventEditorType, setEventEditorType] = useState('')
 
   useEffect(() => {
     if (!supabase || !company?.id) return undefined
@@ -83,7 +85,8 @@ export default function MhCertificationCenter({ supabase, company, session, onPr
     if (!requirement.implemented) return
     if (requirement.action === 'invoice') onPrepareInvoice?.(requirement.key.slice(4))
     if (requirement.action === 'documents') onOpenDocuments?.()
-    if (requirement.action === 'advanced') setEditorType(requirement.key.slice(4))
+    if (requirement.action === 'advanced') { setEditorType(requirement.key.slice(4)); setEventEditorType('') }
+    if (requirement.action === 'event_draft') { setEventEditorType(requirement.key.slice(6)); setEditorType('') }
   }
 
   return <section style={{ marginBottom: 20, color: '#0f172a' }} aria-label="Centro de certificación Hacienda TEST">
@@ -117,7 +120,7 @@ export default function MhCertificationCenter({ supabase, company, session, onPr
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
               <div>
                 <strong>{requirement.name}</strong>
-                <small style={muted}>{requirement.key.startsWith('DTE:') ? 'DTE-' + code : 'Evento'} · {requirement.implemented ? 'Herramientas TEST disponibles en IDEALO' : 'Evento pendiente de implementar'}</small>
+                <small style={muted}>{requirement.key.startsWith('DTE:') ? 'DTE-' + code : 'Evento'} · {requirement.implemented ? 'requirement.action === 'event_draft' ? 'Solo borrador: envío pendiente MH' : 'Herramientas TEST disponibles en IDEALO'' : 'Evento pendiente de implementar'}</small>
               </div>
               <strong style={{ color: met ? '#047857' : '#334155' }}>{count === null ? '—' : count} / {goal}</strong>
             </div>
@@ -125,12 +128,13 @@ export default function MhCertificationCenter({ supabase, company, session, onPr
               <div style={{ width: percent + '%', height: '100%', background: met ? '#059669' : '#ea580c' }} />
             </div>
             {requirement.implemented
-              ? <div><button type="button" style={buttonStyle} onClick={() => act(requirement)}>{requirement.action === 'invoice' ? 'Preparar DTE-' + code + ' desde ERP' : requirement.action === 'advanced' ? 'Preparar DTE-' + code + ' · TEST' : 'Abrir documentos y eventos'}</button></div>
+              ? <div><button type="button" style={buttonStyle} onClick={() => act(requirement)}>{requirement.action === 'invoice' ? 'Preparar DTE-' + code + ' desde ERP' : requirement.action === 'advanced' ? 'Preparar DTE-' + code + ' · TEST' : requirement.action==='event_draft' ? 'Preparar borrador TEST (sin envío)' : 'Abrir documentos y eventos'}</button></div>
               : <small style={{ ...muted, color: '#92400e' }}>No se habilita el envío hasta implementar y validar el constructor, el esquema y la firma de este tipo.</small>}
           </article>
         })}
       </div>
       {editorType && <DteCertificationEditor key={editorType} company={company} supabase={supabase} session={session} initialType={editorType} />}
+      {eventEditorType && <MhAdditionalEventEditor key={eventEditorType} company={company} supabase={supabase} session={session} initialType={eventEditorType} />}
       <p style={{ ...muted, margin: '14px 0 0' }}>
         Un DTE creado o firmado todavía NO suma: la evidencia se registra únicamente tras una respuesta PROCESSED de Hacienda. Una invalidación contabiliza su propio evento por separado. Ningún botón de este panel transmite automáticamente.
       </p>
