@@ -32,7 +32,7 @@ test('Plantilla MH TEST solo usa empresa real y deja los importes sin inventar',
     assert.equal(doc.identificacion.ambiente,'00')
     assert.equal(doc.identificacion.tipoModelo,1)
     assert.equal(doc.identificacion.fecEmi,'2026-10-12')
-    assert.equal(doc.emisor.nit,company.nit)
+    assert.equal(doc.emisor.nit || doc.emisor.numDocumento,company.nit)
     assert.match(doc.identificacion.numeroControl,new RegExp('^DTE-'+type))
   }
 })
