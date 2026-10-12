@@ -23,6 +23,7 @@ import ProcessedDtePanelBridge from './ProcessedDtePanelBridge.jsx'
 import DteContingencyOperationsPanel from './DteContingencyOperationsPanel.jsx'
 import InvoiceEmailPdfTestPanel from './InvoiceEmailPdfTestPanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
+import MhCertificationCenter from './MhCertificationCenter.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
 import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
 import DteFinancialIntegrityPanel from './DteFinancialIntegrityPanel.jsx'`
@@ -36,6 +37,7 @@ const ProcessedDtePanelBridge = lazy(() => import('./ProcessedDtePanelBridge.jsx
 const DteContingencyOperationsPanel = lazy(() => import('./DteContingencyOperationsPanel.jsx'))
 const InvoiceEmailPdfTestPanel = lazy(() => import('./InvoiceEmailPdfTestPanel.jsx'))
 const DteTestPlan = lazy(() => import('./DteTestPlan.jsx'))
+const MhCertificationCenter = lazy(() => import('./MhCertificationCenter.jsx'))
 const Billing360Dashboard = lazy(() => import('./Billing360Dashboard.jsx'))
 const BillingReceivablesPanel = lazy(() => import('./BillingReceivablesPanel.jsx'))
 const DteFinancialIntegrityPanel = lazy(() => import('./DteFinancialIntegrityPanel.jsx'))`
@@ -46,8 +48,9 @@ source = source.replace(eagerBlock, mixedBlock)
 const head = `        <div className="billing-section-head"><div><span className="billing-section-kicker">{active.helper}</span><h2>{active.label}</h2></div><span className="billing-company-pill">{company.name || company.legal_name || 'Empresa activa'}</span></div>`
 source = source.replace(head, `${head}\n        <Suspense fallback={<div className="loading-card"><span className="spinner" /><p>Cargando sección de facturación…</p></div>}>`)
 
-const tail = `        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}\n      </main>`
-source = source.replace(tail, `        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}\n        </Suspense>\n      </main>`)
+const tail = `        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><MhCertificationCenter supabase={supabase} company={company} session={session} onPrepareInvoice={prepareCertificationDte} onOpenDocuments={() => openSection('documentos')}/><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}\n      </main>`
+if (!source.includes(tail)) throw new Error('No se encontró el cierre esperado de la sección Hacienda. Revisar parche de rendimiento.')
+source = source.replace(tail, `        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><MhCertificationCenter supabase={supabase} company={company} session={session} onPrepareInvoice={prepareCertificationDte} onOpenDocuments={() => openSection('documentos')}/><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}\n        </Suspense>\n      </main>`)
 
 fs.writeFileSync(file, source)
 console.log('Facturación: formulario de nueva factura inmediato; secciones secundarias bajo demanda.')

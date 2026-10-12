@@ -9,6 +9,7 @@ import ProcessedDtePanelBridge from './ProcessedDtePanelBridge.jsx'
 import DteContingencyOperationsPanel from './DteContingencyOperationsPanel.jsx'
 import InvoiceEmailPdfTestPanel from './InvoiceEmailPdfTestPanel.jsx'
 import DteTestPlan from './DteTestPlan.jsx'
+import MhCertificationCenter from './MhCertificationCenter.jsx'
 import Billing360Dashboard from './Billing360Dashboard.jsx'
 import BillingReceivablesPanel from './BillingReceivablesPanel.jsx'
 import DteFinancialIntegrityPanel from './DteFinancialIntegrityPanel.jsx'
@@ -31,6 +32,7 @@ export default function FacturacionLauncher() {
   const [projectContext, setProjectContext] = useState({ workOrderId: '', quoteId: '', workOrderNumber: '' })
   const [receivablesVersion, setReceivablesVersion] = useState(0)
   const [issueMode, setIssueMode] = useState('project')
+  const [certificationDteType, setCertificationDteType] = useState('01')
   const pendingNavigation = useRef(null)
 
   useEffect(() => {
@@ -79,8 +81,9 @@ export default function FacturacionLauncher() {
     setActiveSection(id)
     activateModule(id === 'cobros' ? 'Cuentas por cobrar' : 'Facturación', { source: 'billing-tabs' })
   }
-  const openNewInvoice = () => { resetIssueContext(); setIssueMode('project'); setActiveSection('emitir'); activateModule('Facturación', { source: 'billing-new-invoice' }) }
-  const prepareMhTestCase = () => { resetIssueContext(); setIssueMode('manual'); setActiveSection('emitir'); activateModule('Facturación', { source: 'billing-test-case' }) }
+  const openNewInvoice = () => { resetIssueContext(); setCertificationDteType('01'); setIssueMode('project'); setActiveSection('emitir'); activateModule('Facturación', { source: 'billing-new-invoice' }) }
+  const prepareMhTestCase = () => { resetIssueContext(); setCertificationDteType('01'); setIssueMode('manual'); setActiveSection('emitir'); activateModule('Facturación', { source: 'billing-test-case' }) }
+  const prepareCertificationDte = (type) => { resetIssueContext(); setCertificationDteType(type === '03' ? '03' : '01'); setIssueMode('manual'); setActiveSection('emitir'); activateModule('Facturación', { source: 'mh-certification-center' }) }
   const openCash = () => { setOpen(false); window.dispatchEvent(new CustomEvent('idealo-open-module', { detail: { target: 'procurement', tab: 'Caja' } })) }
   const openProjectMode = () => { setIssueMode('project') }
   const openManualMode = () => { setIssueMode('manual'); clearProjectContext() }
@@ -139,12 +142,12 @@ export default function FacturacionLauncher() {
           </div>
           {issueMode==='project'
             ? <PartialInvoiceFromQuote key={`project-${projectContext.workOrderId}-${projectContext.quoteId}`} session={session} supabase={supabase} company={company} initialWorkOrderId={projectContext.workOrderId} initialQuoteId={projectContext.quoteId}/>
-            : <FacturacionDte key={`manual-${contextClient.id}`} session={session} supabase={supabase} company={company} initialClientId={contextClient.id}/>
+            : <FacturacionDte key={`manual-${contextClient.id}-${certificationDteType}`} session={session} supabase={supabase} company={company} initialClientId={contextClient.id} initialDteType={certificationDteType}/>
           }
         </section>}
         {activeSection === 'documentos' && <section className="billing-section-card"><ProcessedDtePanelBridge supabase={supabase} company={company} session={session} onOpenHacienda={() => openSection('hacienda')}/><details className="module-secondary-tools"><summary>Contingencia, correo y pruebas</summary><div className="module-secondary-tools-body"><DteContingencyOperationsPanel supabase={supabase} company={company} session={session}/><InvoiceEmailPdfTestPanel supabase={supabase} company={company} session={session}/></div></details></section>}
         {activeSection === 'cobros' && <BillingReceivablesPanel key={`receivables-${receivablesVersion}`} supabase={supabase} company={company} onOpenCash={openCash} focusWorkOrderId={projectContext.workOrderId} focusQuoteId={projectContext.quoteId}/>} 
-        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
+        {activeSection === 'hacienda' && <section className="billing-section-card billing-hacienda-section"><MhCertificationCenter supabase={supabase} company={company} session={session} onPrepareInvoice={prepareCertificationDte} onOpenDocuments={() => openSection('documentos')}/><ProductionPreflightPanel session={session} company={company}/><details className="module-secondary-tools"><summary>Diagnósticos y pruebas técnicas</summary><div className="module-secondary-tools-body"><MhAuthDiagnostic session={session} company={company}/><SignerDiagnostic session={session} company={company}/><DteTestPlan supabase={supabase} company={company} onPrepareCase={prepareMhTestCase}/></div></details></section>}
       </main></div>
     </section></div>}
   </>
