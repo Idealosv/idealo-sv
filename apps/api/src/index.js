@@ -7,6 +7,7 @@ import { getDteConfigurationStatus, getDteProductionPreflightStatus } from './dt
 import { createTestDteDraft } from './dte/draft-service.js'
 import { createInvoiceDraft } from './dte/invoice-service.js'
 import { getCertificationEditor, validateCertificationDraft, saveCertificationDraft } from './dte/certification-document-service.js'
+import { getAdditionalEventTemplate, validateAdditionalEvent, createAdditionalEventDraft } from './dte/additional-event-certification-service.js'
 import { prepareDteContingency } from './dte/prepare-contingency-service.js'
 import { signTestDteDraft, signProductionDteDraft } from './dte/sign-service.js'
 import { transmitSignedTestDte } from './dte/transmit-test-service.js'
@@ -85,6 +86,9 @@ app.post('/api/dte/gmail-test',async(q,r)=>{try{await requireDteAdminRoute(q);r.
 app.post('/api/dte/invoice-email-self-test',async(q,r)=>{try{await requireDteAdminRoute(q);r.json(await sendInvoicePdfSelfTest({request:q,supabase:db()}))}catch(e){console.error('INVOICE_PDF_SELF_TEST_FAILED',{stage:e?.stage,code:e?.code,statusCode:e?.statusCode,message:e?.message});r.status(Number(e?.statusCode||502)).json({error:'INVOICE_PDF_SELF_TEST_FAILED',stage:String(e?.stage||'unknown'),code:String(e?.code||'PDF_EMAIL_TEST_FAILED'),message:String(e?.message||'No se pudo completar la prueba PDF por Gmail.')})}})
 app.get('/api/dte/invoice-email-status',async(q,r,n)=>{try{r.json(await getInvoiceEmailStatus({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoice-email-resend',async(q,r,n)=>{try{r.json(await resendInvoiceEmail({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/drafts',async(q,r,n)=>{try{r.status(201).json(await createTestDteDraft({request:q,supabase:db()}))}catch(e){n(e)}});app.post('/api/dte/invoices',async(q,r,n)=>{try{r.status(201).json(await createInvoiceDraft({request:q,supabase:db()}))}catch(e){n(e)}})
+app.get('/api/dte/certification/events/template',async(q,r,n)=>{try{r.json(await getAdditionalEventTemplate({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/certification/events/validate',async(q,r,n)=>{try{r.json(await validateAdditionalEvent({request:q,supabase:db()}))}catch(e){n(e)}})
+app.post('/api/dte/certification/events/drafts',async(q,r,n)=>{try{r.status(201).json(await createAdditionalEventDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.get('/api/dte/certification/template',async(q,r,n)=>{try{r.json(await getCertificationEditor({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/certification/validate',async(q,r,n)=>{try{r.json(await validateCertificationDraft({request:q,supabase:db()}))}catch(e){n(e)}})
 app.post('/api/dte/certification/drafts',async(q,r,n)=>{try{r.status(201).json(await saveCertificationDraft({request:q,supabase:db()}))}catch(e){n(e)}})
