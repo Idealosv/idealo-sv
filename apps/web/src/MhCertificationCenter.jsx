@@ -35,6 +35,7 @@ function createCountRequest(supabase, companyId, requirement) {
   let query = supabase.from(table).select('id', { head: true, count: 'exact' })
     .eq('company_id', companyId)
     .eq('environment', 'test')
+    .not('mh_response', 'is', null)
   // Un DTE previamente procesado sigue teniendo evidencia aunque haya sido invalidado después.
   query = isEvent ? query.eq('status', 'PROCESSED').eq('event_type', code)
     : query.in('status', ['PROCESSED', 'INVALIDATED']).eq('dte_type', code)
@@ -94,7 +95,7 @@ export default function MhCertificationCenter({ supabase, company, onPrepareInvo
         </button>
       </div>
       <p style={{ padding: 12, borderLeft: '4px solid #f97316', background: '#fff7ed', color: '#9a3412', lineHeight: 1.5, margin: '14px 0' }}>
-        <strong>Importante:</strong> estos conteos provienen exclusivamente de la base de datos del ERP, no del panel oficial de Hacienda. Los DTE enviados fuera de IDEALO no aparecen aquí. La autorización, las metas aplicables y el cumplimiento oficial se comprueban en el portal de Hacienda.
+        <strong>Importante:</strong> estos conteos provienen exclusivamente de la base de datos del ERP, no del panel oficial de Hacienda. Los DTE enviados fuera de IDEALO no aparecen aquí. No todas las categorías son obligatorias para cada emisor. La autorización, las metas aplicables y el cumplimiento oficial se comprueban en el portal de Hacienda.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
         <div style={card}><span style={muted}>Categorías con meta local alcanzada</span><strong style={{ fontSize: 22 }}>{stats.completed}/{MH_CERTIFICATION_REQUIREMENTS.length}</strong></div>
