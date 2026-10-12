@@ -1,0 +1,37 @@
+name: Verificar centro de certificación MH
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/web/src/MhCertificationCenter.jsx'
+      - 'apps/web/src/FacturacionLauncher.jsx'
+      - 'apps/web/src/FacturacionDte.jsx'
+      - 'apps/web/scripts/audit-mh-certification-center.mjs'
+      - 'apps/web/package.json'
+      - '.github/workflows/mh-certification-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mh-smoke:
+    name: Auditar navegación y compilar ERP web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependencias
+        run: npm install
+      - name: Verificar catálogo, evidencia y navegación MH
+        run: |
+          node apps/web/scripts/audit-mh-certification-center.mjs
+          node apps/web/scripts/audit-mh-test-case-navigation.mjs
+      - name: Compilar interfaz ERP
+        run: npm run build -w @idealo-sv/web
