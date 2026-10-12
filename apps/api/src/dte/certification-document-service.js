@@ -146,6 +146,13 @@ export async function getCertificationEditor({ request, supabase }) {
   const { company } = await companyForRequest({ request, supabase, companyId })
   return { type, name: TYPES[type]?.name, version: TYPES[type]?.version, document: prepareDteTestTemplate({ type, company }) }
 }
+export async function validateCertificationDraft({ request, supabase }) {
+  const { companyId, dteType, document } = request.body || {}
+  const type = str(dteType)
+  const { company } = await companyForRequest({ request, supabase, companyId })
+  validateCertificationPayload(type, document, company)
+  return { valid: true, type, version: TYPES[type].version, environment: 'test', saved: false, transmitted: false }
+}
 export async function saveCertificationDraft({ request, supabase }) {
   const { companyId, dteType, document: submitted } = request.body || {}
   const type = str(dteType)
