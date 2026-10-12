@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import DteCertificationEditor from './DteCertificationEditor.jsx'
 
 /*
  * Metas referenciales del plan de pruebas del Sistema de Transmisión DTE.
@@ -9,15 +10,15 @@ import { useEffect, useMemo, useState } from 'react'
 export const MH_CERTIFICATION_REQUIREMENTS = [
   { key: 'DTE:01', name: 'Factura de consumidor final', goal: 90, action: 'invoice', implemented: true },
   { key: 'DTE:03', name: 'Comprobante de Crédito Fiscal', goal: 75, action: 'invoice', implemented: true },
-  { key: 'DTE:04', name: 'Nota de Remisión', goal: 50 },
-  { key: 'DTE:05', name: 'Nota de Crédito', goal: 50 },
-  { key: 'DTE:06', name: 'Nota de Débito', goal: 25 },
-  { key: 'DTE:07', name: 'Comprobante de Retención', goal: 50 },
-  { key: 'DTE:08', name: 'Comprobante de Liquidación', goal: 75 },
-  { key: 'DTE:09', name: 'Documento Contable de Liquidación', goal: 50 },
-  { key: 'DTE:11', name: 'Factura de Exportación', goal: 90 },
-  { key: 'DTE:14', name: 'Factura de Sujeto Excluido', goal: 25 },
-  { key: 'DTE:15', name: 'Comprobante de Donación', goal: 25 },
+  { key: 'DTE:04', name: 'Nota de Remisión', goal: 50, action: 'advanced', implemented: true },
+  { key: 'DTE:05', name: 'Nota de Crédito', goal: 50, action: 'advanced', implemented: true },
+  { key: 'DTE:06', name: 'Nota de Débito', goal: 25, action: 'advanced', implemented: true },
+  { key: 'DTE:07', name: 'Comprobante de Retención', goal: 50, action: 'advanced', implemented: true },
+  { key: 'DTE:08', name: 'Comprobante de Liquidación', goal: 75, action: 'advanced', implemented: true },
+  { key: 'DTE:09', name: 'Documento Contable de Liquidación', goal: 50, action: 'advanced', implemented: true },
+  { key: 'DTE:11', name: 'Factura de Exportación', goal: 90, action: 'advanced', implemented: true },
+  { key: 'DTE:14', name: 'Factura de Sujeto Excluido', goal: 25, action: 'advanced', implemented: true },
+  { key: 'DTE:15', name: 'Comprobante de Donación', goal: 25, action: 'advanced', implemented: true },
   { key: 'EVENT:CONTINGENCY', name: 'Evento de Contingencia', goal: 5, action: 'documents', implemented: true },
   { key: 'EVENT:INVALIDATION', name: 'Evento de Invalidación', goal: 5, action: 'documents', implemented: true },
   { key: 'EVENT:RETURN', name: 'Evento de Retorno', goal: 5 },
@@ -42,11 +43,12 @@ function createCountRequest(supabase, companyId, requirement) {
   return query
 }
 
-export default function MhCertificationCenter({ supabase, company, onPrepareInvoice, onOpenDocuments }) {
+export default function MhCertificationCenter({ supabase, company, session, onPrepareInvoice, onOpenDocuments }) {
   const [counts, setCounts] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
+  const [editorType, setEditorType] = useState('')
 
   useEffect(() => {
     if (!supabase || !company?.id) return undefined
@@ -81,6 +83,7 @@ export default function MhCertificationCenter({ supabase, company, onPrepareInvo
     if (!requirement.implemented) return
     if (requirement.action === 'invoice') onPrepareInvoice?.(requirement.key.slice(4))
     if (requirement.action === 'documents') onOpenDocuments?.()
+    if (requirement.action === 'advanced') setEditorType(requirement.key.slice(4))
   }
 
   return <section style={{ marginBottom: 20, color: '#0f172a' }} aria-label="Centro de certificación Hacienda TEST">
@@ -114,7 +117,7 @@ export default function MhCertificationCenter({ supabase, company, onPrepareInvo
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
               <div>
                 <strong>{requirement.name}</strong>
-                <small style={muted}>{requirement.key.startsWith('DTE:') ? 'DTE-' + code : 'Evento'} · {requirement.implemented ? 'Flujo existente en IDEALO' : 'Emisión pendiente de implementar'}</small>
+                <small style={muted}>{requirement.key.startsWith('DTE:') ? 'DTE-' + code : 'Evento'} · {requirement.implemented ? 'Herramientas TEST disponibles en IDEALO' : 'Evento pendiente de implementar'}</small>
               </div>
               <strong style={{ color: met ? '#047857' : '#334155' }}>{count === null ? '—' : count} / {goal}</strong>
             </div>
@@ -122,11 +125,12 @@ export default function MhCertificationCenter({ supabase, company, onPrepareInvo
               <div style={{ width: percent + '%', height: '100%', background: met ? '#059669' : '#ea580c' }} />
             </div>
             {requirement.implemented
-              ? <div><button type="button" style={buttonStyle} onClick={() => act(requirement)}>{requirement.action === 'invoice' ? 'Preparar DTE-' + code + ' desde ERP' : 'Abrir documentos y eventos'}</button></div>
+              ? <div><button type="button" style={buttonStyle} onClick={() => act(requirement)}>{requirement.action === 'invoice' ? 'Preparar DTE-' + code + ' desde ERP' : requirement.action === 'advanced' ? 'Preparar DTE-' + code + ' · TEST' : 'Abrir documentos y eventos'}</button></div>
               : <small style={{ ...muted, color: '#92400e' }}>No se habilita el envío hasta implementar y validar el constructor, el esquema y la firma de este tipo.</small>}
           </article>
         })}
       </div>
+      {editorType && <DteCertificationEditor key={editorType} company={company} supabase={supabase} session={session} initialType={editorType} />}
       <p style={{ ...muted, margin: '14px 0 0' }}>
         Un DTE creado o firmado todavía NO suma: la evidencia se registra únicamente tras una respuesta PROCESSED de Hacienda. Una invalidación contabiliza su propio evento por separado. Ningún botón de este panel transmite automáticamente.
       </p>
