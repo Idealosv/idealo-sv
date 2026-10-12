@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'apps/api/src/dte/certification-document-service.js'
+      - 'apps/api/src/dte/additional-event-certification-service.js'
+      - 'apps/api/test/dte-additional-events-certification.test.js'
+      - 'apps/web/src/MhAdditionalEventEditor.jsx'
       - 'apps/api/src/dte/schemas/**'
       - 'apps/api/test/dte-certification-document-service.test.js'
       - 'supabase/migrations/*mh_certification*'
@@ -35,7 +38,7 @@ jobs:
       - name: Instalar dependencias
         run: npm install
       - name: Validar nueve estructuras de DTE y seguridad de pruebas
-        run: node --test apps/api/test/dte-certification-document-service.test.js
+        run: node --test apps/api/test/dte-certification-document-service.test.js apps/api/test/dte-additional-events-certification.test.js
       - name: Verificar catálogo, evidencia y navegación MH
         run: |
           node apps/web/scripts/audit-mh-certification-center.mjs
