@@ -120,7 +120,7 @@ export default function MhCertificationCenter({ supabase, company, session, onPr
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
               <div>
                 <strong>{requirement.name}</strong>
-                <small style={muted}>{requirement.key.startsWith('DTE:') ? 'DTE-' + code : 'Evento'} · {requirement.implemented ? 'requirement.action === 'event_draft' ? 'Solo borrador: envío pendiente MH' : 'Herramientas TEST disponibles en IDEALO'' : 'Evento pendiente de implementar'}</small>
+                <small style={muted}>{requirement.key.startsWith('DTE:') ? 'DTE-' + code : 'Evento'} · {requirement.action === 'event_draft' ? 'Solo borrador: envío pendiente MH' : requirement.implemented ? 'Herramientas TEST disponibles en IDEALO' : 'Evento pendiente de implementar'}</small>
               </div>
               <strong style={{ color: met ? '#047857' : '#334155' }}>{count === null ? '—' : count} / {goal}</strong>
             </div>
