@@ -14,6 +14,7 @@ for (const code of ['DTE:01', 'DTE:03', 'DTE:04', 'DTE:05', 'DTE:06', 'DTE:07', 
   assert.ok(center.includes("key: '" + code + "'"), 'Falta categoría de certificación ' + code)
 }
 assert.ok(center.includes(".eq('environment', 'test')"), 'La evidencia no debe mezclar entornos')
+assert.ok(center.includes(".not('mh_response', 'is', null)"), 'La evidencia debe incluir respuesta MH')
 assert.ok(center.includes("['PROCESSED', 'INVALIDATED']"), 'Preservar evidencia de DTE posteriormente invalidado')
 assert.ok(center.includes(".eq('status', 'PROCESSED')"), 'Eventos solo aceptados por Hacienda')
 assert.ok(center.includes("{ head: true, count: 'exact' }"), 'Contar desde BD con exactitud')
