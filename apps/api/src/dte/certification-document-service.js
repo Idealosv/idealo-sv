@@ -70,7 +70,7 @@ function svNow(now = new Date()) {
 }
 function issuerMapped(company, emisor = {}) {
   const map = {
-    nit: digits(company.nit),
+    nit: digits(company.nit), tipoDocumento: '36', numDocumento: digits(company.nit),
     nrc: digits(company.nrc),
     nombre: str(company.name),
     codActividad: str(company.activity_code),
@@ -126,8 +126,14 @@ export function validateCertificationPayload(type, payload, company) {
     fail('Tipo y versión del documento no corresponden al esquema seleccionado.')
   if (payload.identificacion?.tipoModelo !== 1 || payload.identificacion?.tipoOperacion !== 1)
     fail('El editor permite únicamente emisión normal (modelo y operación 1), no contingencia.')
-  if (!payload.emisor || digits(payload.emisor.nit) !== digits(company.nit) || !digits(company.nit))
+  if (!payload.emisor || digits(payload.emisor.nit || payload.emisor.numDocumento) !== digits(company.nit) || !digits(company.nit))
     fail('El NIT del emisor debe ser el de la empresa activa del ERP.')
+  if (str(payload.emisor.nombre).toUpperCase() !== str(company.name).toUpperCase())
+    fail('La razón social del emisor debe coincidir con la empresa activa.')
+  if (Object.hasOwn(payload.emisor, 'nrc') && digits(payload.emisor.nrc) !== digits(company.nrc))
+    fail('El NRC del emisor debe coincidir con el expediente fiscal del ERP.')
+  if (Object.hasOwn(payload.emisor, 'tipoDocumento') && String(payload.emisor.tipoDocumento) !== '36')
+    fail('La identidad del donatario debe corresponder al NIT de la empresa.')
   if (!validate(payload)) fail('Documento no válido según el esquema MH: ' + formatAjvErrors(validate.errors), 'DTE_SCHEMA_VALIDATION')
   if (['05','06'].includes(type) && (!Array.isArray(payload.documentoRelacionado) || payload.documentoRelacionado.length < 1))
     fail('Las notas de crédito y débito necesitan el documento fiscal que modifican.')
@@ -163,7 +169,7 @@ export async function saveCertificationDraft({ request, supabase }) {
   if (JSON.stringify(submitted).length > 750000) fail('El documento excede el tamaño permitido.')
   if (submitted.identificacion?.ambiente !== '00' || submitted.identificacion?.tipoDte !== type)
     fail('El borrador seleccionado debe ser del tipo correcto en TEST.')
-  if (digits(submitted.emisor?.nit) !== digits(company.nit)) fail('El emisor no corresponde a la empresa activa.')
+  if (digits(submitted.emisor?.nit || submitted.emisor?.numDocumento) !== digits(company.nit)) fail('El emisor no corresponde a la empresa activa.')
   const { data: number, error: numberError } = await supabase.rpc('next_certification_dte_control_number', {
     p_company_id:companyId, p_dte_type:type,
   })
