@@ -98,7 +98,7 @@ function catalogProductToInvoiceItem(product,current){
   }
 }
 
-export default function FacturacionDte({session,supabase,company,initialClientId='',initialDteType='01'}){
+export default function FacturacionDte({session,supabase,company,initialClientId='',allowProjectSource=false,initialDteType='01'}){
   const [clients,setClients]=useState([])
   const [catalogProducts,setCatalogProducts]=useState([])
   const [clientId,setClientId]=useState(initialClientId||'')
