@@ -24,4 +24,5 @@ assert.ok(center.includes("onPrepareInvoice?.(requirement.key.slice(4))"), 'Cone
 assert.ok(launcher.includes('<MhCertificationCenter'), 'Conectar centro dentro de Facturación > Hacienda')
 assert.ok(launcher.includes('initialDteType={certificationDteType}'), 'El tipo del plan debe llegar al formulario')
 assert.ok(invoice.includes("useState(initialDteType==='03'?'03':'01')"), 'El formulario debe respetar DTE-03 solicitado')
+assert.ok(invoice.includes('allowProjectSource=false'), 'No debe romper el contrato con el parche de venta manual')
 console.log('Auditoría MH certificación OK: evidencia MH TEST, navegación DTE-01/03, sin transmisión automática.')
