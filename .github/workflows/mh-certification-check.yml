@@ -5,6 +5,11 @@ on:
     branches:
       - main
     paths:
+      - 'apps/api/src/dte/certification-document-service.js'
+      - 'apps/api/src/dte/schemas/**'
+      - 'apps/api/test/dte-certification-document-service.test.js'
+      - 'supabase/migrations/*mh_certification*'
+      - 'apps/web/src/DteCertificationEditor.jsx'
       - 'apps/web/src/MhCertificationCenter.jsx'
       - 'apps/web/src/FacturacionLauncher.jsx'
       - 'apps/web/src/FacturacionDte.jsx'
@@ -29,6 +34,8 @@ jobs:
           node-version: 22
       - name: Instalar dependencias
         run: npm install
+      - name: Validar nueve estructuras de DTE y seguridad de pruebas
+        run: node --test apps/api/test/dte-certification-document-service.test.js
       - name: Verificar catálogo, evidencia y navegación MH
         run: |
           node apps/web/scripts/audit-mh-certification-center.mjs
