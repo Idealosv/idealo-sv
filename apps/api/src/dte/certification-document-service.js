@@ -108,7 +108,8 @@ export function prepareDteTestTemplate({ type, company, now = new Date() }) {
   if (Object.hasOwn(id, 'motivoContin')) id.motivoContin = null
   if (Object.hasOwn(id, 'fecEmi')) id.fecEmi = stamp.date
   if (Object.hasOwn(id, 'horEmi')) id.horEmi = stamp.time
-  body.emisor = issuerMapped(company, body.emisor || {})
+  const issuerFields = sampleFromSchema({ ...schema.properties.emisor, type: 'object' })
+  body.emisor = issuerMapped(company, { ...(issuerFields || {}), ...(body.emisor || {}) })
   return body
 }
 function formatAjvErrors(errors) {
