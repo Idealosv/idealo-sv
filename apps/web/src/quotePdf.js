@@ -58,7 +58,7 @@ export function createQuotePdfBlob({company,client,quote,items=[],totals={}}){
  if(quote?.title){text(42,y,'PROYECTO / SERVICIO',8,true,ORANGE);y-=18;text(42,y,quote.title,17,true,BLACK);y-=30}
 
  fill(36,y-2,523,30,BLACK)
- text(55,y+7,'DESCRIPCION',8,true,WHITE);text(390,y+7,'CANT.',8,true,WHITE);text(431,y+7,'P. UNIT.',7,true,WHITE);text(503,y+7,'SUBTOTAL',7,true,WHITE)
+ text(55,y+7,'DESCRIPCION',8,true,WHITE);text(390,y+7,'CANT.',8,true,WHITE);text(431,y+7,'P. UNIT. S/IVA',7,true,WHITE);text(503,y+7,'SUBTOTAL',7,true,WHITE)
  y-=24
  items.forEach((item,index)=>{
    const metrics=quotePdfLineValues(item)

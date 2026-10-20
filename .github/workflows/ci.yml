@@ -33,6 +33,12 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
+      - name: Verificar precios sin IVA y PDF de cotizaciones
+        run: node apps/web/scripts/audit-quote-pdf-math.mjs
+
+      - name: Compilar frontend para validar cotizaciones
+        run: npm run build -w @idealo-sv/web
+
       - name: Auditar dependencias altas/críticas
         run: npm audit --audit-level=high
 
