@@ -11,7 +11,7 @@ const compactService=compact(service)
 const checks=[
  ['ruta /master',/window\.location\.pathname\s*===\s*['"]\/master['"]/.test(host)],
  ['runtime diferido conectado',main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))")],
- ['host montado',deferred.includes("import SaasMasterPanelHost from './SaasMasterPanelHost.jsx'")&&deferred.includes('<SaasMasterPanelHost/>')],
+ ['host montado',deferred.includes('const SaasMasterPanelHost = lazy')&&deferred.includes('<SaasMasterPanelHost />')],
  ['sesión bearer',/Authorization\s*:\s*`Bearer\s+\$\{session\.access_token\}`/.test(host)],
  ['dashboard SaaS',host.includes('/api/admin/saas/dashboard')],
  ['crear empresa',host.includes('/api/admin/saas/companies')],

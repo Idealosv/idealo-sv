@@ -1,0 +1,35 @@
+name: Prestadito$ staging smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Validar base no productiva
+        env:
+          STAGING_DB_URL: ${{ secrets.PRESTADITOS_STAGING_DB_URL }}
+        run: |
+          if [ -z "$STAGING_DB_URL" ]; then
+            echo "Falta el secreto PRESTADITOS_STAGING_DB_URL."
+            exit 1
+          fi
+          if echo "$STAGING_DB_URL" | grep -q "qltxsmuzgbuwevnncezz"; then
+            echo "BLOQUEADO: la URL corresponde al proyecto principal IDEALO SV. Este flujo no corre contra producción."
+            exit 1
+          fi
+
+      - name: Instalar cliente PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Ejecutar smoke test de Prestadito$
+        env:
+          STAGING_DB_URL: ${{ secrets.PRESTADITOS_STAGING_DB_URL }}
+        run: |
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/prestaditos_staging_readiness.sql

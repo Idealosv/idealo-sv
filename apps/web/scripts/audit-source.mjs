@@ -43,7 +43,7 @@ if (!source.formSimplificationCss.includes('.show-advanced-fields')) failures.pu
 const moduleScopedHosts = ['MobileFieldTools','MobileSalesFieldBlock','MobileClient360','Client360Enhancer','CommercialAutomationCenter','ClientCrmPipeline','ClientModuleOrganizer','Client360TimelineHost','ClientVatCardScannerHost']
 const leakedHosts = moduleScopedHosts.filter((name) => source.main.includes(`<${name}`) || source.main.includes(`import ${name} `))
 if (leakedHosts.length) failures.push(`Hosts de módulo cargados globalmente: ${leakedHosts.join(', ')}`)
-if (!mountedRuntime.includes('<ExecutiveDashboardHost/>')) failures.push('Dashboard ejecutivo no está montado en el runtime principal o diferido')
+if (!mountedRuntime.includes('<ExecutiveDashboardHost />')) failures.push('Dashboard ejecutivo no está montado en el runtime principal o diferido')
 if (!source.dashboardHost.includes("detail === 'Dashboard'") && !source.dashboardHost.includes("detail==='Dashboard'")) failures.push('Dashboard ejecutivo debe mostrarse solo cuando Dashboard está activo')
 if (source.runtime.includes('ExecutiveDashboardHost') || source.runtime.includes("activeModule === 'Dashboard'")) failures.push('Dashboard ejecutivo volvió a montarse también dentro de ModuleRuntime')
 if (!source.runtime.includes("activeModule === 'App móviles'")) failures.push('Extensiones móviles no están aisladas por módulo')

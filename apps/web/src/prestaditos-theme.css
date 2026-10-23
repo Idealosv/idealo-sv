@@ -1,0 +1,379 @@
+/* PRESTADITO$ · GLOBAL EXECUTIVE DESIGN SYSTEM
+   Paleta clara oficial restaurada: fondo claro, sidebar grafito, rojo, azul, verde, ámbar y morado. */
+.prst-app{
+  --ui-bg:#edf1f4;
+  --ui-surface:#ffffff;
+  --ui-surface-soft:#f7f9fb;
+  --ui-ink:#16202a;
+  --ui-muted:#697586;
+  --ui-line:#dfe5ea;
+  --ui-line-soft:#e9edf1;
+  --ui-red:#d92d3e;
+  --ui-red-soft:#fbecef;
+  --ui-navy:#151d26;
+  --ui-navy-2:#202a35;
+  --ui-green:#24865d;
+  --ui-amber:#c88717;
+  --ui-blue:#3f6fc5;
+  --ui-purple:#7358bb;
+  grid-template-columns:284px minmax(0,1fr)!important;
+  background:var(--ui-bg)!important;
+  color:var(--ui-ink)!important;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+
+/* Sidebar */
+.prst-app .prst-sidebar{
+  background:linear-gradient(180deg,#151a20 0%,#10151a 100%)!important;
+  border-right:1px solid #252c33!important;
+}
+.prst-app .prst-brand{
+  gap:13px!important;
+  padding:24px 18px 20px!important;
+  border-bottom:1px solid #303840!important;
+}
+.prst-app .prst-mark{
+  width:46px!important;
+  height:46px!important;
+  border-radius:12px!important;
+  background:var(--ui-red)!important;
+  box-shadow:0 8px 18px rgba(217,45,62,.24)!important;
+  font-size:23px!important;
+}
+.prst-app .prst-brand strong{
+  font-size:18px!important;
+  letter-spacing:.045em!important;
+}
+.prst-app .prst-brand small{
+  margin-top:3px!important;
+  color:#aab3bc!important;
+  font-size:10px!important;
+}
+.prst-app .prst-company{
+  gap:4px!important;
+  margin:15px 12px 12px!important;
+  padding:14px!important;
+  border:1px solid #303840!important;
+  border-radius:10px!important;
+  background:#1b2229!important;
+  box-shadow:none!important;
+}
+.prst-app .prst-company span{font-size:9px!important;color:#ff6f7b!important}
+.prst-app .prst-company strong{font-size:13px!important;color:#fff!important}
+.prst-app .prst-company small{font-size:10px!important;color:#9ca7b2!important}
+.prst-app .prst-sidebar nav{
+  gap:3px!important;
+  padding:4px 10px 20px!important;
+}
+.prst-app .prst-sidebar nav button{
+  min-height:54px!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-left:3px solid transparent!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:#d7dde2!important;
+  box-shadow:none!important;
+}
+.prst-app .prst-sidebar nav button:hover{
+  background:#20272e!important;
+  color:#fff!important;
+}
+.prst-app .prst-sidebar nav button.active{
+  border-left-color:var(--ui-red)!important;
+  background:#252d35!important;
+  color:#fff!important;
+}
+.prst-app .prst-sidebar nav button strong{font-size:12px!important;line-height:1.25!important}
+.prst-app .prst-sidebar nav button small{margin-top:2px!important;color:#8c98a3!important;font-size:9px!important;line-height:1.3!important}
+.prst-app .prst-sidebar nav button.active small{color:#ff9ca5!important}
+.prst-app .prst-back{
+  margin:8px 12px 16px!important;
+  min-height:42px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:1px solid #303840!important;
+  border-radius:8px!important;
+  background:#1a2026!important;
+  color:#dce2e7!important;
+  font-size:10px!important;
+}
+
+/* Top bar */
+.prst-app .prst-main{background:var(--ui-bg)!important}
+.prst-app .prst-topbar{
+  padding:18px 24px!important;
+  gap:18px!important;
+  border-bottom:1px solid var(--ui-line)!important;
+  background:rgba(255,255,255,.97)!important;
+  box-shadow:0 4px 12px rgba(16,24,40,.035)!important;
+  backdrop-filter:blur(8px)!important;
+}
+.prst-app .prst-top-title>span{
+  color:var(--ui-red)!important;
+  font-size:10px!important;
+  letter-spacing:.08em!important;
+}
+.prst-app .prst-top-title h1{
+  margin:3px 0 0!important;
+  color:var(--ui-ink)!important;
+  font-size:28px!important;
+  line-height:1.08!important;
+  letter-spacing:-.035em!important;
+}
+.prst-app .prst-top-title p{
+  margin:4px 0 0!important;
+  color:var(--ui-muted)!important;
+  font-size:11px!important;
+}
+.prst-app .prst-top-actions button,
+.prst-app .prst-mobile-menu{
+  min-height:42px!important;
+  border:1px solid #cfd6dc!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#2d3945!important;
+  font-size:11px!important;
+  font-weight:850!important;
+}
+.prst-app .prst-content{
+  max-width:1740px!important;
+  padding:22px 24px 56px!important;
+}
+.prst-app>.prst-main>.prst-alert{
+  margin:12px 18px 0!important;
+  padding:11px 13px!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+}
+
+/* Cards / panels */
+.prst-app .prst-card,
+.prst-app .prst-metric,
+.prst-app .prst-investor-summary>article{
+  border:0!important;
+  border-radius:14px!important;
+  background:var(--ui-surface)!important;
+  box-shadow:
+    0 7px 18px rgba(16,24,40,.045),
+    inset 0 0 0 1px var(--ui-line)!important;
+}
+.prst-app .prst-card{padding:20px!important}
+.prst-app .prst-card-head{margin-bottom:16px!important}
+.prst-app .prst-card-head small{
+  color:var(--ui-red)!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  letter-spacing:.08em!important;
+}
+.prst-app .prst-card-head h2{
+  margin:4px 0 0!important;
+  color:var(--ui-ink)!important;
+  font-size:21px!important;
+  line-height:1.15!important;
+  letter-spacing:-.02em!important;
+}
+.prst-app .prst-card-head p{
+  margin:5px 0 0!important;
+  color:var(--ui-muted)!important;
+  font-size:11px!important;
+  line-height:1.5!important;
+}
+.prst-app .prst-metrics,
+.prst-app .prst-investor-summary{
+  gap:12px!important;
+}
+.prst-app .prst-metric,
+.prst-app .prst-investor-summary>article{
+  min-height:108px!important;
+  padding:16px 18px!important;
+}
+.prst-app .prst-metric span,
+.prst-app .prst-investor-summary>article span{
+  color:var(--ui-muted)!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:.045em!important;
+  text-transform:uppercase!important;
+}
+.prst-app .prst-metric strong,
+.prst-app .prst-investor-summary>article strong{
+  margin:8px 0 5px!important;
+  color:var(--ui-ink)!important;
+  font-size:26px!important;
+  line-height:1.05!important;
+  letter-spacing:-.035em!important;
+}
+.prst-app .prst-metric small,
+.prst-app .prst-investor-summary>article small{
+  color:#7a8591!important;
+  font-size:10px!important;
+}
+
+/* Forms */
+.prst-app .prst-field>span{
+  color:#344054!important;
+  font-size:11px!important;
+  font-weight:850!important;
+}
+.prst-app .prst-field>small{
+  color:#7a8591!important;
+  font-size:10px!important;
+}
+.prst-app .prst-field input,
+.prst-app .prst-field select,
+.prst-app .prst-field textarea,
+.prst-app .prst-search,
+.prst-app .prst-global-search-input,
+.prst-app .prst-global-search-input input{
+  border-color:#cfd7df!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#24313d!important;
+  font-size:12px!important;
+}
+.prst-app .prst-field input,
+.prst-app .prst-field select,
+.prst-app .prst-search{min-height:44px!important}
+.prst-app .prst-field textarea{min-height:100px!important}
+.prst-app .prst-field input:focus,
+.prst-app .prst-field select:focus,
+.prst-app .prst-field textarea:focus,
+.prst-app .prst-search:focus{
+  outline:none!important;
+  border-color:#8ba4bc!important;
+  box-shadow:0 0 0 3px rgba(63,111,197,.08)!important;
+}
+
+/* Tables */
+.prst-app .prst-table-wrap{
+  border:1px solid var(--ui-line)!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.prst-app .prst-table-wrap table{background:#fff!important}
+.prst-app .prst-table-wrap thead{background:#f4f6f8!important}
+.prst-app .prst-table-wrap th{
+  padding:11px 10px!important;
+  border-bottom:1px solid var(--ui-line)!important;
+  color:#536171!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:.04em!important;
+  text-transform:uppercase!important;
+}
+.prst-app .prst-table-wrap td{
+  padding:12px 10px!important;
+  border-bottom:1px solid #edf0f2!important;
+  color:#26323d!important;
+  font-size:11px!important;
+  vertical-align:middle!important;
+}
+.prst-app .prst-table-wrap tbody tr:hover{background:#fafbfc!important}
+.prst-app .prst-table-wrap td b{color:#17212b!important}
+.prst-app .prst-table-wrap td small{color:#7a8591!important;font-size:9px!important}
+
+/* Buttons */
+.prst-app .prst-row-actions button,
+.prst-app .prst-mini-button,
+.prst-app .prst-card button:not(.prst-dash-kpi):not(.prst-operational-alert),
+.prst-app .prst-report-tabs button{
+  border-radius:8px!important;
+  font-weight:850!important;
+}
+.prst-app .prst-row-actions button,
+.prst-app .prst-mini-button{
+  min-height:36px!important;
+  padding:0 11px!important;
+  font-size:10px!important;
+}
+.prst-app button.primary,
+.prst-app .primary.prst-mini-button{
+  border-color:var(--ui-red)!important;
+  background:var(--ui-red)!important;
+  color:#fff!important;
+}
+.prst-app button.secondary{
+  border-color:#cfd6dc!important;
+  background:#fff!important;
+  color:#344054!important;
+}
+
+/* Status */
+.prst-app .prst-status{
+  min-height:27px!important;
+  padding:0 9px!important;
+  border-radius:999px!important;
+  font-size:9px!important;
+  font-weight:900!important;
+}
+.prst-app .prst-status.active,
+.prst-app .prst-status.posted{background:#eaf7f0!important;color:#216a49!important}
+.prst-app .prst-status.pending{background:#fff5df!important;color:#8a6219!important}
+.prst-app .prst-status.review,
+.prst-app .prst-status.maturing{background:#edf3ff!important;color:#315b9f!important}
+.prst-app .prst-status.rejected,
+.prst-app .prst-status.matured{background:#fdecee!important;color:#9c3340!important}
+
+/* Utilities */
+.prst-app .prst-note{
+  border-radius:9px!important;
+  background:#f6f8fa!important;
+  color:#5d6874!important;
+}
+.prst-app .prst-empty{
+  border-radius:10px!important;
+  background:#f8fafb!important;
+  color:#667085!important;
+}
+.prst-app .prst-grid{gap:14px!important}
+
+/* Reduce visual noise in individual specialized modules */
+.prst-app .prst-alert-rules span,
+.prst-app .prst-profile-grid article,
+.prst-app .prst-profile360-counters>div,
+.prst-app .prst-readiness-list article,
+.prst-app .prst-export-grid article{
+  border:0!important;
+  border-radius:10px!important;
+  background:#f7f9fb!important;
+  box-shadow:inset 0 0 0 1px #e6eaee!important;
+}
+.prst-app .prst-report-tabs{
+  gap:5px!important;
+  padding:4px!important;
+  border-radius:10px!important;
+  background:#f1f3f5!important;
+}
+.prst-app .prst-report-tabs button{
+  border:0!important;
+  background:transparent!important;
+  color:#59636d!important;
+}
+.prst-app .prst-report-tabs button.active{
+  background:#1f2933!important;
+  color:#fff!important;
+}
+
+/* Keep Dashboard/Agenda/Notifications module-specific designs intact where needed */
+.prst-app .prst-dashboard-premium,
+.prst-app .prst-agenda-module,
+.prst-app .prst-alerts-module{
+  font-family:inherit!important;
+}
+
+/* Responsive */
+@media(max-width:1100px){
+  .prst-app{grid-template-columns:250px minmax(0,1fr)!important}
+  .prst-app .prst-content{padding:18px 18px 44px!important}
+}
+@media(max-width:900px){
+  .prst-app{grid-template-columns:1fr!important}
+  .prst-app .prst-topbar{padding:12px!important}
+  .prst-app .prst-content{padding:12px 10px 36px!important}
+  .prst-app .prst-card{padding:15px!important}
+  .prst-app .prst-card-head h2{font-size:18px!important}
+  .prst-app .prst-metric strong,
+  .prst-app .prst-investor-summary>article strong{font-size:22px!important}
+}

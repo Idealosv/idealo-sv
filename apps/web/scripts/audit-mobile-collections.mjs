@@ -15,7 +15,7 @@ const checks=[]
 const expect=(name,condition)=>{if(!condition)throw new Error(`FAIL cobros móvil: ${name}`);checks.push(name)}
 const has=(source,...tokens)=>tokens.every(token=>source.includes(token))
 
-expect('Host de cobros móviles montado una sola vez',has(deferred,"import MobileCollectionsHost from './MobileCollectionsHost.jsx'",'<MobileCollectionsHost/>'))
+expect('Host de cobros móviles montado una sola vez',has(deferred,'const MobileCollectionsHost = lazy','<MobileCollectionsHost />'))
 expect('Runtime diferido está conectado al arranque',main.includes("lazy(()=>import('./DeferredRuntimeHosts.jsx'))"))
 expect('Estilos de cobros móviles montados',main.includes("import './mobile-collections.css'"))
 expect('Cobros sólo para owner/admin',has(collections,"['owner','admin'].includes(role)",'Solo Propietario/Administrador'))
