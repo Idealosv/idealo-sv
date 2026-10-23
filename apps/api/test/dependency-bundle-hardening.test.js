@@ -6,8 +6,9 @@ const apiPackage=JSON.parse(fs.readFileSync(new URL('../package.json',import.met
 const vite=fs.readFileSync(new URL('../../web/vite.config.js',import.meta.url),'utf8')
 const ci=fs.readFileSync(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8')
 
-test('Nodemailer exige versión corregida 9.0.1 o superior',()=>{
-  assert.match(apiPackage.dependencies.nodemailer,/^\^9\.0\.1$/)
+test('Nodemailer exige versión corregida 10.0.9 o superior',()=>{
+  const [major,minor,patch]=apiPackage.dependencies.nodemailer.replace(/^[^0-9]*/, '').split('.').map(Number)
+  assert.ok(major>10||(major===10&&minor>0)||(major===10&&minor===0&&patch>=9))
 })
 
 test('Vite separa dependencias pesadas del bundle principal',()=>{
