@@ -18,5 +18,5 @@ test('Crédito Fiscal queda resaltado en anaranjado',()=>{
 })
 
 test('service worker cambia versión de caché',()=>{
-  assert.match(sw,/idealo-mobile-v6/)
+  assert.match(sw,/idealo-mobile-v7/)
 })

@@ -39,6 +39,9 @@ jobs:
       - name: Compilar frontend para validar cotizaciones
         run: npm run build -w @idealo-sv/web
 
+      - name: Verificar recuperación y firma DTE tras arranque lento
+        run: node --test apps/api/test/signer-readiness.test.js apps/api/test/billing-signing-draft-recovery.test.js
+
       - name: Auditar dependencias altas/críticas
         run: npm audit --audit-level=high
 
