@@ -21,12 +21,16 @@ if (source.includes(alreadyPatched)) {
 
 const marker = "    setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} guardado correctamente.`);setMessageType('success')"
 const replacement = [
-  "    await apiRequest('/api/dte/sign-test',{",
-  "      method:'POST',",
-  "      headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},",
-  "      body:JSON.stringify({documentId:payload.id}),",
-  "    })",
-  "    setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} firmado correctamente.`);setMessageType('success')",
+  "    try {",
+  "      await apiRequest('/api/dte/sign-test',{",
+  "        method:'POST',",
+  "        headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},",
+  "        body:JSON.stringify({documentId:payload.id}),",
+  "      })",
+  "      setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} firmado correctamente.`);setMessageType('success')",
+  "    } catch (signError) {",
+  "      setMessage(`${dteType==='03'?'Crédito Fiscal':'Factura'} ${payload.control_number} quedó guardado como borrador sin firmar. Recuperalo en Facturación → Documentos. Verificá el firmador en Hacienda antes de volver a firmarlo. Detalle: ${signError.message}`);setMessageType('error')",
+  "    }",
 ].join('\n')
 
 if (!source.includes(marker)) {
