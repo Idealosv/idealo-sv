@@ -1,5 +1,6 @@
 import { getDteSignerConfig, getDteProductionPreflightStatus } from './config.js'
 import { DteSignerClient } from './signer-client.js'
+import { waitForSignerReady } from './signer-readiness.js'
 import { DTE_ROLES, requireAuthenticatedUser, requireCompanyRole } from './access-control.js'
 import { buildCompanyDteEnv } from './runtime-settings-service.js'
 
@@ -80,6 +81,13 @@ async function signDteDraft({ request, supabase, env = process.env, fetchImpl = 
     throw error
   }
 
+  // Render's free signer can be asleep. Its Java runtime may need over a minute
+  // to start: do not lock the invoice in SIGNING before the signer is ready.
+  const signer = new DteSignerClient(getDteSignerConfig(signerEnv), { fetchImpl })
+  const requestedWaitMs = Number(signerEnv.DTE_SIGNER_WARMUP_TIMEOUT_MS || 120000)
+  const maxWaitMs = Math.min(180000, Math.max(120000, Number.isFinite(requestedWaitMs) ? requestedWaitMs : 120000))
+  await waitForSignerReady({ signer, maxWaitMs })
+
   const { data: claimed, error: claimError } = await supabase
     .from('dte_documents')
     .update({ status: 'SIGNING', updated_at: new Date().toISOString() })
@@ -93,8 +101,6 @@ async function signDteDraft({ request, supabase, env = process.env, fetchImpl = 
     error.statusCode = 409
     throw error
   }
-
-  const signer = new DteSignerClient(getDteSignerConfig(signerEnv), { fetchImpl })
 
   try {
     const response = await signer.sign(document.dte_payload)
